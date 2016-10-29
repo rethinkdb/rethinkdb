@@ -9,7 +9,7 @@ public class RethinkDB extends TopLevel {
     /**
      * The Singleton to use to begin interacting with RethinkDB Driver
      */
-    public static RethinkDB r = new RethinkDB();
+    public static final RethinkDB r = new RethinkDB();
     private static ObjectMapper mapper = new ObjectMapper();
     public Connection.Builder connection() {
         return Connection.build();
