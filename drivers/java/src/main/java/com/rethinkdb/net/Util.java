@@ -4,6 +4,9 @@ import com.rethinkdb.RethinkDB;
 import com.rethinkdb.gen.exc.ReqlDriverError;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MarkerFactory;
 
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
@@ -24,6 +27,7 @@ public class Util {
         return System.currentTimeMillis() + timeout;
     }
 
+    private static Logger log = LoggerFactory.getLogger(Util.class);
     public static ByteBuffer leByteBuffer(int capacity) {
         // Creating the ByteBuffer over an underlying array makes
         // it easier to turn into a string later.
@@ -78,8 +82,26 @@ public class Util {
      */
     @SuppressWarnings("unchecked")
     private static <T> T toPojo(Class<T> pojoClass, Map<String, Object> map) {
-      T t = RethinkDB.getObjectMapper().convertValue(map,pojoClass);
-        return t;
+        /**
+         * Jackson will throw an error if the POJO is not annotated with an ignore annotation and the server gives a value that is not a field within the POJO
+         * To prevent this, we get a list of all the field names from the class, and iterate through the map. If the map contains a key that the does not correlate to a field name, then that entry from the map is removed
+         * and we log an error.
+         */
+            List<String> nameFields = new ArrayList<>();
+            Arrays.asList(pojoClass.getDeclaredFields()).forEach(field -> nameFields.add(field.getName()));
+            List<String> toRemove = new ArrayList<>();
+
+            map.keySet().forEach(s ->
+            {
+                if (!nameFields.contains(s))
+                {
+                    log.error("Got JSON field [" + s + "] from server. POJO does not contain field, removing from map!");
+                    toRemove.add(s);
+                }
+            });
+          toRemove.forEach(map::remove);
+
+        return RethinkDB.getObjectMapper().convertValue(map,pojoClass);
     }
 }
 
