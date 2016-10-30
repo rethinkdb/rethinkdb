@@ -116,7 +116,7 @@ public class Util {
         if (val == null) {
             return new Datum(null);
         }
-        if(val.getClass().isEnum()){
+        if (val.getClass().isEnum()) {
             return new Datum(((Enum)val).toString());
         }
 
