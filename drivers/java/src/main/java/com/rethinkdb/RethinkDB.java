@@ -15,10 +15,10 @@ public class RethinkDB extends TopLevel {
         return Connection.build();
     }
 
-    public static void setObjectMapper(ObjectMapper mapper1){
+    public static void setObjectMapper(ObjectMapper mapper1) {
         mapper = mapper1;
     }
-    public static ObjectMapper getObjectMapper(){
+    public static ObjectMapper getObjectMapper() {
         return mapper;
     }
 }
