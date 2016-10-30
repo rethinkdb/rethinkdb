@@ -2,10 +2,7 @@ package com.rethinkdb;
 
 import com.rethinkdb.net.Connection;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.Properties;
 
 /**
@@ -22,6 +19,7 @@ public class TestingFramework {
     private static final String PROP_AUTHKEY = "authKey";
 
     private static Connection.Builder defaultConnectionBuilder;
+
 
     /**
      * Provision a connection builder based on the test configuration.
