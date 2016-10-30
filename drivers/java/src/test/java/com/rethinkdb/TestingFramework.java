@@ -20,7 +20,6 @@ public class TestingFramework {
 
     private static Connection.Builder defaultConnectionBuilder;
 
-
     /**
      * Provision a connection builder based on the test configuration.
      * <p>
