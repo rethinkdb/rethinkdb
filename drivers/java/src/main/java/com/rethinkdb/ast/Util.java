@@ -132,7 +132,7 @@ public class Util {
      * @return Map of POJO's public properties
      */
     private static Map<String, Object> toMap(Object pojo) {
-        Map<String,Object> map = RethinkDB.getObjectMapper().convertValue(pojo,Map.class);
+        Map<String, Object> map = RethinkDB.getObjectMapper().convertValue(pojo, Map.class);
         return map;
     }
 }
