@@ -128,7 +128,7 @@ HANDSHAKE_AUTHFAIL = "ERROR: Incorrect authorization key.\n"
 # - `"timeout"` will be emitted by the `TcpConnection` subclass if the
 #    underlying socket times out for any reason.
 class Connection extends events.EventEmitter
-    
+
     # By default, RethinkDB doesn't use an authorization key.
     DEFAULT_AUTH_KEY: ''
     # Each connection has a timeout (in seconds) for the initial handshake with the
@@ -1022,7 +1022,8 @@ class TcpConnection extends Connection
 
             nullbyte = new Buffer('\0', "binary")
 
-            @rawSocket.write Buffer.concat([version, Buffer(message.toString()), nullbyte])
+            buffer_message = (Buffer.from ? Buffer.from(message.toString()) : Buffer(message.toString))
+            @rawSocket.write Buffer.concat([version, buffer_message, nullbyte])
 
             # Now we have to wait for a response from the server
             # acknowledging the new connection. The following callback
@@ -1173,7 +1174,8 @@ class TcpConnection extends Connection
 
                             nullbyte = new Buffer('\0', "binary")
 
-                            @rawSocket.write Buffer.concat([Buffer(message.toString()), nullbyte])
+                            buffer_message = (Buffer.from ? Buffer.from(message.toString()) : Buffer(message.toString))
+                            @rawSocket.write Buffer.concat([buffer_message, nullbyte])
                         else if state is 3
                             if not server_reply.success
                                 handshake_error(server_reply.error_code, server_reply.error)
