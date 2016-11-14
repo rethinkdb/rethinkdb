@@ -715,10 +715,11 @@ module RethinkDB
       context.ssl_version = :TLSv1_2
       if options[:ca_certs]
         context.ca_file = options[:ca_certs]
-        context.verify_mode = OpenSSL::SSL::VERIFY_PEER
-      else
-        raise 'ssl options provided but missing required "ca_certs" option'
+      elsif options[:ssl]
+        #Assume system certs
+        context.ca_file = OpenSSL::X509::DEFAULT_CERT_FILE
       end
+      context.verify_mode = OpenSSL::SSL::VERIFY_PEER
       context
     end
 
