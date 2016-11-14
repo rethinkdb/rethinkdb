@@ -695,6 +695,7 @@ module RethinkDB
         context = create_context(@ssl_opts)
         @socket = OpenSSL::SSL::SSLSocket.new(@tcp_socket, context)
         @socket.sync_close = true
+        @socket.hostname = @host
         @socket.connect
         verify_cert!(@socket, context)
       else
