@@ -280,7 +280,7 @@ class SocketWrapper(object):
             self._socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_KEEPALIVE, 1)
 
-            if len(self.ssl) > 0:
+            if self.ssl is not None:
                 try:
                     if hasattr(ssl, 'SSLContext'): # Python2.7 and 3.2+, or backports.ssl
                         ssl_context = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
@@ -289,7 +289,11 @@ class SocketWrapper(object):
                             ssl_context.options |= getattr(ssl, "OP_NO_SSLv3", 0)
                         ssl_context.verify_mode = ssl.CERT_REQUIRED
                         ssl_context.check_hostname = True # redundant with match_hostname
-                        ssl_context.load_verify_locations(self.ssl["ca_certs"])
+                        if "ca_certs" not in self.ssl:
+                            #Use system certs
+                            ssl_context.load_default_certs()
+                        else:
+                            ssl_context.load_verify_locations(self.ssl["ca_certs"])
                         self._socket = ssl_context.wrap_socket(self._socket, server_hostname=self.host)
                     else: # this does not disable SSLv2 or SSLv3
                         self._socket = ssl.wrap_socket(
@@ -663,8 +667,6 @@ def connect(host=None, port=None, db=None, auth_key=None, user=None, password=No
         user = 'admin'
     if timeout is None:
         timeout = 20
-    if ssl is None:
-        ssl = dict()
     if _handshake_version is None:
         _handshake_version = 10
     
