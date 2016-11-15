@@ -486,7 +486,7 @@ module RethinkDB
       @nonce = SecureRandom.base64(18)
       @timeout = opts[:timeout].to_i
       @timeout = 20 if @timeout <= 0
-      @ssl_opts = opts[:ssl] || {}
+      @ssl_opts = opts[:ssl] || nil
 
       @@last = self
       @default_opts = @default_db ? {:db => RQL.new.db(@default_db)} : {}
@@ -690,7 +690,7 @@ module RethinkDB
     end
 
     def init_socket
-      unless @ssl_opts.empty?
+      unless @ssl_opts.nil?
         @tcp_socket = base_socket
         context = create_context(@ssl_opts)
         @socket = OpenSSL::SSL::SSLSocket.new(@tcp_socket, context)
@@ -713,11 +713,11 @@ module RethinkDB
     def create_context(options)
       context = OpenSSL::SSL::SSLContext.new
       context.ssl_version = :TLSv1_2
-      if options[:ca_certs]
-        context.ca_file = options[:ca_certs]
-      elsif options[:ssl]
+      if @ssl_opts.empty?
         #Assume system certs
         context.ca_file = OpenSSL::X509::DEFAULT_CERT_FILE
+      elsif options[:ca_certs]
+        context.ca_file = options[:ca_certs]
       end
       context.verify_mode = OpenSSL::SSL::VERIFY_PEER
       context
