@@ -35,7 +35,7 @@ private:
     // Even seemingly harmless things such as r.line() are affected because they perform
     // geometric validation.
     deterministic_t is_deterministic() const {
-        return worst_determinism(op_term_t::is_deterministic(), deterministic_t::single_server);
+        return op_term_t::is_deterministic() | DET_SINGLE_SERVER;
     }
     virtual scoped_ptr_t<val_t> eval_geo(
             scope_env_t *env, args_t *args, eval_flags_t flags) const = 0;
@@ -58,7 +58,7 @@ public:
 private:
     // See comment in geo_term_t about non-determinism
     deterministic_t is_deterministic() const {
-        return worst_determinism(obj_or_seq_op_term_t::is_deterministic(), deterministic_t::single_server);
+        return obj_or_seq_op_term_t::is_deterministic() | DET_SINGLE_SERVER;
     }
     virtual scoped_ptr_t<val_t> obj_eval_geo(
             scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const = 0;

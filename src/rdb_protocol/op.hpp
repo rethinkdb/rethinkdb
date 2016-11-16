@@ -18,22 +18,24 @@ namespace ql {
 
 class func_term_t;
 
-// Note that worst_determinism depends on the order of these; if you want to add
-// a new value, make sure worst_determinism is properly defined for it.
-enum class deterministic_t {
+enum deterministic_bit_t {
     // non-deterministic operations, like ones involving external queries
-    no,
+    DET_NONDET = 1,
 
     // deterministic on a single server, but not necessarily across the cluster (different
     // cpus, compilers), like geo operations
-    single_server,
+    DET_SINGLE_SERVER = 2,
 
-    // always deterministic, even across different machines
-    always,
+    // deterministic if r.now is constant
+    DET_CONSTANT_NOW = 4,
+
+    // always deterministic
+    DET_DETERMINISTIC = 0
 };
 
-// Returns the most restrictive deterministic_t value passed in.
-deterministic_t worst_determinism(deterministic_t a, deterministic_t b);
+typedef int deterministic_t;
+
+std::string deterministic_string(deterministic_t det);
 
 // Specifies the range of normal arguments a function can take (arguments
 // provided by `r.args` count toward the total).  You may also optionally

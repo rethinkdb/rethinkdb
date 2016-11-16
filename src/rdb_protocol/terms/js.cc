@@ -53,7 +53,7 @@ private:
 
     // No JS term is considered deterministic
     virtual deterministic_t  is_deterministic() const {
-        return deterministic_t::no;
+        return DET_NONDET;
     }
 };
 
