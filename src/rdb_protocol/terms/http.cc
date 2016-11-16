@@ -37,7 +37,7 @@ private:
 
     // No HTTP term is considered deterministic
     virtual deterministic_t is_deterministic() const {
-        return deterministic_t::no;
+        return DET_NONDET;
     }
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const;

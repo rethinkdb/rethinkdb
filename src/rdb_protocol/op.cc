@@ -283,21 +283,17 @@ const std::vector<counted_t<const term_t> > &op_term_t::get_original_args() cons
     return arg_terms->get_original_args();
 }
 
-deterministic_t worst_determinism(const deterministic_t a, const deterministic_t b) {
-    return a < b ? a : b;
-}
-
 deterministic_t op_term_t::is_deterministic() const {
     const std::vector<counted_t<const term_t> > &original_args
         = arg_terms->get_original_args();
-    deterministic_t worst_so_far = deterministic_t::always;
+    deterministic_t det = DET_DETERMINISTIC;
     for (const auto &arg : original_args) {
-        worst_so_far = worst_determinism(worst_so_far, arg->is_deterministic());
+        det |= arg->is_deterministic();
     }
     for (const auto &arg : optargs) {
-        worst_so_far = worst_determinism(worst_so_far, arg.second->is_deterministic());
+        det |= arg.second->is_deterministic();
     }
-    return worst_so_far;
+    return det;
 }
 
 void op_term_t::maybe_grouped_data(scope_env_t *env,
@@ -356,5 +352,21 @@ bool bounded_op_term_t::open_bool(
     }
 }
 
+std::string deterministic_string(deterministic_t det) {
+    if (det == DET_DETERMINISTIC) {
+        return "DETERMINISTIC";
+    }
+    std::string ret;
+    if (det & DET_NONDET) {
+        ret += "NONDET ";
+    }
+    if (det & DET_CONSTANT_NOW) {
+        ret += "CONSTANT_NOW ";
+    }
+    if (det & DET_SINGLE_SERVER) {
+        ret += "SINGLE_SERVER ";
+    }
+    return ret;
+}
 
 } // namespace ql

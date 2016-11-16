@@ -73,7 +73,7 @@ private:
         r_sanity_check(env->env->get_deterministic_time().has());
         return new_val(env->env->get_deterministic_time());
     }
-    virtual deterministic_t is_deterministic() const { return deterministic_t::no; }
+    virtual deterministic_t is_deterministic() const { return DET_CONSTANT_NOW; }
     virtual const char *name() const { return "now"; }
 };
 

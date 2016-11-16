@@ -22,7 +22,7 @@ public:
     }
 
 private:
-    raw_term_t do_rewrite(const raw_term_t &term, 
+    raw_term_t do_rewrite(const raw_term_t &term,
                           argspec_t argspec,
                           minidriver_t::reql_t (*rewrite)(const raw_term_t &)) {
         rcheck(argspec.contains(term.num_args()),
