@@ -6,6 +6,8 @@
 #include <set>
 #include <string>
 
+#include <openssl/ssl.h>
+
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/namespace_interface_repository.hpp"
 #include "http/http.hpp"
@@ -27,7 +29,8 @@ public:
         int port,
         const server_id_t &my_server_id,
         http_app_t *reql_app,
-        std::string _path);
+        std::string _path,
+        SSL_CTX *tls_ctx);
     ~administrative_http_server_manager_t();
 
     int get_port() const;
