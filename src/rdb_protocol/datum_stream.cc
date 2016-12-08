@@ -1863,6 +1863,18 @@ private:
     union_datum_stream_t *parent;
 };
 
+bool ordered_union_datum_stream_t::merge_less_t::operator()(
+    const merge_cache_item_t &a,
+    const merge_cache_item_t &b) {
+    // We swap `a` and `b` intentionally here, so that the
+    // `priority_queue` has the *smallest* element on top.
+    return merge_lt_cmp->operator()(
+        env,
+        merge_sampler,
+        b.value,
+        a.value);
+}
+
 ordered_union_datum_stream_t::ordered_union_datum_stream_t(
     std::vector<counted_t<datum_stream_t> > &&_streams,
     std::vector<std::pair<order_direction_t, counted_t<const func_t> > > &&_comparisons,
@@ -1874,8 +1886,15 @@ ordered_union_datum_stream_t::ordered_union_datum_stream_t(
       is_infinite_ordered_union(false),
       is_ordered_by_field(_comparisons.size() != 0),
       do_prelim_cache(true),
+      merge_env(make_scoped<env_t>(
+          env->get_rdb_ctx(),
+          env->return_empty_normal_batches,
+          &non_interruptor,
+          env->get_all_optargs(),
+          env->get_user_context(),
+          nullptr)),
       lt(_comparisons),
-      merge_cache(merge_less_t{env, nullptr, &lt}) {
+      merge_cache(merge_less_t{merge_env.get(), nullptr, &lt}) {
 
     for (const auto &stream : _streams) {
         union_type = union_of(union_type, stream->cfeed_type());

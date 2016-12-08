@@ -306,18 +306,14 @@ private:
         counted_t<datum_stream_t> source;
     };
 
+    cond_t non_interruptor;
+    scoped_ptr_t<env_t> merge_env;
+
     struct merge_less_t {
-        env_t *merge_env;
+        env_t *env;
         profile::sampler_t *merge_sampler;
         lt_cmp_t *merge_lt_cmp;
-        bool operator()(const merge_cache_item_t &a, const merge_cache_item_t &b) {
-            // We swap `a` and `b` intentionally here, so that the
-            // `priority_queue` has the *smallest* element on top.
-            return merge_lt_cmp->operator()(merge_env,
-                                            merge_sampler,
-                                            b.value,
-                                            a.value);
-        }
+        bool operator()(const merge_cache_item_t &a, const merge_cache_item_t &b);
     };
 
     lt_cmp_t lt;
