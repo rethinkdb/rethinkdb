@@ -26,12 +26,12 @@ public:
                 const read_t &r,
                 order_token_t ot,
                 fifo_enforcer_read_token_t ft,
-                const mailbox_addr_t< void(boost::variant<read_response_t, cannot_perform_query_exc_t>)> &ca) :
+                const mailbox_addr_t<boost::variant<read_response_t, cannot_perform_query_exc_t>> &ca) :
             read(r), order_token(ot), fifo_token(ft), cont_addr(ca) { }
         read_t read;
         order_token_t order_token;
         fifo_enforcer_read_token_t fifo_token;
-        mailbox_addr_t< void(boost::variant<read_response_t, cannot_perform_query_exc_t>)> cont_addr;
+        mailbox_addr_t<boost::variant<read_response_t, cannot_perform_query_exc_t>> cont_addr;
     };
 
     class write_request_t {
@@ -41,12 +41,12 @@ public:
                 const write_t &w,
                 order_token_t ot,
                 fifo_enforcer_write_token_t ft,
-                const mailbox_addr_t< void(boost::variant<write_response_t, cannot_perform_query_exc_t>)> &ca) :
+                const mailbox_addr_t<boost::variant<write_response_t, cannot_perform_query_exc_t>> &ca) :
             write(w), order_token(ot), fifo_token(ft), cont_addr(ca) { }
         write_t write;
         order_token_t order_token;
         fifo_enforcer_write_token_t fifo_token;
-        mailbox_addr_t< void(boost::variant<write_response_t, cannot_perform_query_exc_t>)> cont_addr;
+        mailbox_addr_t<boost::variant<write_response_t, cannot_perform_query_exc_t>> cont_addr;
     };
 
     typedef boost::variant< read_request_t, write_request_t > request_t;
@@ -78,7 +78,7 @@ class direct_query_bcard_t {
 public:
     typedef mailbox_t< void(
             read_t,
-            mailbox_addr_t< void(read_response_t)>
+            mailbox_addr_t<read_response_t>
             )> read_mailbox_t;
 
     direct_query_bcard_t() { }

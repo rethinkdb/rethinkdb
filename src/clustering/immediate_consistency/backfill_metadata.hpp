@@ -217,7 +217,7 @@ struct replica_bcard_t {
     reply there once it's at least as up to date as the timestamp. */
     typedef mailbox_t<void(
         state_timestamp_t,
-        mailbox_addr_t<void()>
+        mailbox_addr_t<>
         )> synchronize_mailbox_t;
 
     synchronize_mailbox_t::address_t synchronize_mailbox;

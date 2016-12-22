@@ -13,23 +13,23 @@
 
 template <class> class mailbox_t;
 
-template <class T>
+template <class... Args>
 class mailbox_addr_t {
 public:
-    bool operator<(const mailbox_addr_t<T> &other) const {
+    bool operator<(const mailbox_addr_t<Args...> &other) const {
         return addr < other.addr;
     }
     bool is_nil() const { return addr.is_nil(); }
     peer_id_t get_peer() const { return addr.get_peer(); }
 
-    friend class mailbox_t<T>;
+    friend class mailbox_t<void(Args...)>;
 
     RDB_MAKE_ME_SERIALIZABLE_1(mailbox_addr_t, addr);
-    RDB_MAKE_ME_EQUALITY_COMPARABLE_1(mailbox_addr_t<T>, addr);
+    RDB_MAKE_ME_EQUALITY_COMPARABLE_1(mailbox_addr_t<Args...>, addr);
 
 private:
-    template <class... Args>
-    friend void send(mailbox_manager_t *, mailbox_addr_t<void(Args...)>, const Args &... args);
+    template <class... Args2>
+    friend void send(mailbox_manager_t *, mailbox_addr_t<Args2...>, const Args2 &... args);
 
     raw_mailbox_t::address_t addr;
 };
@@ -55,7 +55,7 @@ class mailbox_t< void(Args...) > {
 
     read_impl_t reader;
 public:
-    typedef mailbox_addr_t< void(Args...) > address_t;
+    typedef mailbox_addr_t<Args...> address_t;
 
     mailbox_t(mailbox_manager_t *manager,
               const std::function< void(signal_t *, Args...)> &f) :
@@ -100,7 +100,7 @@ public:
 };
 
 template <class... Args>
-void send(mailbox_manager_t *src, mailbox_addr_t<void(Args...)> dest, const Args &... args) {
+void send(mailbox_manager_t *src, mailbox_addr_t<Args...> dest, const Args &... args) {
     mailbox_write_impl<Args...> writer(args...);
     send_write(src, dest.addr, &writer);
 }

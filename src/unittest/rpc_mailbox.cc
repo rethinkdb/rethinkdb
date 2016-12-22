@@ -161,7 +161,7 @@ TPTEST_MULTITHREAD(RPCMailboxTest, TypedMailbox, 3) {
             inbox.push_back(str);
         });
 
-    mailbox_addr_t<void(std::string)> addr = mbox.get_address();
+    mailbox_addr_t<std::string> addr = mbox.get_address();
 
     send(&m, addr, std::string("foo"));
     send(&m, addr, std::string("bar"));

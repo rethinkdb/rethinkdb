@@ -129,7 +129,7 @@ RDB_DECLARE_SERIALIZABLE(msg_t);
 class real_feed_t;
 struct stamped_msg_t;
 
-typedef mailbox_addr_t<void(stamped_msg_t)> client_addr_t;
+typedef mailbox_addr_t<stamped_msg_t> client_addr_t;
 
 struct keyspec_t {
     struct range_t {
@@ -255,7 +255,7 @@ private:
     auto_drainer_t drainer;
 };
 
-typedef mailbox_addr_t<void(client_addr_t)> server_addr_t;
+typedef mailbox_addr_t<client_addr_t> server_addr_t;
 
 template<class Id, class Key, class Val, class Gt>
 class index_queue_t {
@@ -463,7 +463,7 @@ public:
 class server_t {
 public:
     typedef server_addr_t addr_t;
-    typedef mailbox_addr_t<void(client_t::addr_t, optional<std::string>, uuid_u)>
+    typedef mailbox_addr_t<client_t::addr_t, optional<std::string>, uuid_u>
         limit_addr_t;
     explicit server_t(mailbox_manager_t *_manager, store_t *_parent);
     ~server_t();
