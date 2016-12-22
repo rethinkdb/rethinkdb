@@ -332,14 +332,14 @@ void table_meta_client_t::drop(
             mailbox_t<void()> ack_mailbox(mailbox_manager,
                 [&](signal_t *) { got_ack.pulse(); });
             send(mailbox_manager, pair.second.action_mailbox,
-                table_id,
-                multi_table_manager_timestamp_t::deletion(),
-                multi_table_manager_bcard_t::status_t::DELETED,
-                optional<table_basic_config_t>(),
-                optional<raft_member_id_t>(),
-                optional<raft_persistent_state_t<table_raft_state_t> >(),
-                optional<raft_start_election_immediately_t>(),
-                ack_mailbox.get_address());
+                 {table_id,
+                  multi_table_manager_timestamp_t::deletion(),
+                  multi_table_manager_bcard_t::status_t::DELETED,
+                  optional<table_basic_config_t>(),
+                  optional<raft_member_id_t>(),
+                  optional<raft_persistent_state_t<table_raft_state_t> >(),
+                  optional<raft_start_election_immediately_t>(),
+                  ack_mailbox.get_address()});
             wait_any_t interruptor_combined(&dw, &interruptor);
             wait_interruptible(&got_ack, &interruptor_combined);
             ++num_acked;
@@ -603,14 +603,14 @@ void table_meta_client_t::create_or_emergency_repair(
             mailbox_t<void()> ack_mailbox(mailbox_manager,
                 [&](signal_t *) { got_ack.pulse(); });
             send(mailbox_manager, pair.second.action_mailbox,
-                table_id,
-                timestamp,
-                multi_table_manager_bcard_t::status_t::ACTIVE,
-                optional<table_basic_config_t>(),
-                optional<raft_member_id_t>(raft_state.member_ids.at(pair.first)),
-                optional<raft_persistent_state_t<table_raft_state_t> >(raft_ps),
-                start_immediately,
-                ack_mailbox.get_address());
+                 {table_id,
+                  timestamp,
+                  multi_table_manager_bcard_t::status_t::ACTIVE,
+                  optional<table_basic_config_t>(),
+                  optional<raft_member_id_t>(raft_state.member_ids.at(pair.first)),
+                  optional<raft_persistent_state_t<table_raft_state_t> >(raft_ps),
+                  start_immediately,
+                  ack_mailbox.get_address()});
             wait_any_t interruptor_combined(&dw, interruptor);
             wait_interruptible(&got_ack, &interruptor_combined);
 
@@ -760,7 +760,7 @@ void table_meta_client_t::get_status(
                     got_ack.pulse();
                 });
             send(mailbox_manager, bcard->get_status_mailbox,
-                target.second, request, ack_mailbox.get_address());
+                 {target.second, request, ack_mailbox.get_address()});
             wait_any_t waiter(&dw, interruptor, &got_ack);
             waiter.wait_lazily_unordered();
         });

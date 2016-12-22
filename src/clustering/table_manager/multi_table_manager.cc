@@ -256,28 +256,28 @@ void multi_table_manager_t::help_construct() {
 
     action_mailbox.init(new multi_table_manager_bcard_t::action_mailbox_t(
         mailbox_manager,
-        std::bind(&multi_table_manager_t::on_action, this,
-            ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7, ph::_8, ph::_9)));
+        std::bind(&multi_table_manager_t::on_action, this, ph::_1, ph::_2)));
 
     get_status_mailbox.init(new multi_table_manager_bcard_t::get_status_mailbox_t(
         mailbox_manager,
-        std::bind(&multi_table_manager_t::on_get_status, this,
-            ph::_1, ph::_2, ph::_3, ph::_4)));
+        std::bind(&multi_table_manager_t::on_get_status, this, ph::_1, ph::_2)));
 }
 
 void multi_table_manager_t::on_action(
         signal_t *interruptor,
-        const namespace_id_t &table_id,
-        const multi_table_manager_timestamp_t &timestamp,
-        multi_table_manager_bcard_t::status_t action_status,
-        const optional<table_basic_config_t> &basic_config,
-        const optional<raft_member_id_t> &raft_member_id,
-        const optional<raft_persistent_state_t<table_raft_state_t> >
-            &initial_raft_state,
-        const optional<raft_start_election_immediately_t>
-            &start_election_immediately,
-        const mailbox_t<void()>::address_t &ack_addr) {
+        const multi_table_manager_bcard_t::action_message_t &msg) {
     typedef multi_table_manager_bcard_t::status_t action_status_t;
+
+    const namespace_id_t &table_id = msg.table_id;
+    const multi_table_manager_timestamp_t &timestamp = msg.timestamp;
+    multi_table_manager_bcard_t::status_t action_status = msg.status;
+    const optional<table_basic_config_t> &basic_config = msg.basic_config;
+    const optional<raft_member_id_t> &raft_member_id = msg.raft_member_id;
+    const optional<raft_persistent_state_t<table_raft_state_t> >
+        &initial_raft_state = msg.initial_raft_state;
+    const optional<raft_start_election_immediately_t>
+        &start_election_immediately = msg.start_election_immediately;
+    const mailbox_t<void()>::address_t &ack_addr = msg.ack_addr;
 
     /* Validate the incoming message */
     guarantee(static_cast<bool>(basic_config) ==
@@ -294,7 +294,7 @@ void multi_table_manager_t::on_action(
 
     /* Find or create the table record for this table */
     mutex_assertion_t::acq_t global_mutex_acq(&mutex);
-    bool is_new = (tables.count(table_id) == 0);
+    bool is_new = (tables.count(msg.table_id) == 0);
     table_t *table;
     if (is_new) {
         tables[table_id].init(table = new table_t);
@@ -529,11 +529,14 @@ void multi_table_manager_t::on_action(
 
 void multi_table_manager_t::on_get_status(
         signal_t *interruptor,
-        const std::set<namespace_id_t> &tables_of_interest,
-        const table_status_request_t &request,
-        const mailbox_t<void(
-            std::map<namespace_id_t, table_status_response_t>
-            )>::address_t &reply_addr) {
+        const multi_table_manager_bcard_t::get_status_message_t &msg) {
+
+    const std::set<namespace_id_t> &tables_of_interest = msg.table_ids;
+    const table_status_request_t &request = msg.request;
+    const mailbox_t<void(
+        std::map<namespace_id_t, table_status_response_t>
+                         )>::address_t &reply_addr = msg.reply_addr;
+
     std::map<namespace_id_t, table_status_response_t> responses;
     for (const namespace_id_t &table_id : tables_of_interest) {
         /* Fetch information for a specific table. */
@@ -601,14 +604,14 @@ void multi_table_manager_t::do_sync(
         }
 
         send(mailbox_manager, table_manager_bcard.action_mailbox,
-            table_id,
-            timestamp,
-            action_status,
-            basic_config,
-            raft_member_id,
-            initial_raft_state,
-            optional<raft_start_election_immediately_t>(raft_start_election_immediately_t::NO),
-            mailbox_t<void()>::address_t());
+             {table_id,
+              timestamp,
+              action_status,
+              basic_config,
+              raft_member_id,
+              initial_raft_state,
+              optional<raft_start_election_immediately_t>(raft_start_election_immediately_t::NO),
+              mailbox_t<void()>::address_t()});
 
     } else if (table.status == table_t::status_t::INACTIVE) {
         if (table_bcard.has_value()) {
@@ -618,26 +621,26 @@ void multi_table_manager_t::do_sync(
         }
 
         send(mailbox_manager, table_manager_bcard.action_mailbox,
-            table_id,
-            table.basic_configs_entry->get_value().second,
-            action_status_t::MAYBE_ACTIVE,
-            optional<table_basic_config_t>(
-                table.basic_configs_entry->get_value().first),
-            optional<raft_member_id_t>(),
-            optional<raft_persistent_state_t<table_raft_state_t> >(),
-            optional<raft_start_election_immediately_t>(),
-            mailbox_t<void()>::address_t());
+             {table_id,
+              table.basic_configs_entry->get_value().second,
+              action_status_t::MAYBE_ACTIVE,
+              optional<table_basic_config_t>(
+                  table.basic_configs_entry->get_value().first),
+              optional<raft_member_id_t>(),
+              optional<raft_persistent_state_t<table_raft_state_t> >(),
+              optional<raft_start_election_immediately_t>(),
+              mailbox_t<void()>::address_t()});
 
     } else if (table.status == table_t::status_t::DELETED) {
         send(mailbox_manager, table_manager_bcard.action_mailbox,
-            table_id,
-            multi_table_manager_timestamp_t::deletion(),
-            action_status_t::DELETED,
-            optional<table_basic_config_t>(),
-            optional<raft_member_id_t>(),
-            optional<raft_persistent_state_t<table_raft_state_t> >(),
-            optional<raft_start_election_immediately_t>(),
-            mailbox_t<void()>::address_t());
+             {table_id,
+              multi_table_manager_timestamp_t::deletion(),
+              action_status_t::DELETED,
+              optional<table_basic_config_t>(),
+              optional<raft_member_id_t>(),
+              optional<raft_persistent_state_t<table_raft_state_t> >(),
+              optional<raft_start_election_immediately_t>(),
+              mailbox_t<void()>::address_t()});
 
     } else {
         unreachable();
