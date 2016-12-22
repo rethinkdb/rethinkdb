@@ -8,8 +8,7 @@ minidir_read_manager_t<key_t, value_t>::minidir_read_manager_t(
         mailbox_manager_t *mm) :
     mailbox_manager(mm),
     update_mailbox(mailbox_manager,
-        std::bind(&minidir_read_manager_t::on_update, this,
-            ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7)),
+        std::bind(&minidir_read_manager_t::on_update, this, ph::_1, ph::_2)),
     connection_subs(mailbox_manager->get_connectivity_cluster()->get_connections(),
         std::bind(&minidir_read_manager_t::on_connection_change, this, ph::_1, ph::_2),
         initial_call_t::NO)
@@ -33,12 +32,14 @@ void minidir_read_manager_t<key_t, value_t>::on_connection_change(
 template<class key_t, class value_t>
 void minidir_read_manager_t<key_t, value_t>::on_update(
         signal_t *interruptor,
-        const peer_id_t &peer_id,
-        const minidir_link_id_t &link_id,
-        fifo_enforcer_write_token_t fifo_token,
-        bool closing_link,
-        const optional<key_t> &key,
-        const optional<value_t> &value) {
+        const typename minidir_bcard_t<key_t, value_t>::update_message_t &msg) {
+    const peer_id_t &peer_id = msg.peer_id;
+    const minidir_link_id_t &link_id = msg.link_id;
+    fifo_enforcer_write_token_t fifo_token = msg.fifo_token;
+    bool closing_link = msg.closing_link;
+    const optional<key_t> &key = msg.key;
+    const optional<value_t> &value = msg.value;
+
     scoped_ptr_t<peer_data_t> *peer_data_ptr = &peer_map[peer_id];
     if (!peer_data_ptr->has()) {
         /* Acquire a lock on the connection session over which this message arrived. */
@@ -241,8 +242,8 @@ void minidir_write_manager_t<reader_id_t, key_t, value_t>::spawn_update(
     auto_drainer_t::lock_t keepalive = drainer.lock();
     coro_t::spawn_sometime([this, keepalive /* important to capture */, bcard, link_id,
             write_token, key, value] {
-        send(mailbox_manager, bcard.update_mailbox, mailbox_manager->get_me(),
-            link_id, write_token, false, make_optional(key), value);
+        send(mailbox_manager, bcard.update_mailbox,
+             {mailbox_manager->get_me(), link_id, write_token, false, make_optional(key), value});
     });
 }
 
@@ -255,9 +256,9 @@ void minidir_write_manager_t<reader_id_t, key_t, value_t>::spawn_closing_link(
     auto_drainer_t::lock_t keepalive = drainer.lock();
     coro_t::spawn_sometime([this, keepalive /* important to capture */, bcard, link_id,
             write_token] {
-        send(mailbox_manager, bcard.update_mailbox, mailbox_manager->get_me(),
-            link_id, write_token, true, optional<key_t>(),
-            optional<value_t>());
+        send(mailbox_manager, bcard.update_mailbox,
+             {mailbox_manager->get_me(), link_id, write_token, true, optional<key_t>(),
+              optional<value_t>()});
     });
 }
 
