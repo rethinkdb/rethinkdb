@@ -9,7 +9,7 @@ This document describes guidelines that people new to the codebase tend not to i
 1. Use `if (...) {`, `while (...) {`, and `switch (...) {`, not `if(...){`, `while(...){`, and `switch(...){`.
 
   > Reason:  The rest of the code is that way.
-  
+
 1. You can word-wrap your function parameters, put them all on separate lines at the same indentation level, but don't put them "almost" all on separate lines at the same indentation.
 
   > E.g. don't do this, especially:
@@ -78,25 +78,25 @@ This document describes guidelines that people new to the codebase tend not to i
   > Or declare its copy constructor and assignment operator with `= delete;` yourself.
 
   > Reason: If it would be buggy to copy the objects (often segfaulty), and it's easy to write code that accidentally does that.
-  
+
 1. Explicitly compare pointers to `nullptr`, explicitly compare integers to 0, use `.has()` on `counted_t` and `scoped_ptr_t`, don't just decay them to boolean.
 
   > Reason: Saying "Use your best judgement" when it comes to readibility apparently doesn't work very well -- seeing that this is a pointer or integer helps readibility.
-  
+
   > Exception:  Writing `if (pointer_type ptr = ...)` is fine.
-  
+
   > Exception:  It's a question of fact as to whether a decay-to-bool conversion hurts readability to other people on the team.  If a reviewer thinks it does, then it does.  However, if they don't... maybe it doesn't.
-  
+
 1. Use `static_cast`, not C++ functional-style casts or C casts.  Don't use `reinterpret_cast` where a `static_cast` would do -- use `static_cast` to cast to/from `void *`.
 
   > Reason: `static_cast` is ugly and unmissable.  You can grep for it.  C-style casts can discard const qualifiers.  C++-style functional casts are usually somewhat bad -- you see them for signed/unsigned conversions and the like -- and making such things look scary is a good thing.
-  
+
   > Reason: `reinterpret_cast` can have different behavior than `static_cast` (when multiple inheritance is involved), and it deserves a higher level of scrutiny.  It's for when you're actually accessing raw data via two different types.  Don't diminish its signal by using it for mere void-pointer conversions to/from the same non-void type.
 
 1. Avoid excessive dependency entanglements.  Prefer not to declare publicly used classes inside other classes.
 
   > Reason: Declaring classes inside other classes means the class cannot be forward declared, which makes refactoring header file dependencies much more work.
-  
+
   > You could declare the classes inside a namespace instead.
 
 1. Run (from the src directory) `../scripts/check_style.sh` to see if your code has introduced any of a certain class of style errors.
