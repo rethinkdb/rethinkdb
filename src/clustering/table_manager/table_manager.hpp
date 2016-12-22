@@ -79,9 +79,7 @@ private:
         void on_set_config(
             signal_t *interruptor,
             const table_config_and_shards_change_t &table_config_and_shards_change,
-            const mailbox_t<void(
-                optional<multi_table_manager_timestamp_t>, bool
-                )>::address_t &reply_addr);
+            const mailbox_addr_t<optional<multi_table_manager_timestamp_t>, bool> &reply_addr);
 
         table_manager_t * const parent;
         minidir_read_manager_t<std::pair<server_id_t, contract_id_t>, contract_ack_t>

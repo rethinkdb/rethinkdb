@@ -49,10 +49,10 @@ class server_config_business_card_t {
 public:
     /* On success, the reply will be an empty string and the version of the new change.
     On failure, the reply will be zero and an error string. */
-    typedef mailbox_t< void(
+    typedef mailbox_t<
             server_config_t,
-            mailbox_t<void(server_config_version_t, std::string)>::address_t
-        ) > set_config_mailbox_t;
+            mailbox_addr_t<server_config_version_t, std::string>
+        > set_config_mailbox_t;
     set_config_mailbox_t::address_t set_config_addr;
 };
 

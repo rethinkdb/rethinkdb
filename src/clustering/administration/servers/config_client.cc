@@ -96,7 +96,7 @@ bool server_config_client_t::set_config(
     server_config_version_t version;
     {
         promise_t<std::pair<server_config_version_t, std::string> > reply;
-        mailbox_t<void(server_config_version_t, std::string)> ack_mailbox(
+        mailbox_t<server_config_version_t, std::string> ack_mailbox(
             mailbox_manager,
             [&](signal_t *, server_config_version_t v, const std::string &m) {
                 reply.pulse(std::make_pair(v, m));

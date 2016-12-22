@@ -11,7 +11,7 @@
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 
-template <class> class mailbox_t;
+template <class...> class mailbox_t;
 
 template <class... Args>
 class mailbox_addr_t {
@@ -22,7 +22,7 @@ public:
     bool is_nil() const { return addr.is_nil(); }
     peer_id_t get_peer() const { return addr.get_peer(); }
 
-    friend class mailbox_t<void(Args...)>;
+    friend class mailbox_t<Args...>;
 
     RDB_MAKE_ME_SERIALIZABLE_1(mailbox_addr_t, addr);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_1(mailbox_addr_t<Args...>, addr);
@@ -35,10 +35,10 @@ private:
 };
 
 template <class... Args>
-class mailbox_t< void(Args...) > {
+class mailbox_t {
     class read_impl_t : public mailbox_read_callback_t {
     public:
-        explicit read_impl_t(mailbox_t< void(Args...) > *_parent) : parent(_parent) { }
+        explicit read_impl_t(mailbox_t<Args...> *_parent) : parent(_parent) { }
         template <size_t... Is>
         void read_helper(signal_t *interruptor, std::tuple<Args...> &&tup, rindex_sequence<Is...>) {
             parent->fun(interruptor, std::move(std::get<Is>(tup))...);
@@ -50,7 +50,7 @@ class mailbox_t< void(Args...) > {
             read_helper(interruptor, std::move(args), make_rindex_sequence<sizeof...(Args)>());
         }
     private:
-        mailbox_t< void(Args...) > *parent;
+        mailbox_t<Args...> *parent;
     };
 
     read_impl_t reader;
@@ -74,7 +74,7 @@ public:
 
 private:
     template <class... Args2>
-    friend void send(mailbox_manager_t *, typename mailbox_t<void(Args2...)>::address_t, const Args2 &... args);
+    friend void send(mailbox_manager_t *, typename mailbox_t<Args2...>::address_t, const Args2 &... args);
 
     std::function< void(signal_t *, Args...) > fun;
     raw_mailbox_t mailbox;

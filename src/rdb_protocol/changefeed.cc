@@ -1755,7 +1755,7 @@ private:
     client_t *client;
     namespace_id_t table_id;
     mailbox_manager_t *manager;
-    mailbox_t<void(stamped_msg_t)> mailbox;
+    mailbox_t<stamped_msg_t> mailbox;
     std::vector<server_t::addr_t> stop_addrs;
     std::vector<scoped_ptr_t<disconnect_watcher_t> > disconnect_watchers;
 

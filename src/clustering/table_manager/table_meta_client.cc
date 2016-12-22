@@ -329,7 +329,7 @@ void table_meta_client_t::drop(
         try {
             disconnect_watcher_t dw(mailbox_manager, pair.first);
             cond_t got_ack;
-            mailbox_t<void()> ack_mailbox(mailbox_manager,
+            mailbox_t<> ack_mailbox(mailbox_manager,
                 [&](signal_t *) { got_ack.pulse(); });
             send(mailbox_manager, pair.second.action_mailbox,
                  {table_id,
@@ -414,7 +414,7 @@ void table_meta_client_t::set_config(
 
         /* OK, now send the change and wait for a reply, or for something to go wrong */
         promise_t<std::pair<optional<multi_table_manager_timestamp_t>, bool> > promise;
-        mailbox_t<void(optional<multi_table_manager_timestamp_t>, bool)>
+        mailbox_t<optional<multi_table_manager_timestamp_t>, bool>
             ack_mailbox(mailbox_manager,
             [&](signal_t *,
                     const optional<multi_table_manager_timestamp_t> &change_timestamp,
@@ -600,7 +600,7 @@ void table_meta_client_t::create_or_emergency_repair(
             disconnect_watcher_t dw(mailbox_manager,
                 pair.second.action_mailbox.get_peer());
             cond_t got_ack;
-            mailbox_t<void()> ack_mailbox(mailbox_manager,
+            mailbox_t<> ack_mailbox(mailbox_manager,
                 [&](signal_t *) { got_ack.pulse(); });
             send(mailbox_manager, pair.second.action_mailbox,
                  {table_id,
@@ -749,7 +749,7 @@ void table_meta_client_t::get_status(
             disconnect_watcher_t dw(mailbox_manager,
                 bcard->get_status_mailbox.get_peer());
             cond_t got_ack;
-            mailbox_t<void(std::map<namespace_id_t, table_status_response_t>)>
+            mailbox_t<std::map<namespace_id_t, table_status_response_t>>
             ack_mailbox(mailbox_manager,
                 [&](signal_t *, const std::map<
                         namespace_id_t, table_status_response_t> &resp) {

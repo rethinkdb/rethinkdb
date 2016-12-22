@@ -54,7 +54,7 @@ private:
     void on_synchronize(
         signal_t *interruptor,
         state_timestamp_t timestamp,
-        mailbox_t<void()>::address_t);
+        mailbox_t<>::address_t);
 
     mailbox_manager_t *const mailbox_manager;
     store_view_t *const store;

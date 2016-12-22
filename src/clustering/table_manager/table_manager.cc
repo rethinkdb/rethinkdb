@@ -191,9 +191,7 @@ table_manager_t::leader_t::~leader_t() {
 void table_manager_t::leader_t::on_set_config(
         signal_t *interruptor,
         const table_config_and_shards_change_t &table_config_and_shards_change,
-        const mailbox_t<void(
-            optional<multi_table_manager_timestamp_t>, bool
-            )>::address_t &reply_addr) {
+        const mailbox_addr_t<optional<multi_table_manager_timestamp_t>, bool> &reply_addr) {
     logINF("Table %s: Configuration is changing.",
         uuid_to_str(parent->table_id).c_str());
     bool is_change_successful = false;

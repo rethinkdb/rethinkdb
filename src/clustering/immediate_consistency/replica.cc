@@ -116,7 +116,7 @@ void replica_t::do_dummy_write(
 void replica_t::on_synchronize(
         signal_t *interruptor,
         state_timestamp_t timestamp,
-        mailbox_t<void()>::address_t ack_addr) {
+        mailbox_t<>::address_t ack_addr) {
     end_enforcer.wait_all_before(timestamp, interruptor);
     send(mailbox_manager, ack_addr);
 }

@@ -569,10 +569,10 @@ private:
     // Clients send a message to this mailbox with their address when they want
     // to unsubscribe.  The callback of this mailbox acquires the drainer, so it
     // has to be destroyed first.
-    mailbox_t<void(client_t::addr_t)> stop_mailbox;
+    mailbox_t<client_t::addr_t> stop_mailbox;
     // Clients send a message to this mailbox to unsubscribe a particular limit
     // changefeed.
-    mailbox_t<void(client_t::addr_t, optional<std::string>, uuid_u)>
+    mailbox_t<client_t::addr_t, optional<std::string>, uuid_u>
         limit_stop_mailbox;
 };
 

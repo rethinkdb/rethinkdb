@@ -277,7 +277,7 @@ void multi_table_manager_t::on_action(
         &initial_raft_state = msg.initial_raft_state;
     const optional<raft_start_election_immediately_t>
         &start_election_immediately = msg.start_election_immediately;
-    const mailbox_t<void()>::address_t &ack_addr = msg.ack_addr;
+    const mailbox_t<>::address_t &ack_addr = msg.ack_addr;
 
     /* Validate the incoming message */
     guarantee(static_cast<bool>(basic_config) ==
@@ -533,9 +533,8 @@ void multi_table_manager_t::on_get_status(
 
     const std::set<namespace_id_t> &tables_of_interest = msg.table_ids;
     const table_status_request_t &request = msg.request;
-    const mailbox_t<void(
-        std::map<namespace_id_t, table_status_response_t>
-                         )>::address_t &reply_addr = msg.reply_addr;
+    const mailbox_addr_t<std::map<namespace_id_t, table_status_response_t>> &reply_addr
+        = msg.reply_addr;
 
     std::map<namespace_id_t, table_status_response_t> responses;
     for (const namespace_id_t &table_id : tables_of_interest) {
@@ -611,7 +610,7 @@ void multi_table_manager_t::do_sync(
               raft_member_id,
               initial_raft_state,
               optional<raft_start_election_immediately_t>(raft_start_election_immediately_t::NO),
-              mailbox_t<void()>::address_t()});
+              mailbox_t<>::address_t()});
 
     } else if (table.status == table_t::status_t::INACTIVE) {
         if (table_bcard.has_value()) {
@@ -629,7 +628,7 @@ void multi_table_manager_t::do_sync(
               optional<raft_member_id_t>(),
               optional<raft_persistent_state_t<table_raft_state_t> >(),
               optional<raft_start_election_immediately_t>(),
-              mailbox_t<void()>::address_t()});
+              mailbox_t<>::address_t()});
 
     } else if (table.status == table_t::status_t::DELETED) {
         send(mailbox_manager, table_manager_bcard.action_mailbox,
@@ -640,7 +639,7 @@ void multi_table_manager_t::do_sync(
               optional<raft_member_id_t>(),
               optional<raft_persistent_state_t<table_raft_state_t> >(),
               optional<raft_start_election_immediately_t>(),
-              mailbox_t<void()>::address_t()});
+              mailbox_t<>::address_t()});
 
     } else {
         unreachable();

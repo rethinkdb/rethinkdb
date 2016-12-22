@@ -13,10 +13,7 @@ networking layer over `raft_core.hpp`. */
 template<class state_t>
 class raft_business_card_t {
 public:
-    typedef mailbox_t<void(
-        raft_rpc_request_t<state_t>,
-        mailbox_t<void(raft_rpc_reply_t)>::address_t
-        )> rpc_mailbox_t;
+    typedef mailbox_t<raft_rpc_request_t<state_t>, mailbox_addr_t<raft_rpc_reply_t>> rpc_mailbox_t;
 
     typename rpc_mailbox_t::address_t rpc;
 
@@ -63,7 +60,7 @@ private:
     void on_rpc(
         signal_t *interruptor,
         const raft_rpc_request_t<state_t> &rpc,
-        const mailbox_t<void(raft_rpc_reply_t)>::address_t &reply_addr);
+        const mailbox_t<raft_rpc_reply_t>::address_t &reply_addr);
 
     mailbox_manager_t *mailbox_manager;
     watchable_map_t<raft_member_id_t, raft_business_card_t<state_t> > *peers;

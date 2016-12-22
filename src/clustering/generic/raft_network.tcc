@@ -40,7 +40,7 @@ bool raft_networked_member_t<state_t>::send_rpc(
     /* Send message and wait for a reply */
     disconnect_watcher_t watcher(mailbox_manager, bcard->rpc.get_peer());
     cond_t got_reply;
-    mailbox_t<void(raft_rpc_reply_t)> reply_mailbox(
+    mailbox_t<raft_rpc_reply_t> reply_mailbox(
         mailbox_manager,
         [&](signal_t *, raft_rpc_reply_t &&reply) {
             *reply_out = reply;
@@ -76,7 +76,7 @@ template<class state_t>
 void raft_networked_member_t<state_t>::on_rpc(
         UNUSED signal_t *interruptor,
         const raft_rpc_request_t<state_t> &request,
-        const mailbox_t<void(raft_rpc_reply_t)>::address_t &reply_addr) {
+        const mailbox_t<raft_rpc_reply_t>::address_t &reply_addr) {
     raft_rpc_reply_t reply;
     member.on_rpc(request, &reply);
     send(mailbox_manager, reply_addr, reply);

@@ -258,7 +258,7 @@ remote_replicator_client_t::remote_replicator_client_t(
         backfill. */
         {
             cond_t backfiller_is_up_to_date;
-            mailbox_t<void()> ack_mbox(
+            mailbox_t<> ack_mbox(
                 mailbox_manager,
                 [&](signal_t *) { backfiller_is_up_to_date.pulse(); });
             send(mailbox_manager, replica_bcard.synchronize_mailbox,
@@ -371,7 +371,7 @@ void remote_replicator_client_t::on_write_async(
         write_t &&write,
         state_timestamp_t timestamp,
         order_token_t order_token,
-        const mailbox_t<void()>::address_t &ack_addr)
+        const mailbox_t<>::address_t &ack_addr)
         THROWS_ONLY(interrupted_exc_t) {
     wait_interruptible(&registered_, interruptor);
 
@@ -452,7 +452,7 @@ void remote_replicator_client_t::on_write_sync(
         state_timestamp_t timestamp,
         order_token_t order_token,
         write_durability_t durability,
-        const mailbox_t<void(write_response_t)>::address_t &ack_addr)
+        const mailbox_t<write_response_t>::address_t &ack_addr)
         THROWS_ONLY(interrupted_exc_t) {
     /* The current implementation of the dispatcher will never send us an async write
     once it's started sending sync writes, but we don't want to rely on that detail, so
@@ -468,7 +468,7 @@ void remote_replicator_client_t::on_write_sync(
 
 void remote_replicator_client_t::on_dummy_write(
         signal_t *interruptor,
-        const mailbox_t<void(write_response_t)>::address_t &ack_addr)
+        const mailbox_t<write_response_t>::address_t &ack_addr)
         THROWS_ONLY(interrupted_exc_t) {
     write_response_t response;
     replica_->do_dummy_write(interruptor, &response);
@@ -479,7 +479,7 @@ void remote_replicator_client_t::on_read(
         signal_t *interruptor,
         const read_t &read,
         state_timestamp_t min_timestamp,
-        const mailbox_t<void(read_response_t)>::address_t &ack_addr)
+        const mailbox_t<read_response_t>::address_t &ack_addr)
         THROWS_ONLY(interrupted_exc_t) {
     read_response_t response;
     replica_->do_read(read, min_timestamp, interruptor, &response);

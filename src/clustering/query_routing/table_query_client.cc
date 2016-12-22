@@ -406,7 +406,7 @@ void table_query_client_t::perform_outdated_read(
 
     try {
         cond_t done;
-        mailbox_t<void(read_response_t)> cont(mailbox_manager,
+        mailbox_t<read_response_t> cont(mailbox_manager,
             [&](signal_t *, const read_response_t &res) {
                 results->at(i) = res;
                 done.pulse();

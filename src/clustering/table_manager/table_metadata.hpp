@@ -185,10 +185,10 @@ public:
         optional<raft_member_id_t> raft_member_id;
         optional<raft_persistent_state_t<table_raft_state_t> > initial_raft_state;
         optional<raft_start_election_immediately_t> start_election_immediately;
-        mailbox_t<void()>::address_t ack_addr;
+        mailbox_t<>::address_t ack_addr;
     };
 
-    typedef mailbox_t<void(action_message_t)> action_mailbox_t;
+    typedef mailbox_t<action_message_t> action_mailbox_t;
     action_mailbox_t::address_t action_mailbox;
 
     /* `get_status_mailbox` retrieves configurations, current statuses, etc. for one or
@@ -197,11 +197,9 @@ public:
     struct get_status_message_t {
         std::set<namespace_id_t> table_ids;
         table_status_request_t request;
-        mailbox_t<void(
-            std::map<namespace_id_t, table_status_response_t>
-            )>::address_t reply_addr;
+        mailbox_t<std::map<namespace_id_t, table_status_response_t>>::address_t reply_addr;
     };
-    typedef mailbox_t<void(get_status_message_t)> get_status_mailbox_t;
+    typedef mailbox_t<get_status_message_t> get_status_mailbox_t;
     get_status_mailbox_t::address_t get_status_mailbox;
 
     /* The server ID of the server sending this business card. In theory you could figure
@@ -240,11 +238,10 @@ public:
         for the commit; the client can use this to determine which servers have seen the
         commit. If something goes wrong, it returns an empty `optional`, in which
         case the change may or may not eventually be committed. */
-        typedef mailbox_t<void(
-            table_config_and_shards_change_t config_and_shards_change,
-            mailbox_t<void(optional<multi_table_manager_timestamp_t>, bool
-                )>::address_t reply_addr
-            )> set_config_mailbox_t;
+        typedef mailbox_t<
+            table_config_and_shards_change_t,
+            mailbox_addr_t<optional<multi_table_manager_timestamp_t>, bool>
+            > set_config_mailbox_t;
         set_config_mailbox_t::address_t set_config_mailbox;
 
         /* `contract_executor_t`s for this table on other servers send contract acks to

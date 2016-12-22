@@ -40,7 +40,7 @@ public:
 
         RDB_MAKE_ME_SERIALIZABLE_6(update_message_t, peer_id, link_id, fifo_token, closing_link, key, value);
     };
-    typedef mailbox_t<void(update_message_t)> update_mailbox_t;
+    typedef mailbox_t<update_message_t> update_mailbox_t;
     typename update_mailbox_t::address_t update_mailbox;
 
     RDB_MAKE_ME_SERIALIZABLE_1(minidir_bcard_t, update_mailbox);

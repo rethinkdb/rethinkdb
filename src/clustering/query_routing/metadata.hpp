@@ -76,10 +76,7 @@ secondary replica for. */
 
 class direct_query_bcard_t {
 public:
-    typedef mailbox_t< void(
-            read_t,
-            mailbox_addr_t<read_response_t>
-            )> read_mailbox_t;
+    typedef mailbox_t<read_t, mailbox_addr_t<read_response_t>> read_mailbox_t;
 
     direct_query_bcard_t() { }
     explicit direct_query_bcard_t(const read_mailbox_t::address_t &rm) : read_mailbox(rm) { }

@@ -86,7 +86,7 @@ private:
             write_t &&write,
             state_timestamp_t timestamp,
             order_token_t order_token,
-            const mailbox_t<void()>::address_t &ack_addr)
+            const mailbox_t<>::address_t &ack_addr)
         THROWS_ONLY(interrupted_exc_t);
 
     void on_write_sync(
@@ -95,19 +95,19 @@ private:
             state_timestamp_t timestamp,
             order_token_t order_token,
             write_durability_t durability,
-            const mailbox_t<void(write_response_t)>::address_t &ack_addr)
+            const mailbox_t<write_response_t>::address_t &ack_addr)
         THROWS_ONLY(interrupted_exc_t);
 
     void on_dummy_write(
             signal_t *interruptor,
-            const mailbox_t<void(write_response_t)>::address_t &ack_addr)
+            const mailbox_t<write_response_t>::address_t &ack_addr)
         THROWS_ONLY(interrupted_exc_t);
 
     void on_read(
             signal_t *interruptor,
             const read_t &read,
             state_timestamp_t min_timestamp,
-            const mailbox_t<void(read_response_t)>::address_t &ack_addr)
+            const mailbox_t<read_response_t>::address_t &ack_addr)
         THROWS_ONLY(interrupted_exc_t);
 
     mailbox_manager_t *const mailbox_manager_;

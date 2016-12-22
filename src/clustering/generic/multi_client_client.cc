@@ -12,7 +12,7 @@ multi_client_client_t<request_type>::multi_client_client_t(
         signal_t *interruptor) :
     mailbox_manager(mm) {
 
-    mailbox_t<void(server_business_card_t)> intro_mailbox(
+    mailbox_t<server_business_card_t> intro_mailbox(
         mailbox_manager,
         [&](signal_t *, const server_business_card_t &bc) {
             intro_promise.pulse(bc);
