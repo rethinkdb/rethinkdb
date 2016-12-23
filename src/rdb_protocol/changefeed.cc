@@ -88,9 +88,8 @@ struct change_val_t {
     store_key_t pkey;
     optional<indexed_datum_t> old_val, new_val;
     DEBUG_ONLY(optional<std::string> sindex;);
-    // This should be true, but older versions of boost don't support `move`
-    // well in optionals.
-    // MOVABLE_BUT_NOT_COPYABLE(change_val_t);
+
+    MOVABLE_BUT_NOT_COPYABLE(change_val_t);
 };
 
 namespace debug {
