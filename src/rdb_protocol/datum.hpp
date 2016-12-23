@@ -63,8 +63,6 @@ enum throw_bool_t { NOTHROW = 0, THROW = 1 };
 // CLOBBER: Overwrite existing values.
 enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1 };
 
-enum class use_json_t { NO = 0, YES = 1 };
-
 // When getting the typename of a datum, this should be YES if the name will be
 // used for sorting datums by type, and NO if the name is to be given to a user.
 enum class name_for_sorting_t { NO = 0, YES = 1 };
