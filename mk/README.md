@@ -43,8 +43,8 @@ its web UI also requires the web assets.
 
 * `make tags`, `make etags`: Generate tag files used by vim and emacs.
 
-* `make ALLOW_WARNINGS=1`: Do not fail if the C++ compiler generates a
-  warning, by disabling `-Werror`.
+* `make ALLOW_WARNINGS=0`: Fail if the C++ compiler generates a
+  warning, by enabling `-Werror`.
 
 * `./configure CXX=... CXXFLAGS=...`: Build with a different compiler
   or flags.
