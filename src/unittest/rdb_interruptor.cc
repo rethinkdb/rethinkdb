@@ -131,7 +131,7 @@ private:
     const bool should_exist;
 };
 
-TEST(RDBInterrupt, InsertOp) {
+TEST(RDBInterrupt, DISABLED_InsertOp) {
     ql::minidriver_t r(ql::backtrace_id_t::empty());
     ql::raw_term_t insert_term =
         r.db("db").table("table").insert(
@@ -209,7 +209,7 @@ TEST(RDBInterrupt, GetOp) {
     }
 }
 
-TEST(RDBInterrupt, DeleteOp) {
+TEST(RDBInterrupt, DISABLED_DeleteOp) {
     uint32_t eval_count;
     std::set<ql::datum_t, optional_datum_less_t> initial_data;
 
