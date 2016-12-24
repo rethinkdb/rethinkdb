@@ -1022,7 +1022,7 @@ class TcpConnection extends Connection
 
             nullbyte = new Buffer('\0', "binary")
 
-            buffer_message = (Buffer.from ? Buffer.from(message.toString()) : new Buffer(message.toString()))
+            buffer_message = if Buffer.from then Buffer.from(message.toString()) else new Buffer(message.toString()))
             @rawSocket.write Buffer.concat([version, buffer_message, nullbyte])
 
             # Now we have to wait for a response from the server
@@ -1174,7 +1174,7 @@ class TcpConnection extends Connection
 
                             nullbyte = new Buffer('\0', "binary")
 
-                            buffer_message = (Buffer.from ? Buffer.from(message.toString()) : new Buffer(message.toString()))
+                            buffer_message = if Buffer.from then Buffer.from(message.toString()) else new Buffer(message.toString()))
                             @rawSocket.write Buffer.concat([buffer_message, nullbyte])
                         else if state is 3
                             if not server_reply.success
