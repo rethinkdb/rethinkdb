@@ -41,7 +41,7 @@ public:
         } else {
             if (map_.size() == max_size_) {
                 list_iterator evictee = list_.begin();
-                size_t count = map_.erase(evictee->first);
+                DEBUG_VAR size_t count = map_.erase(evictee->first);
                 rassert(count == 1);
                 list_.pop_front();
             }
@@ -49,7 +49,7 @@ public:
             list_.push_back(std::make_pair(key, std::move(value)));
             list_iterator list_iter = list_.end();
             --list_iter;
-            auto res = map_.emplace(std::move(key), list_iter);
+            DEBUG_VAR auto res = map_.emplace(std::move(key), list_iter);
             rassert(res.second);
             return true;
         }
