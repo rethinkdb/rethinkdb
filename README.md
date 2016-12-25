@@ -49,6 +49,37 @@ Besides our four official drivers, we also have many [third-party drivers](https
 
 Looking to explore what else RethinkDB offers or the specifics of ReQL? Check out [our RethinkDB docs](https://rethinkdb.com/docs/) and [ReQL API](https://rethinkdb.com/api/).
 
+Building
+--------
+
+First install some dependencies.  For example, on Ubuntu or Debian:
+
+    sudo apt-get install build-essential protobuf-compiler python \
+        libprotobuf-dev libcurl4-openssl-dev libboost-all-dev \
+        libncurses5-dev libjemalloc-dev wget m4 g++
+
+Generally, you will need
+
+* GCC or Clang
+* Protocol Buffers
+* jemalloc
+* Ncurses
+* Boost
+* Python 2
+* libcurl
+* libcrypto (OpenSSL)
+
+Then, to build:
+
+    ./configure --allow-fetch
+    # or run ./configure --allow-fetch CXX=clang++
+
+    make -j4
+    # or run make -j4 DEBUG=1
+
+    sudo make install
+    # or run ./build/debug_clang/rethinkdb
+
 
 Need help?
 ----------
