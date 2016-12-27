@@ -27,8 +27,9 @@ int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices) {
     return n_slices / n_files + (n_slices % n_files > file_number);
 }
 
-counted_t<block_token_t> serializer_block_write(serializer_t *ser, const buf_ptr_t &buf,
-                                                         block_id_t block_id, file_account_t *io_account) {
+counted_t<block_token_t>
+serializer_block_write(serializer_t *ser, const buf_ptr_t &buf,
+                       block_id_t block_id, file_account_t *io_account) {
     struct : public cond_t, public iocallback_t {
         void on_io_complete() { pulse(); }
     } cb;
@@ -249,9 +250,8 @@ void translator_serializer_t::index_write(
     inner->index_write(mutex_acq, on_writes_reflected, translated_ops);
 }
 
-std::vector<counted_t<block_token_t> >
-translator_serializer_t::block_writes(const buf_write_info_t *write_infos,
-                                      size_t write_infos_count,
+std::vector<counted_t<block_token_t>>
+translator_serializer_t::block_writes(const buf_write_info_t *write_infos, size_t write_infos_count,
                                       file_account_t *io_account, iocallback_t *cb) {
     std::vector<buf_write_info_t> tmp;
     tmp.reserve(write_infos_count);

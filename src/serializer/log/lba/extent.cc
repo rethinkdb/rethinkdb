@@ -7,6 +7,7 @@
 #include "math.hpp"
 #include "perfmon/perfmon.hpp"
 #include "serializer/log/stats.hpp"
+#include "serializer/checksum.hpp"
 
 struct extent_block_t :
     public extent_t::completion_callback_t,
@@ -16,17 +17,21 @@ struct extent_block_t :
     extent_t *parent;
     size_t offset;
     std::vector<extent_t::completion_callback_t *> completion_cbs;
-    bool waiting_for_prev, have_finished_write, is_last_block;
+    bool waiting_for_prev;
+    bool have_finished_write;
+    bool is_last_block;
 
     extent_block_t(extent_t *_parent, size_t _offset)
         : data(DEVICE_BLOCK_SIZE), parent(_parent), offset(_offset) { }
 
-    void write(file_account_t *io_account) {
+    void write(file_account_t *io_account,
+               optional<std::vector<checksum_filerange>> *checksums) {
         waiting_for_prev = true;
         have_finished_write = false;
 
-        // TODO: Why do we chain extent write ops like this?  (There should be no
-        // reason.)
+        // TODO: Why do we chain extent write ops like this?  (I think we do this to
+        // make any write completion callback mean _all_ writes were completed.  It's a
+        // crude way to do that.)
         parent->wait_for_write_completion(this);
 
         if (parent->last_block) {
@@ -35,9 +40,16 @@ struct extent_block_t :
         parent->last_block = this;
         is_last_block = true;
 
+        int64_t file_offset = parent->extent_ref.offset() + offset;
+        if (checksums->has_value()) {
+            serializer_checksum chksum = compute_checksum(data.get(), DEVICE_BLOCK_SIZE / serializer_checksum::word_size);
+            (*checksums)->push_back(
+                    checksum_filerange{file_offset, DEVICE_BLOCK_SIZE, chksum});
+        }
+
         parent->file->write_async(
-                parent->extent_ref.offset() + offset, DEVICE_BLOCK_SIZE,
-                data.get(), io_account, this, file_t::NO_DATASYNCS);
+                file_offset, DEVICE_BLOCK_SIZE,
+                data.get(), io_account, this, datasync_op::no_datasyncs);
     }
 
     void on_extent_completion() {
@@ -110,7 +122,8 @@ void extent_t::read(size_t pos, size_t length, void *buffer, read_callback_t *cb
     em->stats->bytes_read(length);
 }
 
-void extent_t::append(void *buffer, size_t length, file_account_t *io_account) {
+void extent_t::append(void *buffer, size_t length, file_account_t *io_account,
+                      optional<std::vector<checksum_filerange>> *checksums) {
     rassert(amount_filled + length <= em->extent_size);
 
     while (length > 0) {
@@ -132,7 +145,7 @@ void extent_t::append(void *buffer, size_t length, file_account_t *io_account) {
         if (amount_filled % DEVICE_BLOCK_SIZE == 0) {
             extent_block_t *b = current_block;
             current_block = nullptr;
-            b->write(io_account);
+            b->write(io_account, checksums);
             em->stats->bytes_written(DEVICE_BLOCK_SIZE);
         }
 

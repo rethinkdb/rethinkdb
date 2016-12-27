@@ -105,12 +105,12 @@ enum class file_direct_io_mode_t {
     buffered_desired
 };
 
+enum class datasync_op { no_datasyncs, wrap_in_datasyncs, datasync_after };
+
 // A linux file.  It expects reads and writes and buffers to have an
 // alignment of DEVICE_BLOCK_SIZE.
 class file_t {
 public:
-    enum wrap_in_datasyncs_t { NO_DATASYNCS, WRAP_IN_DATASYNCS };
-
     file_t() { }
 
     virtual ~file_t() { }
@@ -122,7 +122,7 @@ public:
                             file_account_t *account, linux_iocallback_t *cb) = 0;
     virtual void write_async(int64_t offset, size_t length, const void *buf,
                              file_account_t *account, linux_iocallback_t *cb,
-                             wrap_in_datasyncs_t wrap_in_datasyncs) = 0;
+                             datasync_op ds_op) = 0;
     // writev_async doesn't provide the atomicity guarantees of writev.
     virtual void writev_async(int64_t offset, size_t length, scoped_array_t<iovec> &&bufs,
                               file_account_t *account, linux_iocallback_t *cb) = 0;

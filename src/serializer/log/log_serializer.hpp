@@ -23,6 +23,7 @@
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/log/lba/lba_list.hpp"
 #include "serializer/log/stats.hpp"
+#include "serializer/log/types.hpp"
 
 class cond_t;
 class data_block_manager_t;
@@ -36,6 +37,8 @@ struct shutdown_callback_t {
     virtual ~shutdown_callback_t() {}
 };
 }  // namespace data_block_manager
+
+
 
 /**
  * This is the log-structured serializer, the holiest of holies of
@@ -87,7 +90,6 @@ private:
 
     DISABLE_COPYING(filepath_file_opener_t);
 };
-
 
 // Used internally
 struct ls_start_existing_fsm_t;
@@ -141,11 +143,11 @@ public:
                      const std::function<void()> &on_writes_reflected,
                      const std::vector<index_write_op_t> &write_ops);
 
-    std::vector<counted_t<block_token_t> > block_writes(
-        const buf_write_info_t *write_infos,
-        size_t write_infos_count,
-        file_account_t *io_account,
-        iocallback_t *cb);
+    std::vector<counted_t<block_token_t> >
+    block_writes(const buf_write_info_t *write_infos,
+                 size_t write_infos_count,
+                 file_account_t *io_account,
+                 iocallback_t *cb);
 
     max_block_size_t max_block_size() const;
 
@@ -171,7 +173,8 @@ private:
        another index_write. */
     void index_write_finish(new_mutex_in_line_t *mutex_acq,
                             extent_transaction_t *txn,
-                            file_account_t *io_account);
+                            file_account_t *io_account,
+                            optional<std::vector<checksum_filerange>> &&checksums);
 
     /* This mess is because the serializer is still mostly FSM-based */
     void shutdown(cond_t *cb);
@@ -190,7 +193,8 @@ private:
     operations from your caller. */
     void write_metablock(new_mutex_in_line_t *mutex_acq,
                          const signal_t *safe_to_write_cond,
-                         file_account_t *io_account);
+                         file_account_t *io_account,
+                         optional<std::vector<checksum_filerange>> &&checksums);
 
     // Used by the LBA gc operations to write metablocks -- it doesn't care to
     // pipeline operations and so we don't expose that facility.

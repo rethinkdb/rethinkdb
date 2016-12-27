@@ -14,11 +14,18 @@
 struct log_serializer_dynamic_config_t {
     log_serializer_dynamic_config_t() {
         read_ahead = true;
+        // This is probably too low, thanks to status quo bias (the status quo having
+        // been to never compute checksums).
+        checksum_threshold = 65536;
     }
 
     /* Enable reading more data than requested to let the cache warmup more quickly
        esp. on rotational drives */
     bool read_ahead;
+    /* The threshold above which we don't checksum blocks -- instead we fdatasync before
+       writing the serializer superblock.  Designed to make single-document writes
+       fast. */
+    uint32_t checksum_threshold;
 };
 
 /* This is equivalent to log_serializer_static_config_t below, but is an on-disk

@@ -7,7 +7,8 @@
 #include "math.hpp"
 
 lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, file_t *file,
-                                     file_account_t *io_account)
+                                     file_account_t *io_account,
+                                     optional<std::vector<checksum_filerange>> *checksums)
     : em(_em), data(new extent_t(em, file)), count(0) {
     em->assert_thread();
 
@@ -19,7 +20,7 @@ lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, file_t *file,
     lba_extent_t::header_t header;
     memset(&header, 0, sizeof(header));
     memcpy(header.magic, lba_magic, LBA_MAGIC_SIZE);
-    data->append(&header, sizeof(header), io_account);
+    data->append(&header, sizeof(header), io_account, checksums);
 }
 
 lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, file_t *file,
@@ -32,22 +33,25 @@ lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, file_t *file,
 }
 
 
-void lba_disk_extent_t::add_entry(lba_entry_t entry, file_account_t *io_account) {
+void lba_disk_extent_t::add_entry(lba_entry_t entry, file_account_t *io_account,
+                                  optional<std::vector<checksum_filerange>> *checksums) {
     em->assert_thread();
     // Make sure that entries will align with DEVICE_BLOCK_SIZE
 
     // Make sure that there is room
     rassert(data->amount_filled + sizeof(lba_entry_t) <= em->extent_size);
 
-    data->append(&entry, sizeof(lba_entry_t), io_account);
+    data->append(&entry, sizeof(lba_entry_t), io_account, checksums);
     count++;
 }
 
-void lba_disk_extent_t::write_outstanding(file_account_t *io_account,
-                                          extent_t::completion_callback_t *cb) {
+void lba_disk_extent_t::write_outstanding(
+        file_account_t *io_account,
+        extent_t::completion_callback_t *cb,
+        optional<std::vector<checksum_filerange>> *checksums) {
     em->assert_thread();
     while (data->amount_filled % DEVICE_BLOCK_SIZE != 0) {
-        add_entry(lba_entry_t::make_padding_entry(), io_account);
+        add_entry(lba_entry_t::make_padding_entry(), io_account, checksums);
     }
 
     data->wait_for_write_completion(cb);

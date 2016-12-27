@@ -12,6 +12,7 @@
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
 #include "errors.hpp"
+#include "serializer/checksum.hpp"
 #include "valgrind.hpp"
 
 // A relatively "lightweight" header file (we wish), in a sense.
@@ -137,6 +138,7 @@ public:
 
 private:
     friend class log_serializer_t;
+    friend class data_block_manager_t;
     friend class dbm_read_ahead_fsm_t;  // For read-ahead tokens.
 
     friend void counted_add_ref(block_token_t *p);
@@ -151,6 +153,15 @@ private:
 
     // The block's size.
     block_size_t block_size_;
+
+    // Either (a.) a checksum of what the block's on-disk contents should be, (b.)(i.)
+    // the value datasync_checksum(), which means the block's write has been datasynced,
+    // or (b.)(ii.) the value no_checksum(), which means the block is not known to have
+    // been datasynced.
+    //
+    // This holds the checksum of the DEVICE_BLOCK_SIZE-aligned block, with padding
+    // included.
+    serializer_checksum checksum_;
 
     // The block's offset on disk.
     int64_t offset_;

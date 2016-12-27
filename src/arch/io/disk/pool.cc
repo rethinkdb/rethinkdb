@@ -149,7 +149,7 @@ int64_t pool_diskmgr_t::action_t::perform_read_write(iovec *vecs,
 }
 
 void pool_diskmgr_t::action_t::run() {
-    if (wrap_in_datasyncs) {
+    if (ds_op == datasync_op::wrap_in_datasyncs) {
         int errcode = perform_datasync(fd);
         if (errcode != 0) {
             io_result = -errcode;
@@ -194,7 +194,8 @@ void pool_diskmgr_t::action_t::run() {
         unreachable("Unknown I/O action");
     }
 
-    if (wrap_in_datasyncs) {
+    if (ds_op == datasync_op::wrap_in_datasyncs
+        || ds_op == datasync_op::datasync_after) {
         int errcode = perform_datasync(fd);
         if (errcode != 0) {
             io_result = -errcode;

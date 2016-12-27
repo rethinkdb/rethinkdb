@@ -163,7 +163,8 @@ struct write_test_t {
         offset(o),
         data(d.begin(), d.end()),
         action(driver->make_action()) {
-        action->make_write(IRRELEVANT_DEFAULT_FD, data.data(), d.size(), o, false);
+        action->make_write(IRRELEVANT_DEFAULT_FD, data.data(), d.size(), o,
+                           datasync_op::no_datasyncs);
         driver->submit(action);
     }
 
@@ -195,7 +196,7 @@ struct resize_test_t {
         : driver(_driver),
           action(driver->make_action()) {
         action->make_resize(
-            IRRELEVANT_DEFAULT_FD, _old_size, _new_size, false);
+                IRRELEVANT_DEFAULT_FD, _old_size, _new_size, datasync_op::no_datasyncs);
         driver->submit(action);
     }
 

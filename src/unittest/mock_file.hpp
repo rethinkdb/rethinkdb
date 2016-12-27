@@ -28,7 +28,7 @@ public:
                     file_account_t *account, linux_iocallback_t *cb);
     void write_async(int64_t offset, size_t length, const void *buf,
                      file_account_t *account, linux_iocallback_t *cb,
-                     wrap_in_datasyncs_t wrap_in_datasyncs);
+                     datasync_op ds_op);
     void writev_async(int64_t offset, size_t length, scoped_array_t<iovec> &&bufs,
                       file_account_t *account, linux_iocallback_t *cb);
 

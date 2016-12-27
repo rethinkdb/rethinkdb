@@ -469,7 +469,6 @@ buf_ptr_t log_serializer_t::block_read(const counted_t<block_token_t> &token,
     return ret;
 }
 
-
 void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
                                    const std::function<void()> &on_writes_reflected,
                                    const std::vector<index_write_op_t> &write_ops) {
@@ -481,6 +480,11 @@ void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
     extent_transaction_t txn;
     index_write_prepare(&txn);
 
+    // Becomes nullopt if some write op references an unchecksummed,
+    // not-proven-datasynced block.
+    optional<std::vector<checksum_filerange>> checksums;
+    checksums.set(std::vector<checksum_filerange>());
+    checksums->reserve(write_ops.size());
     {
         // The in-memory index updates, at least due to the needs of
         // data_block_manager_t garbage collection, need to be
@@ -508,6 +512,22 @@ void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
                     offset = flagged_off64_t::make(token->offset_);
                     ser_block_size = token->block_size().ser_value();
 
+                    if (checksums) {
+                        serializer_checksum checksum = token->checksum_;
+                        if (!has_checksum(checksum)) {
+                            if (!is_datasync_checksum(checksum)) {
+                                checksums.reset();
+                            }
+                        } else {
+                            checksums->push_back(
+                                checksum_filerange{
+                                    token->offset_,
+                                    ceil_aligned<int64_t>(ser_block_size,
+                                                          DEVICE_BLOCK_SIZE),
+                                    checksum});
+                        }
+                    }
+
                     /* mark the life */
                     data_block_manager->mark_live(offset.get_value(),
                                                   token->block_size());
@@ -522,7 +542,8 @@ void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
 
             lba_index->set_block_info(op.block_id, recency,
                                       offset, ser_block_size,
-                                      index_writes_io_account.get(), &txn);
+                                      index_writes_io_account.get(), &txn,
+                                      &checksums);
         }
     }
 
@@ -542,7 +563,8 @@ void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
         }
     }
 
-    index_write_finish(mutex_acq, &txn, index_writes_io_account.get());
+    index_write_finish(mutex_acq, &txn, index_writes_io_account.get(),
+                       std::move(checksums));
 
     stats->pm_serializer_index_writes.end(&pm_time);
 }
@@ -558,21 +580,23 @@ void log_serializer_t::index_write_prepare(extent_transaction_t *txn) {
     extent_manager->begin_transaction(txn);
 }
 
-void log_serializer_t::index_write_finish(new_mutex_in_line_t *mutex_acq,
-                                          extent_transaction_t *txn,
-                                          file_account_t *io_account) {
+void log_serializer_t::index_write_finish(
+        new_mutex_in_line_t *mutex_acq,
+        extent_transaction_t *txn,
+        file_account_t *io_account,
+        optional<std::vector<checksum_filerange>> &&checksums) {
     /* Write the LBA */
     struct : public cond_t, public lba_list_t::completion_callback_t {
         void on_lba_completion() { pulse(); }
     } on_lba_written;
-    lba_index->write_outstanding(io_account, &on_lba_written);
+    lba_index->write_outstanding(io_account, &checksums, &on_lba_written);
 
     /* Stop the extent manager transaction so another one can start, but don't commit it
     yet */
     extent_manager->end_transaction(txn);
 
     /* Write the metablock */
-    write_metablock(mutex_acq, &on_lba_written, io_account);
+    write_metablock(mutex_acq, &on_lba_written, io_account, std::move(checksums));
 
     active_write_count--;
 
@@ -597,9 +621,11 @@ void log_serializer_t::index_write_finish(new_mutex_in_line_t *mutex_acq,
     }
 }
 
-void log_serializer_t::write_metablock(new_mutex_in_line_t *mutex_acq,
-                                       const signal_t *safe_to_write_cond,
-                                       file_account_t *io_account) {
+void log_serializer_t::write_metablock(
+        new_mutex_in_line_t *mutex_acq,
+        const signal_t *safe_to_write_cond,
+        file_account_t *io_account,
+        optional<std::vector<checksum_filerange>> &&checksums) {
     assert_thread();
     scoped_device_block_aligned_ptr_t<crc_metablock_t> crc_mb(METABLOCK_SIZE);
     memset(crc_mb.get(), 0, METABLOCK_SIZE);
@@ -627,7 +653,8 @@ void log_serializer_t::write_metablock(new_mutex_in_line_t *mutex_acq,
     struct : public cond_t, public metablock_manager_t::metablock_write_callback_t {
         void on_metablock_write() { pulse(); }
     } on_metablock_write;
-    metablock_manager->write_metablock(crc_mb, io_account, &on_metablock_write);
+    metablock_manager->write_metablock(crc_mb, io_account, std::move(checksums),
+                                       &on_metablock_write);
 
     /* Remove ourselves from the list of metablock waiters. */
     metablock_waiter_queue.pop_front();
@@ -643,8 +670,10 @@ void log_serializer_t::write_metablock(new_mutex_in_line_t *mutex_acq,
 
 void log_serializer_t::write_metablock_sans_pipelining(
         const signal_t *safe_to_write_cond, file_account_t *io_account) {
+    // We have no checksums -- so the metablock write will double-fdatasync.
+    optional<std::vector<checksum_filerange>> checksums;
     new_mutex_in_line_t dummy_acq;
-    write_metablock(&dummy_acq, safe_to_write_cond, io_account);
+    write_metablock(&dummy_acq, safe_to_write_cond, io_account, std::move(checksums));
 
 }
 
@@ -663,17 +692,15 @@ log_serializer_t::generate_block_token(int64_t offset, block_size_t block_size) 
     return token;
 }
 
-std::vector<counted_t<block_token_t> >
+std::vector<counted_t<block_token_t>>
 log_serializer_t::block_writes(const buf_write_info_t *write_infos,
                                size_t write_infos_count,
-                               file_account_t *io_account,
-                               iocallback_t *cb) {
+                               file_account_t *io_account, iocallback_t *cb) {
     assert_thread();
     stats->pm_serializer_block_writes += write_infos_count;
 
     std::vector<counted_t<block_token_t> > result
-        = data_block_manager->many_writes(write_infos, write_infos_count, io_account,
-                                          cb);
+        = data_block_manager->many_writes(write_infos, write_infos_count, io_account, cb);
     guarantee(result.size() == write_infos_count);
     return result;
 }
@@ -991,7 +1018,9 @@ block_token_t::block_token_t(log_serializer_t *serializer,
                              int64_t initial_offset,
                              block_size_t initial_block_size)
     : serializer_(serializer), ref_count_(0),
-      block_size_(initial_block_size), offset_(initial_offset) {
+      block_size_(initial_block_size),
+      checksum_(no_checksum()),
+      offset_(initial_offset) {
     serializer_->assert_thread();
 }
 
