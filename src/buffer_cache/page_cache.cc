@@ -1075,14 +1075,14 @@ void page_txn_t::announce_waiting_for_flush() {
     page_cache_->im_waiting_for_flush(this);
 }
 
-std::map<block_id_t, page_cache_t::block_change_t>
+std::unordered_map<block_id_t, page_cache_t::block_change_t>
 page_cache_t::compute_changes(const std::vector<page_txn_t *> &txns) {
     // We combine changes, using the block_version_t value to see which change
     // happened later.  This even works if a single transaction acquired the same
     // block twice.
 
     // The map of changes we make.
-    std::map<block_id_t, block_change_t> changes;
+    std::unordered_map<block_id_t, block_change_t> changes;
 
     for (auto it = txns.begin(); it != txns.end(); ++it) {
         page_txn_t *txn = *it;
@@ -1222,7 +1222,7 @@ struct ancillary_info_t {
 };
 
 void page_cache_t::do_flush_changes(page_cache_t *page_cache,
-                                    std::map<block_id_t, block_change_t> &&changes,
+                                    std::unordered_map<block_id_t, block_change_t> &&changes,
                                     const std::vector<page_txn_t *> &txns,
                                     fifo_enforcer_write_token_t index_write_token) {
     rassert(!changes.empty());
@@ -1401,7 +1401,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 }
 
 void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
-                                    std::map<block_id_t, block_change_t> *changes_ptr,
+                                    std::unordered_map<block_id_t, block_change_t> *changes_ptr,
                                     const std::vector<page_txn_t *> &txns) {
     // This is called with spawn_now_dangerously!  The reason is partly so that we
     // don't put a zillion coroutines on the message loop when doing a bunch of
@@ -1413,7 +1413,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
     // set of changes we're actually doing is, since any transaction may have touched
     // the same blocks.
 
-    std::map<block_id_t, block_change_t> changes = std::move(*changes_ptr);
+    std::unordered_map<block_id_t, block_change_t> changes = std::move(*changes_ptr);
     rassert(!changes.empty());
 
     fifo_enforcer_write_token_t index_write_token
@@ -1555,7 +1555,7 @@ void page_cache_t::im_waiting_for_flush(page_txn_t *base) {
             (*it)->spawned_flush_ = true;
         }
 
-        std::map<block_id_t, block_change_t> changes
+        std::unordered_map<block_id_t, block_change_t> changes
             = page_cache_t::compute_changes(flush_set);
 
         if (!changes.empty()) {
