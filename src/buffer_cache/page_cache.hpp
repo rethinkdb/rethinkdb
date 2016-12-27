@@ -402,17 +402,17 @@ private:
 
     friend class page_txn_t;
     static void do_flush_changes(page_cache_t *page_cache,
-                                 std::map<block_id_t, block_change_t> &&changes,
+                                 std::unordered_map<block_id_t, block_change_t> &&changes,
                                  const std::vector<page_txn_t *> &txns,
                                  fifo_enforcer_write_token_t index_write_token);
     static void do_flush_txn_set(page_cache_t *page_cache,
-                                 std::map<block_id_t, block_change_t> *changes_ptr,
+                                 std::unordered_map<block_id_t, block_change_t> *changes_ptr,
                                  const std::vector<page_txn_t *> &txns);
 
     static void remove_txn_set_from_graph(page_cache_t *page_cache,
                                           const std::vector<page_txn_t *> &txns);
 
-    static std::map<block_id_t, block_change_t>
+    static std::unordered_map<block_id_t, block_change_t>
     compute_changes(const std::vector<page_txn_t *> &txns);
 
     static std::vector<page_txn_t *> maximal_flushable_txn_set(page_txn_t *base);
