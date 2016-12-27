@@ -8,10 +8,12 @@
 #include "concurrency/new_semaphore.hpp"
 #include "concurrency/pump_coro.hpp"
 #include "containers/intrusive_list.hpp"
+#include "containers/optional.hpp"
 #include "containers/priority_queue.hpp"
 #include "containers/scoped.hpp"
 #include "containers/two_level_array.hpp"
 #include "perfmon/types.hpp"
+#include "serializer/checksum.hpp"
 #include "serializer/log/config.hpp"
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/types.hpp"
@@ -82,6 +84,8 @@ public:
     // ratio of garbage to blocks in the system
     double garbage_ratio() const;
 
+    // Potentially computes a checksum of the blocks to be written, depending on config.
+    // Caller may ignore that information, or use it to save an fdatasync.
     std::vector<counted_t<block_token_t> >
     many_writes(const buf_write_info_t *writes,
                 size_t writes_count,
@@ -89,7 +93,8 @@ public:
                 iocallback_t *cb);
 
     std::vector<std::vector<counted_t<block_token_t> > >
-    gimme_some_new_offsets(const buf_write_info_t *writes, size_t writes_count);
+    gimme_some_new_offsets(const buf_write_info_t *writes, size_t writes_count,
+                           uint64_t *cumulative_aligned_size_out);
 
     bool is_gc_active() const;
 

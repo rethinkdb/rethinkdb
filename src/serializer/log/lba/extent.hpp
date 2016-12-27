@@ -2,8 +2,12 @@
 #ifndef SERIALIZER_LOG_LBA_EXTENT_HPP_
 #define SERIALIZER_LOG_LBA_EXTENT_HPP_
 
-#include "serializer/log/extent_manager.hpp"
+#include <vector>
+
+#include "containers/optional.hpp"
 #include "arch/types.hpp"
+#include "serializer/log/extent_manager.hpp"
+#include "serializer/log/types.hpp"
 
 struct extent_block_t;
 
@@ -30,7 +34,8 @@ public:
     };
     void read(size_t pos, size_t length, void *buffer, read_callback_t *);
 
-    void append(void *buffer, size_t length, file_account_t *io_account);
+    void append(void *buffer, size_t length, file_account_t *io_account,
+                optional<std::vector<checksum_filerange>> *checksums);
 
     struct completion_callback_t {
         virtual void on_extent_completion() = 0;

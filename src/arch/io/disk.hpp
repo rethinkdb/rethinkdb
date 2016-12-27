@@ -73,9 +73,11 @@ public:
     void set_file_size(int64_t size);
     void set_file_size_at_least(int64_t size, int64_t extent_size);
 
-    void read_async(int64_t offset, size_t length, void *buf, file_account_t *account, linux_iocallback_t *cb);
-    void write_async(int64_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *cb,
-                     wrap_in_datasyncs_t wrap_in_datasyncs);
+    void read_async(int64_t offset, size_t length, void *buf, file_account_t *account,
+                    linux_iocallback_t *cb);
+    void write_async(int64_t offset, size_t length, const void *buf,
+                     file_account_t *account, linux_iocallback_t *cb,
+                     datasync_op ds_op);
 
     // Does not guarantee the atomicity that writev guarantees.
     void writev_async(int64_t offset, size_t length, scoped_array_t<iovec> &&bufs,

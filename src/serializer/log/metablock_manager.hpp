@@ -56,9 +56,11 @@ public:
     // crc_mb->metablock must be initialized, the rest zeroed, DEVICE_BLOCK_SIZE-aligned.
     void write_metablock(const scoped_device_block_aligned_ptr_t<crc_metablock_t> &crc_mb,
                          file_account_t *io_account,
+                         optional<std::vector<checksum_filerange>> &&checksums,
                          metablock_write_callback_t *cb);
     void co_write_metablock(const scoped_device_block_aligned_ptr_t<crc_metablock_t> &mb,
-                            file_account_t *io_account);
+                            file_account_t *io_account,
+                            optional<std::vector<checksum_filerange>> &&checksums);
 
     void shutdown();
 
@@ -70,7 +72,10 @@ private:
     void write_metablock_callback(
             const scoped_device_block_aligned_ptr_t<crc_metablock_t> *mb,
             file_account_t *io_account,
+            optional<std::vector<checksum_filerange>> *checksums,
             metablock_write_callback_t *cb);
+
+    bool verify_checksum_fileranges(const crc_metablock_t *mb);
 
     // Only one metablock write can happen at a time.  This isn't necessarily a
     // desirable thing, but that's how this type works.

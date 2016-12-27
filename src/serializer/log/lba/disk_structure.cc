@@ -71,7 +71,8 @@ void lba_disk_structure_t::on_extent_read() {
 void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t recency,
                                      flagged_off64_t offset, uint16_t ser_block_size,
                                      file_account_t *io_account,
-                                     extent_transaction_t *txn) {
+                                     extent_transaction_t *txn,
+                                     optional<std::vector<checksum_filerange>> *checksums) {
     if (last_extent && last_extent->full()) {
         /* We have filled up an extent. Transfer it to the superblock. */
 
@@ -81,16 +82,17 @@ void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t rece
         /* Since there is a new extent on the superblock, we need to rewrite the
            superblock. */
 
-        write_superblock(io_account, txn);
+        write_superblock(io_account, txn, checksums);
     }
 
     if (!last_extent) {
-        last_extent = new lba_disk_extent_t(em, file, io_account);
+        last_extent = new lba_disk_extent_t(em, file, io_account, checksums);
     }
 
     rassert(!last_extent->full());
 
-    last_extent->add_entry(lba_entry_t::make(block_id, recency, offset, ser_block_size), io_account);
+    last_extent->add_entry(lba_entry_t::make(block_id, recency, offset, ser_block_size),
+                           io_account, checksums);
 }
 
 std::set<lba_disk_extent_t *> lba_disk_structure_t::get_inactive_extents() const {
@@ -102,18 +104,22 @@ std::set<lba_disk_extent_t *> lba_disk_structure_t::get_inactive_extents() const
     return result;
 }
 
-void lba_disk_structure_t::destroy_extents(const std::set<lba_disk_extent_t *> &extents,
-                                           file_account_t *io_account,
-                                           extent_transaction_t *txn) {
+void lba_disk_structure_t::destroy_extents(
+        const std::set<lba_disk_extent_t *> &extents,
+        file_account_t *io_account,
+        extent_transaction_t *txn,
+        optional<std::vector<checksum_filerange>> *checksums) {
     for (auto e = extents.begin(); e != extents.end(); ++e) {
         extents_in_superblock.remove(*e);
         (*e)->destroy(txn);
     }
-    write_superblock(io_account, txn);
+    write_superblock(io_account, txn, checksums);
 }
 
-void lba_disk_structure_t::write_superblock(file_account_t *io_account,
-                                            extent_transaction_t *txn) {
+void lba_disk_structure_t::write_superblock(
+        file_account_t *io_account,
+        extent_transaction_t *txn,
+        optional<std::vector<checksum_filerange>> *checksums) {
 
     /* Make sure that the superblock extent has enough room for a new superblock. */
 
@@ -151,7 +157,9 @@ void lba_disk_structure_t::write_superblock(file_account_t *io_account,
     superblock_offset = superblock_extent->extent_ref.offset()
         + superblock_extent->amount_filled;
     superblock_extent->append(buffer.get(),
-            ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE), io_account);
+                              ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE),
+                              io_account,
+                              checksums);
 }
 
 class lba_disk_structure_writer_t :
@@ -178,8 +186,10 @@ public:
     }
 };
 
-void lba_disk_structure_t::write_outstanding(file_account_t *io_account,
-                                             completion_callback_t *cb) {
+void lba_disk_structure_t::write_outstanding(
+        file_account_t *io_account,
+        optional<std::vector<checksum_filerange>> *checksums,
+        completion_callback_t *cb) {
     lba_disk_structure_writer_t *writer = new lba_disk_structure_writer_t(cb);
 
     /* Count how many things need to be completed */
@@ -197,14 +207,14 @@ void lba_disk_structure_t::write_outstanding(file_account_t *io_account,
         delete writer;
     } else {
         if (last_extent) {
-            last_extent->write_outstanding(io_account, writer);
+            last_extent->write_outstanding(io_account, writer, checksums);
         }
         if (superblock_extent) {
             superblock_extent->wait_for_write_completion(writer);
         }
         for (lba_disk_extent_t *e = extents_in_superblock.head();
              e != nullptr; e = extents_in_superblock.next(e)) {
-            e->write_outstanding(io_account, writer);
+            e->write_outstanding(io_account, writer, checksums);
         }
     }
 }

@@ -192,7 +192,8 @@ segmented_vector_t<repli_timestamp_t> lba_list_t::get_block_recencies(block_id_t
 
 void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency,
                                 flagged_off64_t offset, uint16_t ser_block_size,
-                                file_account_t *io_account, extent_transaction_t *txn) {
+                                file_account_t *io_account, extent_transaction_t *txn,
+                                optional<std::vector<checksum_filerange>> *checksums) {
     rassert(state == state_ready || state == state_gc_shutting_down);
 
     in_memory_index.set_block_info(block, recency, offset, ser_block_size);
@@ -200,7 +201,7 @@ void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency,
     // If the inline LBA is full, free it up first by moving its entries to
     // the LBA extents
     if (check_inline_lba_full()) {
-        move_inline_entries_to_extents(io_account, txn);
+        move_inline_entries_to_extents(io_account, txn, checksums);
         rassert(!check_inline_lba_full());
     }
     // Then store the entry inline
@@ -212,7 +213,9 @@ bool lba_list_t::check_inline_lba_full() const {
     return inline_lba_entries_count == LBA_NUM_INLINE_ENTRIES;
 }
 
-void lba_list_t::move_inline_entries_to_extents(file_account_t *io_account, extent_transaction_t *txn) {
+void lba_list_t::move_inline_entries_to_extents(
+        file_account_t *io_account, extent_transaction_t *txn,
+        optional<std::vector<checksum_filerange>> *checksums) {
     // Note that there are two slight inefficiencies (w.r.t. i/o) in this code:
     // 1. Regarding garbage collection and inline LBA entries: The GC will write LBA
     //   entries to an extent which are also still in the inline LBA.  When we move
@@ -243,7 +246,8 @@ void lba_list_t::move_inline_entries_to_extents(file_account_t *io_account, exte
                 e.offset,
                 e.ser_block_size,
                 io_account,
-                txn);
+                txn,
+                checksums);
     }
 
     inline_lba_entries_count = 0;
@@ -262,16 +266,19 @@ class lba_writer_t :
 {
 public:
     lba_list_t *owner;
-    bool done, should_delete_self;
+    bool done;
+    bool should_delete_self;
     int structures_unsynced;
     lba_list_t::completion_callback_t *callback;
 
-    lba_writer_t(lba_list_t *_owner, file_account_t *io_account)
+    lba_writer_t(lba_list_t *_owner,
+                 optional<std::vector<checksum_filerange>> *checksums,
+                 file_account_t *io_account)
         : owner(_owner), done(false), should_delete_self(false), callback(nullptr)
     {
         structures_unsynced = LBA_SHARD_FACTOR;
         for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
-            owner->disk_structures[i]->write_outstanding(io_account, this);
+            owner->disk_structures[i]->write_outstanding(io_account, checksums, this);
         }
     }
 
@@ -291,10 +298,11 @@ public:
 };
 
 void lba_list_t::write_outstanding(file_account_t *io_account,
+                                   optional<std::vector<checksum_filerange>> *checksums,
                                    completion_callback_t *cb) {
     rassert(state == state_ready || state == state_gc_shutting_down);
 
-    lba_writer_t *completer = new lba_writer_t(this, io_account);
+    lba_writer_t *completer = new lba_writer_t(this, checksums, io_account);
     if (completer->done) {
         delete completer;
         cb->on_lba_completion();
@@ -318,6 +326,9 @@ void lba_list_t::consider_gc() {
 
 void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
     ++extent_manager->stats->pm_serializer_lba_gcs;
+
+    // No checksumming in LBA gc, thank you.
+    optional<std::vector<checksum_filerange>> checksums = r_nullopt;
 
     // Start a transaction
     std::vector<scoped_ptr_t<extent_transaction_t> > txns;
@@ -356,7 +367,8 @@ void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
                                                   off,
                                                   ser_block_size,
                                                   gc_io_account.get(),
-                                                  txns.back().get());
+                                                  txns.back().get(),
+                                                  &checksums);
         }
 
         ++num_written_in_batch;
@@ -376,6 +388,7 @@ void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
                 void on_lba_completion() { pulse(); }
             } on_lba_written;
             disk_structures[lba_shard]->write_outstanding(gc_io_account.get(),
+                                                          &checksums,
                                                           &on_lba_written);
 
             on_lba_written.wait();
@@ -396,14 +409,15 @@ void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
     // Discard the old LBA extents
     if (!aborted) {
         disk_structures[lba_shard]->destroy_extents(gced_extents, gc_io_account.get(),
-                                                    txns.back().get());
+                                                    txns.back().get(), &checksums);
     }
 
     // Sync the changed LBA for a final time
     struct : public cond_t, public lba_disk_structure_t::completion_callback_t {
         void on_lba_completion() { pulse(); }
     } on_lba_written;
-    disk_structures[lba_shard]->write_outstanding(gc_io_account.get(),
+    optional<std::vector<checksum_filerange>> no_checksum;
+    disk_structures[lba_shard]->write_outstanding(gc_io_account.get(), &no_checksum,
                                                   &on_lba_written);
 
     // End the last extent manager transaction

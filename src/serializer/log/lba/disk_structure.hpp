@@ -8,6 +8,7 @@
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/log/lba/disk_format.hpp"
 #include "serializer/log/lba/disk_extent.hpp"
+#include "serializer/log/types.hpp"
 
 class lba_load_fsm_t;
 class lba_writer_t;
@@ -35,12 +36,14 @@ public:
     void add_entry(block_id_t block_id, repli_timestamp_t recency,
                    flagged_off64_t offset, uint16_t ser_block_size,
                    file_account_t *io_account,
-                   extent_transaction_t *txn);
+                   extent_transaction_t *txn,
+                   optional<std::vector<checksum_filerange>> *checksums);
     struct completion_callback_t {
         virtual void on_lba_completion() = 0;
         virtual ~completion_callback_t() {}
     };
     void write_outstanding(file_account_t *io_account,
+                           optional<std::vector<checksum_filerange>> *checksums,
                            completion_callback_t *cb);
 
     // Returns a set of extents that are not currently active.  The returned pointers
@@ -52,7 +55,8 @@ public:
     // the `extents_in_superblock` list.  Once the extents have been destroyed, a new
     // superblock is written to persist the change.
     void destroy_extents(const std::set<lba_disk_extent_t *> &extents,
-                         file_account_t *io_account, extent_transaction_t *txn);
+                         file_account_t *io_account, extent_transaction_t *txn,
+                         optional<std::vector<checksum_filerange>> *checksums);
 
     // If you call read(), then the in_memory_index_t will be populated and then the
     // read_callback_t will be called when it is done.
@@ -79,7 +83,8 @@ public:
 
 private:
     /* Prepares and writes a new superblock. */
-    void write_superblock(file_account_t *io_account, extent_transaction_t *txn);
+    void write_superblock(file_account_t *io_account, extent_transaction_t *txn,
+                          optional<std::vector<checksum_filerange>> *checksums);
 
     /* Used during the startup process */
     void on_extent_read();

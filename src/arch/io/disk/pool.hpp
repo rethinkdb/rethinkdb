@@ -9,6 +9,7 @@
 
 #include "arch/runtime/event_queue.hpp"
 #include "arch/io/blocker_pool.hpp"
+#include "arch/types.hpp"
 #include "concurrency/queue/passive_producer.hpp"
 #include "containers/scoped.hpp"
 
@@ -30,9 +31,9 @@ struct pool_diskmgr_action_t
     pool_diskmgr_action_t() { }
 
     void make_write(fd_t _fd, const void *_buf, size_t _count, int64_t _offset,
-                    bool _wrap_in_datasyncs) {
+                    datasync_op _ds_op) {
         type = ACTION_WRITE;
-        wrap_in_datasyncs = _wrap_in_datasyncs;
+        ds_op = _ds_op;
         fd = _fd;
         buf_and_count.iov_base = const_cast<void *>(_buf);
         buf_and_count.iov_len = _count;
@@ -41,9 +42,9 @@ struct pool_diskmgr_action_t
     }
 
     void make_resize(fd_t _fd, int64_t _old_size, int64_t _new_size,
-                    bool _wrap_in_datasyncs) {
+                     datasync_op _ds_op) {
         type = ACTION_RESIZE;
-        wrap_in_datasyncs = _wrap_in_datasyncs;
+        ds_op = _ds_op;
         fd = _fd;
         buf_and_count.iov_base = nullptr;
         buf_and_count.iov_len = 0;
@@ -56,7 +57,7 @@ struct pool_diskmgr_action_t
 #elif USE_WRITEV
     void make_writev(fd_t _fd, scoped_array_t<iovec> &&_bufs, size_t _count, int64_t _offset) {
         type = ACTION_WRITE;
-        wrap_in_datasyncs = false;
+        ds_op = datasync_op::no_datasyncs;
         fd = _fd;
         iovecs = std::move(_bufs);
         buf_and_count.iov_base = nullptr;
@@ -68,7 +69,7 @@ struct pool_diskmgr_action_t
 
     void make_read(fd_t _fd, void *_buf, size_t _count, int64_t _offset) {
         type = ACTION_READ;
-        wrap_in_datasyncs = false;
+        ds_op = datasync_op::no_datasyncs;
         fd = _fd;
         buf_and_count.iov_base = _buf;
         buf_and_count.iov_len = _count;
@@ -106,7 +107,7 @@ private:
 
     enum action_type_t {ACTION_READ, ACTION_WRITE, ACTION_RESIZE};
     action_type_t type;
-    bool wrap_in_datasyncs;
+    datasync_op ds_op;
     fd_t fd;
 
     // Either type is ACTION_RESIZE, or buf_and_count.iov_base is used, or iovecs

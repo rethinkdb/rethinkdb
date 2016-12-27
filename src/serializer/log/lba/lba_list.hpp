@@ -60,16 +60,21 @@ public:
     int extent_refcount(int64_t offset);
 #endif
 
-    void set_block_info(block_id_t block, repli_timestamp_t recency,
-                        flagged_off64_t offset, uint16_t ser_block_size,
+    void set_block_info(block_id_t block,
+                        repli_timestamp_t recency,
+                        flagged_off64_t offset,
+                        uint16_t ser_block_size,
                         file_account_t *io_account,
-                        extent_transaction_t *txn);
+                        extent_transaction_t *txn,
+                        optional<std::vector<checksum_filerange>> *checksums);
 
     struct completion_callback_t {
         virtual void on_lba_completion() = 0;
         virtual ~completion_callback_t() {}
     };
-    void write_outstanding(file_account_t *io_account, completion_callback_t *cb);
+    void write_outstanding(file_account_t *io_account,
+                           optional<std::vector<checksum_filerange>> *checksums,
+                           completion_callback_t *cb);
 
     void consider_gc();
 
@@ -114,8 +119,9 @@ private:
     lba_entry_t inline_lba_entries[LBA_NUM_INLINE_ENTRIES];
     int32_t inline_lba_entries_count;
     bool check_inline_lba_full() const;
-    void move_inline_entries_to_extents(file_account_t *io_account,
-                                        extent_transaction_t *txn);
+    void move_inline_entries_to_extents(
+            file_account_t *io_account, extent_transaction_t *txn,
+            optional<std::vector<checksum_filerange>> *checksums);
     void add_inline_entry(block_id_t block, repli_timestamp_t recency,
                           flagged_off64_t offset, uint16_t ser_block_size);
 

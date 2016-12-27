@@ -108,6 +108,12 @@ TEST(DiskFormatTest, ExtentManagerMetablockMixinT) {
     EXPECT_EQ(8u, sizeof(extent_manager_metablock_mixin_t));
 }
 
+TEST(DiskFormatTest, MetablockFilerangeChecksumListT) {
+    EXPECT_EQ(16u, sizeof(metablock_filerange_t));
+    EXPECT_EQ(8u, offsetof(metablock_fileranges_checksum_t, fileranges));
+    EXPECT_EQ(136u, sizeof(metablock_fileranges_checksum_t));
+}
+
 TEST(DiskFormatTest, LogSerializerMetablockT) {
     size_t n = 0;
     EXPECT_EQ(n, offsetof(log_serializer_metablock_t, extent_manager_part));
@@ -139,6 +145,9 @@ TEST(DiskFormatTest, CrcMetablockT) {
     EXPECT_EQ(n, offsetof(crc_metablock_t, metablock));
     n += 3736;
     EXPECT_EQ(3760, n);
+    EXPECT_EQ(n, offsetof(crc_metablock_t, fileranges_checksum_v2_5));
+    n += 136;
+    EXPECT_EQ(3896, n);
     EXPECT_EQ(n, sizeof(crc_metablock_t));
 }
 
