@@ -455,7 +455,7 @@ buf_ptr_t log_serializer_t::block_read(const counted_t<standard_block_token_t> &
     stats->pm_serializer_block_reads.begin(&pm_time);
 
     buf_ptr_t ret = data_block_manager->read(token->offset_, token->block_size(),
-                                           io_account);
+                                             io_account);
 
     stats->pm_serializer_block_reads.end(&pm_time);
     return ret;
@@ -641,8 +641,16 @@ void log_serializer_t::write_metablock_sans_pipelining(const signal_t *safe_to_w
 counted_t<standard_block_token_t>
 log_serializer_t::generate_block_token(int64_t offset, block_size_t block_size) {
     assert_thread();
-    counted_t<standard_block_token_t> ret(new standard_block_token_t(this, offset, block_size));
-    return ret;
+    counted_t<standard_block_token_t> token(new standard_block_token_t(this, offset, block_size));
+
+    auto location = offset_tokens.find(offset);
+    if (location == offset_tokens.end()) {
+        data_block_manager->mark_live_tokenwise_with_offset(offset);
+    }
+
+    offset_tokens.insert(location, std::make_pair(offset, token.get()));
+
+    return token;
 }
 
 std::vector<counted_t<standard_block_token_t> >
@@ -655,23 +663,6 @@ log_serializer_t::block_writes(const std::vector<buf_write_info_t> &write_infos,
         = data_block_manager->many_writes(write_infos, io_account, cb);
     guarantee(result.size() == write_infos.size());
     return result;
-}
-
-void log_serializer_t::register_block_token(standard_block_token_t *token, int64_t offset) {
-    assert_thread();
-    rassert(token->offset_ == offset);  // Assert *token was constructed properly.
-
-    auto location = offset_tokens.find(offset);
-    if (location == offset_tokens.end()) {
-        data_block_manager->mark_live_tokenwise_with_offset(offset);
-    }
-
-    offset_tokens.insert(location, std::make_pair(offset, token));
-}
-
-bool log_serializer_t::tokens_exist_for_offset(int64_t off) {
-    assert_thread();
-    return offset_tokens.find(off) != offset_tokens.end();
 }
 
 void log_serializer_t::unregister_block_token(standard_block_token_t *token) {
@@ -983,7 +974,6 @@ standard_block_token_t::standard_block_token_t(log_serializer_t *serializer,
     : serializer_(serializer), ref_count_(0),
       block_size_(initial_block_size), offset_(initial_offset) {
     serializer_->assert_thread();
-    serializer_->register_block_token(this, initial_offset);
 }
 
 void standard_block_token_t::do_destroy() {
