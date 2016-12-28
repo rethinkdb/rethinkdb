@@ -635,8 +635,7 @@ void log_serializer_t::write_metablock(new_mutex_in_line_t *mutex_acq,
     struct : public cond_t, public mb_manager_t::metablock_write_callback_t {
         void on_metablock_write() { pulse(); }
     } on_metablock_write;
-    const bool done_with_metablock =
-        metablock_manager->write_metablock(&mb_buffer, io_account, &on_metablock_write);
+    metablock_manager->write_metablock(&mb_buffer, io_account, &on_metablock_write);
 
     /* Remove ourselves from the list of metablock waiters. */
     metablock_waiter_queue.pop_front();
@@ -647,7 +646,7 @@ void log_serializer_t::write_metablock(new_mutex_in_line_t *mutex_acq,
         metablock_waiter_queue.front()->pulse();
     }
 
-    if (!done_with_metablock) on_metablock_write.wait();
+    on_metablock_write.wait();
 }
 
 void log_serializer_t::write_metablock_sans_pipelining(const signal_t *safe_to_write_cond,
