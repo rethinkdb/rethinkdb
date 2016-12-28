@@ -254,9 +254,6 @@ private:
 template <class T, void*(*alloc)(size_t), void(*dealloc)(void*)>
 class scoped_alloc_t {
 
-    static_assert(std::is_pod<T>::value || std::is_same<T, void>::value,
-                  "refusing to malloc non-POD, non-void type");
-
 public:
     template <class U, void*(*alloc_)(size_t), void(*dealloc_)(void*)>
     friend class scoped_alloc_t;
@@ -308,6 +305,9 @@ public:
 protected:
 #endif
     ~scoped_alloc_t() {
+        static_assert(std::is_pod<T>::value || std::is_same<T, void>::value,
+                      "refusing to malloc non-POD, non-void type");
+
         dealloc(ptr_);
     }
 

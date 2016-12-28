@@ -2,16 +2,6 @@
 #ifndef SERIALIZER_LOG_METABLOCK_MANAGER_HPP_
 #define SERIALIZER_LOG_METABLOCK_MANAGER_HPP_
 
-/* Notice:
- * This file defines templatized classes and does not provide their
- * implementations. Those implementations are provided in
- * serializer/log/metablock_manager.tcc which is included by
- * serializer/log/metablock_manager.cc and explicitly instantiates the template
- * on the type log_serializer_metablock_t. If you want to use this type as the
- * template parameter you can do so and it should work fine... if you want to
- * use a different type you may have some difficulty and should look at what's
- * going on in the aforementioned files. */
-
 #include <stddef.h>
 #include <string.h>
 
@@ -39,45 +29,13 @@ static const char MB_MARKER_MAGIC[8] = {'m', 'e', 't', 'a', 'b', 'l', 'c', 'k'};
 
 std::vector<int64_t> initial_metablock_offsets(int64_t extent_size);
 
+struct log_serializer_metablock_t;
+struct crc_metablock_t;
+typedef int64_t metablock_version_t;
 
-
-template<class metablock_t>
 class metablock_manager_t {
 public:
-    typedef int64_t metablock_version_t;
-
-    // This is stored directly to disk.  Changing it will change the disk format.
-    ATTR_PACKED(struct crc_metablock_t {
-        char magic_marker[sizeof(MB_MARKER_MAGIC)];
-        // The version that differs only when the software is upgraded to a newer
-        // version.  This field might allow for in-place upgrading of the cluster.
-        uint32_t disk_format_version;
-        // The CRC checksum of [disk_format_version]+[version]+[metablock].
-        uint32_t _crc;
-        // The version that increments every time a metablock is written.
-        metablock_version_t version;
-        // The value in the metablock (pointing at LBA superblocks, etc).
-        metablock_t metablock;
-    public:
-        void prepare(uint32_t _disk_format_version, metablock_t *mb, metablock_version_t vers) {
-            disk_format_version = _disk_format_version;
-            metablock = *mb;
-            memcpy(magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC));
-            version = vers;
-            _crc = compute_own_crc();
-        }
-        bool check_crc() {
-            return (_crc == compute_own_crc());
-        }
-    private:
-        uint32_t compute_own_crc() {
-            boost::crc_32_type crc_computer;
-            crc_computer.process_bytes(&disk_format_version, sizeof(disk_format_version));
-            crc_computer.process_bytes(&version, sizeof(version));
-            crc_computer.process_bytes(&metablock, sizeof(metablock));
-            return crc_computer.checksum();
-        }
-    });
+    typedef log_serializer_metablock_t metablock_t;
 
     explicit metablock_manager_t(extent_manager_t *em);
     ~metablock_manager_t();

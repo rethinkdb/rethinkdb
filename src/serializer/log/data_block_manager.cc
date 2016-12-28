@@ -656,12 +656,9 @@ public:
                 buf.fill_padding_zero();
                 guarantee(info.ser_block_size <= *(lower_it + 1) - *lower_it);
 
-                counted_t<ls_block_token_pointee_t> ls_token
+                counted_t<standard_block_token_t> token
                     = parent->serializer->generate_block_token(current_offset,
                                                                block_size);
-
-                counted_t<standard_block_token_t> token
-                    = to_standard_block_token(block_id, std::move(ls_token));
 
                 parent->serializer->offer_buf_to_read_ahead_callbacks(
                         block_id,
@@ -725,13 +722,13 @@ buf_ptr_t data_block_manager_t::read(int64_t off_in, block_size_t block_size,
     }
 }
 
-std::vector<counted_t<ls_block_token_pointee_t> >
+std::vector<counted_t<standard_block_token_t>>
 data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
                                   file_account_t *io_account,
                                   iocallback_t *cb) {
     // These tokens are grouped by extent.  You can do a contiguous write in each
     // extent.
-    std::vector<std::vector<counted_t<ls_block_token_pointee_t> > > token_groups
+    std::vector<std::vector<counted_t<standard_block_token_t> > > token_groups
         = gimme_some_new_offsets(writes);
 
     for (auto it = writes.begin(); it != writes.end(); ++it) {
@@ -804,7 +801,7 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
     // earlier).
     intermediate_cb->on_io_complete();
 
-    std::vector<counted_t<ls_block_token_pointee_t> > ret;
+    std::vector<counted_t<standard_block_token_t> > ret;
     ret.reserve(writes.size());
     for (auto it = token_groups.begin(); it != token_groups.end(); ++it) {
         for (auto jt = it->begin(); jt != it->end(); ++jt) {
@@ -1223,13 +1220,13 @@ void data_block_manager_t::write_gcs(
     // We acquire block tokens for all the blocks before writing new
     // version.  The point of this is to make sure the _new_ block is
     // correctly "alive" when we write it.
-    std::vector<counted_t<ls_block_token_pointee_t> > old_block_tokens;
+    std::vector<counted_t<standard_block_token_t> > old_block_tokens;
     old_block_tokens.reserve(writes.size());
 
     // New block tokens, to hold the return value of
     // data_block_manager_t::write() instead of immediately discarding the
     // created token and causing the extent or block to be collected.
-    std::vector<counted_t<ls_block_token_pointee_t> > new_block_tokens;
+    std::vector<counted_t<standard_block_token_t> > new_block_tokens;
 
     {
         // Step 1: Write buffers to disk and assemble index operations
@@ -1313,9 +1310,7 @@ void data_block_manager_t::flush_gc_index_writes(signal_t *) {
 
                     index_write_ops.push_back(
                         index_write_op_t(block_id,
-                            make_optional(to_standard_block_token(
-                                                  block_id,
-                                                  iw.new_block_tokens[i]))));
+                            make_optional(iw.new_block_tokens[i])));
                 }
 
                 // (If we don't have an i_array entry, the block is referenced
@@ -1418,7 +1413,7 @@ void data_block_manager_t::actually_shutdown() {
     }
 }
 
-std::vector<std::vector<counted_t<ls_block_token_pointee_t> > >
+std::vector<std::vector<counted_t<standard_block_token_t>>>
 data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t> &writes) {
     ASSERT_NO_CORO_WAITING;
 
@@ -1431,9 +1426,9 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
 
     guarantee(active_extent->state == gc_entry_t::state_active);
 
-    std::vector<std::vector<counted_t<ls_block_token_pointee_t> > > ret;
+    std::vector<std::vector<counted_t<standard_block_token_t>>> ret;
 
-    std::vector<counted_t<ls_block_token_pointee_t> > tokens;
+    std::vector<counted_t<standard_block_token_t> > tokens;
     for (auto it = writes.begin(); it != writes.end(); ++it) {
         uint32_t relative_offset = valgrind_undefined<uint32_t>(UINT32_MAX);
         unsigned int block_index = valgrind_undefined<unsigned int>(UINT_MAX);
