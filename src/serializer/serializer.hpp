@@ -60,7 +60,7 @@ public:
 
     // Reading a block from the serializer.  Reads a block, blocks the coroutine.
     virtual buf_ptr_t block_read(const counted_t<standard_block_token_t> &token,
-                               file_account_t *io_account) = 0;
+                                 file_account_t *io_account) = 0;
 
     /* The index stores three pieces of information for each ID:
      * 1. A pointer to a data block on disk (which may be NULL)

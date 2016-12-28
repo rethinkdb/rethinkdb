@@ -143,10 +143,10 @@ private:
     friend void counted_release(standard_block_token_t *p);
 
     standard_block_token_t(log_serializer_t *serializer,
-                             int64_t initial_offset,
-                             block_size_t initial_ser_block_size);
+                           int64_t initial_offset,
+                           block_size_t initial_ser_block_size);
 
-    log_serializer_t *serializer_;
+    log_serializer_t *const serializer_;
     std::atomic<intptr_t> ref_count_;
 
     // The block's size.

@@ -157,8 +157,6 @@ public:
     virtual bool is_gc_active() const;
 
 private:
-    void register_block_token(standard_block_token_t *token, int64_t offset);
-    bool tokens_exist_for_offset(int64_t off);
     void unregister_block_token(standard_block_token_t *token);
     void remap_block_to_new_offset(int64_t current_offset, int64_t new_offset);
     counted_t<standard_block_token_t> generate_block_token(int64_t offset,
@@ -208,6 +206,10 @@ private:
 
     void consider_start_gc();
 
+    // We maintain offset_tokens so that we can remap block tokens' offsets while doing
+    // a GC.  It's a multimap (we create duplicate tokens for an offset) because on-disk
+    // GC (which remaps offsets) will move block tokens from an "old" offset to a "new"
+    // offset while simultaneously having already created tokens at the "new" offset.
     std::multimap<int64_t, standard_block_token_t *> offset_tokens;
     scoped_ptr_t<log_serializer_stats_t> stats;
     perfmon_collection_t disk_stats_collection;
