@@ -98,7 +98,7 @@ public:
         virtual void on_metablock_write() = 0;
         virtual ~metablock_write_callback_t() {}
     };
-    bool write_metablock(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb);
+    void write_metablock(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb);
     void co_write_metablock(metablock_t *mb, file_account_t *io_account);
 
     void shutdown();

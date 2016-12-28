@@ -297,9 +297,8 @@ void metablock_manager_t<metablock_t>::write_metablock_callback(metablock_t *mb,
 }
 
 template<class metablock_t>
-bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb) {
+void metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb) {
     coro_t::spawn_later_ordered(std::bind(&metablock_manager_t<metablock_t>::write_metablock_callback, this, mb, io_account, cb));
-    return false;
 }
 
 template<class metablock_t>
