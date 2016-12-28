@@ -81,12 +81,12 @@ public:
     // ratio of garbage to blocks in the system
     double garbage_ratio() const;
 
-    std::vector<counted_t<ls_block_token_pointee_t> >
+    std::vector<counted_t<standard_block_token_t>>
     many_writes(const std::vector<buf_write_info_t> &writes,
                 file_account_t *io_account,
                 iocallback_t *cb);
 
-    std::vector<std::vector<counted_t<ls_block_token_pointee_t> > >
+    std::vector<std::vector<counted_t<standard_block_token_t>>>
     gimme_some_new_offsets(const std::vector<buf_write_info_t> &writes);
 
     bool is_gc_active() const;
@@ -221,8 +221,8 @@ private:
     to improve GC efficiency on drives with slow random access. */
     struct gc_index_write_t {
         gc_index_write_t(
-            std::vector<counted_t<ls_block_token_pointee_t> > &&old_block_tokens_,
-            std::vector<counted_t<ls_block_token_pointee_t> > &&new_block_tokens_,
+            std::vector<counted_t<standard_block_token_t> > &&old_block_tokens_,
+            std::vector<counted_t<standard_block_token_t> > &&new_block_tokens_,
             std::vector<gc_write_t> &&writes_,
             gc_state_t *gc_state_,
             scoped_device_block_aligned_ptr_t<char> &&gc_blocks_)
@@ -231,8 +231,8 @@ private:
               writes(std::move(writes_)),
               gc_state(gc_state_),
               gc_blocks(std::move(gc_blocks_)) { }
-        std::vector<counted_t<ls_block_token_pointee_t> > old_block_tokens;
-        std::vector<counted_t<ls_block_token_pointee_t> > new_block_tokens;
+        std::vector<counted_t<standard_block_token_t> > old_block_tokens;
+        std::vector<counted_t<standard_block_token_t> > new_block_tokens;
         std::vector<gc_write_t> writes;
         gc_state_t *gc_state;
         scoped_device_block_aligned_ptr_t<char> gc_blocks;

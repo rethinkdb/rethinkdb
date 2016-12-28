@@ -47,15 +47,13 @@ ATTR_PACKED(struct metablock_mixin_t {
  * respect that it deserves.
  */
 
+//  Data to be serialized to disk with each block.  Changing this changes the disk format!
 ATTR_PACKED(struct log_serializer_metablock_t {
     extent_manager_t::metablock_mixin_t extent_manager_part;
     lba_list_t::metablock_mixin_t lba_index_part;
     data_block_manager::metablock_mixin_t data_block_manager_part;
 });
 
-//  Data to be serialized to disk with each block.  Changing this changes the disk format!
-// TODO: This header data should maybe go to the cache
-typedef metablock_manager_t<log_serializer_metablock_t> mb_manager_t;
 
 // Used to open a file (with the given filepath) for the log serializer.
 class filepath_file_opener_t : public serializer_file_opener_t {
@@ -104,17 +102,13 @@ private:
 struct ls_start_existing_fsm_t;
 
 class log_serializer_t :
-#ifndef SEMANTIC_SERIALIZER_CHECK
     public serializer_t,
-#else
-    public home_thread_mixin_t,
-#endif  // SEMANTIC_SERIALIZER_CHECK
     private data_block_manager::shutdown_callback_t
 {
     friend struct ls_start_existing_fsm_t;
     friend class data_block_manager_t;
     friend class dbm_read_ahead_t;
-    friend class ls_block_token_pointee_t;
+    friend class standard_block_token_t;
 
 public:
     /* Serializer configuration. dynamic_config_t is everything that can be changed from run
@@ -133,9 +127,7 @@ public:
     /* Blocks. */
     virtual ~log_serializer_t();
 
-#ifndef SEMANTIC_SERIALIZER_CHECK
     using serializer_t::make_io_account;
-#endif
     file_account_t *make_io_account(int priority, int outstanding_requests_limit);
 
     void register_read_ahead_cb(serializer_read_ahead_callback_t *cb);
@@ -146,17 +138,17 @@ public:
                                                             block_id_t step);
 
     bool get_delete_bit(block_id_t id);
-    counted_t<ls_block_token_pointee_t> index_read(block_id_t block_id);
+    counted_t<standard_block_token_t> index_read(block_id_t block_id);
 
-    buf_ptr_t block_read(const counted_t<ls_block_token_pointee_t> &token,
+    buf_ptr_t block_read(const counted_t<standard_block_token_t> &token,
                        file_account_t *io_account);
 
     void index_write(new_mutex_in_line_t *mutex_acq,
                      const std::function<void()> &on_writes_reflected,
                      const std::vector<index_write_op_t> &write_ops);
 
-    std::vector<counted_t<ls_block_token_pointee_t> > block_writes(const std::vector<buf_write_info_t> &write_infos,
-                                                                   file_account_t *io_account, iocallback_t *cb);
+    std::vector<counted_t<standard_block_token_t>> block_writes(const std::vector<buf_write_info_t> &write_infos,
+                                                                file_account_t *io_account, iocallback_t *cb);
 
     max_block_size_t max_block_size() const;
 
@@ -165,11 +157,11 @@ public:
     virtual bool is_gc_active() const;
 
 private:
-    void register_block_token(ls_block_token_pointee_t *token, int64_t offset);
+    void register_block_token(standard_block_token_t *token, int64_t offset);
     bool tokens_exist_for_offset(int64_t off);
-    void unregister_block_token(ls_block_token_pointee_t *token);
+    void unregister_block_token(standard_block_token_t *token);
     void remap_block_to_new_offset(int64_t current_offset, int64_t new_offset);
-    counted_t<ls_block_token_pointee_t> generate_block_token(int64_t offset,
+    counted_t<standard_block_token_t> generate_block_token(int64_t offset,
                                                              block_size_t block_size);
 
     void offer_buf_to_read_ahead_callbacks(
@@ -216,7 +208,7 @@ private:
 
     void consider_start_gc();
 
-    std::multimap<int64_t, ls_block_token_pointee_t *> offset_tokens;
+    std::multimap<int64_t, standard_block_token_t *> offset_tokens;
     scoped_ptr_t<log_serializer_stats_t> stats;
     perfmon_collection_t disk_stats_collection;
     perfmon_membership_t disk_stats_membership;
@@ -261,7 +253,7 @@ private:
     scoped_ptr_t<file_account_t> index_writes_io_account;
 
     extent_manager_t *extent_manager;
-    mb_manager_t *metablock_manager;
+    metablock_manager_t *metablock_manager;
     lba_list_t *lba_index;
     data_block_manager_t *data_block_manager;
 
