@@ -130,7 +130,7 @@ class repli_timestamp_t;
 
 class log_serializer_t;
 
-class standard_block_token_t {
+class block_token_t {
 public:
     int64_t offset() const { return offset_; }
     block_size_t block_size() const { return block_size_; }
@@ -139,12 +139,12 @@ private:
     friend class log_serializer_t;
     friend class dbm_read_ahead_fsm_t;  // For read-ahead tokens.
 
-    friend void counted_add_ref(standard_block_token_t *p);
-    friend void counted_release(standard_block_token_t *p);
+    friend void counted_add_ref(block_token_t *p);
+    friend void counted_release(block_token_t *p);
 
-    standard_block_token_t(log_serializer_t *serializer,
-                           int64_t initial_offset,
-                           block_size_t initial_ser_block_size);
+    block_token_t(log_serializer_t *serializer,
+                  int64_t initial_offset,
+                  block_size_t initial_ser_block_size);
 
     log_serializer_t *const serializer_;
     std::atomic<intptr_t> ref_count_;
@@ -157,14 +157,14 @@ private:
 
     void do_destroy();
 
-    DISABLE_COPYING(standard_block_token_t);
+    DISABLE_COPYING(block_token_t);
 };
 
 void debug_print(printf_buffer_t *buf,
-                 const counted_t<standard_block_token_t> &token);
+                 const counted_t<block_token_t> &token);
 
-void counted_add_ref(standard_block_token_t *p);
-void counted_release(standard_block_token_t *p);
+void counted_add_ref(block_token_t *p);
+void counted_release(block_token_t *p);
 
 
 class file_t;
@@ -200,7 +200,7 @@ public:
     // ownership, by leaving `*buf` untouched.
     virtual void offer_read_ahead_buf(block_id_t block_id,
                                       buf_ptr_t *buf,
-                                      const counted_t<standard_block_token_t> &token) = 0;
+                                      const counted_t<block_token_t> &token) = 0;
 };
 
 struct buf_write_info_t {

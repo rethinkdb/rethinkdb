@@ -445,7 +445,7 @@ file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_
     return new file_account_t(dbfile, priority, outstanding_requests_limit);
 }
 
-buf_ptr_t log_serializer_t::block_read(const counted_t<standard_block_token_t> &token,
+buf_ptr_t log_serializer_t::block_read(const counted_t<block_token_t> &token,
                                      file_account_t *io_account) {
     assert_thread();
     guarantee(token.has());
@@ -488,7 +488,7 @@ void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
 
             if (op.token) {
                 // Update the offset pointed to, and mark garbage/liveness as necessary.
-                counted_t<standard_block_token_t> token = op.token.get();
+                counted_t<block_token_t> token = op.token.get();
 
                 // Mark old offset as garbage
                 if (offset.has_value()) {
@@ -638,10 +638,10 @@ void log_serializer_t::write_metablock_sans_pipelining(const signal_t *safe_to_w
 
 }
 
-counted_t<standard_block_token_t>
+counted_t<block_token_t>
 log_serializer_t::generate_block_token(int64_t offset, block_size_t block_size) {
     assert_thread();
-    counted_t<standard_block_token_t> token(new standard_block_token_t(this, offset, block_size));
+    counted_t<block_token_t> token(new block_token_t(this, offset, block_size));
 
     auto location = offset_tokens.find(offset);
     if (location == offset_tokens.end()) {
@@ -653,19 +653,19 @@ log_serializer_t::generate_block_token(int64_t offset, block_size_t block_size) 
     return token;
 }
 
-std::vector<counted_t<standard_block_token_t> >
+std::vector<counted_t<block_token_t>>
 log_serializer_t::block_writes(const std::vector<buf_write_info_t> &write_infos,
                                file_account_t *io_account, iocallback_t *cb) {
     assert_thread();
     stats->pm_serializer_block_writes += write_infos.size();
 
-    std::vector<counted_t<standard_block_token_t>> result
+    std::vector<counted_t<block_token_t>> result
         = data_block_manager->many_writes(write_infos, io_account, cb);
     guarantee(result.size() == write_infos.size());
     return result;
 }
 
-void log_serializer_t::unregister_block_token(standard_block_token_t *token) {
+void log_serializer_t::unregister_block_token(block_token_t *token) {
     assert_thread();
 
     ASSERT_NO_CORO_WAITING;
@@ -673,7 +673,7 @@ void log_serializer_t::unregister_block_token(standard_block_token_t *token) {
     rassert(!expecting_no_more_tokens);
 
     {
-        typedef std::multimap<int64_t, standard_block_token_t *>::iterator ot_iter;
+        typedef std::multimap<int64_t, block_token_t *>::iterator ot_iter;
         ot_iter erase_it = offset_tokens.end();
         for (std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(token->offset_);
              range.first != range.second;
@@ -708,7 +708,7 @@ void log_serializer_t::remap_block_to_new_offset(int64_t current_offset, int64_t
 
     rassert(new_offset != current_offset);
 
-    typedef std::multimap<int64_t, standard_block_token_t *>::iterator ot_iter;
+    typedef std::multimap<int64_t, block_token_t *>::iterator ot_iter;
     std::pair<ot_iter, ot_iter> range = offset_tokens.equal_range(current_offset);
 
     if (range.first != range.second) {
@@ -719,11 +719,11 @@ void log_serializer_t::remap_block_to_new_offset(int64_t current_offset, int64_t
         bool last_time = false;
         while (!last_time) {
             last_time = (range.first == range.second);
-            standard_block_token_t *const token = range.first->second;
+            block_token_t *const token = range.first->second;
             guarantee(token->offset_ == current_offset);
 
             token->offset_ = new_offset;
-            offset_tokens.insert(std::pair<int64_t, standard_block_token_t *>(new_offset, token));
+            offset_tokens.insert(std::pair<int64_t, block_token_t *>(new_offset, token));
 
             ot_iter prev = range.first;
             ++range.first;
@@ -763,7 +763,7 @@ block_id_t log_serializer_t::end_aux_block_id() {
     return lba_index->end_aux_block_id();
 }
 
-counted_t<standard_block_token_t> log_serializer_t::index_read(block_id_t block_id) {
+counted_t<block_token_t> log_serializer_t::index_read(block_id_t block_id) {
     assert_thread();
     ++stats->pm_serializer_index_reads;
 
@@ -771,14 +771,14 @@ counted_t<standard_block_token_t> log_serializer_t::index_read(block_id_t block_
 
     if ((is_aux_block_id(block_id) && block_id >= lba_index->end_aux_block_id())
         || (!is_aux_block_id(block_id) && block_id >= lba_index->end_block_id())) {
-        return counted_t<standard_block_token_t>();
+        return counted_t<block_token_t>();
     }
 
     index_block_info_t info = lba_index->get_block_info(block_id);
     if (info.offset.has_value()) {
         return generate_block_token(info.offset.get_value(), block_size_t::unsafe_make(info.ser_block_size));
     } else {
-        return counted_t<standard_block_token_t>();
+        return counted_t<block_token_t>();
     }
 }
 
@@ -952,7 +952,7 @@ void log_serializer_t::unregister_read_ahead_cb(serializer_read_ahead_callback_t
 void log_serializer_t::offer_buf_to_read_ahead_callbacks(
         block_id_t block_id,
         buf_ptr_t &&buf,
-        const counted_t<standard_block_token_t> &token) {
+        const counted_t<block_token_t> &token) {
     assert_thread();
 
     buf_ptr_t local_buf = std::move(buf);
@@ -968,15 +968,15 @@ bool log_serializer_t::should_perform_read_ahead() {
     return dynamic_config.read_ahead && !read_ahead_callbacks.empty();
 }
 
-standard_block_token_t::standard_block_token_t(log_serializer_t *serializer,
-                                               int64_t initial_offset,
-                                               block_size_t initial_block_size)
+block_token_t::block_token_t(log_serializer_t *serializer,
+                             int64_t initial_offset,
+                             block_size_t initial_block_size)
     : serializer_(serializer), ref_count_(0),
       block_size_(initial_block_size), offset_(initial_offset) {
     serializer_->assert_thread();
 }
 
-void standard_block_token_t::do_destroy() {
+void block_token_t::do_destroy() {
     serializer_->assert_thread();
     rassert(ref_count_ == 0);
     serializer_->unregister_block_token(this);
@@ -984,7 +984,7 @@ void standard_block_token_t::do_destroy() {
 }
 
 void debug_print(printf_buffer_t *buf,
-                 const counted_t<standard_block_token_t> &token) {
+                 const counted_t<block_token_t> &token) {
     if (token.has()) {
         buf->appendf("standard_block_token{%" PRIi64 ", +%" PRIu32 "}",
                      token->offset(), token->block_size().ser_value());
@@ -993,19 +993,19 @@ void debug_print(printf_buffer_t *buf,
     }
 }
 
-void counted_add_ref(standard_block_token_t *p) {
+void counted_add_ref(block_token_t *p) {
     DEBUG_VAR intptr_t res = ++(p->ref_count_);
     rassert(res > 0);
 }
 
-void counted_release(standard_block_token_t *p) {
+void counted_release(block_token_t *p) {
     struct destroyer_t : public linux_thread_message_t {
         void on_thread_switch() {
             rassert(p->ref_count_ == 0);
             p->do_destroy();
             delete this;
         }
-        standard_block_token_t *p;
+        block_token_t *p;
     };
 
     intptr_t res = --(p->ref_count_);

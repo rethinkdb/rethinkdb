@@ -108,7 +108,7 @@ class log_serializer_t :
     friend struct ls_start_existing_fsm_t;
     friend class data_block_manager_t;
     friend class dbm_read_ahead_t;
-    friend class standard_block_token_t;
+    friend class block_token_t;
 
 public:
     /* Serializer configuration. dynamic_config_t is everything that can be changed from run
@@ -138,16 +138,16 @@ public:
                                                             block_id_t step);
 
     bool get_delete_bit(block_id_t id);
-    counted_t<standard_block_token_t> index_read(block_id_t block_id);
+    counted_t<block_token_t> index_read(block_id_t block_id);
 
-    buf_ptr_t block_read(const counted_t<standard_block_token_t> &token,
+    buf_ptr_t block_read(const counted_t<block_token_t> &token,
                        file_account_t *io_account);
 
     void index_write(new_mutex_in_line_t *mutex_acq,
                      const std::function<void()> &on_writes_reflected,
                      const std::vector<index_write_op_t> &write_ops);
 
-    std::vector<counted_t<standard_block_token_t>> block_writes(const std::vector<buf_write_info_t> &write_infos,
+    std::vector<counted_t<block_token_t>> block_writes(const std::vector<buf_write_info_t> &write_infos,
                                                                 file_account_t *io_account, iocallback_t *cb);
 
     max_block_size_t max_block_size() const;
@@ -157,15 +157,15 @@ public:
     virtual bool is_gc_active() const;
 
 private:
-    void unregister_block_token(standard_block_token_t *token);
+    void unregister_block_token(block_token_t *token);
     void remap_block_to_new_offset(int64_t current_offset, int64_t new_offset);
-    counted_t<standard_block_token_t> generate_block_token(int64_t offset,
+    counted_t<block_token_t> generate_block_token(int64_t offset,
                                                              block_size_t block_size);
 
     void offer_buf_to_read_ahead_callbacks(
             block_id_t block_id,
             buf_ptr_t &&buf,
-            const counted_t<standard_block_token_t> &token);
+            const counted_t<block_token_t> &token);
     bool should_perform_read_ahead();
 
     /* Starts a new transaction, updates perfmons etc. */
@@ -210,7 +210,7 @@ private:
     // a GC.  It's a multimap (we create duplicate tokens for an offset) because on-disk
     // GC (which remaps offsets) will move block tokens from an "old" offset to a "new"
     // offset while simultaneously having already created tokens at the "new" offset.
-    std::multimap<int64_t, standard_block_token_t *> offset_tokens;
+    std::multimap<int64_t, block_token_t *> offset_tokens;
     scoped_ptr_t<log_serializer_stats_t> stats;
     perfmon_collection_t disk_stats_collection;
     perfmon_membership_t disk_stats_membership;
