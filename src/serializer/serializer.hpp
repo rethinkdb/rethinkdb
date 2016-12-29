@@ -49,11 +49,13 @@ public:
     /* Allocates a new io account for the underlying file.
     Use delete to free it. */
     file_account_t *make_io_account(int priority);
-    virtual file_account_t *make_io_account(int priority, int outstanding_requests_limit) = 0;
+    virtual file_account_t *make_io_account(int priority,
+                                            int outstanding_requests_limit) = 0;
 
     /* Some serializer implementations support read-ahead to speed up cache warmup.
-    This is supported through a serializer_read_ahead_callback_t which gets called whenever the serializer has read-ahead some buf.
-    The callee can then decide whether it wants to use the offered buffer of discard it.
+    This is supported through a serializer_read_ahead_callback_t which gets called
+    whenever the serializer has read-ahead some buf.  The callee can then decide whether
+    it wants to use the offered buffer of discard it.
     */
     virtual void register_read_ahead_cb(serializer_read_ahead_callback_t *cb) = 0;
     virtual void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb) = 0;

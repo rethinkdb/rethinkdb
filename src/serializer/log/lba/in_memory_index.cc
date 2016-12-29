@@ -18,7 +18,8 @@ block_id_t in_memory_index_t::end_aux_block_id() {
 
 index_block_info_t in_memory_index_t::get_block_info(block_id_t id) {
     if (is_aux_block_id(id)) {
-        index_aux_block_info_t aux_info = aux_infos_.get(make_aux_block_id_relative(id));
+        index_aux_block_info_t aux_info
+            = aux_infos_.get(make_aux_block_id_relative(id));
         return index_block_info_t(aux_info.offset,
                                   repli_timestamp_t::invalid,
                                   aux_info.ser_block_size);
@@ -28,7 +29,8 @@ index_block_info_t in_memory_index_t::get_block_info(block_id_t id) {
 }
 
 void in_memory_index_t::set_block_info(block_id_t id, repli_timestamp_t recency,
-                                       flagged_off64_t offset, uint16_t ser_block_size) {
+                                       flagged_off64_t offset,
+                                       uint16_t ser_block_size) {
     if (is_aux_block_id(id)) {
         if (id >= end_aux_block_id_) {
             end_aux_block_id_ = id + 1;

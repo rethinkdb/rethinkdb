@@ -76,7 +76,8 @@ public:
         return held_extents_;
     }
 
-    extent_zone_t(file_t *_dbfile, uint64_t _extent_size, log_serializer_stats_t *_stats)
+    extent_zone_t(file_t *_dbfile, uint64_t _extent_size,
+                  log_serializer_stats_t *_stats)
         : extent_size(_extent_size), dbfile(_dbfile), stats(_stats), held_extents_(0) {
         // (Avoid a bunch of reallocations by resize calls (avoiding O(n log n)
         // work on average).)
@@ -195,7 +196,8 @@ public:
                 // entries to tmp.  The remaining entries must therefore point off the
                 // end of the file.  Check that no remaining entries point within the
                 // file.
-                guarantee(free_queue.top() >= extents.size(), "Tried to discard valid held extents.");
+                guarantee(free_queue.top() >= extents.size(),
+                          "Tried to discard valid held extents.");
                 free_queue = std::move(tmp);
             }
         }
@@ -284,7 +286,8 @@ extent_manager_t::copy_extent_reference(const extent_reference_t &extent_ref) {
     return zone->make_extent_reference(offset);
 }
 
-void extent_manager_t::release_extent_into_transaction(extent_reference_t &&extent_ref, extent_transaction_t *txn) {
+void extent_manager_t::release_extent_into_transaction(extent_reference_t &&extent_ref,
+                                                       extent_transaction_t *txn) {
     release_extent_preliminaries();
     rassert(current_transaction);
     txn->push_extent(std::move(extent_ref));

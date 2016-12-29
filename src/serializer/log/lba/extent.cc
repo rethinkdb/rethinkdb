@@ -31,8 +31,9 @@ struct extent_block_t :
         parent->last_block = this;
         is_last_block = true;
 
-        parent->file->write_async(parent->extent_ref.offset() + offset, DEVICE_BLOCK_SIZE,
-                                  data.get(), io_account, this, file_t::NO_DATASYNCS);
+        parent->file->write_async(
+                parent->extent_ref.offset() + offset, DEVICE_BLOCK_SIZE,
+                data.get(), io_account, this, file_t::NO_DATASYNCS);
     }
 
     void on_extent_sync() {
@@ -93,7 +94,8 @@ extent_t::~extent_t() {
 
 void extent_t::read(size_t pos, size_t length, void *buffer, read_callback_t *cb) {
     rassert(!last_block);
-    file->read_async(extent_ref.offset() + pos, length, buffer, DEFAULT_DISK_ACCOUNT, cb);
+    file->read_async(extent_ref.offset() + pos, length, buffer, DEFAULT_DISK_ACCOUNT,
+                     cb);
 
     // Ideally we would count these stats when the io operation completes,
     // but this is more generic than doing it in each callback
@@ -115,7 +117,8 @@ void extent_t::append(void *buffer, size_t length, file_account_t *io_account) {
         }
 
         size_t chunk = std::min(length, room_in_block);
-        memcpy(current_block->data.get() + (amount_filled % DEVICE_BLOCK_SIZE), buffer, chunk);
+        memcpy(current_block->data.get() + (amount_filled % DEVICE_BLOCK_SIZE),
+               buffer, chunk);
         amount_filled += chunk;
 
         if (amount_filled % DEVICE_BLOCK_SIZE == 0) {

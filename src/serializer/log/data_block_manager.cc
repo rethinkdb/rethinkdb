@@ -232,7 +232,8 @@ public:
         return info.relative_offset < relative_offset;
     }
 
-    std::vector<block_info_t>::const_iterator find_lower_bound_iter(uint32_t _relative_offset) const {
+    std::vector<block_info_t>::const_iterator
+    find_lower_bound_iter(uint32_t _relative_offset) const {
         return std::lower_bound(block_infos.begin(),
                                 block_infos.end(),
                                 _relative_offset,
@@ -437,8 +438,9 @@ void data_block_manager_t::end_reconstruct() {
     guarantee(state == state_unstarted);
 }
 
-void data_block_manager_t::start_existing(file_t *file,
-                                          const data_block_manager::metablock_mixin_t *last_metablock) {
+void data_block_manager_t::start_existing(
+        file_t *file,
+        const data_block_manager::metablock_mixin_t *last_metablock) {
     guarantee(state == state_unstarted);
     dbfile = file;
     gc_io_account_nice.init(new file_account_t(file, GC_IO_PRIORITY_NICE));
@@ -650,7 +652,8 @@ public:
                     continue;
                 }
 
-                const block_size_t block_size = block_size_t::unsafe_make(info.ser_block_size);
+                const block_size_t block_size
+                    = block_size_t::unsafe_make(info.ser_block_size);
                 buf_ptr_t buf = buf_ptr_t::alloc_uninitialized(block_size);
                 memcpy(buf.ser_buffer(), current_buf, info.ser_block_size);
                 buf.fill_padding_zero();
@@ -971,7 +974,8 @@ void data_block_manager_t::mark_garbage_tokenwise_with_offset(int64_t offset) {
     // Add to old garbage count if necessary (works because of the
     // !entry->block_is_garbage(block_index) assertion above).
     if (entry->state == gc_entry_t::state_old && entry->block_is_garbage(block_index)) {
-        gc_stats.old_garbage_block_bytes += gc_entry_t::aligned_value(entry->block_size(block_index));
+        gc_stats.old_garbage_block_bytes
+            += gc_entry_t::aligned_value(entry->block_size(block_index));
     }
 
     check_and_handle_empty_extent(extent_id);
@@ -1235,8 +1239,9 @@ void data_block_manager_t::write_gcs(
         std::vector<buf_write_info_t> the_writes;
         the_writes.reserve(writes.size());
         for (size_t i = 0; i < writes.size(); ++i) {
-            old_block_tokens.push_back(serializer->generate_block_token(writes[i].old_offset,
-                                                                        writes[i].block_size));
+            old_block_tokens.push_back(
+                    serializer->generate_block_token(writes[i].old_offset,
+                                                     writes[i].block_size));
 
             the_writes.push_back(buf_write_info_t(writes[i].buf,
                                                   writes[i].block_size,
@@ -1453,7 +1458,8 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
                                                              &block_index);
             guarantee(succeeded);
 
-            // Push the current group of tokens, if it's nonempty, onto the return vector.
+            // Push the current group of tokens, if it's nonempty, onto the return
+            // vector.
             if (!tokens.empty()) {
                 ret.push_back(std::move(tokens));
                 tokens.clear();

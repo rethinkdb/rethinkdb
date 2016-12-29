@@ -48,7 +48,7 @@ public:
     void start_existing(file_t *dbfile, const data_block_manager::metablock_mixin_t *last_metablock);
 
     buf_ptr_t read(int64_t off_in, block_size_t block_size,
-                 file_account_t *io_account);
+                   file_account_t *io_account);
 
     /* exposed gc api */
     /* mark a buffer as garbage */

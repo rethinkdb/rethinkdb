@@ -11,11 +11,13 @@ lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *_em, file_t *_file)
 {
 }
 
-lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *_em, file_t *_file, lba_shard_metablock_t *metablock)
+lba_disk_structure_t::lba_disk_structure_t(extent_manager_t *_em, file_t *_file,
+                                           lba_shard_metablock_t *metablock)
     : em(_em), file(_file)
 {
     if (metablock->last_lba_extent_offset != NULL_OFFSET) {
-        last_extent = new lba_disk_extent_t(em, file, metablock->last_lba_extent_offset, metablock->last_lba_extent_entries_count);
+        last_extent = new lba_disk_extent_t(em, file, metablock->last_lba_extent_offset,
+                                            metablock->last_lba_extent_entries_count);
     } else {
         last_extent = nullptr;
     }
@@ -68,14 +70,16 @@ void lba_disk_structure_t::on_extent_read() {
 
 void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t recency,
                                      flagged_off64_t offset, uint32_t ser_block_size,
-                                     file_account_t *io_account, extent_transaction_t *txn) {
+                                     file_account_t *io_account,
+                                     extent_transaction_t *txn) {
     if (last_extent && last_extent->full()) {
         /* We have filled up an extent. Transfer it to the superblock. */
 
         extents_in_superblock.push_back(last_extent);
         last_extent = nullptr;
 
-        /* Since there is a new extent on the superblock, we need to rewrite the superblock. */
+        /* Since there is a new extent on the superblock, we need to rewrite the
+           superblock. */
 
         write_superblock(io_account, txn);
     }
@@ -256,10 +260,11 @@ struct reader_t
     };
     std::vector< extent_reader_t* > readers;
 
-    int next_reader;   // The index of the next reader that we should call start_reading() on
+    // The index of the next reader that we should call start_reading() on
+    int next_reader;
 
-    // The number of readers that have done start_reading() but not done(). Used to throttle the
-    // reading process so that we stay under LBA_READ_BUFFER_SIZE.
+    // The number of readers that have done start_reading() but not done(). Used to
+    // throttle the reading process so that we stay under LBA_READ_BUFFER_SIZE.
     int active_readers;
 
     reader_t(lba_disk_structure_t *_ds, in_memory_index_t *_index, lba_disk_structure_t::read_callback_t *cb)
@@ -271,9 +276,9 @@ struct reader_t
         }
         if (ds->last_extent) new extent_reader_t(this, ds->last_extent);
 
-        /* The constructor for extent_reader_t pushed them onto our 'readers' vector. So now we
-        have a vector with an extent_reader_t object for each extent we need to read, but none
-        of them have been started yet. */
+        /* The constructor for extent_reader_t pushed them onto our 'readers' vector. So
+        now we have a vector with an extent_reader_t object for each extent we need to
+        read, but none of them have been started yet. */
 
         if (readers.empty()) {
             done();
@@ -286,7 +291,8 @@ struct reader_t
 
     void start_more_readers() {
         int limit = std::max<int>(LBA_READ_BUFFER_SIZE / ds->em->extent_size / LBA_SHARD_FACTOR, 1);
-        while (next_reader != static_cast<int>(readers.size()) && active_readers < limit) {
+        while (next_reader != static_cast<int>(readers.size())
+               && active_readers < limit) {
             readers[next_reader++]->start_reading();
         }
     }
