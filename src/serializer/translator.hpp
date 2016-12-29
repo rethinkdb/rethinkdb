@@ -117,7 +117,7 @@ public:
                      const std::function<void()> &on_writes_reflected,
                      const std::vector<index_write_op_t> &write_ops);
 
-    std::vector<counted_t<standard_block_token_t> >
+    std::vector<counted_t<block_token_t>>
     block_writes(const std::vector<buf_write_info_t> &write_infos, file_account_t *io_account, iocallback_t *cb);
 
     max_block_size_t max_block_size() const;
@@ -133,14 +133,14 @@ public:
                                                             block_id_t step);
     bool get_delete_bit(block_id_t id);
 
-    buf_ptr_t block_read(const counted_t<standard_block_token_t> &token,
+    buf_ptr_t block_read(const counted_t<block_token_t> &token,
                        file_account_t *io_account);
-    counted_t<standard_block_token_t> index_read(block_id_t block_id);
+    counted_t<block_token_t> index_read(block_id_t block_id);
 
 public:
     void offer_read_ahead_buf(block_id_t block_id,
                               buf_ptr_t *buf,
-                              const counted_t<standard_block_token_t> &token);
+                              const counted_t<block_token_t> &token);
 
 private:
     // Helper function for `end_block_id` and `end_aux_block_id`
