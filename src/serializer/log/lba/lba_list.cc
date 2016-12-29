@@ -217,29 +217,29 @@ bool lba_list_t::check_inline_lba_full() const {
 
 void lba_list_t::move_inline_entries_to_extents(file_account_t *io_account, extent_transaction_t *txn) {
     // Note that there are two slight inefficiencies (w.r.t. i/o) in this code:
-    // 1. Regarding garbage collection and inline LBA entries:
-    //   The GC will write LBA entries to an extent which are also still in the inline LBA.
-    //   When we move those entries over to the extents in this function, we write them again.
-    //   This is not necessary, because the GC has already written them.
-    //   It's probably not a big deal, but we do sometimes write a few redundant
-    //   LBA entries due to this.
-    // 2. Also, if an entry which is still in the inline LBA has already
-    //   been deprecated by a more recent inlined entry, we are still going to write
-    //   the already deprecated entry to the LBA extent first. We could check
-    //   whether an entry still matches the in-memory LBA before we move
-    //   it to disc_structures. On the other hand that would mean more complicated code
-    //   and a little more CPU overhead.
+    // 1. Regarding garbage collection and inline LBA entries: The GC will write LBA
+    //   entries to an extent which are also still in the inline LBA.  When we move
+    //   those entries over to the extents in this function, we write them again.  This
+    //   is not necessary, because the GC has already written them.  It's probably not a
+    //   big deal, but we do sometimes write a few redundant LBA entries due to this.
+    //
+    // 2. Also, if an entry which is still in the inline LBA has already been deprecated
+    //   by a more recent inlined entry, we are still going to write the already
+    //   deprecated entry to the LBA extent first. We could check whether an entry still
+    //   matches the in-memory LBA before we move it to disc_structures. On the other
+    //   hand that would mean more complicated code and a little more CPU overhead.
 
     // Note that the order is important here. The oldest inline entries have to be
     // written first, because they might have been superseded by newer inline entries.
     for (int32_t i = 0; i < inline_lba_entries_count; ++i) {
         const lba_entry_t &e = inline_lba_entries[i];
 
-        /* Strangely enough, this works even with the GC. Here's the reasoning: If the GC is
-        waiting for the disk structure lock, then sync() will never be called again on the
-        current disk_structure, so it's meaningless but harmless to call add_entry(). However,
-        since our changes are also being put into the in_memory_index, they will be
-        incorporated into the new disk_structure that the GC creates, so they won't get lost. */
+        /* Strangely enough, this works even with the GC. Here's the reasoning: If the
+        GC is waiting for the disk structure lock, then sync() will never be called
+        again on the current disk_structure, so it's meaningless but harmless to call
+        add_entry(). However, since our changes are also being put into the
+        in_memory_index, they will be incorporated into the new disk_structure that the
+        GC creates, so they won't get lost. */
         disk_structures[e.block_id % LBA_SHARD_FACTOR]->add_entry(
                 e.block_id,
                 e.recency,
@@ -440,20 +440,22 @@ bool lba_list_t::we_want_to_gc(int i) {
         return false;
     }
 
-    // Don't count the extent we're currently writing to. If there is no superblock, then that
-    // extent is the only one, so we don't want to GC obviously.
+    // Don't count the extent we're currently writing to. If there is no superblock,
+    // then that extent is the only one, so we don't want to GC obviously.
     if (disk_structures[i]->superblock_extent == nullptr) {
         return false;
     }
 
-    // If the LBA is under the threshold, then don't GC regardless of how much is garbage
+    // If the LBA is under the threshold, then don't GC regardless of how much is
+    // garbage
     if (disk_structures[i]->extents_in_superblock.size() * extent_manager->extent_size <
             LBA_MIN_SIZE_FOR_GC / LBA_SHARD_FACTOR) {
         return false;
     }
 
-    // How much space are we using on disk? How much of that space is absolutely necessary?
-    // If we are not using more than N times the amount of space that we need, don't GC
+    // How much space are we using on disk? How much of that space is absolutely
+    // necessary?  If we are not using more than N times the amount of space that we
+    // need, don't GC
     int entries_per_extent = disk_structures[i]->num_entries_that_can_fit_in_an_extent();
     int64_t entries_total = disk_structures[i]->extents_in_superblock.size() * entries_per_extent;
     int64_t entries_live = end_block_id() / LBA_SHARD_FACTOR

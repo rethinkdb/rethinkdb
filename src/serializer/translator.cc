@@ -21,8 +21,9 @@
 const block_magic_t multiplexer_config_block_t::expected_magic = { { 'c', 'f', 'g', '_' } };
 
 int compute_mod_count(int32_t file_number, int32_t n_files, int32_t n_slices) {
-    /* If we have 'n_files', and we distribute 'n_slices' over those 'n_files' such that slice 'n'
-    is on file 'n % n_files', then how many slices will be on file 'file_number'? */
+    /* If we have 'n_files', and we distribute 'n_slices' over those 'n_files' such that
+    slice 'n' is on file 'n % n_files', then how many slices will be on file
+    'file_number'? */
     return n_slices / n_files + (n_slices % n_files > file_number);
 }
 
@@ -50,8 +51,8 @@ void prep_serializer(
 
     serializer_t *ser = serializers[i];
 
-    /* Go to the thread the serializer is running on because it can only be accessed safely from
-    that thread */
+    /* Go to the thread the serializer is running on because it can only be accessed
+    safely from that thread */
     on_thread_t thread_switcher(ser->home_thread());
 
     /* Write the initial configuration block */
@@ -84,8 +85,8 @@ void prep_serializer(
 
 /* static */
 void serializer_multiplexer_t::create(const std::vector<serializer_t *>& underlying, int n_proxies) {
-    /* Choose a more-or-less unique ID so that we can hopefully catch the case where files are
-    mixed and mismatched. */
+    /* Choose a more-or-less unique ID so that we can hopefully catch the case where
+    files are mixed and mismatched. */
     creation_timestamp_t creation_timestamp = time(nullptr);
 
     /* Write a configuration block for each one */
@@ -98,8 +99,8 @@ void create_proxies(const std::vector<serializer_t *>& underlying,
 
     serializer_t *ser = underlying[i];
 
-    /* Go to the thread the serializer is running on because it is only safe to access on that
-    thread and because the pseudoserializers must be created on that thread */
+    /* Go to the thread the serializer is running on because it is only safe to access
+    on that thread and because the pseudoserializers must be created on that thread */
     on_thread_t thread_switcher(ser->home_thread());
 
     /* Load config block */
@@ -124,14 +125,14 @@ void create_proxies(const std::vector<serializer_t *>& underlying,
     guarantee(c->this_serializer >= 0 && c->this_serializer < static_cast<int>(underlying.size()));
     guarantee(c->n_proxies == static_cast<int>(proxies->size()));
 
-    /* Figure out which serializer we are (in case files were specified to 'rethinkdb serve' in a
-    different order than they were specified to 'rethinkdb create') */
+    /* Figure out which serializer we are (in case files were specified to 'rethinkdb
+    serve' in a different order than they were specified to 'rethinkdb create') */
     int j = c->this_serializer;
 
     int num_on_this_serializer = compute_mod_count(j, underlying.size(), c->n_proxies);
 
-    /* This is a slightly weird way of phrasing this; it's done this way so I can be sure it's
-    equivalent to the old way of doing things */
+    /* This is a slightly weird way of phrasing this; it's done this way so I can be
+    sure it's equivalent to the old way of doing things */
     for (int k = 0; k < c->n_proxies; k++) {
         /* Are we responsible for creating this proxy? */
         if (k % static_cast<int>(underlying.size()) != j)
@@ -152,7 +153,8 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
         rassert(underlying[i]);
     }
 
-    /* Figure out how many slices there are gonna be and figure out what the creation magic is */
+    /* Figure out how many slices there are gonna be and figure out what the creation
+       magic is */
     {
         on_thread_t thread_switcher(underlying[0]->home_thread());
 
@@ -168,9 +170,10 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
         proxies.resize(c->n_proxies);
     }
 
-    /* Now go to each serializer and verify it individually. We visit the first serializer twice
-    (because we already visited it to get the creation magic and stuff) but that's OK. Also, create
-    proxies for the serializers (populate the 'proxies' vector) */
+    /* Now go to each serializer and verify it individually. We visit the first
+    serializer twice (because we already visited it to get the creation magic and stuff)
+    but that's OK. Also, create proxies for the serializers (populate the 'proxies'
+    vector) */
     pmap(underlying.size(), std::bind(&create_proxies,
         underlying, creation_timestamp, &proxies, ph::_1));
 
@@ -353,20 +356,23 @@ void translator_serializer_t::offer_read_ahead_buf(
     buf_ptr_t local_buf = std::move(*buf);
 
     if (read_ahead_callback != nullptr) {
-        const block_id_t inner_block_id = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);
+        const block_id_t inner_block_id
+            = untranslate_block_id_to_id(block_id, mod_count, mod_id, cfgid);
         read_ahead_callback->offer_read_ahead_buf(inner_block_id, &local_buf,
                                                   token);
     }
 }
 
-void translator_serializer_t::register_read_ahead_cb(serializer_read_ahead_callback_t *cb) {
+void translator_serializer_t::register_read_ahead_cb(
+        serializer_read_ahead_callback_t *cb) {
     assert_thread();
 
     rassert(!read_ahead_callback);
     inner->register_read_ahead_cb(this);
     read_ahead_callback = cb;
 }
-void translator_serializer_t::unregister_read_ahead_cb(DEBUG_VAR serializer_read_ahead_callback_t *cb) {
+void translator_serializer_t::unregister_read_ahead_cb(
+        DEBUG_VAR serializer_read_ahead_callback_t *cb) {
     assert_thread();
 
     rassert(read_ahead_callback == nullptr || cb == read_ahead_callback);

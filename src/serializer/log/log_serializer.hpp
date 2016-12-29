@@ -76,7 +76,8 @@ private:
     // The path of the temporary file.  This is file_name() with some suffix appended.
     std::string temporary_file_name() const;
 
-    // Either file_name() or temporary_file_name(), depending on whether opened_temporary_ is true.
+    // Either file_name() or temporary_file_name(), depending on whether
+    // opened_temporary_ is true.
     std::string current_file_name() const;
 
     // The filepath of the final position of the file.
@@ -84,14 +85,16 @@ private:
 
     io_backender_t *const backender_;
 
-    // Makes sure that only one member function gets called at a time.  Some of them are blocking,
-    // and we don't want to have to worry about stuff like what the value of opened_temporary_
-    // should be during the blocking call to move_serializer_file_to_permanent_location().
+    // Makes sure that only one member function gets called at a time.  Some of them are
+    // blocking, and we don't want to have to worry about stuff like what the value of
+    // opened_temporary_ should be during the blocking call to
+    // move_serializer_file_to_permanent_location().
     mutex_assertion_t reentrance_mutex_;
 
-    // This begins false.  It becomes true when open_serializer_file_create_temporary is called.  It
-    // becomes false again when move_serializer_file_to_permanent_location is called.  It is used by
-    // open_serializer_file_existing to know whether it should use the temporary or permanent path.
+    // This begins false.  It becomes true when open_serializer_file_create_temporary is
+    // called.  It becomes false again when move_serializer_file_to_permanent_location
+    // is called.  It is used by open_serializer_file_existing to know whether it should
+    // use the temporary or permanent path.
     bool opened_temporary_;
 
     DISABLE_COPYING(filepath_file_opener_t);
@@ -111,18 +114,21 @@ class log_serializer_t :
     friend class block_token_t;
 
 public:
-    /* Serializer configuration. dynamic_config_t is everything that can be changed from run
-    to run; static_config_t is the parameters that are set when the database is created and
-    cannot be changed after that. */
+    /* Serializer configuration. dynamic_config_t is everything that can be changed from
+    run to run; static_config_t is the parameters that are set when the database is
+    created and cannot be changed after that. */
     typedef log_serializer_dynamic_config_t dynamic_config_t;
     typedef log_serializer_static_config_t static_config_t;
 
 
     /* Blocks. Does not check for an existing database--use check_existing for that. */
-    static void create(serializer_file_opener_t *file_opener, static_config_t static_config);
+    static void create(serializer_file_opener_t *file_opener,
+                       static_config_t static_config);
 
     /* Blocks. */
-    log_serializer_t(dynamic_config_t dynamic_config, serializer_file_opener_t *file_opener, perfmon_collection_t *perfmon_collection);
+    log_serializer_t(dynamic_config_t dynamic_config,
+                     serializer_file_opener_t *file_opener,
+                     perfmon_collection_t *perfmon_collection);
 
     /* Blocks. */
     virtual ~log_serializer_t();
@@ -147,8 +153,10 @@ public:
                      const std::function<void()> &on_writes_reflected,
                      const std::vector<index_write_op_t> &write_ops);
 
-    std::vector<counted_t<block_token_t>> block_writes(const std::vector<buf_write_info_t> &write_infos,
-                                                                file_account_t *io_account, iocallback_t *cb);
+    std::vector<counted_t<block_token_t>> block_writes(
+            const std::vector<buf_write_info_t> &write_infos,
+            file_account_t *io_account,
+            iocallback_t *cb);
 
     max_block_size_t max_block_size() const;
 
@@ -259,9 +267,9 @@ private:
     lba_list_t *lba_index;
     data_block_manager_t *data_block_manager;
 
-    /* The running index writes organize themselves into a list so that they can be sure to
-    write their metablocks in the correct order. The first element in the list
-    is the oldest transaction that started but did not finish. */
+    /* The running index writes organize themselves into a list so that they can be sure
+    to write their metablocks in the correct order. The first element in the list is the
+    oldest transaction that started but did not finish. */
     std::list<cond_t *> metablock_waiter_queue;
 
     int active_write_count;

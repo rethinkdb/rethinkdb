@@ -54,8 +54,8 @@ inline bool operator==(flagged_off64_t x, flagged_off64_t y) {
     return x.the_value_ == y.the_value_;
 }
 
-// PADDING_BLOCK_ID and flagged_off64_t::padding() indicate that an entry in the LBA list only exists to fill
-// out a DEVICE_BLOCK_SIZE-sized chunk of the extent.
+// PADDING_BLOCK_ID and flagged_off64_t::padding() indicate that an entry in the LBA
+// list only exists to fill out a DEVICE_BLOCK_SIZE-sized chunk of the extent.
 
 static const block_id_t PADDING_BLOCK_ID = NULL_BLOCK_ID;
 
@@ -96,7 +96,8 @@ ATTR_PACKED(struct lba_entry_t {
     }
 
     static lba_entry_t make_padding_entry() {
-        return make(PADDING_BLOCK_ID, repli_timestamp_t::invalid, flagged_off64_t::padding(), 0);
+        return make(PADDING_BLOCK_ID, repli_timestamp_t::invalid,
+                    flagged_off64_t::padding(), 0);
     }
 });
 

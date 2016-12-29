@@ -50,13 +50,15 @@ public:
         virtual ~metablock_read_callback_t() {}
     };
 
-    bool start_existing(file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
+    bool start_existing(file_t *dbfile, bool *mb_found, metablock_t *mb_out,
+                        metablock_read_callback_t *cb);
 
     struct metablock_write_callback_t {
         virtual void on_metablock_write() = 0;
         virtual ~metablock_write_callback_t() {}
     };
-    void write_metablock(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb);
+    void write_metablock(metablock_t *mb, file_account_t *io_account,
+                         metablock_write_callback_t *cb);
     void co_write_metablock(metablock_t *mb, file_account_t *io_account);
 
     void shutdown();
@@ -79,15 +81,18 @@ private:
         // return the offset we should be writing to
         int64_t offset();
 
-        // save the state to be loaded later (used to save the last known uncorrupted metablock)
+        // save the state to be loaded later (used to save the last known uncorrupted
+        // metablock)
         void push();
 
         //load a previously saved state (stack has max depth one)
         void pop();
     };
 
-    void start_existing_callback(file_t *dbfile, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb);
-    void write_metablock_callback(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb);
+    void start_existing_callback(file_t *dbfile, bool *mb_found, metablock_t *mb_out,
+                                 metablock_read_callback_t *cb);
+    void write_metablock_callback(metablock_t *mb, file_account_t *io_account,
+                                  metablock_write_callback_t *cb);
 
     mutex_t write_lock;
 

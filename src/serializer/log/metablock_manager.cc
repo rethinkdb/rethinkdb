@@ -24,7 +24,8 @@ ATTR_PACKED(struct crc_metablock_t {
     // The value in the metablock (pointing at LBA superblocks, etc).
     log_serializer_metablock_t metablock;
 public:
-    void prepare(uint32_t _disk_format_version, log_serializer_metablock_t *mb, metablock_version_t vers) {
+    void prepare(uint32_t _disk_format_version, log_serializer_metablock_t *mb,
+                 metablock_version_t vers) {
         disk_format_version = _disk_format_version;
         metablock = *mb;
         memcpy(magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC));
@@ -86,14 +87,16 @@ void metablock_manager_t::metablock_manager_t::head_t::push() {
 }
 
 void metablock_manager_t::metablock_manager_t::head_t::pop() {
-    guarantee(saved_mb_slot != static_cast<uint32_t>(-1), "Popping without a saved state");
+    guarantee(saved_mb_slot != static_cast<uint32_t>(-1),
+              "Popping without a saved state");
     mb_slot = saved_mb_slot;
     saved_mb_slot = static_cast<uint32_t>(-1);
 }
 
 metablock_manager_t::metablock_manager_t(extent_manager_t *em)
     : head(this), mb_buffer(METABLOCK_SIZE),
-      extent_manager(em), metablock_offsets(initial_metablock_offsets(extent_manager->extent_size)),
+      extent_manager(em),
+      metablock_offsets(initial_metablock_offsets(extent_manager->extent_size)),
       state(state_unstarted), dbfile(nullptr) {
     rassert(sizeof(crc_metablock_t) <= METABLOCK_SIZE);
     rassert(mb_buffer.has());
@@ -113,7 +116,8 @@ metablock_manager_t::~metablock_manager_t() {
     rassert(!mb_buffer_in_use);
 }
 
-void metablock_manager_t::create(file_t *dbfile, int64_t extent_size, metablock_t *initial) {
+void metablock_manager_t::create(file_t *dbfile, int64_t extent_size,
+                                 metablock_t *initial) {
 
     std::vector<int64_t> metablock_offsets = initial_metablock_offsets(extent_size);
 
@@ -123,8 +127,8 @@ void metablock_manager_t::create(file_t *dbfile, int64_t extent_size, metablock_
     scoped_device_block_aligned_ptr_t<crc_metablock_t> buffer(METABLOCK_SIZE);
     memset(buffer.get(), 0, METABLOCK_SIZE);
 
-    /* Wipe the metablock slots so we don't mistake something left by a previous database for a
-    valid metablock. */
+    /* Wipe the metablock slots so we don't mistake something left by a previous
+    database for a valid metablock. */
     struct : public iocallback_t, public cond_t {
         int refcount;
         void on_io_complete() {
@@ -176,7 +180,8 @@ bool disk_format_version_is_recognized(uint32_t disk_format_version) {
 }
 
 
-void metablock_manager_t::co_start_existing(file_t *file, bool *mb_found, metablock_t *mb_out) {
+void metablock_manager_t::co_start_existing(file_t *file, bool *mb_found,
+                                            metablock_t *mb_out) {
     rassert(state == state_unstarted);
     dbfile = file;
     rassert(dbfile != nullptr);
@@ -280,16 +285,22 @@ void metablock_manager_t::co_start_existing(file_t *file, bool *mb_found, metabl
 }
 
 //The following two functions will go away in favor of the preceding one
-void metablock_manager_t::start_existing_callback(file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
+void metablock_manager_t::start_existing_callback(
+        file_t *file, bool *mb_found, metablock_t *mb_out,
+        metablock_read_callback_t *cb) {
     co_start_existing(file, mb_found, mb_out);
     cb->on_metablock_read();
 }
 
-bool metablock_manager_t::start_existing(file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
-    coro_t::spawn_later_ordered(std::bind(&metablock_manager_t::start_existing_callback, this, file, mb_found, mb_out, cb));
+bool metablock_manager_t::start_existing(
+        file_t *file, bool *mb_found, metablock_t *mb_out,
+        metablock_read_callback_t *cb) {
+    coro_t::spawn_later_ordered(std::bind(&metablock_manager_t::start_existing_callback,
+                                          this, file, mb_found, mb_out, cb));
     return false;
 }
-void metablock_manager_t::co_write_metablock(metablock_t *mb, file_account_t *io_account) {
+void metablock_manager_t::co_write_metablock(metablock_t *mb,
+                                             file_account_t *io_account) {
     mutex_t::acq_t hold(&write_lock);
 
     rassert(state == state_ready);
@@ -318,7 +329,8 @@ void metablock_manager_t::write_metablock_callback(metablock_t *mb, file_account
 }
 
 void metablock_manager_t::write_metablock(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb) {
-    coro_t::spawn_later_ordered(std::bind(&metablock_manager_t::write_metablock_callback, this, mb, io_account, cb));
+    coro_t::spawn_later_ordered(std::bind(&metablock_manager_t::write_metablock_callback,
+                                          this, mb, io_account, cb));
 }
 
 void metablock_manager_t::shutdown() {
