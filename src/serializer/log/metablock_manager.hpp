@@ -7,9 +7,6 @@
 
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/crc.hpp>
-
 #include "arch/compiler.hpp"
 #include "arch/types.hpp"
 #include "concurrency/mutex.hpp"
