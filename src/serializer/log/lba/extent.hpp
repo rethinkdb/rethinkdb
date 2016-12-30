@@ -32,11 +32,11 @@ public:
 
     void append(void *buffer, size_t length, file_account_t *io_account);
 
-    struct sync_callback_t {
-        virtual void on_extent_sync() = 0;
-        virtual ~sync_callback_t() {}
+    struct completion_callback_t {
+        virtual void on_extent_completion() = 0;
+        virtual ~completion_callback_t() {}
     };
-    void sync(sync_callback_t *cb);
+    void wait_for_write_completion(completion_callback_t *cb);
 
     extent_reference_t extent_ref;
     size_t amount_filled;

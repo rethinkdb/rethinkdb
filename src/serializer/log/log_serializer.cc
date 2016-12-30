@@ -567,18 +567,18 @@ void log_serializer_t::index_write_prepare(extent_transaction_t *txn) {
 void log_serializer_t::index_write_finish(new_mutex_in_line_t *mutex_acq,
                                           extent_transaction_t *txn,
                                           file_account_t *io_account) {
-    /* Sync the LBA */
-    struct : public cond_t, public lba_list_t::sync_callback_t {
-        void on_lba_sync() { pulse(); }
-    } on_lba_sync;
-    lba_index->sync(io_account, &on_lba_sync);
+    /* Write the LBA */
+    struct : public cond_t, public lba_list_t::completion_callback_t {
+        void on_lba_completion() { pulse(); }
+    } on_lba_written;
+    lba_index->write_outstanding(io_account, &on_lba_written);
 
     /* Stop the extent manager transaction so another one can start, but don't commit it
     yet */
     extent_manager->end_transaction(txn);
 
     /* Write the metablock */
-    write_metablock(mutex_acq, &on_lba_sync, io_account);
+    write_metablock(mutex_acq, &on_lba_written, io_account);
 
     active_write_count--;
 

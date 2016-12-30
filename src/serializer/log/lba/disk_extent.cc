@@ -43,14 +43,14 @@ void lba_disk_extent_t::add_entry(lba_entry_t entry, file_account_t *io_account)
     count++;
 }
 
-void lba_disk_extent_t::sync(file_account_t *io_account,
-                             extent_t::sync_callback_t *cb) {
+void lba_disk_extent_t::write_outstanding(file_account_t *io_account,
+                                          extent_t::completion_callback_t *cb) {
     em->assert_thread();
     while (data->amount_filled % DEVICE_BLOCK_SIZE != 0) {
         add_entry(lba_entry_t::make_padding_entry(), io_account);
     }
 
-    data->sync(cb);
+    data->wait_for_write_completion(cb);
 }
 
 void lba_disk_extent_t::read_step_1(read_info_t *info_out,
