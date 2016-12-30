@@ -239,7 +239,7 @@ extent_reference_t extent_manager_t::reserve_extent(int64_t extent) {
     return zone->reserve_extent(extent);
 }
 
-void extent_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
+void extent_manager_t::prepare_initial_metablock(extent_manager_metablock_mixin_t *mb) {
     mb->padding = 0;
 }
 
@@ -252,7 +252,7 @@ void extent_manager_t::start_existing() {
 
 }
 
-void extent_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
+void extent_manager_t::prepare_metablock(extent_manager_metablock_mixin_t *metablock) {
     assert_thread();
     rassert(state == state_running);
     metablock->padding = 0;

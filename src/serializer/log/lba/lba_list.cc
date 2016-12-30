@@ -21,7 +21,7 @@ lba_list_t::lba_list_t(extent_manager_t *em,
     }
 }
 
-void lba_list_t::prepare_initial_metablock(metablock_mixin_t *mb_out) {
+void lba_list_t::prepare_initial_metablock(lba_metablock_mixin_t *mb_out) {
 
     for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
         mb_out->shards[i].lba_superblock_offset = NULL_OFFSET;
@@ -35,7 +35,7 @@ void lba_list_t::prepare_initial_metablock(metablock_mixin_t *mb_out) {
            LBA_NUM_INLINE_ENTRIES * sizeof(lba_entry_t));
 }
 
-void lba_list_t::prepare_metablock(metablock_mixin_t *mb_out) {
+void lba_list_t::prepare_metablock(lba_metablock_mixin_t *mb_out) {
     for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
         disk_structures[i]->prepare_metablock(&mb_out->shards[i]);
     }
@@ -59,7 +59,7 @@ public:
     lba_list_t *owner;
     lba_list_t::ready_callback_t *callback;
 
-    lba_start_fsm_t(lba_list_t *l, lba_list_t::metablock_mixin_t *last_metablock)
+    lba_start_fsm_t(lba_list_t *l, lba_metablock_mixin_t *last_metablock)
         : owner(l), callback(nullptr)
     {
         rassert(owner->state == lba_list_t::state_unstarted);
@@ -119,7 +119,7 @@ public:
     }
 };
 
-bool lba_list_t::start_existing(file_t *file, metablock_mixin_t *last_metablock,
+bool lba_list_t::start_existing(file_t *file, lba_metablock_mixin_t *last_metablock,
         ready_callback_t *cb) {
     rassert(state == state_unstarted);
 

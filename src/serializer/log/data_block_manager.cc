@@ -408,7 +408,7 @@ data_block_manager_t::~data_block_manager_t() {
     guarantee(state == state_unstarted || state == state_shut_down);
 }
 
-void data_block_manager_t::prepare_initial_metablock(data_block_manager::metablock_mixin_t *mb) {
+void data_block_manager_t::prepare_initial_metablock(dbm_metablock_mixin_t *mb) {
     mb->active_extent = NULL_OFFSET;
 }
 
@@ -440,7 +440,7 @@ void data_block_manager_t::end_reconstruct() {
 
 void data_block_manager_t::start_existing(
         file_t *file,
-        const data_block_manager::metablock_mixin_t *last_metablock) {
+        const dbm_metablock_mixin_t *last_metablock) {
     guarantee(state == state_unstarted);
     dbfile = file;
     gc_io_account_nice.init(new file_account_t(file, GC_IO_PRIORITY_NICE));
@@ -1360,7 +1360,7 @@ void data_block_manager_t::flush_gc_index_writes(signal_t *) {
     serializer->index_write(&dummy_acq, [] {}, index_write_ops);
 }
 
-void data_block_manager_t::prepare_metablock(data_block_manager::metablock_mixin_t *metablock) {
+void data_block_manager_t::prepare_metablock(dbm_metablock_mixin_t *metablock) {
     guarantee(state == state_ready || state == state_shutting_down);
 
     if (active_extent != nullptr) {
