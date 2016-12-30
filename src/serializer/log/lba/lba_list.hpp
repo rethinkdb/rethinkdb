@@ -9,6 +9,7 @@
 #include "containers/scoped.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/log/extent_manager.hpp"
+#include "serializer/log/metablock.hpp"
 #include "serializer/log/lba/disk_format.hpp"
 #include "serializer/log/lba/in_memory_index.hpp"
 #include "serializer/log/lba/disk_structure.hpp"
@@ -24,20 +25,18 @@ class lba_list_t
     typedef std::function<void(const signal_t *, file_account_t *)> write_metablock_fun_t;
 
 public:
-    typedef lba_metablock_mixin_t metablock_mixin_t;
-
     explicit lba_list_t(extent_manager_t *em,
                         const write_metablock_fun_t &_write_metablock_fun);
     ~lba_list_t();
 
-    static void prepare_initial_metablock(metablock_mixin_t *mb_out);
-    void prepare_metablock(metablock_mixin_t *mb_out);
+    static void prepare_initial_metablock(lba_metablock_mixin_t *mb_out);
+    void prepare_metablock(lba_metablock_mixin_t *mb_out);
 
     struct ready_callback_t {
         virtual void on_lba_ready() = 0;
         virtual ~ready_callback_t() {}
     };
-    bool start_existing(file_t *dbfile, metablock_mixin_t *last_metablock,
+    bool start_existing(file_t *dbfile, lba_metablock_mixin_t *last_metablock,
                         ready_callback_t *cb);
 
     index_block_info_t get_block_info(block_id_t block);

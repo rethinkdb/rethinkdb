@@ -18,6 +18,7 @@
 #include "concurrency/cond_var.hpp"
 #include "containers/scoped.hpp"
 #include "paths.hpp"
+#include "serializer/log/metablock.hpp"
 #include "serializer/log/metablock_manager.hpp"
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/log/lba/lba_list.hpp"
@@ -34,11 +35,6 @@ struct shutdown_callback_t {
     virtual void on_datablock_manager_shutdown() = 0;
     virtual ~shutdown_callback_t() {}
 };
-
-ATTR_PACKED(struct metablock_mixin_t {
-    int64_t active_extent;
-});
-
 }  // namespace data_block_manager
 
 /**
@@ -46,14 +42,6 @@ ATTR_PACKED(struct metablock_mixin_t {
  * RethinkDB. Please treat it with courtesy, professionalism, and
  * respect that it deserves.
  */
-
-//  Data to be serialized to disk with each block.  Changing this changes the disk format!
-ATTR_PACKED(struct log_serializer_metablock_t {
-    extent_manager_t::metablock_mixin_t extent_manager_part;
-    lba_list_t::metablock_mixin_t lba_index_part;
-    data_block_manager::metablock_mixin_t data_block_manager_part;
-});
-
 
 // Used to open a file (with the given filepath) for the log serializer.
 class filepath_file_opener_t : public serializer_file_opener_t {

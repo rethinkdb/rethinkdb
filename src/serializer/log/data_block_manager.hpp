@@ -21,13 +21,14 @@ class log_serializer_t;
 class data_block_manager_t;
 class gc_entry_t;
 
+struct dbm_metablock_mixin_t;
+
 struct gc_entry_less_t {
     bool operator() (const gc_entry_t *x, const gc_entry_t *y);
 };
 
 namespace data_block_manager {
 struct shutdown_callback_t;  // see log_serializer.hpp.
-struct metablock_mixin_t;  // see log_serializer.hpp.
 }  // namespace data_block_manager
 
 class data_block_manager_t {
@@ -44,8 +45,8 @@ public:
     database FD. When restarting an existing database, call start() with the last
     metablock. */
 
-    static void prepare_initial_metablock(data_block_manager::metablock_mixin_t *mb);
-    void start_existing(file_t *dbfile, const data_block_manager::metablock_mixin_t *last_metablock);
+    static void prepare_initial_metablock(dbm_metablock_mixin_t *mb);
+    void start_existing(file_t *dbfile, const dbm_metablock_mixin_t *last_metablock);
 
     buf_ptr_t read(int64_t off_in, block_size_t block_size,
                    file_account_t *io_account);
@@ -68,7 +69,7 @@ public:
     /* garbage collect the extents which meet the gc_criterion */
     void start_gc();
 
-    void prepare_metablock(data_block_manager::metablock_mixin_t *metablock);
+    void prepare_metablock(dbm_metablock_mixin_t *metablock);
     bool do_we_want_to_start_gcing() const;
 
     // This stops further GC rounds from starting, but it doesn't wait for all
