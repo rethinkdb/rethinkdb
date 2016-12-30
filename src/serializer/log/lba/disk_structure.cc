@@ -154,45 +154,57 @@ void lba_disk_structure_t::write_superblock(file_account_t *io_account,
             ceil_aligned(superblock_size, DEVICE_BLOCK_SIZE), io_account);
 }
 
-class lba_writer_t :
-    public extent_t::sync_callback_t
+class lba_disk_structure_writer_t :
+    public extent_t::completion_callback_t
 {
 public:
     int outstanding_cbs;
-    lba_disk_structure_t::sync_callback_t *callback;
+    lba_disk_structure_t::completion_callback_t *callback;
 
-    explicit lba_writer_t(lba_disk_structure_t::sync_callback_t *cb) {
+    explicit lba_disk_structure_writer_t(
+            lba_disk_structure_t::completion_callback_t *cb) {
         outstanding_cbs = 0;
         callback = cb;
     }
 
-    void on_extent_sync() {
+    void on_extent_completion() {
         outstanding_cbs--;
         if (outstanding_cbs == 0) {
-            if (callback) callback->on_lba_sync();
+            if (callback) {
+                callback->on_lba_completion();
+            }
             delete this;
         }
     }
 };
 
-void lba_disk_structure_t::sync(file_account_t *io_account, sync_callback_t *cb) {
-    lba_writer_t *writer = new lba_writer_t(cb);
+void lba_disk_structure_t::write_outstanding(file_account_t *io_account,
+                                             completion_callback_t *cb) {
+    lba_disk_structure_writer_t *writer = new lba_disk_structure_writer_t(cb);
 
-    /* Count how many things need to be synced */
-    if (last_extent) writer->outstanding_cbs++;
-    if (superblock_extent) writer->outstanding_cbs++;
+    /* Count how many things need to be completed */
+    if (last_extent) {
+        writer->outstanding_cbs++;
+    }
+    if (superblock_extent) {
+        writer->outstanding_cbs++;
+    }
     writer->outstanding_cbs += extents_in_superblock.size();
 
     /* Sync the things that need to be synced */
     if (writer->outstanding_cbs == 0) {
-        cb->on_lba_sync();
+        cb->on_lba_completion();
         delete writer;
     } else {
-        if (last_extent) last_extent->sync(io_account, writer);
-        if (superblock_extent) superblock_extent->sync(writer);
+        if (last_extent) {
+            last_extent->write_outstanding(io_account, writer);
+        }
+        if (superblock_extent) {
+            superblock_extent->wait_for_write_completion(writer);
+        }
         for (lba_disk_extent_t *e = extents_in_superblock.head();
              e != nullptr; e = extents_in_superblock.next(e)) {
-            e->sync(io_account, writer);
+            e->write_outstanding(io_account, writer);
         }
     }
 }

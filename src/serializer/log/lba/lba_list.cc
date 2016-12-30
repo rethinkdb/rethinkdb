@@ -260,45 +260,50 @@ void lba_list_t::add_inline_entry(block_id_t block, repli_timestamp_t recency,
             lba_entry_t::make(block, recency, offset, ser_block_size);
 }
 
-class lba_syncer_t :
-    public lba_disk_structure_t::sync_callback_t
+class lba_writer_t :
+    public lba_disk_structure_t::completion_callback_t
 {
 public:
     lba_list_t *owner;
     bool done, should_delete_self;
     int structures_unsynced;
-    lba_list_t::sync_callback_t *callback;
+    lba_list_t::completion_callback_t *callback;
 
-    lba_syncer_t(lba_list_t *_owner, file_account_t *io_account)
+    lba_writer_t(lba_list_t *_owner, file_account_t *io_account)
         : owner(_owner), done(false), should_delete_self(false), callback(nullptr)
     {
         structures_unsynced = LBA_SHARD_FACTOR;
         for (int i = 0; i < LBA_SHARD_FACTOR; i++) {
-            owner->disk_structures[i]->sync(io_account, this);
+            owner->disk_structures[i]->write_outstanding(io_account, this);
         }
     }
 
-    void on_lba_sync() {
+    void on_lba_completion() {
         rassert(structures_unsynced > 0);
         structures_unsynced--;
         if (structures_unsynced == 0) {
             done = true;
-            if (callback) callback->on_lba_sync();
-            if (should_delete_self) delete this;
+            if (callback) {
+                callback->on_lba_completion();
+            }
+            if (should_delete_self) {
+                delete this;
+            }
         }
     }
 };
 
-void lba_list_t::sync(file_account_t *io_account, sync_callback_t *cb) {
+void lba_list_t::write_outstanding(file_account_t *io_account,
+                                   completion_callback_t *cb) {
     rassert(state == state_ready || state == state_gc_shutting_down);
 
-    lba_syncer_t *syncer = new lba_syncer_t(this, io_account);
-    if (syncer->done) {
-        delete syncer;
-        cb->on_lba_sync();
+    lba_writer_t *completer = new lba_writer_t(this, io_account);
+    if (completer->done) {
+        delete completer;
+        cb->on_lba_completion();
     } else {
-        syncer->should_delete_self = true;
-        syncer->callback = cb;
+        completer->should_delete_self = true;
+        completer->callback = cb;
     }
 }
 
@@ -364,18 +369,19 @@ void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
             // we have written a new metablock (see below).
             extent_manager->end_transaction(txns.back().get());
 
-            // Sync the LBA. This is simply to make the final sync at the end
+            // Write the LBA. This is simply to make the final sync at the end
             // (as well as other LBA syncs done from inside the serializer) finish
             // faster.
             // If those took too long, it would block out serializer index writes,
             // because those have to get in line for writing the metablock,
             // and `write_metablock()` has to wait for the LBA sync to complete.
-            struct : public cond_t, public lba_disk_structure_t::sync_callback_t {
-                void on_lba_sync() { pulse(); }
-            } on_lba_sync;
-            disk_structures[lba_shard]->sync(gc_io_account.get(), &on_lba_sync);
+            struct : public cond_t, public lba_disk_structure_t::completion_callback_t {
+                void on_lba_completion() { pulse(); }
+            } on_lba_written;
+            disk_structures[lba_shard]->write_outstanding(gc_io_account.get(),
+                                                          &on_lba_written);
 
-            on_lba_sync.wait();
+            on_lba_written.wait();
 
             // Start a new transaction for the next batch of entries
             txns.push_back(make_scoped<extent_transaction_t>());
@@ -397,17 +403,18 @@ void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
     }
 
     // Sync the changed LBA for a final time
-    struct : public cond_t, public lba_disk_structure_t::sync_callback_t {
-        void on_lba_sync() { pulse(); }
-    } on_lba_sync;
-    disk_structures[lba_shard]->sync(gc_io_account.get(), &on_lba_sync);
+    struct : public cond_t, public lba_disk_structure_t::completion_callback_t {
+        void on_lba_completion() { pulse(); }
+    } on_lba_written;
+    disk_structures[lba_shard]->write_outstanding(gc_io_account.get(),
+                                                  &on_lba_written);
 
     // End the last extent manager transaction
     extent_manager->end_transaction(txns.back().get());
 
     // Write a new metablock once the LBA has synced. We have to do this before
     // we can commit the extent_manager transactions.
-    write_metablock_fun(&on_lba_sync, gc_io_account.get());
+    write_metablock_fun(&on_lba_written, gc_io_account.get());
 
     // Commit all extent transactions. From that point on the data of extents
     // we have deleted can be overwritten.

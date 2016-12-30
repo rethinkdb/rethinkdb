@@ -19,7 +19,7 @@ class lba_syncer_t;
 class lba_list_t
 {
     friend class lba_start_fsm_t;
-    friend class lba_syncer_t;
+    friend class lba_writer_t;
 
     typedef std::function<void(const signal_t *, file_account_t *)> write_metablock_fun_t;
 
@@ -66,11 +66,11 @@ public:
                         file_account_t *io_account,
                         extent_transaction_t *txn);
 
-    struct sync_callback_t {
-        virtual void on_lba_sync() = 0;
-        virtual ~sync_callback_t() {}
+    struct completion_callback_t {
+        virtual void on_lba_completion() = 0;
+        virtual ~completion_callback_t() {}
     };
-    void sync(file_account_t *io_account, sync_callback_t *cb);
+    void write_outstanding(file_account_t *io_account, completion_callback_t *cb);
 
     void consider_gc();
 
