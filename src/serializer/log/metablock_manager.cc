@@ -5,6 +5,9 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include "errors.hpp"
+#include <boost/crc.hpp>
+
 #include "arch/arch.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/cond_var.hpp"
@@ -23,27 +26,30 @@ ATTR_PACKED(struct crc_metablock_t {
     metablock_version_t version;
     // The value in the metablock (pointing at LBA superblocks, etc).
     log_serializer_metablock_t metablock;
-public:
-    void prepare(uint32_t _disk_format_version, log_serializer_metablock_t *mb,
-                 metablock_version_t vers) {
-        disk_format_version = _disk_format_version;
-        metablock = *mb;
-        memcpy(magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC));
-        version = vers;
-        _crc = compute_own_crc();
-    }
-    bool check_crc() {
-        return (_crc == compute_own_crc());
-    }
-private:
-    uint32_t compute_own_crc() {
-        boost::crc_32_type crc_computer;
-        crc_computer.process_bytes(&disk_format_version, sizeof(disk_format_version));
-        crc_computer.process_bytes(&version, sizeof(version));
-        crc_computer.process_bytes(&metablock, sizeof(metablock));
-        return crc_computer.checksum();
-    }
 });
+
+namespace crc_metablock {
+uint32_t compute_metablock_crc(const crc_metablock_t *crc_mb) {
+    boost::crc_32_type crc;
+    crc.process_bytes(&crc_mb->disk_format_version, sizeof(crc_mb->disk_format_version));
+    crc.process_bytes(&crc_mb->version, sizeof(crc_mb->version));
+    crc.process_bytes(&crc_mb->metablock, sizeof(crc_mb->metablock));
+    return crc.checksum();
+}
+
+void prepare(crc_metablock_t *crc_mb, uint32_t _disk_format_version,
+             log_serializer_metablock_t *mb, metablock_version_t vers) {
+    crc_mb->disk_format_version = _disk_format_version;
+    crc_mb->metablock = *mb;
+    memcpy(crc_mb->magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC));
+    crc_mb->version = vers;
+    crc_mb->_crc = compute_metablock_crc(crc_mb);
+}
+
+bool check_crc(const crc_metablock_t *crc_mb) {
+    return (crc_mb->_crc == compute_metablock_crc(crc_mb));
+}
+}  // namespace crc_metablock
 
 
 std::vector<int64_t> initial_metablock_offsets(int64_t extent_size) {
@@ -148,8 +154,10 @@ void metablock_manager_t::create(file_t *dbfile, int64_t extent_size,
     /* Write the first metablock */
     // We use cluster_version_t::LATEST_DISK.  Maybe we'd want to decouple cluster
     // versions from disk format versions?  We can do that later if we want.
-    buffer->prepare(static_cast<uint32_t>(cluster_version_t::LATEST_DISK), initial,
-                                          MB_START_VERSION);
+    crc_metablock::prepare(buffer.get(),
+                           static_cast<uint32_t>(cluster_version_t::LATEST_DISK),
+                           initial,
+                           MB_START_VERSION);
     co_write(dbfile, metablock_offsets[0], METABLOCK_SIZE, buffer.get(),
              DEFAULT_DISK_ACCOUNT, file_t::WRAP_IN_DATASYNCS);
 }
@@ -230,7 +238,7 @@ void metablock_manager_t::co_start_existing(file_t *file, bool *mb_found,
     crc_metablock_t *last_good_mb = nullptr;
     for (unsigned i = 0; i < metablock_offsets.size(); i++) {
         crc_metablock_t *mb_temp = lbm.get_metablock(i);
-        if (mb_temp->check_crc()) {
+        if (crc_metablock::check_crc(mb_temp)) {
             if (mb_temp->version > latest_version) {
                 /* this metablock is good, maybe there are more? */
                 latest_version = mb_temp->version;
@@ -306,9 +314,11 @@ void metablock_manager_t::co_write_metablock(metablock_t *mb,
     rassert(state == state_ready);
     rassert(!mb_buffer_in_use);
 
-    mb_buffer->prepare(static_cast<uint32_t>(cluster_version_t::LATEST_DISK), mb,
-                                             next_version_number++);
-    rassert(mb_buffer->check_crc());
+    crc_metablock::prepare(mb_buffer.get(),
+                           static_cast<uint32_t>(cluster_version_t::LATEST_DISK),
+                           mb,
+                           next_version_number++);
+    rassert(crc_metablock::check_crc(mb_buffer.get()));
 
     mb_buffer_in_use = true;
 
