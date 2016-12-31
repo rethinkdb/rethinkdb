@@ -71,4 +71,26 @@ ATTR_PACKED(struct log_serializer_metablock_t {
 });
 
 
+static const char MB_MARKER_MAGIC[8] = {'m', 'e', 't', 'a', 'b', 'l', 'c', 'k'};
+typedef int64_t metablock_version_t;
+
+// This is stored directly to disk.  Changing it will change the disk format.
+ATTR_PACKED(struct crc_metablock_t {
+    char magic_marker[sizeof(MB_MARKER_MAGIC)];
+    // The version that differs only when the software is upgraded to a newer
+    // version.  This field might allow for in-place upgrading of the cluster.
+    uint32_t disk_format_version;
+    // The CRC checksum of [disk_format_version]+[version]+[metablock].
+    uint32_t _crc;
+    // The version that increments every time a metablock is written.
+    metablock_version_t version;
+
+    // Offset: 24, size: 3736 bytes.
+    // The value in the metablock (pointing at LBA superblocks, etc).
+    log_serializer_metablock_t metablock;
+
+    // Size: 3760 bytes.
+});
+
+
 #endif  // SERIALIZER_LOG_METABLOCK_HPP_
