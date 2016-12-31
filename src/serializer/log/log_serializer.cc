@@ -177,22 +177,16 @@ void log_serializer_t::create(serializer_file_opener_t *file_opener,
 
     co_static_header_write(file.get(), on_disk_config, sizeof(*on_disk_config));
 
-    log_serializer_metablock_t metablock;
-    memset(&metablock, 0, sizeof(metablock));
+    scoped_device_block_aligned_ptr_t<crc_metablock_t> scoped_crc_mb(METABLOCK_SIZE);
+    crc_metablock_t *crc_mb = scoped_crc_mb.get();
+    memset(crc_mb, 0, METABLOCK_SIZE);
 
-    extent_manager_metablock_mixin_t extent_manager_part;
-    extent_manager_t::prepare_initial_metablock(&extent_manager_part);
-    metablock.extent_manager_part = extent_manager_part;
+    extent_manager_t::prepare_initial_metablock(&crc_mb->metablock.extent_manager_part);
+    data_block_manager_t::prepare_initial_metablock(&crc_mb->metablock.data_block_manager_part);
+    lba_list_t::prepare_initial_metablock(&crc_mb->metablock.lba_index_part);
 
-    dbm_metablock_mixin_t data_block_manager_part;
-    data_block_manager_t::prepare_initial_metablock(&data_block_manager_part);
-    metablock.data_block_manager_part = data_block_manager_part;
-
-    lba_metablock_mixin_t lba_index_part;
-    lba_list_t::prepare_initial_metablock(&lba_index_part);
-    metablock.lba_index_part = lba_index_part;
-
-    metablock_manager_t::create(file.get(), static_config.extent_size(), &metablock);
+    metablock_manager_t::create(file.get(), static_config.extent_size(),
+                                std::move(scoped_crc_mb));
 }
 
 /* The process of starting up the serializer is handled by the ls_start_*_fsm_t. This is
@@ -607,12 +601,13 @@ void log_serializer_t::write_metablock(new_mutex_in_line_t *mutex_acq,
                                        const signal_t *safe_to_write_cond,
                                        file_account_t *io_account) {
     assert_thread();
-    log_serializer_metablock_t mb_buffer;
+    scoped_device_block_aligned_ptr_t<crc_metablock_t> crc_mb(METABLOCK_SIZE);
+    memset(crc_mb.get(), 0, METABLOCK_SIZE);
 
     /* Prepare metablock now instead of in when we write it so that we will have the
     correct metablock information for this write even if another write starts before we
     finish waiting on `safe_to_write_cond`. */
-    prepare_metablock(&mb_buffer);
+    prepare_metablock(&crc_mb->metablock);
 
     /* Get in line for the metablock manager */
     bool waiting_for_prev_write = !metablock_waiter_queue.empty();
@@ -632,7 +627,7 @@ void log_serializer_t::write_metablock(new_mutex_in_line_t *mutex_acq,
     struct : public cond_t, public metablock_manager_t::metablock_write_callback_t {
         void on_metablock_write() { pulse(); }
     } on_metablock_write;
-    metablock_manager->write_metablock(&mb_buffer, io_account, &on_metablock_write);
+    metablock_manager->write_metablock(crc_mb, io_account, &on_metablock_write);
 
     /* Remove ourselves from the list of metablock waiters. */
     metablock_waiter_queue.pop_front();
