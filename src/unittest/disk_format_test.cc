@@ -52,6 +52,7 @@ TEST(DiskFormatTest, LbaMetablockMixinT) {
     EXPECT_EQ(METABLOCK_SIZE - 512, LBA_INLINE_SIZE);
     EXPECT_EQ(32u, sizeof(lba_entry_t));
     EXPECT_EQ(32ul * LBA_SHARD_FACTOR + 8ul + LBA_INLINE_SIZE, sizeof(lba_metablock_mixin_t));
+    EXPECT_EQ(3720u, sizeof(lba_metablock_mixin_t));
 }
 
 TEST(DiskFormatTest, LbaEntryT) {

@@ -72,9 +72,6 @@
 // Size of the device block size (in bytes)
 #define DEVICE_BLOCK_SIZE                         512
 
-// Size of the metablock (in bytes)
-#define METABLOCK_SIZE                            (4 * KILOBYTE)
-
 // Size of each btree node (in bytes) on disk
 #define DEFAULT_BTREE_BLOCK_SIZE                  (4 * KILOBYTE)
 
