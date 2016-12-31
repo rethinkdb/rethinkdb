@@ -68,9 +68,6 @@ private:
         size_t mb_slot;
         size_t saved_mb_slot;
     public:
-        // whether or not we've wrapped around the edge (used during startup)
-        bool wraparound;
-    public:
         explicit head_t(metablock_manager_t *mgr);
         metablock_manager_t *const mgr;
 

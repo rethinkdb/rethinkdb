@@ -77,15 +77,13 @@ std::vector<int64_t> initial_metablock_offsets(int64_t extent_size) {
 /* head functions */
 
 metablock_manager_t::metablock_manager_t::head_t::head_t(metablock_manager_t *manager)
-    : mb_slot(0), saved_mb_slot(static_cast<uint32_t>(-1)), wraparound(false), mgr(manager) { }
+    : mb_slot(0), saved_mb_slot(static_cast<uint32_t>(-1)), mgr(manager) { }
 
 void metablock_manager_t::metablock_manager_t::head_t::operator++() {
     mb_slot++;
-    wraparound = false;
 
     if (mb_slot >= metablock_offsets::count(mgr->extent_manager->extent_size)) {
         mb_slot = 0;
-        wraparound = true;
     }
 }
 
