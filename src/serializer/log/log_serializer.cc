@@ -177,7 +177,7 @@ void log_serializer_t::create(serializer_file_opener_t *file_opener,
 
     co_static_header_write(file.get(), on_disk_config, sizeof(*on_disk_config));
 
-    metablock_t metablock;
+    log_serializer_metablock_t metablock;
     memset(&metablock, 0, sizeof(metablock));
 
     extent_manager_metablock_mixin_t extent_manager_part;
@@ -407,7 +407,7 @@ struct ls_start_existing_fsm_t :
     block_id_t next_block_to_reconstruct;
 
     bool metablock_found;
-    log_serializer_t::metablock_t metablock_buffer;
+    log_serializer_metablock_t metablock_buffer;
 
 private:
     DISABLE_COPYING(ls_start_existing_fsm_t);
@@ -607,7 +607,7 @@ void log_serializer_t::write_metablock(new_mutex_in_line_t *mutex_acq,
                                        const signal_t *safe_to_write_cond,
                                        file_account_t *io_account) {
     assert_thread();
-    metablock_t mb_buffer;
+    log_serializer_metablock_t mb_buffer;
 
     /* Prepare metablock now instead of in when we write it so that we will have the
     correct metablock information for this write even if another write starts before we
@@ -927,7 +927,7 @@ void log_serializer_t::on_datablock_manager_shutdown() {
     next_shutdown_step();
 }
 
-void log_serializer_t::prepare_metablock(metablock_t *mb_buffer) {
+void log_serializer_t::prepare_metablock(log_serializer_metablock_t *mb_buffer) {
     assert_thread();
     memset(mb_buffer, 0, sizeof(*mb_buffer));
 

@@ -197,8 +197,7 @@ private:
                                          file_account_t *io_account);
 
 
-    typedef log_serializer_metablock_t metablock_t;
-    void prepare_metablock(metablock_t *mb_buffer);
+    void prepare_metablock(log_serializer_metablock_t *mb_buffer);
 
     void consider_start_gc();
 
