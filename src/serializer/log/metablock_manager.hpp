@@ -65,8 +65,8 @@ public:
 private:
     struct head_t {
     private:
-        uint32_t mb_slot;
-        uint32_t saved_mb_slot;
+        size_t mb_slot;
+        size_t saved_mb_slot;
     public:
         // whether or not we've wrapped around the edge (used during startup)
         bool wraparound;
@@ -107,8 +107,6 @@ private:
     metablock_version_t next_version_number;
 
     extent_manager_t *const extent_manager;
-
-    const std::vector<int64_t> metablock_offsets;
 
     enum state_t {
         state_unstarted,
