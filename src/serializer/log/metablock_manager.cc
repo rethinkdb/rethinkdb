@@ -38,6 +38,25 @@ bool check_crc(const crc_metablock_t *crc_mb) {
 }
 }  // namespace crc_metablock
 
+namespace metablock_offsets {
+// How many distinct metablock offsets there are.
+size_t count(int64_t extent_size) {
+    return std::min<int64_t>(extent_size / METABLOCK_SIZE, MB_BLOCKS_PER_EXTENT) - 1;
+}
+
+int64_t get(int64_t extent_size, size_t index) {
+    size_t nmetablocks = metablock_offsets::count(extent_size);
+    guarantee(index < nmetablocks);
+    // The first DEVICE_BLOCK_SIZE of the file is used for the static header.
+    return (index + 1) * METABLOCK_SIZE;
+}
+
+// How big the file has to be, to contain all metablocks.
+int64_t min_filesize(int64_t extent_size) {
+    return (1 + metablock_offsets::count(extent_size)) * METABLOCK_SIZE;
+}
+}  // namespace metablock_offsets.
+
 
 std::vector<int64_t> initial_metablock_offsets(int64_t extent_size) {
     std::vector<int64_t> offsets;
@@ -64,15 +83,14 @@ void metablock_manager_t::metablock_manager_t::head_t::operator++() {
     mb_slot++;
     wraparound = false;
 
-    if (mb_slot >= mgr->metablock_offsets.size()) {
+    if (mb_slot >= metablock_offsets::count(mgr->extent_manager->extent_size)) {
         mb_slot = 0;
         wraparound = true;
     }
 }
 
 int64_t metablock_manager_t::metablock_manager_t::head_t::offset() {
-
-    return mgr->metablock_offsets[mb_slot];
+    return metablock_offsets::get(mgr->extent_manager->extent_size, mb_slot);
 }
 
 void metablock_manager_t::metablock_manager_t::head_t::push() {
@@ -89,11 +107,10 @@ void metablock_manager_t::metablock_manager_t::head_t::pop() {
 metablock_manager_t::metablock_manager_t(extent_manager_t *em)
     : head(this),
       extent_manager(em),
-      metablock_offsets(initial_metablock_offsets(extent_manager->extent_size)),
-      state(state_unstarted), dbfile(nullptr) {
-    rassert(sizeof(crc_metablock_t) <= METABLOCK_SIZE);
-
-    /* Build the list of metablock locations in the file */
+      state(state_unstarted),
+      dbfile(nullptr) {
+    static_assert(sizeof(crc_metablock_t) <= METABLOCK_SIZE,
+                  "crc_metablock_t too big");
 
     // We don't try to reserve any metablock extents because the only
     // extent we use is extent 0.  Extent 0 is already reserved by the
@@ -107,11 +124,8 @@ metablock_manager_t::~metablock_manager_t() {
 void metablock_manager_t::create(
         file_t *dbfile, int64_t extent_size,
         scoped_device_block_aligned_ptr_t<crc_metablock_t> &&initial) {
-
-    std::vector<int64_t> metablock_offsets = initial_metablock_offsets(extent_size);
-
-    dbfile->set_file_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + METABLOCK_SIZE,
-                                   extent_size);
+    dbfile->set_file_size_at_least(metablock_offsets::min_filesize(extent_size),
+                                       extent_size);
 
     /* Allocate a buffer for doing our writes */
     scoped_device_block_aligned_ptr_t<crc_metablock_t> buffer(METABLOCK_SIZE);
@@ -120,17 +134,18 @@ void metablock_manager_t::create(
     /* Wipe the metablock slots so we don't mistake something left by a previous
     database for a valid metablock. */
     struct : public iocallback_t, public cond_t {
-        int refcount;
+        size_t refcount;
         void on_io_complete() {
             refcount--;
             if (refcount == 0) pulse();
         }
     } callback;
-    callback.refcount = metablock_offsets.size();
-    for (unsigned i = 0; i < metablock_offsets.size(); i++) {
+    callback.refcount = metablock_offsets::count(extent_size);
+    for (size_t i = 0; i < metablock_offsets::count(extent_size); i++) {
         // We don't datasync here -- we can datasync when we write the first real
         // metablock.
-        dbfile->write_async(metablock_offsets[i], METABLOCK_SIZE, buffer.get(),
+        dbfile->write_async(metablock_offsets::get(extent_size, i),
+                            METABLOCK_SIZE, buffer.get(),
                             DEFAULT_DISK_ACCOUNT, &callback, file_t::NO_DATASYNCS);
     }
     callback.wait();
@@ -143,7 +158,7 @@ void metablock_manager_t::create(
     crc_metablock::prepare(buffer.get(),
                            static_cast<uint32_t>(cluster_version_t::LATEST_DISK),
                            MB_START_VERSION);
-    co_write(dbfile, metablock_offsets[0], METABLOCK_SIZE, buffer.get(),
+    co_write(dbfile, metablock_offsets::get(extent_size, 0), METABLOCK_SIZE, buffer.get(),
              DEFAULT_DISK_ACCOUNT, file_t::WRAP_IN_DATASYNCS);
 }
 
@@ -181,8 +196,10 @@ void metablock_manager_t::co_start_existing(file_t *file, bool *mb_found,
 
     metablock_version_t latest_version = MB_BAD_VERSION;
 
-    dbfile->set_file_size_at_least(metablock_offsets[metablock_offsets.size() - 1] + METABLOCK_SIZE,
-                                   extent_manager->extent_size);
+    const int64_t extent_size = extent_manager->extent_size;
+
+    dbfile->set_file_size_at_least(metablock_offsets::min_filesize(extent_size),
+                                   extent_size);
 
     // Reading metablocks by issuing one I/O request at a time is
     // slow. Read all of them in one batch, and check them later.
@@ -196,21 +213,22 @@ void metablock_manager_t::co_start_existing(file_t *file, bool *mb_found,
 
     private:
         scoped_device_block_aligned_ptr_t<crc_metablock_t> buffer;
-    } lbm(metablock_offsets.size());
+    } lbm(metablock_offsets::count(extent_size));
     struct : public iocallback_t, public cond_t {
-        int refcount;
+        size_t refcount;
         void on_io_complete() {
             refcount--;
             if (refcount == 0) pulse();
         }
     } callback;
-    callback.refcount = metablock_offsets.size();
-    for (unsigned i = 0; i < metablock_offsets.size(); i++) {
-        dbfile->read_async(metablock_offsets[i], METABLOCK_SIZE, lbm.get_metablock(i),
+    callback.refcount = metablock_offsets::count(extent_size);
+    for (size_t i = 0; i < metablock_offsets::count(extent_size); i++) {
+        dbfile->read_async(metablock_offsets::get(extent_size, i), METABLOCK_SIZE,
+                           lbm.get_metablock(i),
                            DEFAULT_DISK_ACCOUNT, &callback);
     }
     callback.wait();
-    extent_manager->stats->bytes_read(METABLOCK_SIZE * metablock_offsets.size());
+    extent_manager->stats->bytes_read(METABLOCK_SIZE * metablock_offsets::count(extent_size));
 
     // TODO: we can parallelize this code even further by doing crc
     // checks as soon as a block is ready, as opposed to waiting for
@@ -219,7 +237,7 @@ void metablock_manager_t::co_start_existing(file_t *file, bool *mb_found,
 
     // We've read everything from disk. Now find the last good metablock.
     crc_metablock_t *last_good_mb = nullptr;
-    for (unsigned i = 0; i < metablock_offsets.size(); i++) {
+    for (size_t i = 0; i < metablock_offsets::count(extent_size); i++) {
         crc_metablock_t *mb_temp = lbm.get_metablock(i);
         if (crc_metablock::check_crc(mb_temp)) {
             if (mb_temp->version > latest_version) {
