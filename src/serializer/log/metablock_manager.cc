@@ -110,7 +110,7 @@ metablock_manager_t::~metablock_manager_t() {
 }
 
 void metablock_manager_t::create(file_t *dbfile, int64_t extent_size,
-                                 metablock_t *initial) {
+                                 log_serializer_metablock_t *initial) {
 
     std::vector<int64_t> metablock_offsets = initial_metablock_offsets(extent_size);
 
@@ -177,7 +177,7 @@ bool disk_format_version_is_recognized(uint32_t disk_format_version) {
 
 
 void metablock_manager_t::co_start_existing(file_t *file, bool *mb_found,
-                                            metablock_t *mb_out) {
+                                            log_serializer_metablock_t *mb_out) {
     rassert(state == state_unstarted);
     dbfile = file;
     rassert(dbfile != nullptr);
@@ -252,8 +252,8 @@ void metablock_manager_t::co_start_existing(file_t *file, bool *mb_found,
 
         /* The log serializer will catastrophically fail when it sees that mb_found is
            false. We could catastrophically fail here, but it's a bit nicer to have the
-           metablock manager as a standalone component that doesn't know how to behave if there
-           is no metablock. */
+           metablock manager as a standalone component that doesn't know how to behave
+           if there is no metablock. */
 
     } else {
         // Right now we don't have anything super-special between disk format
@@ -275,7 +275,7 @@ void metablock_manager_t::co_start_existing(file_t *file, bool *mb_found,
         head.pop();
         *mb_found = true;
         memcpy(mb_buffer.get(), last_good_mb, METABLOCK_SIZE);
-        memcpy(mb_out, &(mb_buffer->metablock), sizeof(metablock_t));
+        memcpy(mb_out, &(mb_buffer->metablock), sizeof(log_serializer_metablock_t));
     }
     mb_buffer_in_use = false;
     state = state_ready;
@@ -283,20 +283,20 @@ void metablock_manager_t::co_start_existing(file_t *file, bool *mb_found,
 
 //The following two functions will go away in favor of the preceding one
 void metablock_manager_t::start_existing_callback(
-        file_t *file, bool *mb_found, metablock_t *mb_out,
+        file_t *file, bool *mb_found, log_serializer_metablock_t *mb_out,
         metablock_read_callback_t *cb) {
     co_start_existing(file, mb_found, mb_out);
     cb->on_metablock_read();
 }
 
 bool metablock_manager_t::start_existing(
-        file_t *file, bool *mb_found, metablock_t *mb_out,
+        file_t *file, bool *mb_found, log_serializer_metablock_t *mb_out,
         metablock_read_callback_t *cb) {
     coro_t::spawn_later_ordered(std::bind(&metablock_manager_t::start_existing_callback,
                                           this, file, mb_found, mb_out, cb));
     return false;
 }
-void metablock_manager_t::co_write_metablock(metablock_t *mb,
+void metablock_manager_t::co_write_metablock(log_serializer_metablock_t *mb,
                                              file_account_t *io_account) {
     mutex_t::acq_t hold(&write_lock);
 
@@ -322,12 +322,17 @@ void metablock_manager_t::co_write_metablock(metablock_t *mb,
     extent_manager->stats->bytes_written(METABLOCK_SIZE);
 }
 
-void metablock_manager_t::write_metablock_callback(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb) {
+void metablock_manager_t::write_metablock_callback(
+        log_serializer_metablock_t *mb,
+        file_account_t *io_account,
+        metablock_write_callback_t *cb) {
     co_write_metablock(mb, io_account);
     cb->on_metablock_write();
 }
 
-void metablock_manager_t::write_metablock(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb) {
+void metablock_manager_t::write_metablock(log_serializer_metablock_t *mb,
+                                          file_account_t *io_account,
+                                          metablock_write_callback_t *cb) {
     coro_t::spawn_later_ordered(std::bind(&metablock_manager_t::write_metablock_callback,
                                           this, mb, io_account, cb));
 }
