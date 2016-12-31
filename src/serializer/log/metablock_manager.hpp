@@ -63,28 +63,6 @@ public:
     void shutdown();
 
 private:
-    struct head_t {
-    private:
-        size_t mb_slot;
-        size_t saved_mb_slot;
-    public:
-        explicit head_t(metablock_manager_t *mgr);
-        metablock_manager_t *const mgr;
-
-        // handles moving along successive mb slots
-        void operator++();
-
-        // return the offset we should be writing to
-        int64_t offset();
-
-        // save the state to be loaded later (used to save the last known uncorrupted
-        // metablock)
-        void push();
-
-        //load a previously saved state (stack has max depth one)
-        void pop();
-    };
-
     void start_existing_callback(file_t *dbfile,
                                  bool *mb_found,
                                  log_serializer_metablock_t *mb_out,
@@ -98,8 +76,8 @@ private:
     // desirable thing, but that's how this type works.
     mutex_t write_lock;
 
-    // keeps track of where we are in the extents
-    head_t head;
+    // Which metablock slot we should write next.
+    size_t next_mb_slot;
 
     metablock_version_t next_version_number;
 

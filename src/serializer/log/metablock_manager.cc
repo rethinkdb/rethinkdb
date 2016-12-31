@@ -55,6 +55,10 @@ int64_t get(int64_t extent_size, size_t index) {
 int64_t min_filesize(int64_t extent_size) {
     return (1 + metablock_offsets::count(extent_size)) * METABLOCK_SIZE;
 }
+
+int64_t next(int64_t extent_size, size_t index) {
+    return (1 + index) % metablock_offsets::count(extent_size);
+}
 }  // namespace metablock_offsets.
 
 
@@ -74,36 +78,8 @@ std::vector<int64_t> initial_metablock_offsets(int64_t extent_size) {
     return offsets;
 }
 
-/* head functions */
-
-metablock_manager_t::metablock_manager_t::head_t::head_t(metablock_manager_t *manager)
-    : mb_slot(0), saved_mb_slot(static_cast<uint32_t>(-1)), mgr(manager) { }
-
-void metablock_manager_t::metablock_manager_t::head_t::operator++() {
-    mb_slot++;
-
-    if (mb_slot >= metablock_offsets::count(mgr->extent_manager->extent_size)) {
-        mb_slot = 0;
-    }
-}
-
-int64_t metablock_manager_t::metablock_manager_t::head_t::offset() {
-    return metablock_offsets::get(mgr->extent_manager->extent_size, mb_slot);
-}
-
-void metablock_manager_t::metablock_manager_t::head_t::push() {
-    saved_mb_slot = mb_slot;
-}
-
-void metablock_manager_t::metablock_manager_t::head_t::pop() {
-    guarantee(saved_mb_slot != static_cast<uint32_t>(-1),
-              "Popping without a saved state");
-    mb_slot = saved_mb_slot;
-    saved_mb_slot = static_cast<uint32_t>(-1);
-}
-
 metablock_manager_t::metablock_manager_t(extent_manager_t *em)
-    : head(this),
+    : next_mb_slot(SIZE_MAX),
       extent_manager(em),
       state(state_unstarted),
       dbfile(nullptr) {
@@ -186,15 +162,14 @@ bool disk_format_version_is_recognized(uint32_t disk_format_version) {
 }
 
 
-void metablock_manager_t::co_start_existing(file_t *file, bool *mb_found,
+void metablock_manager_t::co_start_existing(file_t *file, bool *mb_found_out,
                                             log_serializer_metablock_t *mb_out) {
     rassert(state == state_unstarted);
     dbfile = file;
     rassert(dbfile != nullptr);
 
-    metablock_version_t latest_version = MB_BAD_VERSION;
-
     const int64_t extent_size = extent_manager->extent_size;
+    const size_t num_metablocks = metablock_offsets::count(extent_size);
 
     dbfile->set_file_size_at_least(metablock_offsets::min_filesize(extent_size),
                                    extent_size);
@@ -202,90 +177,64 @@ void metablock_manager_t::co_start_existing(file_t *file, bool *mb_found,
     // Reading metablocks by issuing one I/O request at a time is
     // slow. Read all of them in one batch, and check them later.
     state = state_reading;
-    struct load_buffer_manager_t {
-        explicit load_buffer_manager_t(size_t nmetablocks)
-            : buffer(METABLOCK_SIZE * nmetablocks) { }
-        crc_metablock_t *get_metablock(unsigned i) {
-            return reinterpret_cast<crc_metablock_t *>(reinterpret_cast<char *>(buffer.get()) + METABLOCK_SIZE * i);
-        }
 
-    private:
-        scoped_device_block_aligned_ptr_t<crc_metablock_t> buffer;
-    } lbm(metablock_offsets::count(extent_size));
+    scoped_device_block_aligned_ptr_t<char> lbm(METABLOCK_SIZE * num_metablocks);
+
     struct : public iocallback_t, public cond_t {
         size_t refcount;
         void on_io_complete() {
             refcount--;
-            if (refcount == 0) pulse();
+            if (refcount == 0) { pulse(); }
         }
     } callback;
-    callback.refcount = metablock_offsets::count(extent_size);
-    for (size_t i = 0; i < metablock_offsets::count(extent_size); i++) {
+    callback.refcount = num_metablocks;
+    for (size_t i = 0; i < num_metablocks; ++i) {
         dbfile->read_async(metablock_offsets::get(extent_size, i), METABLOCK_SIZE,
-                           lbm.get_metablock(i),
+                           lbm.get() + i * METABLOCK_SIZE,
                            DEFAULT_DISK_ACCOUNT, &callback);
     }
     callback.wait();
     extent_manager->stats->bytes_read(METABLOCK_SIZE * metablock_offsets::count(extent_size));
 
-    // TODO: we can parallelize this code even further by doing crc
-    // checks as soon as a block is ready, as opposed to waiting for
-    // all IO operations to complete and then checking. I'm dubious
-    // about the benefits though, so leaving this alone.
+    static_assert(MB_BAD_VERSION < 0, "MB_BAD_VERSION is not -1, not signed int64_t");
+    metablock_version_t max_version = MB_BAD_VERSION;
+    size_t max_index = SIZE_MAX;
 
-    // We've read everything from disk. Now find the last good metablock.
-    crc_metablock_t *last_good_mb = nullptr;
-    for (size_t i = 0; i < metablock_offsets::count(extent_size); i++) {
-        crc_metablock_t *mb_temp = lbm.get_metablock(i);
-        if (crc_metablock::check_crc(mb_temp)) {
-            if (mb_temp->version > latest_version) {
-                /* this metablock is good, maybe there are more? */
-                latest_version = mb_temp->version;
-                head.push();
-                ++head;
-                last_good_mb = mb_temp;
-            } else {
-                break;
+    for (size_t i = 0; i < num_metablocks; ++i) {
+        crc_metablock_t *mb = reinterpret_cast<crc_metablock_t *>(lbm.get() + i * METABLOCK_SIZE);
+        if (crc_metablock::check_crc(mb)) {
+            guarantee(mb->version != max_version);
+            if (mb->version > max_version) {
+                max_version = mb->version;
+                max_index = i;
             }
-        } else {
-            ++head;
         }
     }
 
-    // Cool, hopefully got our metablock. Wrap it up.
-    if (latest_version == MB_BAD_VERSION) {
-
+    if (max_index == SIZE_MAX) {
         /* no metablock found anywhere -- the DB is toast */
-
         next_version_number = MB_START_VERSION;
-        *mb_found = false;
+        *mb_found_out = false;
 
         /* The log serializer will catastrophically fail when it sees that mb_found is
-           false. We could catastrophically fail here, but it's a bit nicer to have the
-           metablock manager as a standalone component that doesn't know how to behave
-           if there is no metablock. */
-
+           false. */
     } else {
-        // Right now we don't have anything super-special between disk format
-        // versions, just some per-block serialization versioning (which is
-        // derived from the 4 bytes block_magic_t at the front of the block), so
-        // we don't need to remember the version number -- we just assert it's
-        // ok.
-        if (!disk_format_version_is_recognized(last_good_mb->disk_format_version)) {
+        crc_metablock_t *latest_crc_mb = reinterpret_cast<crc_metablock_t *>(lbm.get() + max_index * METABLOCK_SIZE);
+        if (!disk_format_version_is_recognized(latest_crc_mb->disk_format_version)) {
             fail_due_to_user_error(
                     "Data version not recognized. Is the data "
                     "directory from a newer version of RethinkDB? "
                     "(version on disk: %" PRIu32 ")",
-                    last_good_mb->disk_format_version);
+                    latest_crc_mb->disk_format_version);
         }
 
-        /* we found a metablock, set everything up */
-        next_version_number = latest_version + 1;
-        latest_version = MB_BAD_VERSION; /* version is now useless */
-        head.pop();
-        *mb_found = true;
-        memcpy(mb_out, &last_good_mb->metablock, sizeof(log_serializer_metablock_t));
+        // We found a metablock.
+        next_version_number = max_version + 1;
+        next_mb_slot = metablock_offsets::next(extent_size, max_index);
+        *mb_found_out = true;
+        memcpy(mb_out, &latest_crc_mb->metablock, sizeof(log_serializer_metablock_t));
     }
+
     state = state_ready;
 }
 
@@ -319,10 +268,10 @@ void metablock_manager_t::co_write_metablock(
     rassert(crc_metablock::check_crc(crc_mb.get()));
 
     state = state_writing;
-    co_write(dbfile, head.offset(), METABLOCK_SIZE, crc_mb.get(), io_account,
+    int64_t offset = metablock_offsets::get(extent_manager->extent_size, next_mb_slot);
+    next_mb_slot = metablock_offsets::next(extent_manager->extent_size, next_mb_slot);
+    co_write(dbfile, offset, METABLOCK_SIZE, crc_mb.get(), io_account,
              file_t::WRAP_IN_DATASYNCS);
-
-    ++head;
 
     state = state_ready;
     extent_manager->stats->bytes_written(METABLOCK_SIZE);
