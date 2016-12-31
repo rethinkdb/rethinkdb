@@ -24,10 +24,10 @@ uint32_t compute_metablock_crc(const crc_metablock_t *crc_mb) {
     return crc.checksum();
 }
 
+// crc_mb->metablock is already initialized, the rest of the metablock is zero-filled.
 void prepare(crc_metablock_t *crc_mb, uint32_t _disk_format_version,
-             log_serializer_metablock_t *mb, metablock_version_t vers) {
+             metablock_version_t vers) {
     crc_mb->disk_format_version = _disk_format_version;
-    crc_mb->metablock = *mb;
     memcpy(crc_mb->magic_marker, MB_MARKER_MAGIC, sizeof(MB_MARKER_MAGIC));
     crc_mb->version = vers;
     crc_mb->_crc = compute_metablock_crc(crc_mb);
@@ -87,13 +87,11 @@ void metablock_manager_t::metablock_manager_t::head_t::pop() {
 }
 
 metablock_manager_t::metablock_manager_t(extent_manager_t *em)
-    : head(this), mb_buffer(METABLOCK_SIZE),
+    : head(this),
       extent_manager(em),
       metablock_offsets(initial_metablock_offsets(extent_manager->extent_size)),
       state(state_unstarted), dbfile(nullptr) {
     rassert(sizeof(crc_metablock_t) <= METABLOCK_SIZE);
-    rassert(mb_buffer.has());
-    mb_buffer_in_use = false;
 
     /* Build the list of metablock locations in the file */
 
@@ -103,14 +101,12 @@ metablock_manager_t::metablock_manager_t(extent_manager_t *em)
 }
 
 metablock_manager_t::~metablock_manager_t() {
-
     rassert(state == state_unstarted || state == state_shut_down);
-
-    rassert(!mb_buffer_in_use);
 }
 
-void metablock_manager_t::create(file_t *dbfile, int64_t extent_size,
-                                 log_serializer_metablock_t *initial) {
+void metablock_manager_t::create(
+        file_t *dbfile, int64_t extent_size,
+        scoped_device_block_aligned_ptr_t<crc_metablock_t> &&initial) {
 
     std::vector<int64_t> metablock_offsets = initial_metablock_offsets(extent_size);
 
@@ -139,12 +135,13 @@ void metablock_manager_t::create(file_t *dbfile, int64_t extent_size,
     }
     callback.wait();
 
+    buffer = std::move(initial);
+
     /* Write the first metablock */
     // We use cluster_version_t::LATEST_DISK.  Maybe we'd want to decouple cluster
     // versions from disk format versions?  We can do that later if we want.
     crc_metablock::prepare(buffer.get(),
                            static_cast<uint32_t>(cluster_version_t::LATEST_DISK),
-                           initial,
                            MB_START_VERSION);
     co_write(dbfile, metablock_offsets[0], METABLOCK_SIZE, buffer.get(),
              DEFAULT_DISK_ACCOUNT, file_t::WRAP_IN_DATASYNCS);
@@ -181,9 +178,6 @@ void metablock_manager_t::co_start_existing(file_t *file, bool *mb_found,
     rassert(state == state_unstarted);
     dbfile = file;
     rassert(dbfile != nullptr);
-
-    rassert(!mb_buffer_in_use);
-    mb_buffer_in_use = true;
 
     metablock_version_t latest_version = MB_BAD_VERSION;
 
@@ -274,10 +268,8 @@ void metablock_manager_t::co_start_existing(file_t *file, bool *mb_found,
         latest_version = MB_BAD_VERSION; /* version is now useless */
         head.pop();
         *mb_found = true;
-        memcpy(mb_buffer.get(), last_good_mb, METABLOCK_SIZE);
-        memcpy(mb_out, &(mb_buffer->metablock), sizeof(log_serializer_metablock_t));
+        memcpy(mb_out, &last_good_mb->metablock, sizeof(log_serializer_metablock_t));
     }
-    mb_buffer_in_use = false;
     state = state_ready;
 }
 
@@ -296,50 +288,48 @@ bool metablock_manager_t::start_existing(
                                           this, file, mb_found, mb_out, cb));
     return false;
 }
-void metablock_manager_t::co_write_metablock(log_serializer_metablock_t *mb,
-                                             file_account_t *io_account) {
+
+// crc_mb is zero-initialized.
+void metablock_manager_t::co_write_metablock(
+        const scoped_device_block_aligned_ptr_t<crc_metablock_t> &crc_mb,
+        file_account_t *io_account) {
     mutex_t::acq_t hold(&write_lock);
 
     rassert(state == state_ready);
-    rassert(!mb_buffer_in_use);
 
-    crc_metablock::prepare(mb_buffer.get(),
+    crc_metablock::prepare(crc_mb.get(),
                            static_cast<uint32_t>(cluster_version_t::LATEST_DISK),
-                           mb,
                            next_version_number++);
-    rassert(crc_metablock::check_crc(mb_buffer.get()));
-
-    mb_buffer_in_use = true;
+    rassert(crc_metablock::check_crc(crc_mb.get()));
 
     state = state_writing;
-    co_write(dbfile, head.offset(), METABLOCK_SIZE, mb_buffer.get(), io_account,
+    co_write(dbfile, head.offset(), METABLOCK_SIZE, crc_mb.get(), io_account,
              file_t::WRAP_IN_DATASYNCS);
 
     ++head;
 
     state = state_ready;
-    mb_buffer_in_use = false;
     extent_manager->stats->bytes_written(METABLOCK_SIZE);
 }
 
 void metablock_manager_t::write_metablock_callback(
-        log_serializer_metablock_t *mb,
+        const scoped_device_block_aligned_ptr_t<crc_metablock_t> *mb,
         file_account_t *io_account,
         metablock_write_callback_t *cb) {
-    co_write_metablock(mb, io_account);
+    co_write_metablock(*mb, io_account);
     cb->on_metablock_write();
 }
 
-void metablock_manager_t::write_metablock(log_serializer_metablock_t *mb,
-                                          file_account_t *io_account,
-                                          metablock_write_callback_t *cb) {
+void metablock_manager_t::write_metablock(
+        const scoped_device_block_aligned_ptr_t<crc_metablock_t> &crc_mb,
+        file_account_t *io_account,
+        metablock_write_callback_t *cb) {
     coro_t::spawn_later_ordered(std::bind(&metablock_manager_t::write_metablock_callback,
-                                          this, mb, io_account, cb));
+                                          this, &crc_mb, io_account, cb));
 }
 
 void metablock_manager_t::shutdown() {
 
     rassert(state == state_ready);
-    rassert(!mb_buffer_in_use);
     state = state_shut_down;
 }

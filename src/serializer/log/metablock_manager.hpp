@@ -31,9 +31,11 @@ public:
     explicit metablock_manager_t(extent_manager_t *em);
     ~metablock_manager_t();
 
-    /* Clear metablock slots and write an initial metablock to the database file */
+    /* Clear metablock slots and write an initial metablock to the database file.
+       'initial' has its log_serializer_metablock_t part pre-filled, the rest
+       zero-wiped. */
     static void create(file_t *dbfile, int64_t extent_size,
-                       log_serializer_metablock_t *initial);
+                       scoped_device_block_aligned_ptr_t<crc_metablock_t> &&initial);
 
     /* Tries to load existing metablocks */
     void co_start_existing(file_t *dbfile, bool *mb_found,
@@ -51,10 +53,12 @@ public:
         virtual void on_metablock_write() = 0;
         virtual ~metablock_write_callback_t() {}
     };
-    void write_metablock(log_serializer_metablock_t *mb,
+    // crc_mb->metablock must be initialized, the rest zeroed, DEVICE_BLOCK_SIZE-aligned.
+    void write_metablock(const scoped_device_block_aligned_ptr_t<crc_metablock_t> &crc_mb,
                          file_account_t *io_account,
                          metablock_write_callback_t *cb);
-    void co_write_metablock(log_serializer_metablock_t *mb, file_account_t *io_account);
+    void co_write_metablock(const scoped_device_block_aligned_ptr_t<crc_metablock_t> &mb,
+                            file_account_t *io_account);
 
     void shutdown();
 
@@ -88,20 +92,19 @@ private:
                                  bool *mb_found,
                                  log_serializer_metablock_t *mb_out,
                                  metablock_read_callback_t *cb);
-    void write_metablock_callback(log_serializer_metablock_t *mb,
-                                  file_account_t *io_account,
-                                  metablock_write_callback_t *cb);
+    void write_metablock_callback(
+            const scoped_device_block_aligned_ptr_t<crc_metablock_t> *mb,
+            file_account_t *io_account,
+            metablock_write_callback_t *cb);
 
+    // Only one metablock write can happen at a time.  This isn't necessarily a
+    // desirable thing, but that's how this type works.
     mutex_t write_lock;
 
     // keeps track of where we are in the extents
     head_t head;
 
     metablock_version_t next_version_number;
-
-    const scoped_device_block_aligned_ptr_t<crc_metablock_t> mb_buffer;
-    // true: we're using the buffer, no one else can
-    bool mb_buffer_in_use;
 
     extent_manager_t *const extent_manager;
 
