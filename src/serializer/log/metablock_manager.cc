@@ -12,21 +12,8 @@
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/cond_var.hpp"
 #include "serializer/log/log_serializer.hpp"
+#include "serializer/log/metablock.hpp"
 #include "version.hpp"
-
-// This is stored directly to disk.  Changing it will change the disk format.
-ATTR_PACKED(struct crc_metablock_t {
-    char magic_marker[sizeof(MB_MARKER_MAGIC)];
-    // The version that differs only when the software is upgraded to a newer
-    // version.  This field might allow for in-place upgrading of the cluster.
-    uint32_t disk_format_version;
-    // The CRC checksum of [disk_format_version]+[version]+[metablock].
-    uint32_t _crc;
-    // The version that increments every time a metablock is written.
-    metablock_version_t version;
-    // The value in the metablock (pointing at LBA superblocks, etc).
-    log_serializer_metablock_t metablock;
-});
 
 namespace crc_metablock {
 uint32_t compute_metablock_crc(const crc_metablock_t *crc_mb) {

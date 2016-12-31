@@ -12,6 +12,7 @@
 #include "concurrency/mutex.hpp"
 #include "serializer/log/extent_manager.hpp"
 #include "serializer/log/static_header.hpp"
+#include "serializer/log/metablock.hpp"
 
 
 #define MB_BLOCKS_PER_EXTENT 8
@@ -22,13 +23,8 @@
 
 
 /* TODO support multiple concurrent writes */
-static const char MB_MARKER_MAGIC[8] = {'m', 'e', 't', 'a', 'b', 'l', 'c', 'k'};
 
 std::vector<int64_t> initial_metablock_offsets(int64_t extent_size);
-
-struct log_serializer_metablock_t;
-struct crc_metablock_t;
-typedef int64_t metablock_version_t;
 
 class metablock_manager_t {
 public:

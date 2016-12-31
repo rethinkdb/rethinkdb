@@ -125,6 +125,23 @@ TEST(DiskFormatTest, LogSerializerMetablockT) {
     EXPECT_EQ(3736u, sizeof(log_serializer_metablock_t));
 }
 
+TEST(DiskFormatTest, CrcMetablockT) {
+    size_t n = 0;
+    EXPECT_EQ(n, offsetof(crc_metablock_t, magic_marker));
+    n += 8;
+    EXPECT_EQ(n, offsetof(crc_metablock_t, disk_format_version));
+    n += 4;
+    EXPECT_EQ(n, offsetof(crc_metablock_t, _crc));
+    n += 4;
+    EXPECT_EQ(n, offsetof(crc_metablock_t, version));
+    n += 8;
+    EXPECT_EQ(24, n);
+    EXPECT_EQ(n, offsetof(crc_metablock_t, metablock));
+    n += 3736;
+    EXPECT_EQ(3760, n);
+    EXPECT_EQ(n, sizeof(crc_metablock_t));
+}
+
 TEST(DiskFormatTest, LogSerializerStaticConfigT) {
     EXPECT_EQ(0u, offsetof(log_serializer_on_disk_static_config_t, block_size_));
     EXPECT_EQ(8u, offsetof(log_serializer_on_disk_static_config_t, extent_size_));
