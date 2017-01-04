@@ -8,27 +8,24 @@
 
 #include "crypto/error.hpp"
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+#define EVP_MD_CTX_new     EVP_MD_CTX_create
+#define EVP_MD_CTX_free    EVP_MD_CTX_destroy
+#endif
+
 namespace crypto {
 
 class evp_md_ctx_wrapper_t {
 public:
     evp_md_ctx_wrapper_t() {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-        m_evp_md_ctx = EVP_MD_CTX_create();
-#else
         m_evp_md_ctx = EVP_MD_CTX_new();
-#endif
         if (m_evp_md_ctx == nullptr) {
             throw openssl_error_t(ERR_get_error());
         }
     }
 
     ~evp_md_ctx_wrapper_t() {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-        EVP_MD_CTX_destroy(m_evp_md_ctx);
-#else
         EVP_MD_CTX_free(m_evp_md_ctx);
-#endif
     }
 
     EVP_MD_CTX *get() {
