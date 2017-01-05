@@ -176,7 +176,7 @@ public:
         }
     }
 
-    static uint32_t aligned_value(block_size_t bs) {
+    static uint16_t aligned_value(block_size_t bs) {
         return ceil_aligned(bs.ser_value(), DEVICE_BLOCK_SIZE);
     }
 
@@ -294,7 +294,7 @@ public:
         const int64_t offset = extent_ref.offset();
         std::string ret;
         for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
-            ret += strprintf("%s[%" PRIi64 "..+%" PRIu32 ") %c%c",
+            ret += strprintf("%s[%" PRIi64 "..+%" PRIu16 ") %c%c",
                              it == block_infos.begin() ? "" : separator,
                              offset + it->relative_offset, it->block_size.ser_value(),
                              it->token_referenced ? 'T' : ' ',
@@ -493,7 +493,7 @@ void data_block_manager_t::start_existing(
 // block_boundaries() value.  Outputs an interval that is _NOT_ fit to device block
 // size boundaries.  This is used by read_ahead_offset_and_size.
 void unaligned_read_ahead_interval(const int64_t block_offset,
-                                   const uint32_t ser_block_size,
+                                   const uint16_t ser_block_size,
                                    const int64_t extent_size,
                                    const int64_t read_ahead_size,
                                    const std::vector<uint32_t> &boundaries,
@@ -540,7 +540,7 @@ void unaligned_read_ahead_interval(const int64_t block_offset,
 // ser_block_size_in) interval.  boundaries is the extent's gc_entry_t's
 // block_boundaries() value.
 void read_ahead_interval(const int64_t block_offset,
-                         const uint32_t ser_block_size,
+                         const uint16_t ser_block_size,
                          const int64_t extent_size,
                          const int64_t read_ahead_size,
                          const int64_t device_block_size,
@@ -558,7 +558,7 @@ void read_ahead_interval(const int64_t block_offset,
 }
 
 void read_ahead_offset_and_size(int64_t off_in,
-                                int64_t ser_block_size_in,
+                                uint16_t ser_block_size_in,
                                 int64_t extent_size,
                                 const std::vector<uint32_t> &boundaries,
                                 int64_t *offset_out, int64_t *size_out) {
@@ -588,7 +588,7 @@ public:
 
     static void perform_read_ahead(data_block_manager_t *const parent,
                                    const int64_t off_in,
-                                   const uint32_t ser_block_size_in,
+                                   const uint16_t ser_block_size_in,
                                    void *const buf_out,
                                    file_account_t *const io_account,
                                    log_serializer_stats_t *const stats) {

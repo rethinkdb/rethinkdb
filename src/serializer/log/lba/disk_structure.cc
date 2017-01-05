@@ -69,7 +69,7 @@ void lba_disk_structure_t::on_extent_read() {
 }
 
 void lba_disk_structure_t::add_entry(block_id_t block_id, repli_timestamp_t recency,
-                                     flagged_off64_t offset, uint32_t ser_block_size,
+                                     flagged_off64_t offset, uint16_t ser_block_size,
                                      file_account_t *io_account,
                                      extent_transaction_t *txn) {
     if (last_extent && last_extent->full()) {

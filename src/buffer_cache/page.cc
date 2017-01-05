@@ -523,7 +523,7 @@ void page_t::reset_block_token(DEBUG_VAR page_cache_t *page_cache) {
     rassert(!waiters_.empty());
     rassert(buf_.has());
     if (block_token_.has()) {
-        rassert(buf_.block_size().value() == block_token_->block_size().value());
+        rassert(buf_.block_size() == block_token_->block_size());
 #ifndef NDEBUG
         const uint32_t usage_before = hypothetical_memory_usage(page_cache);
 #endif
@@ -550,7 +550,7 @@ void page_t::evict_self(DEBUG_VAR page_cache_t *page_cache) {
     rassert(waiters_.empty());
     rassert(block_token_.has());
     rassert(buf_.has());
-    rassert(block_token_->block_size().value() == buf_.block_size().value());
+    rassert(block_token_->block_size() == buf_.block_size());
 #ifndef NDEBUG
     const uint32_t usage_before = hypothetical_memory_usage(page_cache);
 #endif
@@ -569,7 +569,7 @@ ser_buffer_t *page_t::get_loaded_ser_buffer() {
 void page_t::init_block_token(counted_t<block_token_t> token,
                               DEBUG_VAR page_cache_t *page_cache) {
     rassert(buf_.has());
-    rassert(buf_.block_size().value() == token->block_size().value());
+    rassert(buf_.block_size() == token->block_size());
     rassert(!block_token_.has());
 #ifndef NDEBUG
     const uint32_t usage_before = hypothetical_memory_usage(page_cache);

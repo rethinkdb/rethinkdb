@@ -492,7 +492,7 @@ void log_serializer_t::index_write(new_mutex_in_line_t *mutex_acq,
              ++write_op_it) {
             const index_write_op_t &op = *write_op_it;
             flagged_off64_t offset = lba_index->get_block_offset(op.block_id);
-            uint32_t ser_block_size = lba_index->get_ser_block_size(op.block_id);
+            uint16_t ser_block_size = lba_index->get_ser_block_size(op.block_id);
 
             if (op.token) {
                 // Update the offset pointed to, and mark garbage/liveness as necessary.
@@ -1002,7 +1002,7 @@ void block_token_t::do_destroy() {
 void debug_print(printf_buffer_t *buf,
                  const counted_t<block_token_t> &token) {
     if (token.has()) {
-        buf->appendf("standard_block_token{%" PRIi64 ", +%" PRIu32 "}",
+        buf->appendf("standard_block_token{%" PRIi64 ", +%" PRIu16 "}",
                      token->offset(), token->block_size().ser_value());
     } else {
         buf->appendf("nil");

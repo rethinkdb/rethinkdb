@@ -156,7 +156,7 @@ flagged_off64_t lba_list_t::get_block_offset(block_id_t block) {
     return get_block_info(block).offset;
 }
 
-uint32_t lba_list_t::get_ser_block_size(block_id_t block) {
+uint16_t lba_list_t::get_ser_block_size(block_id_t block) {
     return get_block_info(block).ser_block_size;
 }
 
@@ -191,14 +191,11 @@ segmented_vector_t<repli_timestamp_t> lba_list_t::get_block_recencies(block_id_t
 }
 
 void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency,
-                                flagged_off64_t offset, uint32_t ser_block_size,
+                                flagged_off64_t offset, uint16_t ser_block_size,
                                 file_account_t *io_account, extent_transaction_t *txn) {
     rassert(state == state_ready || state == state_gc_shutting_down);
 
-    guarantee(ser_block_size <= std::numeric_limits<uint16_t>::max());
-    uint16_t ser_block_size_16 = static_cast<uint16_t>(ser_block_size);
-
-    in_memory_index.set_block_info(block, recency, offset, ser_block_size_16);
+    in_memory_index.set_block_info(block, recency, offset, ser_block_size);
 
     // If the inline LBA is full, free it up first by moving its entries to
     // the LBA extents
@@ -207,7 +204,7 @@ void lba_list_t::set_block_info(block_id_t block, repli_timestamp_t recency,
         rassert(!check_inline_lba_full());
     }
     // Then store the entry inline
-    add_inline_entry(block, recency, offset, ser_block_size_16);
+    add_inline_entry(block, recency, offset, ser_block_size);
 }
 
 bool lba_list_t::check_inline_lba_full() const {
@@ -353,7 +350,7 @@ void lba_list_t::gc(int lba_shard, auto_drainer_t::lock_t) {
 
         flagged_off64_t off = get_block_offset(id);
         if (off.has_value()) {
-            uint32_t ser_block_size = get_ser_block_size(id);
+            uint16_t ser_block_size = get_ser_block_size(id);
             disk_structures[lba_shard]->add_entry(id,
                                                   get_block_recency(id),
                                                   off,

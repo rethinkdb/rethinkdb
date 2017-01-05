@@ -76,7 +76,7 @@ ATTR_PACKED(struct lba_entry_t {
     flagged_off64_t offset;
 
     static lba_entry_t make(block_id_t block_id, repli_timestamp_t recency,
-                            flagged_off64_t offset, uint32_t ser_block_size) {
+                            flagged_off64_t offset, uint16_t ser_block_size) {
         guarantee(ser_block_size != 0 || !offset.has_value());
         lba_entry_t entry;
         entry.zero_reserved = 0;
