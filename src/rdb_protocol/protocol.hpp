@@ -30,7 +30,6 @@
 #include "rdb_protocol/shards.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
-#include "rpc/mailbox/typed.hpp"
 
 class store_t;
 class buf_lock_t;

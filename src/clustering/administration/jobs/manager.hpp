@@ -14,7 +14,6 @@
 #include "concurrency/one_per_thread.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/uuid.hpp"
-#include "rpc/mailbox/typed.hpp"
 #include "rpc/serialize_macros.hpp"
 
 class rdb_context_t;
