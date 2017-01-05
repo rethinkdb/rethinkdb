@@ -121,7 +121,6 @@ tribool permissions_t::get_config() const {
 }
 
 tribool permissions_t::get_connect() const {
-    // `get_value_or` is deprecated, but we're using an ancient version of boost
     return m_connect.value_or(tribool::Indeterminate);
 }
 
