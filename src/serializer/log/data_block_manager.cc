@@ -308,6 +308,10 @@ public:
         return ret;
     }
 
+    void shrink_to_fit() {
+        block_infos.shrink_to_fit();
+    }
+
 private:
     // Private because we cannot guarantee that our stats remain consistent if somebody
     // gets a non-const iterator.
@@ -483,6 +487,7 @@ void data_block_manager_t::start_existing(
 
         guarantee(entry->state == gc_entry_t::state_reconstructing);
         entry->state = gc_entry_t::state_old;
+        entry->shrink_to_fit();
 
         entry->our_pq_entry = gc_pq.push(entry);
 
@@ -1453,6 +1458,7 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
                 destroy_entry(old_active_extent);
             } else {
                 active_extent->state = gc_entry_t::state_young;
+                active_extent->shrink_to_fit();
                 young_extent_queue.push_back(active_extent);
                 mark_unyoung_entries();
                 active_extent = new gc_entry_t(this);
