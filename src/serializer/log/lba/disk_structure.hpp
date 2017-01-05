@@ -33,7 +33,7 @@ public:
 
     // Put entries in an LBA and then call wait_for_write_completion() to write to disk
     void add_entry(block_id_t block_id, repli_timestamp_t recency,
-                   flagged_off64_t offset, uint32_t ser_block_size,
+                   flagged_off64_t offset, uint16_t ser_block_size,
                    file_account_t *io_account,
                    extent_transaction_t *txn);
     struct completion_callback_t {

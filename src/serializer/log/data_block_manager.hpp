@@ -266,11 +266,11 @@ private:
     DISABLE_COPYING(data_block_manager_t);
 };
 
-// Exposed for unit tests.  Returns a super-interval of [block_offset,
+// Exposed for unit tests.  Returns a super-interval of [block_offset, block_offset +
 // ser_block_size) that is almost appropriate for a read-ahead disk read -- it still
 // needs to be stretched to be aligned with disk block boundaries.
 void unaligned_read_ahead_interval(const int64_t block_offset,
-                                   const uint32_t ser_block_size,
+                                   const uint16_t ser_block_size,
                                    const int64_t extent_size,
                                    const int64_t read_ahead_size,
                                    const std::vector<uint32_t> &boundaries,

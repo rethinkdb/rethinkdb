@@ -327,9 +327,9 @@ public:
     explicit buf_read_t(buf_lock_t *lock);
     ~buf_read_t();
 
-    const void *get_data_read(uint32_t *block_size_out);
+    const void *get_data_read(uint16_t *block_size_out);
     const void *get_data_read() {
-        uint32_t block_size;
+        uint16_t block_size;
         const void *data = get_data_read(&block_size);
         guarantee(block_size == lock_->cache()->max_block_size().value());
         return data;
@@ -347,7 +347,7 @@ public:
     explicit buf_write_t(buf_lock_t *lock);
     ~buf_write_t();
 
-    void *get_data_write(uint32_t block_size);
+    void *get_data_write(uint16_t block_size);
     // Equivalent to passing the max_block_size.
     void *get_data_write();
 

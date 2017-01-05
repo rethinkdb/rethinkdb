@@ -72,7 +72,7 @@ void page_read_ahead_cb_t::offer_read_ahead_buf(
 
     // We're going to reconstruct the buf_ptr_t on the other side of this do_on_thread
     // call, so we'd better make sure the block size is right.
-    guarantee(block_size.value() == token->block_size().value());
+    guarantee(block_size == token->block_size());
 
     // Notably, this code relies on do_on_thread to preserve callback order (which it
     // does do).
