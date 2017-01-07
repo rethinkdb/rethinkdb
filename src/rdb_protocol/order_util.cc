@@ -30,7 +30,7 @@ build_comparison(const term_t* target,
 
     counted_t<const func_t> comparison_function = arg->as_func(GET_FIELD_SHORTCUT);
     rcheck_target(target,
-                  (comparison_function->is_deterministic() &~ DET_SINGLE_SERVER) == DET_DETERMINISTIC,
+                  (comparison_function->is_deterministic() & ~deterministic_t::SINGLE_SERVER) == deterministic_t::DETERMINISTIC,
                   base_exc_t::LOGIC,
                   "Sorting by a non-deterministic function is not supported.");
 

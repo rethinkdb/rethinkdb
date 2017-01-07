@@ -36,7 +36,7 @@ private:
     }
 
     virtual deterministic_t is_deterministic() const {
-        return DET_DETERMINISTIC;
+        return deterministic_t::DETERMINISTIC;
     }
 
     sym_t varname;
@@ -69,7 +69,7 @@ private:
     }
 
     virtual deterministic_t is_deterministic() const {
-        return DET_DETERMINISTIC;
+        return deterministic_t::DETERMINISTIC;
     }
 
     virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, UNUSED eval_flags_t flags) const {

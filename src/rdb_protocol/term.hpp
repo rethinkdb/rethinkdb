@@ -21,7 +21,7 @@ class table_t;
 class table_slice_t;
 class var_captures_t;
 class compile_env_t;
-typedef int deterministic_t;
+struct deterministic_t;
 
 enum eval_flags_t {
     NO_FLAGS = 0,

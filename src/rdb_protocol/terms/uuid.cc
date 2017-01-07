@@ -44,7 +44,7 @@ private:
             && get_original_args()[0]->get_src().type() != Term::ARGS) {
             return op_term_t::is_deterministic();
         } else {
-            return DET_NONDET;
+            return deterministic_t::NONDET;
         }
     }
 };
