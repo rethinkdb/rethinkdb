@@ -34,7 +34,7 @@ scoped_ptr_t<val_t> func_t::call(env_t *env,
 }
 
 void func_t::assert_deterministic(deterministic_t mask, const char *extra_msg) const {
-    rcheck((is_deterministic() &~ mask) == DET_DETERMINISTIC,
+    rcheck((is_deterministic() & ~mask) == deterministic_t::DETERMINISTIC,
            base_exc_t::LOGIC,
            strprintf("Could not prove function deterministic.  %s", extra_msg));
 }
@@ -141,7 +141,7 @@ optional<size_t> js_func_t::arity() const {
 }
 
 deterministic_t js_func_t::is_deterministic() const {
-    return DET_NONDET;
+    return deterministic_t::NONDET;
 }
 
 void reql_func_t::visit(func_visitor_t *visitor) const {

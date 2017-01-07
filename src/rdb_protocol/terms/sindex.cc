@@ -204,7 +204,7 @@ public:
         }
 
         config.func.compile_wire_func()->assert_deterministic(
-            DET_DETERMINISTIC,
+            deterministic_t::DETERMINISTIC,
             "Index functions must be deterministic.");
 
         /* Check if we're doing a multi index or a normal index. */

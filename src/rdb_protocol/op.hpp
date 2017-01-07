@@ -18,24 +18,57 @@ namespace ql {
 
 class func_term_t;
 
-enum deterministic_bit_t {
+class deterministic_t {
+public:
     // non-deterministic operations, like ones involving external queries
-    DET_NONDET = 1,
+    static const deterministic_t NONDET;
 
     // deterministic on a single server, but not necessarily across the cluster (different
     // cpus, compilers), like geo operations
-    DET_SINGLE_SERVER = 2,
+    static const deterministic_t SINGLE_SERVER;
 
     // deterministic if r.now is constant
-    DET_CONSTANT_NOW = 4,
+    static const deterministic_t CONSTANT_NOW;
 
     // always deterministic
-    DET_DETERMINISTIC = 0
+    static const deterministic_t DETERMINISTIC;
+
+    deterministic_t operator|(deterministic_t other) const {
+        return deterministic_t(bitset | other.bitset);
+    }
+
+    deterministic_t& operator|=(deterministic_t other) {
+        bitset |= other.bitset;
+        return *this;
+    }
+
+    deterministic_t operator&(deterministic_t other) const {
+        return deterministic_t(bitset & other.bitset);
+    }
+
+    deterministic_t operator~() const {
+        return deterministic_t(~bitset);
+    }
+
+    bool operator==(deterministic_t other) const {
+        return bitset == other.bitset;
+    }
+
+    bool operator!=(deterministic_t other) const {
+        return bitset != other.bitset;
+    }
+
+    operator bool() {
+        return bitset;
+    }
+
+    explicit deterministic_t(int bits) : bitset(bits) { }
+
+private:
+    int bitset;
 };
 
-typedef int deterministic_t;
-
-std::string deterministic_string(deterministic_t det);
+void debug_print(printf_buffer_t *buf, deterministic_t det);
 
 // Specifies the range of normal arguments a function can take (arguments
 // provided by `r.args` count toward the total).  You may also optionally

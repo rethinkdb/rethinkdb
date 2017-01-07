@@ -286,7 +286,7 @@ const std::vector<counted_t<const term_t> > &op_term_t::get_original_args() cons
 deterministic_t op_term_t::is_deterministic() const {
     const std::vector<counted_t<const term_t> > &original_args
         = arg_terms->get_original_args();
-    deterministic_t det = DET_DETERMINISTIC;
+    deterministic_t det = deterministic_t::DETERMINISTIC;
     for (const auto &arg : original_args) {
         det |= arg->is_deterministic();
     }
@@ -352,21 +352,25 @@ bool bounded_op_term_t::open_bool(
     }
 }
 
-std::string deterministic_string(deterministic_t det) {
-    if (det == DET_DETERMINISTIC) {
-        return "DETERMINISTIC";
+void debug_print(printf_buffer_t *buf, deterministic_t det) {
+    if (det == deterministic_t::DETERMINISTIC) {
+        buf->appendf("DETERMINISTIC");
     }
     std::string ret;
-    if (det & DET_NONDET) {
-        ret += "NONDET ";
+    if (det & deterministic_t::NONDET) {
+        buf->appendf("NONDET ");
     }
-    if (det & DET_CONSTANT_NOW) {
-        ret += "CONSTANT_NOW ";
+    if (det & deterministic_t::CONSTANT_NOW) {
+        buf->appendf("CONSTANT_NOW ");
     }
-    if (det & DET_SINGLE_SERVER) {
-        ret += "SINGLE_SERVER ";
+    if (det & deterministic_t::SINGLE_SERVER) {
+        buf->appendf("SINGLE_SERVER ");
     }
-    return ret;
 }
+
+const deterministic_t deterministic_t::NONDET{1};
+const deterministic_t deterministic_t::SINGLE_SERVER{2};
+const deterministic_t deterministic_t::CONSTANT_NOW{4};
+const deterministic_t deterministic_t::DETERMINISTIC{0};
 
 } // namespace ql
