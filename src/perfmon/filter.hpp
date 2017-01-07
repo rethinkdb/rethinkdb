@@ -6,9 +6,10 @@
 #include <string>
 #include <vector>
 
+#include <re2/re2.h>
+
 #include "errors.hpp"
 
-#include "re2/re2.h"
 #include "rdb_protocol/datum.hpp"
 
 template <class> class scoped_ptr_t;

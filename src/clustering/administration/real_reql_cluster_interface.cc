@@ -455,7 +455,7 @@ bool real_reql_cluster_interface_t::table_list(
 bool real_reql_cluster_interface_t::table_find(
         const name_string_t &name,
         counted_t<const ql::db_t> db,
-        UNUSED boost::optional<admin_identifier_format_t> identifier_format,
+        UNUSED optional<admin_identifier_format_t> identifier_format,
         signal_t *interruptor_on_caller,
         counted_t<base_table_t> *table_out,
         admin_err_t *error_out) {
@@ -1193,7 +1193,7 @@ bool real_reql_cluster_interface_t::set_write_hook(
     auth::user_context_t const &user_context,
     counted_t<const ql::db_t> db,
     const name_string_t &table,
-    const boost::optional<write_hook_config_t> &config,
+    const optional<write_hook_config_t> &config,
     signal_t *interruptor_on_caller,
     admin_err_t *) {
     guarantee(db->name != name_string_t::guarantee_valid("rethinkdb"),
@@ -1207,7 +1207,7 @@ bool real_reql_cluster_interface_t::set_write_hook(
 
     user_context.require_config_permission(m_rdb_context, db->id, table_id);
 
-    if (config) {
+    if (config.has_value()) {
         table_config_and_shards_change_t table_config_and_shards_change(
             table_config_and_shards_change_t::write_hook_create_t{config.get()});
 

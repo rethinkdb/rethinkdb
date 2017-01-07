@@ -52,7 +52,7 @@ public:
             }
         }
         /* Parse the write_hook configuration */
-        boost::optional<write_hook_config_t> config;
+        optional<write_hook_config_t> config;
         datum_string_t message("deleted");
         scoped_ptr_t<val_t> v = args->arg(env, 1);
         // We ignore the write_hook's old `reql_version` and make the new version
@@ -85,11 +85,11 @@ public:
                     write_hook_config_t(func,
                                         reql_version_t::LATEST);
 
-                config = conf;
+                config.set(conf);
                 config->func.compile_wire_func()->assert_deterministic(
                     "Write hook functions must be deterministic.");
 
-                boost::optional<size_t> arity = config->func.compile_wire_func()->arity();
+                optional<size_t> arity = config->func.compile_wire_func()->arity();
 
                 rcheck(static_cast<bool>(arity) && arity.get() == 3,
                        base_exc_t::LOGIC,
@@ -111,11 +111,11 @@ public:
                 write_hook_config_t(ql::wire_func_t(v->as_func()),
                                     reql_version_t::LATEST);
 
-            config = conf;
+            config.set(conf);
             config->func.compile_wire_func()->assert_deterministic(
                 "Write hook functions must be deterministic.");
 
-            boost::optional<size_t> arity = config->func.compile_wire_func()->arity();
+            optional<size_t> arity = config->func.compile_wire_func()->arity();
 
             rcheck(static_cast<bool>(arity) && arity.get() == 3,
                    base_exc_t::LOGIC,

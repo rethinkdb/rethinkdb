@@ -71,7 +71,7 @@ public:
     table_basic_config_t basic;
     std::vector<shard_t> shards;
     std::map<std::string, sindex_config_t> sindexes;
-    boost::optional<write_hook_config_t> write_hook;
+    optional<write_hook_config_t> write_hook;
     write_ack_config_t write_ack_config;
     write_durability_t durability;
 };
@@ -229,12 +229,12 @@ private:
         }
 
         result_type operator()(const write_hook_create_t &write_hook_create) const {
-            table_config_and_shards->config.write_hook = write_hook_create.config;
+            table_config_and_shards->config.write_hook.set(write_hook_create.config);
             return true;
         }
 
         result_type operator()(UNUSED const write_hook_drop_t &write_hook_drop) const {
-            table_config_and_shards->config.write_hook = boost::none;
+            table_config_and_shards->config.write_hook = r_nullopt;
             return true;
         }
 

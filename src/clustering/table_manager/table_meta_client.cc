@@ -101,7 +101,7 @@ void table_meta_client_t::get_config(
     request.want_config = true;
     std::set<namespace_id_t> failures;
     get_status(
-        boost::make_optional(table_id),
+        make_optional(table_id),
         request,
         server_selector_t::BEST_SERVER_ONLY,
         &interruptor,
@@ -127,7 +127,7 @@ void table_meta_client_t::list_configs(
     request.want_config = true;
     std::set<namespace_id_t> failures;
     get_status(
-        boost::none,
+        r_nullopt,
         request,
         server_selector_t::BEST_SERVER_ONLY,
         &interruptor,
@@ -169,7 +169,7 @@ void table_meta_client_t::get_sindex_status(
     request.want_sindexes = true;
     std::set<namespace_id_t> failures;
     get_status(
-        boost::make_optional(table_id),
+        make_optional(table_id),
         request,
         server_selector_t::EVERY_SERVER,
         &interruptor,
@@ -210,7 +210,7 @@ void table_meta_client_t::get_shard_status(
     request.all_replicas_ready_mode = all_replicas_ready_mode;
     std::set<namespace_id_t> failures;
     get_status(
-        boost::make_optional(table_id),
+        make_optional(table_id),
         request,
         /* If we only care about `all_replicas_ready`, there's no need to contact any
         server other than the primary */
@@ -235,7 +235,7 @@ void table_meta_client_t::get_shard_status(
 void table_meta_client_t::get_raft_leader(
         const namespace_id_t &table_id,
         signal_t *interruptor_on_caller,
-        boost::optional<server_id_t> *raft_leader_out)
+        optional<server_id_t> *raft_leader_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) {
     cross_thread_signal_t interruptor(interruptor_on_caller, home_thread());
     on_thread_t thread_switcher(home_thread());
@@ -244,7 +244,7 @@ void table_meta_client_t::get_raft_leader(
       [&](const std::pair<peer_id_t, namespace_id_t> &key,
           const table_manager_bcard_t *bcard) {
           if (key.second == table_id && static_cast<bool>(bcard->leader)) {
-            *raft_leader_out = boost::make_optional(bcard->server_id);
+            *raft_leader_out = make_optional(bcard->server_id);
           }
       });
 }
@@ -267,7 +267,7 @@ void table_meta_client_t::get_debug_status(
     request.all_replicas_ready_mode = all_replicas_ready_mode;
     std::set<namespace_id_t> failures;
     get_status(
-        boost::make_optional(table_id),
+        make_optional(table_id),
         request,
         server_selector_t::EVERY_SERVER,
         &interruptor,
@@ -329,17 +329,17 @@ void table_meta_client_t::drop(
         try {
             disconnect_watcher_t dw(mailbox_manager, pair.first);
             cond_t got_ack;
-            mailbox_t<void()> ack_mailbox(mailbox_manager,
+            mailbox_t<> ack_mailbox(mailbox_manager,
                 [&](signal_t *) { got_ack.pulse(); });
             send(mailbox_manager, pair.second.action_mailbox,
-                table_id,
-                multi_table_manager_timestamp_t::deletion(),
-                multi_table_manager_bcard_t::status_t::DELETED,
-                boost::optional<table_basic_config_t>(),
-                boost::optional<raft_member_id_t>(),
-                boost::optional<raft_persistent_state_t<table_raft_state_t> >(),
-                boost::optional<raft_start_election_immediately_t>(),
-                ack_mailbox.get_address());
+                 {table_id,
+                  multi_table_manager_timestamp_t::deletion(),
+                  multi_table_manager_bcard_t::status_t::DELETED,
+                  optional<table_basic_config_t>(),
+                  optional<raft_member_id_t>(),
+                  optional<raft_persistent_state_t<table_raft_state_t> >(),
+                  optional<raft_start_election_immediately_t>(),
+                  ack_mailbox.get_address()});
             wait_any_t interruptor_combined(&dw, &interruptor);
             wait_interruptible(&got_ack, &interruptor_combined);
             ++num_acked;
@@ -413,11 +413,11 @@ void table_meta_client_t::set_config(
                 });
 
         /* OK, now send the change and wait for a reply, or for something to go wrong */
-        promise_t<std::pair<boost::optional<multi_table_manager_timestamp_t>, bool> > promise;
-        mailbox_t<void(boost::optional<multi_table_manager_timestamp_t>, bool)>
+        promise_t<std::pair<optional<multi_table_manager_timestamp_t>, bool> > promise;
+        mailbox_t<optional<multi_table_manager_timestamp_t>, bool>
             ack_mailbox(mailbox_manager,
             [&](signal_t *,
-                    const boost::optional<multi_table_manager_timestamp_t> &change_timestamp,
+                    const optional<multi_table_manager_timestamp_t> &change_timestamp,
                     bool is_change_successful) {
                 promise.pulse(std::make_pair(change_timestamp, is_change_successful));
             });
@@ -433,7 +433,7 @@ void table_meta_client_t::set_config(
         }
 
         /* Sometimes the server will reply by indicating that something went wrong */
-        std::pair<boost::optional<multi_table_manager_timestamp_t>, bool> response =
+        std::pair<optional<multi_table_manager_timestamp_t>, bool> response =
             promise.wait();
         if (response.second == false) {
             throw config_change_exc_t();
@@ -475,7 +475,7 @@ void table_meta_client_t::emergency_repair(
     request.want_raft_state = true;
     std::set<namespace_id_t> failures;
     get_status(
-        boost::make_optional(table_id),
+        make_optional(table_id),
         request,
         server_selector_t::BEST_SERVER_ONLY,
         &interruptor,
@@ -490,8 +490,8 @@ void table_meta_client_t::emergency_repair(
 
     std::set<server_id_t> dead_servers;
     for (const auto &pair : old_state.member_ids) {
-        if (!static_cast<bool>(server_config_client->
-                get_server_to_peer_map()->get_key(pair.first))) {
+        if (!server_config_client->
+                get_server_to_peer_map()->get_key(pair.first).has_value()) {
             dead_servers.insert(pair.first);
         }
     }
@@ -591,7 +591,7 @@ void table_meta_client_t::create_or_emergency_repair(
     size_t num_acked = 0;
     pmap(bcards.begin(), bcards.end(),
     [&](const std::pair<server_id_t, multi_table_manager_bcard_t> &pair) {
-        boost::optional<raft_start_election_immediately_t> start_immediately(
+        optional<raft_start_election_immediately_t> start_immediately(
             pair.first == initial_leader
                 ? raft_start_election_immediately_t::YES
                 : raft_start_election_immediately_t::NO);
@@ -600,17 +600,17 @@ void table_meta_client_t::create_or_emergency_repair(
             disconnect_watcher_t dw(mailbox_manager,
                 pair.second.action_mailbox.get_peer());
             cond_t got_ack;
-            mailbox_t<void()> ack_mailbox(mailbox_manager,
+            mailbox_t<> ack_mailbox(mailbox_manager,
                 [&](signal_t *) { got_ack.pulse(); });
             send(mailbox_manager, pair.second.action_mailbox,
-                table_id,
-                timestamp,
-                multi_table_manager_bcard_t::status_t::ACTIVE,
-                boost::optional<table_basic_config_t>(),
-                boost::optional<raft_member_id_t>(raft_state.member_ids.at(pair.first)),
-                boost::optional<raft_persistent_state_t<table_raft_state_t> >(raft_ps),
-                start_immediately,
-                ack_mailbox.get_address());
+                 {table_id,
+                  timestamp,
+                  multi_table_manager_bcard_t::status_t::ACTIVE,
+                  optional<table_basic_config_t>(),
+                  optional<raft_member_id_t>(raft_state.member_ids.at(pair.first)),
+                  optional<raft_persistent_state_t<table_raft_state_t> >(raft_ps),
+                  start_immediately,
+                  ack_mailbox.get_address()});
             wait_any_t interruptor_combined(&dw, interruptor);
             wait_interruptible(&got_ack, &interruptor_combined);
 
@@ -664,7 +664,7 @@ public:
 };
 
 void table_meta_client_t::get_status(
-        const boost::optional<namespace_id_t> &table,
+        const optional<namespace_id_t> &table,
         const table_status_request_t &request,
         server_selector_t servers,
         signal_t *interruptor,
@@ -741,15 +741,15 @@ void table_meta_client_t::get_status(
         `throttled_pmap` instead. */
         pmap(targets.begin(), targets.end(),
         [&](const std::pair<peer_id_t, std::set<namespace_id_t> > &target) {
-            boost::optional<multi_table_manager_bcard_t> bcard =
+            optional<multi_table_manager_bcard_t> bcard =
                 multi_table_manager_directory->get_key(target.first);
-            if (!static_cast<bool>(bcard)) {
+            if (!bcard.has_value()) {
                 return;
             }
             disconnect_watcher_t dw(mailbox_manager,
                 bcard->get_status_mailbox.get_peer());
             cond_t got_ack;
-            mailbox_t<void(std::map<namespace_id_t, table_status_response_t>)>
+            mailbox_t<std::map<namespace_id_t, table_status_response_t>>
             ack_mailbox(mailbox_manager,
                 [&](signal_t *, const std::map<
                         namespace_id_t, table_status_response_t> &resp) {
@@ -760,7 +760,7 @@ void table_meta_client_t::get_status(
                     got_ack.pulse();
                 });
             send(mailbox_manager, bcard->get_status_mailbox,
-                target.second, request, ack_mailbox.get_address());
+                 {target.second, request, ack_mailbox.get_address()});
             wait_any_t waiter(&dw, interruptor, &got_ack);
             waiter.wait_lazily_unordered();
         });

@@ -1,7 +1,4 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/timing.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable.hpp"
@@ -11,8 +8,6 @@
 #include "unittest/gtest.hpp"
 
 namespace unittest {
-
-bool equals(int a, int b) { return a == b; }
 
 TPTEST(CrossThreadWatchable, CrossThreadWatchableTest) {
     on_thread_t thread_switcher((threadnum_t(0)));
@@ -33,7 +28,8 @@ TPTEST(CrossThreadWatchable, CrossThreadWatchableTest) {
                 signal_timer_t timer;
                 timer.start(5000);
                 ctw.get_watchable()->run_until_satisfied(
-                        boost::bind(&equals, expected_value, _1), &timer);
+                        [expected_value](int b) -> bool { return expected_value == b; },
+                        &timer);
             }
         }
 
@@ -51,7 +47,8 @@ TPTEST(CrossThreadWatchable, CrossThreadWatchableTest) {
                 signal_timer_t timer;
                 timer.start(5000);
                 ctw.get_watchable()->run_until_satisfied(
-                        boost::bind(&equals, expected_value, _1), &timer);
+                        [expected_value](int b) -> bool { return expected_value == b; },
+                        &timer);
             }
         }
     } catch (const interrupted_exc_t &) {

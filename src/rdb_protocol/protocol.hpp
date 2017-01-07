@@ -12,11 +12,11 @@
 
 #include "errors.hpp"
 #include <boost/variant.hpp>
-#include <boost/optional.hpp>
 
 #include "btree/secondary_operations.hpp"
 #include "clustering/administration/auth/user_context.hpp"
 #include "concurrency/cond_var.hpp"
+#include "containers/optional.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/changefeed.hpp"
@@ -117,12 +117,12 @@ struct changefeed_stamp_response_t {
     // different timestamps for each `server_t` because they're on different
     // servers and don't synchronize with each other.)  If this is empty it
     // means the feed was aborted.
-    boost::optional<std::map<uuid_u, shard_stamp_info_t> > stamp_infos;
+    optional<std::map<uuid_u, shard_stamp_info_t> > stamp_infos;
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(changefeed_stamp_response_t);
 
 struct rget_read_response_t {
-    boost::optional<changefeed_stamp_response_t> stamp_response;
+    optional<changefeed_stamp_response_t> stamp_response;
     ql::result_t result;
     reql_version_t reql_version;
 
@@ -192,7 +192,7 @@ struct changefeed_point_stamp_response_t {
         ql::datum_t initial_val;
     };
     // If this is empty it means the feed was aborted.
-    boost::optional<valid_response_t> resp;
+    optional<valid_response_t> resp;
 };
 RDB_DECLARE_SERIALIZABLE(changefeed_point_stamp_response_t::valid_response_t);
 RDB_DECLARE_SERIALIZABLE(changefeed_point_stamp_response_t);
@@ -264,7 +264,7 @@ struct sindex_rangespec_t {
                        // This is the region in the sindex keyspace.  It's
                        // sometimes smaller than the datum range below when
                        // dealing with truncated keys.
-                       boost::optional<region_t> _region,
+                       optional<region_t> _region,
                        ql::datumspec_t _datumspec,
                        require_sindexes_t _require_sindex_val = require_sindexes_t::NO)
         : id(_id),
@@ -274,7 +274,7 @@ struct sindex_rangespec_t {
     std::string id; // What sindex we're using.
     // What keyspace we're currently operating on.  If empty, assume the
     // original range and create the readgen on the shards.
-    boost::optional<region_t> region;
+    optional<region_t> region;
     // For dealing with truncation and `get_all`.
     ql::datumspec_t datumspec;
     // For forcing sindex values to be returned with sorting::UNORDERED, used in eq_join.
@@ -296,16 +296,16 @@ class rget_read_t {
 public:
     rget_read_t() : batchspec(ql::batchspec_t::empty()) { }
 
-    rget_read_t(boost::optional<changefeed_stamp_t> &&_stamp,
+    rget_read_t(optional<changefeed_stamp_t> &&_stamp,
                 region_t _region,
-                boost::optional<std::map<region_t, store_key_t> > _hints,
-                boost::optional<std::map<store_key_t, uint64_t> > _primary_keys,
+                optional<std::map<region_t, store_key_t> > _hints,
+                optional<std::map<store_key_t, uint64_t> > _primary_keys,
                 serializable_env_t s_env,
                 std::string _table_name,
                 ql::batchspec_t _batchspec,
                 std::vector<ql::transform_variant_t> _transforms,
-                boost::optional<ql::terminal_variant_t> &&_terminal,
-                boost::optional<sindex_rangespec_t> &&_sindex,
+                optional<ql::terminal_variant_t> &&_terminal,
+                optional<sindex_rangespec_t> &&_sindex,
                 sorting_t _sorting)
     : stamp(std::move(_stamp)),
       region(std::move(_region)),
@@ -319,15 +319,15 @@ public:
       sindex(std::move(_sindex)),
       sorting(std::move(_sorting)) { }
 
-    boost::optional<changefeed_stamp_t> stamp;
+    optional<changefeed_stamp_t> stamp;
 
     region_t region; // We need this even for sindex reads due to sharding.
-    boost::optional<region_t> current_shard;
-    boost::optional<std::map<region_t, store_key_t> > hints;
+    optional<region_t> current_shard;
+    optional<std::map<region_t, store_key_t> > hints;
 
     // The `uint64_t`s here are counts.  This map is used to make `get_all` more
     // efficient, and it's legal to pass duplicate keys to `get_all`.
-    boost::optional<std::map<store_key_t, uint64_t> > primary_keys;
+    optional<std::map<store_key_t, uint64_t> > primary_keys;
 
     serializable_env_t serializable_env;
     std::string table_name;
@@ -335,12 +335,12 @@ public:
 
     // We use these two for lazy maps, reductions, etc.
     std::vector<ql::transform_variant_t> transforms;
-    boost::optional<ql::terminal_variant_t> terminal;
+    optional<ql::terminal_variant_t> terminal;
 
     // This is non-empty if we're doing an sindex read.
     // TODO: `read_t` should maybe be multiple types.  Determining the type
     // of read by branching on whether an optional is full sucks.
-    boost::optional<sindex_rangespec_t> sindex;
+    optional<sindex_rangespec_t> sindex;
 
     sorting_t sorting; // Optional sorting info (UNORDERED means no sorting).
 };
@@ -351,13 +351,13 @@ public:
     intersecting_geo_read_t() : batchspec(ql::batchspec_t::empty()) { }
 
     intersecting_geo_read_t(
-        boost::optional<changefeed_stamp_t> &&_stamp,
+        optional<changefeed_stamp_t> &&_stamp,
         region_t _region,
         serializable_env_t s_env,
         std::string _table_name,
         ql::batchspec_t _batchspec,
         std::vector<ql::transform_variant_t> _transforms,
-        boost::optional<ql::terminal_variant_t> &&_terminal,
+        optional<ql::terminal_variant_t> &&_terminal,
         sindex_rangespec_t &&_sindex,
         ql::datum_t _query_geometry)
         : stamp(std::move(_stamp)),
@@ -370,7 +370,7 @@ public:
           sindex(std::move(_sindex)),
           query_geometry(std::move(_query_geometry)) { }
 
-    boost::optional<changefeed_stamp_t> stamp;
+    optional<changefeed_stamp_t> stamp;
 
     region_t region; // Primary key range. We need this because of sharding.
     serializable_env_t serializable_env;
@@ -379,7 +379,7 @@ public:
 
     // We use these two for lazy maps, reductions, etc.
     std::vector<ql::transform_variant_t> transforms;
-    boost::optional<ql::terminal_variant_t> terminal;
+    optional<ql::terminal_variant_t> terminal;
 
     sindex_rangespec_t sindex;
 
@@ -469,7 +469,7 @@ struct changefeed_limit_subscribe_t {
     std::string table;
     serializable_env_t serializable_env;
     region_t region;
-    boost::optional<region_t> current_shard;
+    optional<region_t> current_shard;
 };
 RDB_DECLARE_SERIALIZABLE(changefeed_limit_subscribe_t);
 
@@ -576,7 +576,7 @@ struct batched_replace_t {
             std::vector<store_key_t> &&_keys,
             const std::string &_pkey,
             const counted_t<const ql::func_t> &func,
-            const boost::optional<counted_t<const ql::func_t> > &wh,
+            const optional<counted_t<const ql::func_t> > &wh,
             serializable_env_t s_env,
             return_changes_t _return_changes)
         : keys(std::move(_keys)),
@@ -586,15 +586,15 @@ struct batched_replace_t {
           return_changes(_return_changes) {
         r_sanity_check(keys.size() != 0);
 
-        if (wh) {
-            write_hook = ql::wire_func_t(*wh);
+        if (wh.has_value()) {
+            write_hook.set(ql::wire_func_t(*wh));
         }
 
     }
     std::vector<store_key_t> keys;
     std::string pkey;
     ql::wire_func_t f;
-    boost::optional<ql::wire_func_t> write_hook;
+    optional<ql::wire_func_t> write_hook;
     serializable_env_t serializable_env;
     return_changes_t return_changes;
 };
@@ -605,18 +605,18 @@ struct batched_insert_t {
     batched_insert_t(
         std::vector<ql::datum_t> &&_inserts,
         const std::string &_pkey,
-        const boost::optional<counted_t<const ql::func_t> > &_write_hook,
+        const optional<counted_t<const ql::func_t> > &_write_hook,
         conflict_behavior_t _conflict_behavior,
-        const boost::optional<counted_t<const ql::func_t> > &_conflict_func,
+        const optional<counted_t<const ql::func_t> > &_conflict_func,
         const ql::configured_limits_t &_limits,
         serializable_env_t s_env,
         return_changes_t _return_changes);
 
     std::vector<ql::datum_t> inserts;
     std::string pkey;
-    boost::optional<ql::wire_func_t> write_hook;
+    optional<ql::wire_func_t> write_hook;
     conflict_behavior_t conflict_behavior;
-    boost::optional<ql::wire_func_t> conflict_func;
+    optional<ql::wire_func_t> conflict_func;
     ql::configured_limits_t limits;
     serializable_env_t serializable_env;
     return_changes_t return_changes;

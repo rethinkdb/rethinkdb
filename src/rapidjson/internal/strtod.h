@@ -21,11 +21,11 @@
 #ifndef RAPIDJSON_STRTOD_
 #define RAPIDJSON_STRTOD_
 
-#include "../rapidjson.h"
-#include "ieee754.h"
-#include "biginteger.h"
-#include "diyfp.h"
-#include "pow10.h"
+#include "rapidjson/rapidjson.h"
+#include "rapidjson/internal/ieee754.h"
+#include "rapidjson/internal/biginteger.h"
+#include "rapidjson/internal/diyfp.h"
+#include "rapidjson/internal/pow10.h"
 
 RAPIDJSON_NAMESPACE_BEGIN
 namespace internal {

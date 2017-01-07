@@ -20,7 +20,7 @@ local_issue_server_t::local_issue_server_t(
     { }
 
 void local_issue_server_t::on_get(
-        signal_t *, const mailbox_t<void(local_issues_t)>::address_t &reply) {
+        signal_t *, const mailbox_t<local_issues_t>::address_t &reply) {
     local_issues_t issues;
     issues.log_write_issues = log_write_issue_tracker->get_issues();
     issues.memory_issues = memory_issue_tracker->get_issues();
@@ -47,7 +47,7 @@ std::vector<scoped_ptr_t<issue_t> > local_issue_client_t::get_issues(
     throttled_pmap(bcards.size(), [&](size_t i) {
         try {
             cond_t got_reply;
-            mailbox_t<void(local_issues_t)> reply_mailbox(
+            mailbox_t<local_issues_t> reply_mailbox(
                 mailbox_manager,
                 [&](signal_t *, const local_issues_t &issues) {
                     for (const auto &issue : issues.log_write_issues) {

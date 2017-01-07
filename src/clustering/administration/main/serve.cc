@@ -32,6 +32,7 @@
 #include "clustering/table_manager/multi_table_manager.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "containers/lifetime.hpp"
+#include "containers/optional.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "rdb_protocol/query_server.hpp"
 #include "rpc/connectivity/cluster.hpp"
@@ -451,8 +452,8 @@ bool do_serve(io_backender_t *io_backender,
                 static_cast<uint16_t>(connectivity_cluster_run->get_port()),
                 static_cast<uint16_t>(serve_info.ports.reql_port),
                 serve_info.ports.http_admin_is_disabled
-                    ? boost::optional<uint16_t>()
-                    : boost::optional<uint16_t>(serve_info.ports.http_port),
+                    ? optional<uint16_t>()
+                    : optional<uint16_t>(serve_info.ports.http_port),
                 connectivity_cluster_run->get_canonical_addresses(),
                 serve_info.argv };
             cluster_directory_metadata_t initial_directory(
@@ -471,8 +472,8 @@ bool do_serve(io_backender_t *io_backender,
                     ? server_config_server->get_config()->get()
                     : server_config_versioned_t(),
                 i_am_a_server
-                    ? boost::make_optional(server_config_server->get_business_card())
-                    : boost::optional<server_config_business_card_t>(),
+                    ? make_optional(server_config_server->get_business_card())
+                    : optional<server_config_business_card_t>(),
                 i_am_a_server ? SERVER_PEER : PROXY_PEER);
 
             /* `our_root_directory_variable` is the value we'll send out over the network

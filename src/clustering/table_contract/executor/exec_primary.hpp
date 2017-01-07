@@ -147,7 +147,7 @@ private:
         counted_t<contract_info_t> contract,
         primary_dispatcher_t *dispatcher);
 
-    boost::optional<branch_id_t> our_branch_id;
+    optional<branch_id_t> our_branch_id;
 
     /* `latest_contract_*` stores the latest contract we've received, along with its ack
     callback. The `home_thread` version should only be accessed on `this->home_thread()`,
@@ -155,7 +155,7 @@ private:
     counted_t<contract_info_t> latest_contract_home_thread, latest_contract_store_thread;
 
     /* `latest_ack` stores the latest contract ack we've sent. */
-    boost::optional<contract_ack_t> latest_ack;
+    optional<contract_ack_t> latest_ack;
 
     /* `update_contract_mutex` is used to order calls to
     `update_contract_on_store_thread()`, so that we don't overwrite a newer contract with

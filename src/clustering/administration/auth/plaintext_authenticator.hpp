@@ -4,9 +4,6 @@
 
 #include <string>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "clustering/administration/auth/base_authenticator.hpp"
 #include "clustering/administration/auth/user.hpp"
 

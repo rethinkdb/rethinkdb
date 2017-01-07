@@ -2,9 +2,6 @@
 #include <functional>
 #include <stdexcept>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "client_protocol/server.hpp"
 #include "rapidjson/document.h"
 #include "rdb_protocol/rdb_backtrace.hpp"
@@ -261,7 +258,7 @@ public:
                    ql::response_t *res_out,
                    signal_t *interruptor) {
         if (!handler_thread) {
-            handler_thread = get_thread_id();
+            handler_thread.set(get_thread_id());
         }
         rassert(handler_thread.get() == get_thread_id());
 
@@ -293,7 +290,7 @@ public:
                             ql::backtrace_registry_t::EMPTY_BACKTRACE);
     }
 private:
-    boost::optional<threadnum_t> handler_thread;
+    optional<threadnum_t> handler_thread;
     std::map<int64_t, cond_t *> interruptors;
 };
 
@@ -363,22 +360,20 @@ std::string parse_json_error_message(const char *json,
 
     rapidjson::Value::ConstMemberIterator it = response.MemberBegin();
     guarantee(it != response.MemberEnd());
-    // The `make_optional` call works around an incorrect warning in old versions of GCC
-    boost::optional<Response::ResponseType> type =
-        boost::make_optional(false, Response::COMPILE_ERROR);
-    boost::optional<std::string> msg = boost::make_optional(false, std::string());
+    optional<Response::ResponseType> type;
+    optional<std::string> msg;
 
     while (!type || !msg) {
         std::string item_name(it->name.GetString(), it->name.GetStringLength());
 
         if (item_name == "t") {
             guarantee(it->value.IsNumber());
-            type = static_cast<Response::ResponseType>(it->value.GetInt());
+            type.set(static_cast<Response::ResponseType>(it->value.GetInt()));
         } else if (item_name == "r") {
             rapidjson::Value::ConstValueIterator rit = it->value.Begin();
             guarantee(rit != it->value.End());
             guarantee(rit->IsString());
-            msg = std::string(rit->GetString(), rit->GetStringLength());
+            msg.set(std::string(rit->GetString(), rit->GetStringLength()));
             guarantee(++rit == it->value.End());
         }
         ++it;

@@ -54,7 +54,7 @@ bool convert_server_config_from_datum(
         return false;
     }
     if (cache_size_datum == ql::datum_t("auto")) {
-        server_config_out->cache_size_bytes = boost::optional<uint64_t>();
+        server_config_out->cache_size_bytes = optional<uint64_t>();
     } else if (cache_size_datum.get_type() == ql::datum_t::R_NUM) {
         double cache_size_mb = cache_size_datum.as_num();
         if (cache_size_mb * MEGABYTE >
@@ -71,7 +71,7 @@ bool convert_server_config_from_datum(
             return false;
         }
         server_config_out->cache_size_bytes =
-            boost::optional<uint64_t>(cache_size_mb * MEGABYTE);
+            optional<uint64_t>(cache_size_mb * MEGABYTE);
     } else {
         *error_out = admin_err_t{
             "In `cache_size_mb`: Expected a number or 'auto', got "
@@ -120,7 +120,7 @@ bool server_config_artificial_table_backend_t::format_row(
     builder.overwrite("tags", convert_set_to_datum<name_string_t>(
             &convert_name_to_datum, metadata.server_config.config.tags));
 
-    boost::optional<uint64_t> cache_size_bytes =
+    optional<uint64_t> cache_size_bytes =
         metadata.server_config.config.cache_size_bytes;
     if (static_cast<bool>(cache_size_bytes)) {
         builder.overwrite("cache_size_mb",

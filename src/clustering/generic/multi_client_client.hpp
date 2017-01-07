@@ -37,9 +37,9 @@ public:
     void spawn_request(const request_type &request);
 
 private:
-    static boost::optional<boost::optional<registrar_business_card_t<client_business_card_t> > >
+    static optional<optional<registrar_business_card_t<client_business_card_t> > >
     extract_registrar_business_card(
-            const boost::optional<boost::optional<mc_business_card_t> > &bcard);
+            const optional<optional<mc_business_card_t> > &bcard);
 
     mailbox_manager_t *const mailbox_manager;
 

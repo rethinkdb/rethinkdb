@@ -633,7 +633,7 @@ void query_server_t::handle(const http_req_t &req,
         return;
     }
 
-    boost::optional<std::string> optional_conn_id = req.find_query_param("conn_id");
+    optional<std::string> optional_conn_id = req.find_query_param("conn_id");
     if (!optional_conn_id) {
         *result = http_res_t(http_status_code_t::BAD_REQUEST, "application/text",
                              "Required parameter \"conn_id\" missing\n");

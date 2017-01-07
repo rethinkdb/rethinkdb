@@ -92,7 +92,7 @@ raft_member_t<state_t>::raft_member_t(
         election_timeout_min_ms, election_timeout_min_ms,
         nullptr, watchdog_timer_t::state_t::TRIGGERED)),
     connected_members_subs(
-        new watchable_map_t<raft_member_id_t, boost::optional<raft_term_t> >::all_subs_t(
+        new watchable_map_t<raft_member_id_t, optional<raft_term_t> >::all_subs_t(
             network->get_connected_members(),
             std::bind(&raft_member_t::on_connected_members_change, this, ph::_1, ph::_2)
             ))
@@ -200,7 +200,7 @@ raft_member_t<state_t>::propose_change(
 
     raft_log_entry_t<state_t> new_entry;
     new_entry.type = raft_log_entry_type_t::regular;
-    new_entry.change = boost::optional<typename state_t::change_t>(change);
+    new_entry.change = optional<typename state_t::change_t>(change);
     new_entry.term = ps().current_term;
 
     leader_append_log_entry(new_entry, &change_lock->mutex_acq);
@@ -233,11 +233,11 @@ raft_member_t<state_t>::propose_config_change(
     configuration]" */
     raft_complex_config_t new_complex_config;
     new_complex_config.config = latest_state.get_ref().config.config;
-    new_complex_config.new_config = boost::optional<raft_config_t>(new_config);
+    new_complex_config.new_config = optional<raft_config_t>(new_config);
 
     raft_log_entry_t<state_t> new_entry;
     new_entry.type = raft_log_entry_type_t::config;
-    new_entry.config = boost::optional<raft_complex_config_t>(new_complex_config);
+    new_entry.config = optional<raft_complex_config_t>(new_complex_config);
     new_entry.term = ps().current_term;
 
     leader_append_log_entry(new_entry, &change_lock->mutex_acq);
@@ -886,7 +886,7 @@ void raft_member_t<state_t>::check_invariants(
 template<class state_t>
 void raft_member_t<state_t>::on_connected_members_change(
         const raft_member_id_t &member_id,
-        const boost::optional<raft_term_t> *value) {
+        const optional<raft_term_t> *value) {
     assert_thread();
     ASSERT_NO_CORO_WAITING;
     update_readiness_for_change();
@@ -920,7 +920,7 @@ void raft_member_t<state_t>::on_connected_members_change(
                 `virtual_heartbeat_sender` unless we are actually getting virtual
                 heartbeats. */
                 if (network->get_connected_members()->get_key(member_id)
-                        == boost::make_optional(boost::make_optional(term))) {
+                        == make_optional(make_optional(term))) {
                     /* Sometimes we are called twice within the same term. */
                     if (member_id != virtual_heartbeat_sender) {
                         guarantee(virtual_heartbeat_sender.is_nil());
@@ -1247,7 +1247,7 @@ void raft_member_t<state_t>::update_readiness_for_change() {
         std::set<raft_member_id_t> peers;
         network->get_connected_members()->read_all(
             [&](const raft_member_id_t &member_id,
-                    const boost::optional<raft_term_t> *) {
+                    const optional<raft_term_t> *) {
                 peers.insert(member_id);
             });
         if (latest_state.get_ref().config.is_quorum(peers)) {
@@ -1405,7 +1405,7 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
         repeated AppendEntries RPCs. If the network connection is lost, then the
         `connectivity_cluster_t` will detect it using its own heartbeats and then the
         `raft_network_interface_t` will interrupt the virtual heartbeat stream. */
-        network->send_virtual_heartbeats(boost::make_optional(ps().current_term));
+        network->send_virtual_heartbeats(make_optional(ps().current_term));
 
         /* Prevent the watchdog timers from being triggered until we are no longer
         leader. */
@@ -1482,7 +1482,7 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
     }
 
     /* Stop sending heartbeats now that we're no longer the leader. */
-    network->send_virtual_heartbeats(boost::none);
+    network->send_virtual_heartbeats(r_nullopt);
 
     mode = mode_t::follower;
 
@@ -1542,7 +1542,7 @@ bool raft_member_t<state_t>::candidate_run_election(
                     /* Don't bother trying to send an RPC until the peer is present in
                     `get_connected_members()`. */
                     network->get_connected_members()->run_key_until_satisfied(peer,
-                        [](const boost::optional<raft_term_t> *x) {
+                        [](const optional<raft_term_t> *x) {
                             return x != nullptr;
                         },
                         request_vote_keepalive.get_drain_signal());
@@ -1752,7 +1752,7 @@ void raft_member_t<state_t>::leader_send_updates(
             DEBUG_ONLY_CODE(check_invariants(mutex_acq.get()));
             mutex_acq.reset();
             network->get_connected_members()->run_key_until_satisfied(peer,
-                [](const boost::optional<raft_term_t> *x) {
+                [](const optional<raft_term_t> *x) {
                     return x != nullptr;
                 },
                 update_keepalive.get_drain_signal());
@@ -1968,7 +1968,7 @@ void raft_member_t<state_t>::leader_continue_reconfiguration(
 
         raft_log_entry_t<state_t> new_entry;
         new_entry.type = raft_log_entry_type_t::config;
-        new_entry.config = boost::optional<raft_complex_config_t>(new_config);
+        new_entry.config = optional<raft_complex_config_t>(new_config);
         new_entry.term = ps().current_term;
 
         leader_append_log_entry(new_entry, mutex_acq);

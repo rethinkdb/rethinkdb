@@ -1,9 +1,6 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "clustering/administration/namespace_interface_repository.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/timing.hpp"
 #include "clustering/query_routing/table_query_client.hpp"
 #include "concurrency/cross_thread_signal.hpp"
@@ -205,7 +202,7 @@ namespace_interface_access_t namespace_repo_t::get_namespace_interface(
             cache->entries.insert(std::make_pair(id,
                 scoped_ptr_t<namespace_cache_entry_t>(cache_entry)));
 
-            coro_t::spawn_sometime(boost::bind(
+            coro_t::spawn_sometime(std::bind(
                 &namespace_repo_t::create_and_destroy_namespace_interface, this,
                 cache, ns_id,
                 auto_drainer_t::lock_t(&cache->drainer)));

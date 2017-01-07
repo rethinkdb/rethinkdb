@@ -27,18 +27,18 @@ public:
     /* `state` and `branch` are the same as the corresponding fields of the original
     `contract_ack_t` */
     contract_ack_t::state_t state;
-    boost::optional<branch_id_t> branch;
+    optional<branch_id_t> branch;
 
     /* `version` is the value of the `version` field of the original `contract_ack_t` for
     the specific sub-region this fragment applies to. */
-    boost::optional<version_t> version;
+    optional<version_t> version;
 
     /* `common_ancestor` is the timestamp of the last common ancestor of the original
     `contract_ack_t` and the `current_branch` in the Raft state for the specific
     sub-region this fragment applies to. If `version` is blank, this will always be
     blank; if `version` is present, `common_ancestor` might or might not be blank
     depending on whether we expect to use the value. */
-    boost::optional<state_timestamp_t> common_ancestor;
+    optional<state_timestamp_t> common_ancestor;
 };
 
 region_map_t<contract_ack_frag_t> break_ack_into_fragments(
@@ -58,7 +58,7 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
         /* Fragment over branches and then over versions within each branch. */
         return ack.version->map_multi(region,
         [&](const region_t &ack_version_reg, const version_t &vers) {
-            base_frag.version = boost::make_optional(vers);
+            base_frag.version = make_optional(vers);
             return current_branches.map_multi(ack_version_reg,
             [&](const region_t &branch_reg, const branch_id_t &branch) {
                 region_map_t<version_t> points_on_canonical_branch;
@@ -82,7 +82,7 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
                 return points_on_canonical_branch.map(branch_reg,
                 [&](const version_t &common_vers) {
                     base_frag.common_ancestor =
-                        boost::make_optional(common_vers.timestamp);
+                        make_optional(common_vers.timestamp);
                     return base_frag;
                 });
             });
@@ -90,7 +90,7 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
     } else {
         return ack.version->map(region,
         [&](const version_t &vers) {
-            base_frag.version = boost::make_optional(vers);
+            base_frag.version = make_optional(vers);
             return base_frag;
         });
     }
@@ -106,8 +106,8 @@ bool invisible_to_majority_of_set(
             connections_map) {
     size_t count = 0;
     for (const server_id_t &s : judges) {
-        if (static_cast<bool>(connections_map->get_key(std::make_pair(s, target))) ||
-                !static_cast<bool>(connections_map->get_key(std::make_pair(s, s)))) {
+        if (connections_map->get_key(std::make_pair(s, target)).has_value() ||
+                !connections_map->get_key(std::make_pair(s, s)).has_value()) {
             ++count;
         }
     }
@@ -238,7 +238,7 @@ contract_t calculate_contract(
         /* Step 3: If anything changed, stage the new voter set into `temp_voters` */
         rassert(voters_changed == (old_c.voters != new_voters));
         if (voters_changed) {
-            new_c.temp_voters = boost::make_optional(new_voters);
+            new_c.temp_voters.set(new_voters);
         }
     }
 
@@ -263,7 +263,7 @@ contract_t calculate_contract(
             guarantee(new_c.temp_voters == old_c.temp_voters);
             /* OK, it's safe to commit. */
             new_c.voters = *new_c.temp_voters;
-            new_c.temp_voters = boost::none;
+            new_c.temp_voters.reset();
         }
     }
 
@@ -374,7 +374,7 @@ contract_t calculate_contract(
             /* The user's designated primary is eligible, so use it. */
             contract_t::primary_t p;
             p.server = config.primary_replica;
-            new_c.primary = boost::make_optional(p);
+            new_c.primary.set(p);
         } else if (!eligible_candidates.empty()) {
             /* The user's designated primary is ineligible. We have to decide if we'll
             wait for the user's designated primary to become eligible, or use one of the
@@ -391,7 +391,7 @@ contract_t calculate_contract(
                 contract_t::primary_t p;
                 /* `eligible_candidates` is ordered by how up-to-date they are */
                 p.server = eligible_candidates.back();
-                new_c.primary = boost::make_optional(p);
+                new_c.primary.set(p);
             }
         }
 
@@ -425,7 +425,7 @@ contract_t calculate_contract(
         if (all_present) {
             contract_t::primary_t p;
             p.server = best_primary;
-            new_c.primary = boost::make_optional(p);
+            new_c.primary.set(p);
         }
     }
 
@@ -457,14 +457,14 @@ contract_t calculate_contract(
         }
 
         if (should_kill_primary) {
-            new_c.primary = boost::none;
+            new_c.primary.reset();
         } else if (old_c.primary->server != config.primary_replica) {
             /* The old primary is still a valid replica, but it isn't equal to
             `config.primary_replica`. So we have to do a hand-over to ensure that after
             we kill the primary, `config.primary_replica` will be a valid candidate. */
 
             if (old_c.primary->hand_over !=
-                    boost::make_optional(config.primary_replica)) {
+                    make_optional(config.primary_replica)) {
                 /* We haven't started the hand-over yet, or we're in the middle of a
                 hand-over to a different primary. */
                 if (acks.count(config.primary_replica) == 1 &&
@@ -472,8 +472,7 @@ contract_t calculate_contract(
                             contract_ack_t::state_t::secondary_streaming &&
                         visible_voters.count(config.primary_replica) == 1) {
                     /* The new primary is ready, so begin the hand-over. */
-                    new_c.primary->hand_over =
-                        boost::make_optional(config.primary_replica);
+                    new_c.primary->hand_over.set(config.primary_replica);
                 } else {
                     /* We're not ready to switch to the new primary yet. */
                     if (static_cast<bool>(old_c.primary->hand_over)) {
@@ -481,7 +480,7 @@ contract_t calculate_contract(
                         and then the user changed `config.primary_replica`. But the new
                         primary isn't ready yet, so cancel the old hand-over. (This is
                         very uncommon.) */
-                        new_c.primary->hand_over = boost::none;
+                        new_c.primary->hand_over.reset();
                     }
                 }
             } else {
@@ -495,11 +494,11 @@ contract_t calculate_contract(
                     from the old primary.
                     See `primary_execution_t::is_contract_ackable` for a detailed
                     explanation of what the `primary_ready` state implies. */
-                    new_c.primary = boost::none;
+                    new_c.primary.reset();
                 } else if (visible_voters.count(config.primary_replica) == 0) {
                     /* Something went wrong with the new primary before the hand-over was
                     complete. So abort the hand-over. */
-                    new_c.primary->hand_over = boost::none;
+                    new_c.primary->hand_over.reset();
                 }
             }
         } else {
@@ -507,7 +506,7 @@ contract_t calculate_contract(
                 /* We were in the middle of a hand over, but then the user changed
                 `config.primary_replica` back to what it was before. (This is very
                 uncommon.) */
-                new_c.primary->hand_over = boost::none;
+                new_c.primary->hand_over.reset();
             }
         }
     }
@@ -626,7 +625,7 @@ void calculate_all_contracts(
                     connections_map);
 
                 /* Register a branch if a primary is asking us to */
-                boost::optional<branch_id_t> registered_new_branch;
+                optional<branch_id_t> registered_new_branch;
                 if (static_cast<bool>(old_contract.primary) &&
                         static_cast<bool>(new_contract.primary) &&
                         old_contract.primary->server ==
@@ -664,7 +663,7 @@ void calculate_all_contracts(
                             old_state,
                             ignore_missing_branches,
                             add_branches_out);
-                        registered_new_branch = boost::make_optional(to_register);
+                        registered_new_branch = make_optional(to_register);
                     }
                 }
 

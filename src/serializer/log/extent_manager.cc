@@ -241,7 +241,7 @@ void extent_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
     mb->padding = 0;
 }
 
-void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) {
+void extent_manager_t::start_existing() {
     assert_thread();
     rassert(state == state_reserving_extents);
     current_transaction = nullptr;

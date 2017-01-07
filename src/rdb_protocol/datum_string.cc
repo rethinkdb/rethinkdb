@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <algorithm>
 #include <limits>
 
 #include "containers/archive/archive.hpp"

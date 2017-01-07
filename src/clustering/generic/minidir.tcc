@@ -8,8 +8,7 @@ minidir_read_manager_t<key_t, value_t>::minidir_read_manager_t(
         mailbox_manager_t *mm) :
     mailbox_manager(mm),
     update_mailbox(mailbox_manager,
-        std::bind(&minidir_read_manager_t::on_update, this,
-            ph::_1, ph::_2, ph::_3, ph::_4, ph::_5, ph::_6, ph::_7)),
+        std::bind(&minidir_read_manager_t::on_update, this, ph::_1, ph::_2)),
     connection_subs(mailbox_manager->get_connectivity_cluster()->get_connections(),
         std::bind(&minidir_read_manager_t::on_connection_change, this, ph::_1, ph::_2),
         initial_call_t::NO)
@@ -33,12 +32,14 @@ void minidir_read_manager_t<key_t, value_t>::on_connection_change(
 template<class key_t, class value_t>
 void minidir_read_manager_t<key_t, value_t>::on_update(
         signal_t *interruptor,
-        const peer_id_t &peer_id,
-        const minidir_link_id_t &link_id,
-        fifo_enforcer_write_token_t fifo_token,
-        bool closing_link,
-        const boost::optional<key_t> &key,
-        const boost::optional<value_t> &value) {
+        const typename minidir_bcard_t<key_t, value_t>::update_message_t &msg) {
+    const peer_id_t &peer_id = msg.peer_id;
+    const minidir_link_id_t &link_id = msg.link_id;
+    fifo_enforcer_write_token_t fifo_token = msg.fifo_token;
+    bool closing_link = msg.closing_link;
+    const optional<key_t> &key = msg.key;
+    const optional<value_t> &value = msg.value;
+
     scoped_ptr_t<peer_data_t> *peer_data_ptr = &peer_map[peer_id];
     if (!peer_data_ptr->has()) {
         /* Acquire a lock on the connection session over which this message arrived. */
@@ -156,9 +157,9 @@ template<class reader_id_t, class key_t, class value_t>
 void minidir_write_manager_t<reader_id_t, key_t, value_t>::on_value_change(
         const key_t &key,
         const value_t *value) {
-    boost::optional<value_t> value_optional;
+    optional<value_t> value_optional;
     if (value != nullptr) {
-        value_optional = *value;
+        value_optional.set(*value);
     }
     for (auto &&peer_pair : peer_map) {
         for (auto &&link_pair : peer_pair.second->link_map) {
@@ -210,7 +211,7 @@ void minidir_write_manager_t<reader_id_t, key_t, value_t>::on_reader_change(
 
         /* Send initial values to the new reader */
         values->read_all([&](const key_t &key, const value_t *value) {
-            this->spawn_update(link_data, key, *value);
+            this->spawn_update(link_data, key, make_optional(*value));
         });
     } else {
         /* Remove the entry in the link map. Unfortunately, we don't know which peer it's
@@ -234,15 +235,15 @@ template<class reader_id_t, class key_t, class value_t>
 void minidir_write_manager_t<reader_id_t, key_t, value_t>::spawn_update(
         typename peer_data_t::link_data_t *link_data,
         const key_t &key,
-        const boost::optional<value_t> &value) {
+        const optional<value_t> &value) {
     minidir_link_id_t link_id = link_data->link_id;
     minidir_bcard_t<key_t, value_t> bcard = link_data->bcard;
     fifo_enforcer_write_token_t write_token = link_data->fifo_source.enter_write();
     auto_drainer_t::lock_t keepalive = drainer.lock();
     coro_t::spawn_sometime([this, keepalive /* important to capture */, bcard, link_id,
             write_token, key, value] {
-        send(mailbox_manager, bcard.update_mailbox, mailbox_manager->get_me(),
-            link_id, write_token, false, boost::make_optional(key), value);
+        send(mailbox_manager, bcard.update_mailbox,
+             {mailbox_manager->get_me(), link_id, write_token, false, make_optional(key), value});
     });
 }
 
@@ -255,9 +256,9 @@ void minidir_write_manager_t<reader_id_t, key_t, value_t>::spawn_closing_link(
     auto_drainer_t::lock_t keepalive = drainer.lock();
     coro_t::spawn_sometime([this, keepalive /* important to capture */, bcard, link_id,
             write_token] {
-        send(mailbox_manager, bcard.update_mailbox, mailbox_manager->get_me(),
-            link_id, write_token, true, boost::optional<key_t>(),
-            boost::optional<value_t>());
+        send(mailbox_manager, bcard.update_mailbox,
+             {mailbox_manager->get_me(), link_id, write_token, true, optional<key_t>(),
+              optional<value_t>()});
     });
 }
 

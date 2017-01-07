@@ -2,9 +2,6 @@
 #ifndef CLUSTERING_TABLE_MANAGER_TABLE_METADATA_HPP_
 #define CLUSTERING_TABLE_MANAGER_TABLE_METADATA_HPP_
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "clustering/administration/persist/file.hpp"
 #include "clustering/generic/minidir.hpp"
 #include "clustering/generic/raft_core.hpp"
@@ -12,6 +9,7 @@
 #include "clustering/table_contract/contract_metadata.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"
 #include "clustering/table_contract/executor/exec.hpp"
+#include "containers/optional.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 /* Every message to the `action_mailbox` has an `multi_table_manager_timestamp_t`
@@ -136,14 +134,14 @@ public:
     table_status_response_t() : all_replicas_ready(false) { }
 
     /* `config` is controlled by `want_config`. */
-    boost::optional<table_config_and_shards_t> config;
+    optional<table_config_and_shards_t> config;
 
     /* `sindexes` is controlled by `want_sindexes`. */
     std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > sindexes;
 
     /* `raft_state` and `raft_state_timestamp` are controlled by `want_raft_state` */
-    boost::optional<table_raft_state_t> raft_state;
-    boost::optional<multi_table_manager_timestamp_t> raft_state_timestamp;
+    optional<table_raft_state_t> raft_state;
+    optional<multi_table_manager_timestamp_t> raft_state_timestamp;
 
     /* `contract_acks` is controlled by `want_contract_acks` */
     std::map<contract_id_t, contract_ack_t> contract_acks;
@@ -179,28 +177,29 @@ public:
     - `MAYBE_ACTIVE` means the sender doesn't know if the receiver is supposed to be
         hosting the table or not. `basic_config` will be present but `member_id` and
         `initial_state` will be empty. */
-    typedef mailbox_t<void(
-        namespace_id_t table_id,
-        multi_table_manager_timestamp_t timestamp,
-        status_t status,
-        boost::optional<table_basic_config_t> basic_config,
-        boost::optional<raft_member_id_t> raft_member_id,
-        boost::optional<raft_persistent_state_t<table_raft_state_t> > initial_raft_state,
-        boost::optional<raft_start_election_immediately_t> start_election_immediately,
-        mailbox_t<void()>::address_t ack_addr
-        )> action_mailbox_t;
+    struct action_message_t {
+        namespace_id_t table_id;
+        multi_table_manager_timestamp_t timestamp;
+        status_t status;
+        optional<table_basic_config_t> basic_config;
+        optional<raft_member_id_t> raft_member_id;
+        optional<raft_persistent_state_t<table_raft_state_t> > initial_raft_state;
+        optional<raft_start_election_immediately_t> start_election_immediately;
+        mailbox_t<>::address_t ack_addr;
+    };
+
+    typedef mailbox_t<action_message_t> action_mailbox_t;
     action_mailbox_t::address_t action_mailbox;
 
     /* `get_status_mailbox` retrieves configurations, current statuses, etc. for one or
     more tables. Many different types of status queries are combined into one mailbox in
     order to allow more code to be re-used. */
-    typedef mailbox_t<void(
-        std::set<namespace_id_t> table_ids,
-        table_status_request_t request,
-        mailbox_t<void(
-            std::map<namespace_id_t, table_status_response_t>
-            )>::address_t reply_addr
-        )> get_status_mailbox_t;
+    struct get_status_message_t {
+        std::set<namespace_id_t> table_ids;
+        table_status_request_t request;
+        mailbox_t<std::map<namespace_id_t, table_status_response_t>>::address_t reply_addr;
+    };
+    typedef mailbox_t<get_status_message_t> get_status_mailbox_t;
     get_status_mailbox_t::address_t get_status_mailbox;
 
     /* The server ID of the server sending this business card. In theory you could figure
@@ -213,6 +212,8 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     int8_t,
     multi_table_manager_bcard_t::status_t::ACTIVE,
     multi_table_manager_bcard_t::status_t::MAYBE_ACTIVE);
+RDB_DECLARE_SERIALIZABLE(multi_table_manager_bcard_t::action_message_t);
+RDB_DECLARE_SERIALIZABLE(multi_table_manager_bcard_t::get_status_message_t);
 RDB_DECLARE_SERIALIZABLE(multi_table_manager_bcard_t);
 
 class table_manager_bcard_t {
@@ -235,13 +236,12 @@ public:
         initial config change message will trigger subsequent action messages to add and
         remove the servers. If the change was committed, it returns the action timestamp
         for the commit; the client can use this to determine which servers have seen the
-        commit. If something goes wrong, it returns an empty `boost::optional`, in which
+        commit. If something goes wrong, it returns an empty `optional`, in which
         case the change may or may not eventually be committed. */
-        typedef mailbox_t<void(
-            table_config_and_shards_change_t config_and_shards_change,
-            mailbox_t<void(boost::optional<multi_table_manager_timestamp_t>, bool
-                )>::address_t reply_addr
-            )> set_config_mailbox_t;
+        typedef mailbox_t<
+            table_config_and_shards_change_t,
+            mailbox_addr_t<optional<multi_table_manager_timestamp_t>, bool>
+            > set_config_mailbox_t;
         set_config_mailbox_t::address_t set_config_mailbox;
 
         /* `contract_executor_t`s for this table on other servers send contract acks to
@@ -249,7 +249,7 @@ public:
         minidir_bcard_t<std::pair<server_id_t, contract_id_t>, contract_ack_t>
             contract_ack_minidir_bcard;
     };
-    boost::optional<leader_bcard_t> leader;
+    optional<leader_bcard_t> leader;
 
     /* This timestamp contains a `raft_log_index_t`. It would be expensive to update the
     directory every time a Raft commit happened. Therefore, this timestamp is only

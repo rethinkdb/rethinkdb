@@ -37,4 +37,11 @@ constexpr inline bool divides(int64_t x, int64_t y) {
 int64_t int64_round_up_to_power_of_two(int64_t x);
 uint64_t uint64_round_up_to_power_of_two(uint64_t x);
 
+/* Forwards to the isfinite macro, or std::isfinite. */
+bool risfinite(double);
+
+/* Translates to and from `0123456789ABCDEF`. */
+bool hex_to_int(char c, int *out);
+char int_to_hex(int i);
+
 #endif  // MATH_HPP_

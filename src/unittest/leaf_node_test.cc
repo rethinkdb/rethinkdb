@@ -494,7 +494,7 @@ TEST(LeafNodeTest, DeletionTimestamp) {
         tracker.sizer(), tracker.node(), max_ts);
     ASSERT_LT(min_del_ts.longtime, max_ts.longtime - 10);
     min_del_ts.longtime += (max_ts.longtime - min_del_ts.longtime) / 2;
-    leaf::erase_deletions(tracker.sizer(), tracker.node(), min_del_ts);
+    leaf::erase_deletions(tracker.sizer(), tracker.node(), make_optional(min_del_ts));
 
     tracker.Verify();
 }

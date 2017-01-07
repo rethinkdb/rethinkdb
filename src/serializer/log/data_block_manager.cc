@@ -438,7 +438,7 @@ void data_block_manager_t::end_reconstruct() {
 }
 
 void data_block_manager_t::start_existing(file_t *file,
-                                          data_block_manager::metablock_mixin_t *last_metablock) {
+                                          const data_block_manager::metablock_mixin_t *last_metablock) {
     guarantee(state == state_unstarted);
     dbfile = file;
     gc_io_account_nice.init(new file_account_t(file, GC_IO_PRIORITY_NICE));
@@ -1313,9 +1313,9 @@ void data_block_manager_t::flush_gc_index_writes(signal_t *) {
 
                     index_write_ops.push_back(
                         index_write_op_t(block_id,
-                            to_standard_block_token(
-                                block_id,
-                                iw.new_block_tokens[i])));
+                            make_optional(to_standard_block_token(
+                                                  block_id,
+                                                  iw.new_block_tokens[i]))));
                 }
 
                 // (If we don't have an i_array entry, the block is referenced

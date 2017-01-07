@@ -4,11 +4,8 @@
 
 #include "rpc/directory/map_write_manager.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "concurrency/wait_any.hpp"
-#include "containers/archive/boost_types.hpp"
+#include "containers/archive/optional.hpp"
 
 template<class key_t, class value_t>
 directory_map_write_manager_t<key_t, value_t>::directory_map_write_manager_t(
@@ -45,7 +42,7 @@ class directory_map_write_manager_t<key_t, value_t>::update_writer_t :
 {
 public:
     update_writer_t(
-            uint64_t _timestamp, const key_t &_key, boost::optional<value_t> &&_value) :
+            uint64_t _timestamp, const key_t &_key, optional<value_t> &&_value) :
         timestamp(_timestamp), key(_key), value(std::move(_value)) { }
 
     void write(write_stream_t *s) {
@@ -70,7 +67,7 @@ public:
 private:
     uint64_t timestamp;
     key_t key;
-    boost::optional<value_t> value;
+    optional<value_t> value;
 };
 
 template<class key_t, class value_t>

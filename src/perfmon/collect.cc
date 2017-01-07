@@ -1,7 +1,4 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-#include "utils.hpp"
-#include <boost/bind.hpp>
-
 #include "perfmon/collect.hpp"
 #include "concurrency/pmap.hpp"
 
@@ -16,7 +13,7 @@ int get_num_threads();
 
 ql::datum_t perfmon_get_stats() {
     void *data = get_global_perfmon_collection().begin_stats();
-    pmap(get_num_threads(), boost::bind(&co_perfmon_visit, _1, data));
+    pmap(get_num_threads(), std::bind(&co_perfmon_visit, ph::_1, data));
     return get_global_perfmon_collection().end_stats(data);
 }
 

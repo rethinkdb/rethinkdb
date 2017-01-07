@@ -1,5 +1,7 @@
 #include "serializer/buf_ptr.hpp"
 
+#include <algorithm>
+
 #include "math.hpp"
 
 buf_ptr_t buf_ptr_t::alloc_uninitialized(block_size_t size) {

@@ -11,6 +11,7 @@
 #include "clustering/administration/persist/migrate/rewrite.hpp"
 #include "config/args.hpp"
 #include "logger.hpp"
+#include "paths.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/merger.hpp"
 

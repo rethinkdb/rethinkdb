@@ -4,11 +4,9 @@
 
 #include <vector>
 
-#include "utils.hpp"
-#include <boost/optional.hpp>
-
 #include "arch/types.hpp"
 #include "concurrency/cond_var.hpp"
+#include "containers/optional.hpp"
 #include "containers/segmented_vector.hpp"
 #include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
@@ -18,16 +16,16 @@ class new_mutex_in_line_t;
 
 struct index_write_op_t {
     block_id_t block_id;
-    // Buf to write.  boost::none if not to be modified.  Initialized to an empty
+    // Buf to write.  r_nullopt if not to be modified.  Initialized to an empty
     // counted_t if the block is to be deleted.
-    boost::optional<counted_t<standard_block_token_t> > token;
+    optional<counted_t<standard_block_token_t> > token;
     // Recency, if it should be modified.  (It's unmodified when the data block
     // manager moves blocks around while garbage collecting.)
-    boost::optional<repli_timestamp_t> recency;
+    optional<repli_timestamp_t> recency;
 
     explicit index_write_op_t(block_id_t _block_id,
-                              boost::optional<counted_t<standard_block_token_t> > _token = boost::none,
-                              boost::optional<repli_timestamp_t> _recency = boost::none)
+                              optional<counted_t<standard_block_token_t> > _token = r_nullopt,
+                              optional<repli_timestamp_t> _recency = r_nullopt)
         : block_id(_block_id), token(_token), recency(_recency) { }
 };
 

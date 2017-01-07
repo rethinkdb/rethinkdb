@@ -83,12 +83,12 @@ void calculate_emergency_repair(
                     any_dead(contract.voters, dead_servers))) {
             *rollback_found_out = true;
             /* Remove the primary (a new one will be elected) */
-            contract.primary = boost::none;
+            contract.primary.reset();
             /* Convert temp voters into voters */
             if (static_cast<bool>(contract.temp_voters)) {
                 contract.voters.insert(
                     contract.temp_voters->begin(), contract.temp_voters->end());
-                contract.temp_voters = boost::none;
+                contract.temp_voters.reset();
             }
             /* Forcibly demote all dead voters */
             for (const server_id_t &server : dead_servers) {

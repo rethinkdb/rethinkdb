@@ -66,12 +66,12 @@ std::vector<log_write_issue_t> log_write_issue_tracker_t::get_issues() {
 
 void log_write_issue_tracker_t::report_success() {
     assert_thread();
-    error_message = boost::none;
+    error_message = r_nullopt;
 }
 
 void log_write_issue_tracker_t::report_error(const std::string &message) {
     assert_thread();
-    error_message = boost::make_optional(message);
+    error_message = make_optional(message);
 }
 
 void log_write_issue_tracker_t::combine(

@@ -168,7 +168,7 @@ bool artificial_reql_cluster_interface_t::table_list(counted_t<const ql::db_t> d
 bool artificial_reql_cluster_interface_t::table_find(
         const name_string_t &name,
         counted_t<const ql::db_t> db,
-        boost::optional<admin_identifier_format_t> identifier_format,
+        optional<admin_identifier_format_t> identifier_format,
         signal_t *interruptor,
         counted_t<base_table_t> *table_out,
         admin_err_t *error_out) {
@@ -176,7 +176,7 @@ bool artificial_reql_cluster_interface_t::table_find(
         auto it = m_table_backends.find(name);
         if (it != m_table_backends.end()) {
             artificial_table_backend_t *backend;
-            if (!static_cast<bool>(identifier_format) ||
+            if (!identifier_format.has_value() ||
                     *identifier_format == admin_identifier_format_t::name) {
                 backend = it->second.first;
             } else {
@@ -496,7 +496,7 @@ bool artificial_reql_cluster_interface_t::set_write_hook(
         auth::user_context_t const &user_context,
         counted_t<const ql::db_t> db,
         const name_string_t &table,
-        const boost::optional<write_hook_config_t> &config,
+        const optional<write_hook_config_t> &config,
         signal_t *interruptor,
         admin_err_t *error_out) {
     if (db->name == artificial_reql_cluster_interface_t::database_name) {

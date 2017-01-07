@@ -5,7 +5,9 @@
 #include "errors.hpp"
 #include <boost/variant.hpp>
 
+#include "btree/keys.hpp"
 #include "btree/types.hpp"
+#include "containers/optional.hpp"
 #include "rdb_protocol/datum.hpp"
 
 namespace ql {
@@ -128,7 +130,7 @@ public:
     // Try to only call this once since it does work to compute it.
     datum_range_t covering_range() const;
     size_t copies(datum_t key) const;
-    boost::optional<std::map<store_key_t, uint64_t> > primary_key_map() const;
+    optional<std::map<store_key_t, uint64_t> > primary_key_map() const;
 
     RDB_DECLARE_ME_SERIALIZABLE(datumspec_t);
 private:

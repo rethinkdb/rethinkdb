@@ -7,6 +7,7 @@
 #include "clustering/table_contract/cpu_sharding.hpp"
 #include "clustering/table_manager/table_manager.hpp"
 #include "concurrency/rwlock.hpp"
+#include "containers/optional.hpp"
 
 /* There is one `multi_table_manager_t` on each server. For tables hosted on this server,
 it handles administrative operations: table creation and deletion, adding and removing
@@ -328,24 +329,11 @@ private:
 
     void on_action(
         signal_t *interruptor,
-        const namespace_id_t &table_id,
-        const multi_table_manager_timestamp_t &timestamp,
-        multi_table_manager_bcard_t::status_t status,
-        const boost::optional<table_basic_config_t> &basic_config,
-        const boost::optional<raft_member_id_t> &raft_member_id,
-        const boost::optional<raft_persistent_state_t<table_raft_state_t> >
-            &initial_raft_state,
-        const boost::optional<raft_start_election_immediately_t>
-            &start_election_immediately,
-        const mailbox_t<void()>::address_t &ack_addr);
+        const multi_table_manager_bcard_t::action_message_t &msg);
 
     void on_get_status(
         signal_t *interruptor,
-        const std::set<namespace_id_t> &tables,
-        const table_status_request_t &request,
-        const mailbox_t<void(
-            std::map<namespace_id_t, table_status_response_t>
-            )>::address_t &reply_addr);
+        const multi_table_manager_bcard_t::get_status_message_t &msg);
 
     /* `do_sync()` checks if it is necessary to send an action message to the given
     server regarding the given table, and sends one if so. It is called in the following
@@ -364,7 +352,7 @@ private:
         const server_id_t &server_id,
         /* This is the other server's directory entry for this table, or an empty
         optional if there is no entry. */
-        const boost::optional<table_manager_bcard_t> &table_bcard,
+        const optional<table_manager_bcard_t> &table_bcard,
         /* This is the other server's global directory entry. If the other server is not
         connected, don't call `do_sync()`. */
         const multi_table_manager_bcard_t &table_manager_bcard);
@@ -393,7 +381,7 @@ private:
         * const connections_map;
     table_persistence_interface_t *persistence_interface;
 
-    boost::optional<base_path_t> base_path;
+    optional<base_path_t> base_path;
     io_backender_t *io_backender;
 
     perfmon_collection_repo_t *perfmon_collection_repo;

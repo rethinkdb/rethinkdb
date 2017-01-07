@@ -6,6 +6,7 @@
 #include <limits>
 
 #include "arch/runtime/runtime_utils.hpp"
+#include "containers/archive/optional.hpp"
 #include "containers/uuid.hpp"
 #include "rpc/serialize_macros.hpp"
 

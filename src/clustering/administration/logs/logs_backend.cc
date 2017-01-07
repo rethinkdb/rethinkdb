@@ -126,20 +126,20 @@ bool logs_artificial_table_backend_t::read_row(
         return true;
     }
 
-    boost::optional<peer_id_t> peer_id =
+    optional<peer_id_t> peer_id =
         server_config_client->get_server_to_peer_map()->get_key(server_id);
-    if (!static_cast<bool>(peer_id)) {
+    if (!peer_id.has_value()) {
         /* Disconnected or nonexistent server, so log entries shouldn't be present in the
         table */
         *row_out = ql::datum_t();
         return true;
     }
 
-    boost::optional<log_server_business_card_t> bcard;
+    optional<log_server_business_card_t> bcard;
     directory->read_key(*peer_id,
         [&](const cluster_directory_metadata_t *metadata) {
             if (metadata != nullptr) {
-                bcard = metadata->log_mailbox;
+                bcard.set(metadata->log_mailbox);
             }
         });
     if (!static_cast<bool>(bcard)) {
@@ -468,7 +468,7 @@ bool logs_artificial_table_backend_t::read_all_rows_raw(
             }
         });
 
-    boost::optional<std::string> error;
+    optional<std::string> error;
     pmap(server_business_cards.begin(), server_business_cards.end(),
         [&](const std::pair<peer_id_t, log_server_business_card_t> &pair) {
             auto server_name = server_names.find(pair.first);
@@ -493,8 +493,8 @@ bool logs_artificial_table_backend_t::read_all_rows_raw(
                 return;
             } catch (const log_read_exc_t &e) {
                 /* We'll deal with it outside the `pmap()` */
-                error = strprintf("Problem with reading log file on server `%s`: %s",
-                    server_name->second.first.c_str(), e.what());
+                error.set(strprintf("Problem with reading log file on server `%s`: %s",
+                                    server_name->second.first.c_str(), e.what()));
                 return;
             }
 

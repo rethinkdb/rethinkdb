@@ -1,14 +1,12 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/translator.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "concurrency/new_mutex.hpp"
 #include "concurrency/pmap.hpp"
 #include "debug.hpp"
 #include "serializer/buf_ptr.hpp"
 #include "serializer/types.hpp"
+#include "utils.hpp"
 
 /* serializer_multiplexer_t */
 
@@ -70,9 +68,10 @@ void prep_serializer(
     c->n_proxies = n_proxies;
 
     index_write_op_t op(CONFIG_BLOCK_ID.ser_id);
-    op.token = serializer_block_write(ser, buf,
-                                      CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT);
-    op.recency = repli_timestamp_t::invalid;
+    op.token = make_optional(
+            serializer_block_write(ser, buf,
+                                   CONFIG_BLOCK_ID.ser_id, DEFAULT_DISK_ACCOUNT));
+    op.recency = make_optional(repli_timestamp_t::invalid);
     {
         std::vector<index_write_op_t> ops;
         ops.push_back(std::move(op));
@@ -90,8 +89,8 @@ void serializer_multiplexer_t::create(const std::vector<serializer_t *>& underly
     creation_timestamp_t creation_timestamp = time(nullptr);
 
     /* Write a configuration block for each one */
-    pmap(underlying.size(), boost::bind(&prep_serializer,
-        underlying, creation_timestamp, n_proxies, _1));
+    pmap(underlying.size(), std::bind(&prep_serializer,
+        underlying, creation_timestamp, n_proxies, ph::_1));
 }
 
 void create_proxies(const std::vector<serializer_t *>& underlying,
@@ -172,8 +171,8 @@ serializer_multiplexer_t::serializer_multiplexer_t(const std::vector<serializer_
     /* Now go to each serializer and verify it individually. We visit the first serializer twice
     (because we already visited it to get the creation magic and stuff) but that's OK. Also, create
     proxies for the serializers (populate the 'proxies' vector) */
-    pmap(underlying.size(), boost::bind(&create_proxies,
-        underlying, creation_timestamp, &proxies, _1));
+    pmap(underlying.size(), std::bind(&create_proxies,
+        underlying, creation_timestamp, &proxies, ph::_1));
 
     for (int i = 0; i < static_cast<int>(proxies.size()); ++i) rassert(proxies[i]);
 }
@@ -184,7 +183,7 @@ void destroy_proxy(std::vector<translator_serializer_t *> *proxies, int i) {
 }
 
 serializer_multiplexer_t::~serializer_multiplexer_t() {
-    pmap(proxies.size(), boost::bind(&destroy_proxy, &proxies, _1));
+    pmap(proxies.size(), std::bind(&destroy_proxy, &proxies, ph::_1));
 }
 
 /* translator_serializer_t */

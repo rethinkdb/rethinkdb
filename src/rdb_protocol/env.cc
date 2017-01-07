@@ -1,9 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/env.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "concurrency/cross_thread_watchable.hpp"
 #include "extproc/js_runner.hpp"
 #include "rdb_protocol/func.hpp"
@@ -107,7 +104,7 @@ env_t::env_t(signal_t *_interruptor,
              reql_version_t _reql_version)
     : serializable{
         global_optargs_t(),
-        auth::user_context_t(auth::permissions_t(false, false, false, false)),
+        auth::user_context_t(auth::permissions_t(tribool::False, tribool::False, tribool::False, tribool::False)),
         datum_t()},
       reql_version_(_reql_version),
       regex_cache_(LRU_CACHE_SIZE),

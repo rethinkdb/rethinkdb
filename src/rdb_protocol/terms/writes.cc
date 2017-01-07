@@ -131,7 +131,7 @@ private:
         counted_t<table_t> t = args->arg(env, 0)->as_table();
         return_changes_t return_changes = parse_return_changes(env, args, backtrace());
 
-        boost::optional<counted_t<const ql::func_t> > conflict_func;
+        optional<counted_t<const ql::func_t> > conflict_func;
 
         scoped_ptr_t<val_t> conflict_optarg = args->optarg(env, "conflict");
         const conflict_behavior_t conflict_behavior
@@ -155,7 +155,7 @@ private:
             }
         }
         if (conflict_behavior == conflict_behavior_t::FUNCTION) {
-            conflict_func = conflict_optarg->as_func();
+            conflict_func.set(conflict_optarg->as_func());
 
             // Check that insert function is atomic.
             rcheck((*conflict_func)->is_deterministic() == deterministic_t::always,
@@ -163,7 +163,7 @@ private:
                    strprintf("The conflict function passed to `insert` must "
                              "be deterministic."));
             // Check correct arity on function
-            boost::optional<size_t> arity = (*conflict_func)->arity();
+            optional<size_t> arity = (*conflict_func)->arity();
             rcheck(static_cast<bool>(arity) && (arity.get() == 0 || arity.get() == 3),
                    base_exc_t::LOGIC,
                    strprintf("The conflict function passed to `insert` should "

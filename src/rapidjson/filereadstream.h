@@ -21,7 +21,7 @@
 #ifndef RAPIDJSON_FILEREADSTREAM_H_
 #define RAPIDJSON_FILEREADSTREAM_H_
 
-#include "rapidjson.h"
+#include "rapidjson/rapidjson.h"
 #include <cstdio>
 
 RAPIDJSON_NAMESPACE_BEGIN

@@ -106,7 +106,7 @@ void table_manager_t::get_status(
     if (request.want_config) {
         get_raft()->get_committed_state()->apply_read(
             [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
-                response->config = boost::make_optional(s->state.config);
+                response->config.set(s->state.config);
             });
     }
     if (request.want_sindexes) {
@@ -115,11 +115,11 @@ void table_manager_t::get_status(
     if (request.want_raft_state) {
         get_raft()->get_committed_state()->apply_read(
             [&](const raft_member_t<table_raft_state_t>::state_and_config_t *s) {
-                response->raft_state = boost::make_optional(s->state);
+                response->raft_state.set(s->state);
                 multi_table_manager_timestamp_t ts;
                 ts.epoch = epoch;
                 ts.log_index = s->log_index;
-                response->raft_state_timestamp = boost::make_optional(ts);
+                response->raft_state_timestamp.set(ts);
             });
     }
     if (request.want_contract_acks) {
@@ -176,14 +176,14 @@ table_manager_t::leader_t::leader_t(table_manager_t *_parent) :
         leader_bcard.uuid = generate_uuid();
         leader_bcard.set_config_mailbox = set_config_mailbox.get_address();
         leader_bcard.contract_ack_minidir_bcard = contract_ack_read_manager.get_bcard();
-        bcard->leader = boost::make_optional(leader_bcard);
+        bcard->leader = make_optional(leader_bcard);
         return true;
     });
 }
 
 table_manager_t::leader_t::~leader_t() {
     parent->table_manager_bcard.apply_atomic_op([&](table_manager_bcard_t *bcard) {
-        bcard->leader = boost::none;
+        bcard->leader = r_nullopt;
         return true;
     });
 }
@@ -191,13 +191,11 @@ table_manager_t::leader_t::~leader_t() {
 void table_manager_t::leader_t::on_set_config(
         signal_t *interruptor,
         const table_config_and_shards_change_t &table_config_and_shards_change,
-        const mailbox_t<void(
-            boost::optional<multi_table_manager_timestamp_t>, bool
-            )>::address_t &reply_addr) {
+        const mailbox_addr_t<optional<multi_table_manager_timestamp_t>, bool> &reply_addr) {
     logINF("Table %s: Configuration is changing.",
         uuid_to_str(parent->table_id).c_str());
     bool is_change_successful = false;
-    boost::optional<raft_log_index_t> result = coordinator.change_config(
+    optional<raft_log_index_t> result = coordinator.change_config(
         [&](table_config_and_shards_t *config_and_shards) {
             is_change_successful =
                 table_config_and_shards_change.apply_change(config_and_shards);
@@ -208,12 +206,12 @@ void table_manager_t::leader_t::on_set_config(
         timestamp.epoch = parent->epoch;
         timestamp.log_index = *result;
         send(parent->mailbox_manager, reply_addr,
-            boost::make_optional(timestamp), true);
+            make_optional(timestamp), true);
     } else {
         /* If `is_change_successful` is false the change was considered a no-op and the
         returned log_index is that of the last change, which we safely ignore. */
         send(parent->mailbox_manager, reply_addr,
-            boost::optional<multi_table_manager_timestamp_t>(), is_change_successful);
+            optional<multi_table_manager_timestamp_t>(), is_change_successful);
     }
 }
 

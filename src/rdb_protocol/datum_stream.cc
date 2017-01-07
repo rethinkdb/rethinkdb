@@ -3,8 +3,22 @@
 
 #include <map>
 
-#include "boost_utils.hpp"
 #include "rdb_protocol/batching.hpp"
+#include "rdb_protocol/datum_stream/array.hpp"
+#include "rdb_protocol/datum_stream/eq_join.hpp"
+#include "rdb_protocol/datum_stream/fold.hpp"
+#include "rdb_protocol/datum_stream/indexed_sort.hpp"
+#include "rdb_protocol/datum_stream/lazy.hpp"
+#include "rdb_protocol/datum_stream/map.hpp"
+#include "rdb_protocol/datum_stream/offsets_of.hpp"
+#include "rdb_protocol/datum_stream/ordered_distinct.hpp"
+#include "rdb_protocol/datum_stream/ordered_union.hpp"
+#include "rdb_protocol/datum_stream/range.hpp"
+#include "rdb_protocol/datum_stream/readers.hpp"
+#include "rdb_protocol/datum_stream/readgens.hpp"
+#include "rdb_protocol/datum_stream/slice.hpp"
+#include "rdb_protocol/datum_stream/union.hpp"
+#include "rdb_protocol/datum_stream/vector.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/geo/geojson.hpp"
@@ -17,6 +31,7 @@
 #include "rdb_protocol/geo/s2/s2latlngrect.h"
 #include "rdb_protocol/geo/s2/s2polygon.h"
 #include "rdb_protocol/geo/s2/s2polyline.h"
+#include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/val.hpp"
 #include "utils.hpp"
@@ -135,13 +150,14 @@ key_range_t active_ranges_to_range(const active_ranges_t &ranges) {
 }
 
 static void validate_and_record_stamps(
-        const boost::optional<changefeed_stamp_t> &stamp,
-        const boost::optional<changefeed_stamp_response_t> &stamp_response,
+        const optional<changefeed_stamp_t> &stamp,
+        const optional<changefeed_stamp_response_t> &stamp_response,
         std::map<uuid_u, shard_stamp_info_t> *out) {
 
-    if (stamp) {
-        r_sanity_check(stamp_response);
-        rcheck_datum(stamp_response->stamp_infos, base_exc_t::RESUMABLE_OP_FAILED,
+    if (stamp.has_value()) {
+        r_sanity_check(stamp_response.has_value());
+        rcheck_datum(stamp_response->stamp_infos.has_value(),
+                     base_exc_t::RESUMABLE_OP_FAILED,
                      "Unable to retrieve start stamps.  (Did you just reshard?)");
         rcheck_datum(stamp_response->stamp_infos->size() != 0,
                      base_exc_t::RESUMABLE_OP_FAILED,
@@ -153,10 +169,10 @@ static void validate_and_record_stamps(
     }
 }
 
-boost::optional<std::map<region_t, store_key_t> > active_ranges_to_hints(
-    sorting_t sorting, const boost::optional<active_ranges_t> &ranges) {
+optional<std::map<region_t, store_key_t> > active_ranges_to_hints(
+    sorting_t sorting, const optional<active_ranges_t> &ranges) {
 
-    if (!ranges) return boost::none;
+    if (!ranges) { return r_nullopt; }
 
     std::map<region_t, store_key_t> hints;
     for (auto &&pair : ranges->ranges) {
@@ -190,14 +206,14 @@ boost::optional<std::map<region_t, store_key_t> > active_ranges_to_hints(
         }
     }
     r_sanity_check(hints.size() > 0);
-    return std::move(hints);
+    return make_optional(std::move(hints));
 }
 
 enum class is_secondary_t { NO, YES };
 active_ranges_t new_active_ranges(
     const stream_t &stream,
     const key_range_t &original_range,
-    const boost::optional<std::map<region_t, uuid_u> > &shard_ids,
+    const optional<std::map<region_t, uuid_u> > &shard_ids,
     is_secondary_t is_secondary) {
     active_ranges_t ret;
     std::set<uuid_u> covered_shards;
@@ -322,14 +338,14 @@ public:
         }
     }
 
-    boost::optional<rget_item_t> pop() {
+    optional<rget_item_t> pop() {
         r_sanity_check(!finished);
         if (cached_index < cached->cache.size()) {
-            return std::move(cached->cache[cached_index++]);
+            return make_optional(std::move(cached->cache[cached_index++]));
         } else if (fresh != nullptr && fresh_index < fresh->stream.size()) {
-            return std::move(fresh->stream[fresh_index++]);
+            return make_optional(std::move(fresh->stream[fresh_index++]));
         } else {
-            return boost::none;
+            return r_nullopt;
         }
     }
 private:
@@ -358,21 +374,21 @@ raw_stream_t rget_response_reader_t::unshard(
     r_sanity_check(gs != nullptr);
     auto stream = groups_to_batch(gs->get_underlying_map());
     if (!active_ranges) {
-        boost::optional<std::map<region_t, uuid_u> > opt_shard_ids;
-        if (res.stamp_response) {
-            opt_shard_ids = std::map<region_t, uuid_u>();
+        optional<std::map<region_t, uuid_u> > opt_shard_ids;
+        if (res.stamp_response.has_value()) {
+            opt_shard_ids.set(std::map<region_t, uuid_u>());
             for (const auto &pair : *res.stamp_response->stamp_infos) {
                 opt_shard_ids->insert(
                     std::make_pair(pair.second.shard_region, pair.first));
             }
         }
-        active_ranges = new_active_ranges(
+        active_ranges.set(new_active_ranges(
             stream, readgen->original_keyrange(res.reql_version), opt_shard_ids,
-            readgen->sindex_name() ? is_secondary_t::YES : is_secondary_t::NO);
+            readgen->sindex_name() ? is_secondary_t::YES : is_secondary_t::NO));
         readgen->restrict_active_ranges(sorting, &*active_ranges);
-        reql_version = res.reql_version;
+        reql_version.set(res.reql_version);
     } else {
-        r_sanity_check(res.reql_version == reql_version);
+        r_sanity_check(make_optional(res.reql_version) == reql_version);
     }
 
     raw_stream_t ret;
@@ -527,12 +543,14 @@ void rget_response_reader_t::add_transformation(transform_variant_t &&tv) {
 }
 
 bool rget_response_reader_t::add_stamp(changefeed_stamp_t _stamp) {
-    stamp = std::move(_stamp);
+    stamp.set(std::move(_stamp));
     return true;
 }
 
-boost::optional<active_state_t> rget_response_reader_t::get_active_state() {
-    if (!stamp || !active_ranges || shard_stamp_infos.empty()) return boost::none;
+optional<active_state_t> rget_response_reader_t::get_active_state() {
+    if (!stamp || !active_ranges || shard_stamp_infos.empty()) {
+        return r_nullopt;
+    }
     std::map<uuid_u, std::pair<key_range_t, uint64_t> > shard_last_read_stamps;
     for (const auto &range_pair : active_ranges->ranges) {
         for (const auto &hash_pair : range_pair.second.hash_ranges) {
@@ -548,10 +566,10 @@ boost::optional<active_state_t> rget_response_reader_t::get_active_state() {
                 std::make_pair(last_read_range, stamp_it->second.stamp)));
         }
     }
-    return active_state_t{
+    return make_optional(active_state_t{
         std::move(shard_last_read_stamps),
         reql_version,
-        DEBUG_ONLY(readgen->sindex_name())};
+        DEBUG_ONLY(readgen->sindex_name())});
 }
 
 void rget_response_reader_t::accumulate(env_t *env,
@@ -623,7 +641,7 @@ std::vector<datum_t> rget_response_reader_t::next_batch(
                     strprintf("Too many rows (> %zu) with the same value "
                               "for index `%s`:\n%s",
                               env->limits().array_size_limit(),
-                              opt_or(readgen->sindex_name(), "").c_str(),
+                              readgen->sindex_name().value_or("").c_str(),
                               // This is safe because you can't have duplicate
                               // primary keys, so they will never exceed the
                               // array limit.
@@ -704,7 +722,7 @@ rget_reader_t::do_range_read(env_t *env, const read_t &read) {
     r_sanity_check(rr);
     rget_read_response_t res = do_read(env, read);
 
-    r_sanity_check(static_cast<bool>(stamp) == static_cast<bool>(rr->stamp));
+    r_sanity_check(stamp.has_value() == rr->stamp.has_value());
     validate_and_record_stamps(stamp, res.stamp_response, &shard_stamp_infos);
 
     return unshard(rr->sorting, std::move(res));
@@ -800,14 +818,14 @@ bool intersecting_reader_t::load_items(env_t *env, const batchspec_t &batchspec)
         intersecting_geo_read_t *gr = boost::get<intersecting_geo_read_t>(&read.read);
         r_sanity_check(gr != nullptr);
 
-        boost::optional<datum_t> old_query_geometry;
-        if (gr->stamp) {
+        optional<datum_t> old_query_geometry;
+        if (gr->stamp.has_value()) {
             // If this read is done for the initial values on a changefeed, we
             // need to expand the query geometry sent to the shards to account for
             // numerical differences, then check against the original geometry
             // locally.
 
-            old_query_geometry = gr->query_geometry;
+            old_query_geometry.set(gr->query_geometry);
 
             try {
                 bounding_box_visitor_t visitor;
@@ -843,8 +861,8 @@ bool intersecting_reader_t::load_items(env_t *env, const batchspec_t &batchspec)
 
                 const std::string key_str =
                     key_to_unescaped_str(unfiltered_items[i].key);
-                boost::optional<uint64_t> tag(ql::datum_t::extract_tag(key_str));
-                std::pair<std::string, boost::optional<uint64_t> > pkey_tag(
+                optional<uint64_t> tag(ql::datum_t::extract_tag(key_str));
+                std::pair<std::string, optional<uint64_t> > pkey_tag(
                     ql::datum_t::extract_primary(key_str), tag);
                 if (processed_pkey_tags.count(pkey_tag) == 0) {
                     rcheck_toplevel(
@@ -866,9 +884,9 @@ std::vector<rget_item_t> intersecting_reader_t::do_intersecting_read(
 
     auto *gr = boost::get<intersecting_geo_read_t>(&read.read);
     r_sanity_check(gr);
-    r_sanity_check(gr->sindex.region);
+    r_sanity_check(gr->sindex.region.has_value());
 
-    r_sanity_check(static_cast<bool>(stamp) == static_cast<bool>(gr->stamp));
+    r_sanity_check(stamp.has_value() == gr->stamp.has_value());
     validate_and_record_stamps(stamp, res.stamp_response, &shard_stamp_infos);
 
     return unshard(sorting_t::UNORDERED, std::move(res));
@@ -904,9 +922,9 @@ rget_readgen_t::rget_readgen_t(
       require_sindex_val(_require_sindex_val) { }
 
 read_t rget_readgen_t::next_read(
-    const boost::optional<active_ranges_t> &active_ranges,
-    const boost::optional<reql_version_t> &reql_version,
-    boost::optional<changefeed_stamp_t> stamp,
+    const optional<active_ranges_t> &active_ranges,
+    const optional<reql_version_t> &reql_version,
+    optional<changefeed_stamp_t> stamp,
     std::vector<transform_variant_t> transforms,
     const batchspec_t &batchspec) const {
     return read_t(
@@ -930,12 +948,12 @@ read_t rget_readgen_t::terminal_read(
     const terminal_variant_t &_terminal,
     const batchspec_t &batchspec) const {
     rget_read_t read = next_read_impl(
-        boost::none, // No active ranges, just use the original range.
-        boost::none, // No reql version yet.
-        boost::optional<changefeed_stamp_t>(), // No need to stamp terminals.
+        r_nullopt, // No active ranges, just use the original range.
+        r_nullopt, // No reql version yet.
+        optional<changefeed_stamp_t>(), // No need to stamp terminals.
         transforms,
         batchspec);
-    read.terminal = _terminal;
+    read.terminal.set(_terminal);
     return read_t(read, profile, read_mode);
 }
 
@@ -965,7 +983,7 @@ primary_readgen_t::primary_readgen_t(
 void primary_readgen_t::restrict_active_ranges(
     sorting_t _sorting,
     active_ranges_t *ranges_inout) const {
-    if (store_keys && ranges_inout->ranges.size() != 0) {
+    if (store_keys.has_value() && ranges_inout->ranges.size() != 0) {
         std::map<key_range_t,
                  std::map<hash_range_t,
                           std::pair<store_key_t, store_key_t> > > limits;
@@ -1042,9 +1060,9 @@ scoped_ptr_t<readgen_t> primary_readgen_t::make(
 }
 
 rget_read_t primary_readgen_t::next_read_impl(
-    const boost::optional<active_ranges_t> &active_ranges,
-    const boost::optional<reql_version_t> &,
-    boost::optional<changefeed_stamp_t> stamp,
+    const optional<active_ranges_t> &active_ranges,
+    const optional<reql_version_t> &,
+    optional<changefeed_stamp_t> stamp,
     std::vector<transform_variant_t> transforms,
     const batchspec_t &batchspec) const {
     region_t region = active_ranges
@@ -1060,8 +1078,8 @@ rget_read_t primary_readgen_t::next_read_impl(
         table_name,
         batchspec,
         std::move(transforms),
-        boost::optional<terminal_variant_t>(),
-        boost::optional<sindex_rangespec_t>(),
+        optional<terminal_variant_t>(),
+        optional<sindex_rangespec_t>(),
         sorting(batchspec));
 }
 
@@ -1074,8 +1092,8 @@ key_range_t primary_readgen_t::original_keyrange(reql_version_t) const {
     return datumspec.covering_range().to_primary_keyrange();
 }
 
-boost::optional<std::string> primary_readgen_t::sindex_name() const {
-    return boost::optional<std::string>();
+optional<std::string> primary_readgen_t::sindex_name() const {
+    return optional<std::string>();
 }
 
 changefeed::keyspec_t::range_t primary_readgen_t::get_range_spec(
@@ -1085,7 +1103,7 @@ changefeed::keyspec_t::range_t primary_readgen_t::get_range_spec(
         sindex_name(),
         sorting_,
         datumspec,
-        boost::none};
+        r_nullopt};
 }
 
 sindex_readgen_t::sindex_readgen_t(
@@ -1141,16 +1159,16 @@ void sindex_readgen_t::sindex_sort(
 }
 
 rget_read_t sindex_readgen_t::next_read_impl(
-    const boost::optional<active_ranges_t> &active_ranges,
-    const boost::optional<reql_version_t> &reql_version,
-    boost::optional<changefeed_stamp_t> stamp,
+    const optional<active_ranges_t> &active_ranges,
+    const optional<reql_version_t> &reql_version,
+    optional<changefeed_stamp_t> stamp,
     std::vector<transform_variant_t> transforms,
     const batchspec_t &batchspec) const {
 
-    boost::optional<region_t> region;
+    optional<region_t> region;
     datumspec_t ds;
     if (active_ranges) {
-        region = region_t(active_ranges_to_range(*active_ranges));
+        region.set(region_t(active_ranges_to_range(*active_ranges)));
         r_sanity_check(reql_version);
         ds = datumspec.trim_secondary(region->inner, *reql_version);
     } else {
@@ -1169,16 +1187,16 @@ rget_read_t sindex_readgen_t::next_read_impl(
         std::move(stamp),
         region_t::universe(),
         active_ranges_to_hints(sorting(batchspec), active_ranges),
-        boost::none,
+        r_nullopt,
         serializable_env,
         table_name,
         batchspec,
         std::move(transforms),
-        boost::optional<terminal_variant_t>(),
-        sindex_rangespec_t(sindex,
-                           std::move(region),
-                           std::move(ds),
-                           require_sindex_val),
+        optional<terminal_variant_t>(),
+        make_optional(sindex_rangespec_t(sindex,
+                                         std::move(region),
+                                         std::move(ds),
+                                         require_sindex_val)),
         sorting(batchspec));
 }
 
@@ -1186,14 +1204,14 @@ key_range_t sindex_readgen_t::original_keyrange(reql_version_t rv) const {
     return datumspec.covering_range().to_sindex_keyrange(rv);
 }
 
-boost::optional<std::string> sindex_readgen_t::sindex_name() const {
-    return sindex;
+optional<std::string> sindex_readgen_t::sindex_name() const {
+    return make_optional(sindex);
 }
 
 changefeed::keyspec_t::range_t sindex_readgen_t::get_range_spec(
         std::vector<transform_variant_t> transforms) const {
     return changefeed::keyspec_t::range_t{
-        std::move(transforms), sindex_name(), sorting_, datumspec, boost::none};
+        std::move(transforms), sindex_name(), sorting_, datumspec, r_nullopt};
 }
 
 intersecting_readgen_t::intersecting_readgen_t(
@@ -1229,9 +1247,9 @@ scoped_ptr_t<readgen_t> intersecting_readgen_t::make(
 }
 
 read_t intersecting_readgen_t::next_read(
-    const boost::optional<active_ranges_t> &active_ranges,
-    const boost::optional<reql_version_t> &reql_version,
-    boost::optional<changefeed_stamp_t> stamp,
+    const optional<active_ranges_t> &active_ranges,
+    const optional<reql_version_t> &reql_version,
+    optional<changefeed_stamp_t> stamp,
     std::vector<transform_variant_t> transforms,
     const batchspec_t &batchspec) const {
     return read_t(
@@ -1251,19 +1269,19 @@ read_t intersecting_readgen_t::terminal_read(
     const batchspec_t &batchspec) const {
     intersecting_geo_read_t read =
         next_read_impl(
-            boost::none,
-            boost::none,
-            boost::optional<changefeed_stamp_t>(), // No need to stamp terminals.
+            r_nullopt,
+            r_nullopt,
+            optional<changefeed_stamp_t>(), // No need to stamp terminals.
             transforms,
             batchspec);
-    read.terminal = _terminal;
+    read.terminal.set(_terminal);
     return read_t(read, profile, read_mode);
 }
 
 intersecting_geo_read_t intersecting_readgen_t::next_read_impl(
-    const boost::optional<active_ranges_t> &active_ranges,
-    const boost::optional<reql_version_t> &,
-    boost::optional<changefeed_stamp_t> stamp,
+    const optional<active_ranges_t> &active_ranges,
+    const optional<reql_version_t> &,
+    optional<changefeed_stamp_t> stamp,
     std::vector<transform_variant_t> transforms,
     const batchspec_t &batchspec) const {
     region_t region = active_ranges
@@ -1282,10 +1300,10 @@ intersecting_geo_read_t intersecting_readgen_t::next_read_impl(
         table_name,
         actual_batchspec,
         std::move(transforms),
-        boost::optional<terminal_variant_t>(),
+        optional<terminal_variant_t>(),
         sindex_rangespec_t(
             sindex,
-            std::move(region),
+            make_optional(std::move(region)),
             datumspec_t(datum_range_t::universe())),
         query_geometry);
 }
@@ -1303,8 +1321,8 @@ key_range_t intersecting_readgen_t::original_keyrange(reql_version_t rv) const {
     return datum_range_t::universe().to_sindex_keyrange(rv);
 }
 
-boost::optional<std::string> intersecting_readgen_t::sindex_name() const {
-    return sindex;
+optional<std::string> intersecting_readgen_t::sindex_name() const {
+    return make_optional(sindex);
 }
 
 changefeed::keyspec_t::range_t intersecting_readgen_t::get_range_spec(
@@ -1314,7 +1332,7 @@ changefeed::keyspec_t::range_t intersecting_readgen_t::get_range_spec(
         sindex_name(),
         sorting_t::UNORDERED,
         datumspec_t(datum_range_t::universe()),
-        query_geometry};
+        make_optional(query_geometry)};
 }
 
 bool datum_stream_t::add_stamp(changefeed_stamp_t) {
@@ -1322,8 +1340,8 @@ bool datum_stream_t::add_stamp(changefeed_stamp_t) {
     return false;
 }
 
-boost::optional<active_state_t> datum_stream_t::get_active_state() {
-    return boost::none;
+optional<active_state_t> datum_stream_t::get_active_state() {
+    return r_nullopt;
 }
 
 scoped_ptr_t<val_t> datum_stream_t::run_terminal(
@@ -2508,7 +2526,7 @@ bool fold_datum_stream_t::is_exhausted() const {
 vector_datum_stream_t::vector_datum_stream_t(
         backtrace_id_t _bt,
         std::vector<datum_t> &&_rows,
-        boost::optional<ql::changefeed::keyspec_t> &&_changespec) :
+        optional<ql::changefeed::keyspec_t> &&_changespec) :
     eager_datum_stream_t(_bt),
     rows(std::move(_rows)),
     index(0),

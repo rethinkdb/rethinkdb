@@ -5,13 +5,13 @@
 #include <functional>
 
 #include "stl_utils.hpp"
-#include "boost_utils.hpp"
 
 #include "btree/operations.hpp"
 #include "btree/reql_specific.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "containers/archive/boost_types.hpp"
+#include "containers/archive/optional.hpp"
 #include "containers/disk_backed_queue.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/changefeed.hpp"
@@ -245,7 +245,7 @@ void post_construct_and_drain_queue(
 
             store_t::sindex_access_vector_t sindexes;
             store->acquire_sindex_superblocks_for_write(
-                    sindexes_to_bring_up_to_date,
+                    make_optional(sindexes_to_bring_up_to_date),
                     &queue_sindex_block,
                     &sindexes);
 
@@ -539,7 +539,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         bool do_read = rangey_read(s);
         if (do_read) {
             auto *out = boost::get<changefeed_limit_subscribe_t>(payload_out);
-            out->current_shard = region;
+            out->current_shard.set(region);
         }
         return do_read;
     }
@@ -554,7 +554,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
 
     bool operator()(const rget_read_t &rg) const {
         bool do_read;
-        if (rg.hints) {
+        if (rg.hints.has_value()) {
             auto it = rg.hints->find(region);
             if (it != rg.hints->end()) {
                 do_read = rangey_read(rg);
@@ -563,8 +563,8 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
                 if (do_read) {
                     // TODO: We could avoid an `std::map` copy by making
                     // `rangey_read` smarter.
-                    rr->hints = boost::none;
-                    if (!rg.sindex) {
+                    rr->hints.reset();
+                    if (!rg.sindex.has_value()) {
                         if (!reversed(rg.sorting)) {
                             guarantee(it->second >= rr->region.inner.left);
                             rr->region.inner.left = it->second;
@@ -575,8 +575,8 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
                         }
                         r_sanity_check(!rr->region.inner.is_empty());
                     } else {
-                        guarantee(rr->sindex);
-                        guarantee(rr->sindex->region);
+                        guarantee(rr->sindex.has_value());
+                        guarantee(rr->sindex->region.has_value());
                         if (!reversed(rg.sorting)) {
                             rr->sindex->region->inner.left = it->second;
                         } else {
@@ -595,10 +595,10 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
         if (do_read) {
             auto *rg_out = boost::get<rget_read_t>(payload_out);
             guarantee(!region.inner.right.unbounded);
-            rg_out->current_shard = region;
+            rg_out->current_shard.set(region);
             rg_out->batchspec = rg_out->batchspec.scale_down(
-                rg.hints ? rg.hints->size() : CPU_SHARDING_FACTOR);
-            if (static_cast<bool>(rg_out->primary_keys)) {
+                rg.hints.has_value() ? rg.hints->size() : CPU_SHARDING_FACTOR);
+            if (rg_out->primary_keys.has_value()) {
                 for (auto it = rg_out->primary_keys->begin();
                      it != rg_out->primary_keys->end();) {
                     auto cur_it = it++;
@@ -610,7 +610,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
                     return false;
                 }
             }
-            if (rg_out->stamp) {
+            if (rg_out->stamp.has_value()) {
                 rg_out->stamp->region = rg_out->region;
             }
         }
@@ -623,7 +623,7 @@ struct rdb_r_shard_visitor_t : public boost::static_visitor<bool> {
             // If we're in an include_initial changefeed, we need to copy the
             // new region onto the stamp.
             auto *out = boost::get<intersecting_geo_read_t>(payload_out);
-            if (out->stamp) {
+            if (out->stamp.has_value()) {
                 out->stamp->region = out->region;
             }
         }
@@ -761,11 +761,11 @@ void rdb_r_unshard_visitor_t::operator()(const changefeed_limit_subscribe_t &) {
 
 void unshard_stamps(const std::vector<changefeed_stamp_response_t *> &resps,
                     changefeed_stamp_response_t *out) {
-    out->stamp_infos = std::map<uuid_u, shard_stamp_info_t>();
+    out->stamp_infos.set(std::map<uuid_u, shard_stamp_info_t>());
     for (auto &&resp : resps) {
         // In the error case abort early.
-        if (!resp->stamp_infos) {
-            out->stamp_infos = boost::none;
+        if (!resp->stamp_infos.has_value()) {
+            out->stamp_infos.reset();
             return;
         }
         for (auto &&info_pair : *resp->stamp_infos) {
@@ -775,7 +775,7 @@ void unshard_stamps(const std::vector<changefeed_stamp_response_t *> &resps,
             // `include_initial` changefeeds.
             bool inserted = out->stamp_infos->insert(info_pair).second;
             if (!inserted) {
-                out->stamp_infos = boost::none;
+                out->stamp_infos.reset();
                 return;
             }
         }
@@ -871,7 +871,7 @@ void rdb_r_unshard_visitor_t::operator()(const nearest_geo_read_t &query) {
 }
 
 void rdb_r_unshard_visitor_t::operator()(const rget_read_t &rg) {
-    if (rg.hints && count != rg.hints->size()) {
+    if (rg.hints.has_value() && count != rg.hints->size()) {
         response_out->response = rget_read_response_t(
             ql::exc_t(ql::base_exc_t::OP_FAILED, "Read aborted by unshard operation.",
                       ql::backtrace_id_t::empty()));
@@ -937,7 +937,7 @@ void rdb_r_unshard_visitor_t::unshard_range_batch(const query_t &q, sorting_t so
         }
     }
     if (q.stamp) {
-        out->stamp_response = changefeed_stamp_response_t();
+        out->stamp_response.set(changefeed_stamp_response_t());
         unshard_stamps(stamp_resps, &*out->stamp_response);
     }
 
@@ -1064,10 +1064,10 @@ struct use_snapshot_visitor_t : public boost::static_visitor<bool> {
     // happening before we get there). We'll instead create a snapshot later
     // inside the `rdb_read_visitor_t`.
     bool operator()(const rget_read_t &rget) const {
-        return !static_cast<bool>(rget.stamp);
+        return !rget.stamp.has_value();
     }
     bool operator()(const intersecting_geo_read_t &geo_read) const {
-        return !static_cast<bool>(geo_read.stamp);
+        return !geo_read.stamp.has_value();
     }
 
     bool operator()(const nearest_geo_read_t &) const {           return true;  }
@@ -1087,10 +1087,10 @@ struct route_to_primary_visitor_t : public boost::static_visitor<bool> {
     // `include_initial` changefeed reads must be routed to the primary, since
     // that's where changefeeds are managed.
     bool operator()(const rget_read_t &rget) const {
-        return static_cast<bool>(rget.stamp);
+        return rget.stamp.has_value();
     }
     bool operator()(const intersecting_geo_read_t &geo_read) const {
-        return static_cast<bool>(geo_read.stamp);
+        return geo_read.stamp.has_value();
     }
 
     bool operator()(const point_read_t &) const {                 return false; }
@@ -1220,9 +1220,9 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
                 shard_keys.push_back(*it);
             }
         }
-        boost::optional<counted_t<const ql::func_t> > temp_write_hook_func;
-        if (br.write_hook) {
-            temp_write_hook_func = br.write_hook->compile_wire_func();
+        optional<counted_t<const ql::func_t> > temp_write_hook_func;
+        if (br.write_hook.has_value()) {
+            temp_write_hook_func.set(br.write_hook->compile_wire_func());
         }
         if (!shard_keys.empty()) {
             *payload_out = batched_replace_t(
@@ -1248,14 +1248,14 @@ struct rdb_w_shard_visitor_t : public boost::static_visitor<bool> {
         }
 
         if (!shard_inserts.empty()) {
-            boost::optional<counted_t<const ql::func_t> > temp_conflict_func;
-            if (bi.conflict_func) {
-                temp_conflict_func = bi.conflict_func->compile_wire_func();
+            optional<counted_t<const ql::func_t> > temp_conflict_func;
+            if (bi.conflict_func.has_value()) {
+                temp_conflict_func.set(bi.conflict_func->compile_wire_func());
             }
 
-            boost::optional<counted_t<const ql::func_t> > temp_write_hook;
-            if (bi.write_hook) {
-                temp_write_hook = bi.write_hook->compile_wire_func();
+            optional<counted_t<const ql::func_t> > temp_write_hook;
+            if (bi.write_hook.has_value()) {
+                temp_write_hook.set(bi.write_hook->compile_wire_func());
             }
             *payload_out = batched_insert_t(std::move(shard_inserts),
                                             bi.pkey,
@@ -1317,9 +1317,9 @@ bool write_t::shard(const region_t &region,
 batched_insert_t::batched_insert_t(
         std::vector<ql::datum_t> &&_inserts,
         const std::string &_pkey,
-        const boost::optional<counted_t<const ql::func_t> > &_write_hook,
+        const optional<counted_t<const ql::func_t> > &_write_hook,
         conflict_behavior_t _conflict_behavior,
-        const boost::optional<counted_t<const ql::func_t> > &_conflict_func,
+        const optional<counted_t<const ql::func_t> > &_conflict_func,
         const ql::configured_limits_t &_limits,
         serializable_env_t s_env,
         return_changes_t _return_changes)
@@ -1330,12 +1330,12 @@ batched_insert_t::batched_insert_t(
           return_changes(_return_changes) {
     r_sanity_check(inserts.size() != 0);
 
-    if (_conflict_func) {
-        conflict_func = ql::wire_func_t(*_conflict_func);
+    if (_conflict_func.has_value()) {
+        conflict_func.set(ql::wire_func_t(*_conflict_func));
     }
 
-    if (_write_hook) {
-        write_hook = ql::wire_func_t(*_write_hook);
+    if (_write_hook.has_value()) {
+        write_hook.set(ql::wire_func_t(*_write_hook));
     }
 #ifndef NDEBUG
     // These checks are done above us, but in debug mode we do them

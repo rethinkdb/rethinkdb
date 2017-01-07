@@ -178,7 +178,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
     for (int i = 0; i < 50; ++i) {
         sindex_name_t name = sindex_name_t(uuid_to_str(generate_uuid()));
         created_sindexs.insert(name);
-        boost::optional<uuid_u> index_id;
+        optional<uuid_u> index_id;
         {
             write_token_t token;
             store.new_write_token(&token);
@@ -229,7 +229,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
                 ql::skey_version_t::post_1_16,
                 "sec",
                 store_key_t("pri"),
-                boost::none));
+                r_nullopt));
 
         {
             //Insert a piece of data in to the btree.
