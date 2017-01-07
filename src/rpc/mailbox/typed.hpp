@@ -74,7 +74,7 @@ public:
 
 private:
     template <class... Args2>
-    friend void send(mailbox_manager_t *, typename mailbox_t<Args2...>::address_t, const Args2 &... args);
+    friend void send(mailbox_manager_t *, mailbox_addr_t<Args2...>, const Args2 &... args);
 
     std::function< void(signal_t *, Args...) > fun;
     raw_mailbox_t mailbox;
