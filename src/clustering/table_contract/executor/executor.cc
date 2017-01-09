@@ -66,7 +66,7 @@ public:
 
     /* If the execution has called its `enable_gc()` callback, this will contain the
     value that was provided. Otherwise, this will be empty. */
-    boost::optional<branch_id_t> enable_gc_branch;
+    optional<branch_id_t> enable_gc_branch;
 
 private:
     perfmon_collection_t *get_parent_perfmon_collection() const {
@@ -93,7 +93,7 @@ private:
     void enable_gc(const branch_id_t &new_enable_gc_branch) {
         parent->assert_thread();
         guarantee(!static_cast<bool>(enable_gc_branch));
-        enable_gc_branch = boost::make_optional(new_enable_gc_branch);
+        enable_gc_branch = make_optional(new_enable_gc_branch);
         parent->gc_branch_history_pumper.notify();
     }
 

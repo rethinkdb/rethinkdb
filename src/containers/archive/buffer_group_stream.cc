@@ -1,6 +1,8 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "containers/buffer_group.hpp"
 
+#include <algorithm>
+
 #include "containers/archive/buffer_group_stream.hpp"
 
 buffer_group_read_stream_t::buffer_group_read_stream_t(const const_buffer_group_t *group)

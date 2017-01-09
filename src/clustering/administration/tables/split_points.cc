@@ -101,7 +101,7 @@ void fetch_distribution(
     read_response_t resp;
     try {
         ns_if_access.get()->read(
-            auth::user_context_t(auth::permissions_t(true, false, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
             read,
             &resp,
             order_token_t::ignore,

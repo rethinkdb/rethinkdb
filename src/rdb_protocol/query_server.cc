@@ -87,11 +87,11 @@ void rdb_query_server_t::fill_server_info(ql::response_t *out) {
     ql::datum_object_builder_t builder;
     builder.overwrite(datum_string_t("id"), ql::datum_t(id));
 
-    boost::optional<server_config_versioned_t> server_conf =
+    optional<server_config_versioned_t> server_conf =
         server_config_client->get_server_config_map()->get_key(server_id);
 
     bool is_proxy;
-    if (server_conf) {
+    if (server_conf.has_value()) {
         // The local server always exists on persistent nodes
         builder.overwrite(datum_string_t("name"),
                 ql::datum_t(datum_string_t(server_conf->config.name.str())));

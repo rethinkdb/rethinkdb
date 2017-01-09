@@ -56,9 +56,9 @@ template<class key_t, class value_t>
 void cross_thread_watchable_map_var_t<key_t, value_t>::on_change(
         const key_t &key, const value_t *value) {
     if (value != nullptr) {
-        queued_changes[key] = boost::optional<value_t>(*value);
+        queued_changes[key] = optional<value_t>(*value);
     } else {
-        queued_changes[key] = boost::optional<value_t>();
+        queued_changes[key] = optional<value_t>();
     }
     deliver_pumper.notify();
 }
@@ -67,7 +67,7 @@ template<class key_t, class value_t>
 void cross_thread_watchable_map_var_t<key_t, value_t>::deliver(
         UNUSED signal_t *interruptor) {
     guarantee(get_thread_id() == input_thread);
-    std::map<key_t, boost::optional<value_t> > local_changes;
+    std::map<key_t, optional<value_t> > local_changes;
     std::swap(local_changes, queued_changes);
     on_thread_t thread_switcher(output_thread);
     for (const auto &pair : local_changes) {

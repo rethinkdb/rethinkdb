@@ -9,24 +9,24 @@
 /* A promise_t is a condition variable combined with a "return value", of sorts, that
 is transmitted to the thing waiting on the condition variable. */
 
-template <class val_t>
+template <class value_type>
 class promise_t : public home_thread_mixin_debug_only_t {
 public:
     promise_t() { }
 
-    void pulse(const val_t &v) {
+    void pulse(const value_type &v) {
         assert_thread();
         value.create(v);
         cond.pulse();
     }
 
-    void pulse_if_not_already_pulsed(const val_t &v) {
+    void pulse_if_not_already_pulsed(const value_type &v) {
         if (!is_pulsed()) {
             pulse(v);
         }
     }
 
-    const val_t &wait() const {
+    const value_type &wait() const {
         assert_thread();
         cond.wait_lazily_unordered();
         return *value.get();
@@ -37,12 +37,12 @@ public:
     }
 
     /* Note that `assert_get_value()` can be called on any thread. */
-    val_t assert_get_value() const {
+    value_type assert_get_value() const {
         cond.guarantee_pulsed();
         return *value.get();
     }
 
-    MUST_USE bool try_get_value(val_t *out) const {
+    MUST_USE bool try_get_value(value_type *out) const {
         if (is_pulsed()) {
             *out = *value.get();
             return true;
@@ -57,7 +57,7 @@ public:
 
 private:
     cond_t cond;
-    object_buffer_t<val_t> value;
+    object_buffer_t<value_type> value;
 
     DISABLE_COPYING(promise_t);
 };

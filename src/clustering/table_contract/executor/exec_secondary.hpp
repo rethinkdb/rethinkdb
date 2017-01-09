@@ -39,7 +39,7 @@ private:
     contract_id_t contract_id;
 
     /* `last_ack` contains the last ack we've sent via `ack_cb`, if any. */
-    boost::optional<contract_ack_t> last_ack;
+    optional<contract_ack_t> last_ack;
 
     /* Set to `YES` if we're a voter, `NO` if we're a nonvoter */
     backfill_throttler_t::priority_t::critical_t is_critical_priority;

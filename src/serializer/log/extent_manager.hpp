@@ -107,7 +107,7 @@ public:
     MUST_USE extent_reference_t reserve_extent(int64_t extent);
 
     static void prepare_initial_metablock(metablock_mixin_t *mb);
-    void start_existing(metablock_mixin_t *last_metablock);
+    void start_existing();
     void prepare_metablock(metablock_mixin_t *metablock);
     void shutdown();
 

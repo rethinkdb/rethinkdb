@@ -8,12 +8,11 @@
 #include <re2/re2.h>
 
 #include "errors.hpp"
-#include <boost/bind.hpp>
 #include <boost/algorithm/string.hpp>
 
 #include "arch/io/network.hpp"
 #include "logger.hpp"
-#include "utils.hpp"
+#include "math.hpp"
 
 static const char *const resource_parts_sep_char = "/";
 static boost::char_separator<char> resource_parts_sep(resource_parts_sep_char, "", boost::keep_empty_tokens);
@@ -113,12 +112,12 @@ http_req_t::http_req_t(const http_req_t &from, const resource_t::iterator& resou
       header_lines(from.header_lines),
       body(from.body) { }
 
-boost::optional<std::string> http_req_t::find_query_param(const std::string& key) const {
+optional<std::string> http_req_t::find_query_param(const std::string& key) const {
     std::map<std::string, std::string>::const_iterator it = query_params.find(key);
     if (it != query_params.end()) {
-        return boost::optional<std::string>(it->second);
+        return optional<std::string>(it->second);
     }
-    return boost::none;
+    return r_nullopt;
 }
 
 void http_req_t::add_header_line(const std::string& key, const std::string& val) {
@@ -130,14 +129,14 @@ void http_req_t::add_header_line(const std::string& key, const std::string& val)
     }
 }
 
-boost::optional<std::string> http_req_t::find_header_line(const std::string& key) const {
+optional<std::string> http_req_t::find_header_line(const std::string& key) const {
     std::string header_key = key;
     boost::to_lower(header_key);
     std::map<std::string, std::string>::const_iterator it = header_lines.find(header_key);
     if (it != header_lines.end()) {
-        return boost::optional<std::string>(it->second);
+        return optional<std::string>(it->second);
     }
-    return boost::none;
+    return r_nullopt;
 }
 
 bool http_req_t::has_header_line(const std::string& key) const {
@@ -155,7 +154,7 @@ std::string http_req_t::get_sanitized_body() const {
 }
 
 int content_length(const http_req_t &msg) {
-    boost::optional<std::string> content_length = msg.find_header_line("Content-Length");
+    optional<std::string> content_length = msg.find_header_line("Content-Length");
 
     if (!content_length)
         return 0;
@@ -213,7 +212,7 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
     // http://www.w3.org/Protocols/rfc2616/rfc2616-sec14.html#sec14.3
     // We do not implement the entire standard, that is, we will always fallback to
     // the 'identity' encoding if anything fails, even if 'identity' has a qvalue of 0
-    boost::optional<std::string> supported_encoding = req.find_header_line("accept-encoding");
+    optional<std::string> supported_encoding = req.find_header_line("accept-encoding");
     if (!supported_encoding || supported_encoding.get().empty()) {
         return false;
     }
@@ -249,13 +248,13 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
         }
     }
 
-    // GCC 4.6 bug requires us to do it this way rather than initialize to boost::none
+    // GCC 4.6 bug requires us to do it this way rather than initialize to r_nullopt
     // http://gcc.gnu.org/bugzilla/show_bug.cgi?id=47679
-    boost::optional<double> gzip_q = 0.0;
+    optional<double> gzip_q(0.0);
     gzip_q.reset();
-    boost::optional<double> identity_q = 0.0;
+    optional<double> identity_q(0.0);
     identity_q.reset();
-    boost::optional<double> star_q = 0.0;
+    optional<double> star_q(0.0);
     star_q.reset();
 
     // We only care about three potential encoding qvalues: 'gzip', 'identity', and '*'
@@ -273,11 +272,11 @@ bool maybe_gzip_response(const http_req_t &req, http_res_t *res) {
         }
 
         if (it->first == "gzip") {
-            gzip_q = val;
+            gzip_q.set(val);
         } else if (it->first == "identity") {
-            identity_q = val;
+            identity_q.set(val);
         } else if (it->first == "*") {
-            star_q = val;
+            star_q.set(val);
         }
     }
 
@@ -358,8 +357,8 @@ http_server_t::http_server_t(
     try {
         tcp_listener.init(new tcp_listener_t(
             local_addresses, port,
-            boost::bind(
-                &http_server_t::handle_conn, this, _1,
+            std::bind(
+                &http_server_t::handle_conn, this, ph::_1,
                 auto_drainer_t::lock_t(&auto_drainer)
             )
         ));

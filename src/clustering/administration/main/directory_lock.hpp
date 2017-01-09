@@ -6,8 +6,9 @@
 #include <exception>
 #include <string>
 
-#include "utils.hpp"
 #include "arch/io/io_utils.hpp"
+#include "paths.hpp"
+#include "utils.hpp"
 
 #ifndef _WIN32
 #define INVALID_GID (static_cast<gid_t>(-1))

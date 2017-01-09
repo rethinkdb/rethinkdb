@@ -1,7 +1,10 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "btree/keys.hpp"
 
+#include <algorithm>
+
 #include "debug.hpp"
+#include "math.hpp"
 #include "utils.hpp"
 
 std::string key_range_t::print() const {

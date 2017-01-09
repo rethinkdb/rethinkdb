@@ -413,9 +413,9 @@ std::set<std::vector<std::string> > server_stats_request_t::get_filter() const {
 std::vector<peer_id_t> server_stats_request_t::get_peers(
         const std::map<peer_id_t, cluster_directory_metadata_t> &,
         server_config_client_t *server_config_client) const {
-    boost::optional<peer_id_t> peer =
+    optional<peer_id_t> peer =
         server_config_client->get_server_to_peer_map()->get_key(server_id);
-    if (!static_cast<bool>(peer)) {
+    if (!peer.has_value()) {
         return std::vector<peer_id_t>();
     }
     return std::vector<peer_id_t>(1, peer.get());
@@ -500,9 +500,9 @@ std::set<std::vector<std::string> > table_server_stats_request_t::get_filter() c
 std::vector<peer_id_t> table_server_stats_request_t::get_peers(
         const std::map<peer_id_t, cluster_directory_metadata_t> &,
         server_config_client_t *server_config_client) const {
-    boost::optional<peer_id_t> peer =
+    optional<peer_id_t> peer =
         server_config_client->get_server_to_peer_map()->get_key(server_id);
-    if (!static_cast<bool>(peer)) {
+    if (!peer.has_value()) {
         return std::vector<peer_id_t>();
     }
     return std::vector<peer_id_t>(1, peer.get());

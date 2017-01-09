@@ -378,8 +378,7 @@ continue_bool_t mock_store_t::send_backfill(
                     backfill_item_t::pair_t pair;
                     pair.key = jt->first;
                     pair.recency = jt->second.first;
-                    pair.value =
-                        boost::make_optional(datum_to_vector(jt->second.second));
+                    pair.value.set(datum_to_vector(jt->second.second));
                     memory_tracker->reserve_memory(pair.get_mem_size());
                     if (memory_tracker->is_limit_exceeded()) {
                         item.range.right = key_range_t::right_bound_t(jt->first);
@@ -425,7 +424,7 @@ continue_bool_t mock_store_t::send_backfill(
                 backfill_item_t::pair_t pair;
                 pair.key = it->first;
                 pair.recency = it->second.first;
-                pair.value = boost::make_optional(datum_to_vector(it->second.second));
+                pair.value.set(datum_to_vector(it->second.second));
                 memory_tracker->reserve_memory(pair.get_mem_size());
                 if (memory_tracker->is_limit_exceeded()) {
                     return continue_bool_t::ABORT;

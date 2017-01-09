@@ -6,14 +6,12 @@
 #include <utility>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "btree/concurrent_traversal.hpp"
 #include "btree/keys.hpp"
 #include "btree/reql_specific.hpp"
 #include "btree/types.hpp"
 #include "containers/counted.hpp"
+#include "containers/optional.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/geo/ellipsoid.hpp"
@@ -42,7 +40,7 @@ public:
                    store_key_t last_key,
                    const ql::batchspec_t &batchspec,
                    const std::vector<ql::transform_variant_t> &_transforms,
-                   const boost::optional<ql::terminal_variant_t> &_terminal,
+                   const optional<ql::terminal_variant_t> &_terminal,
                    is_stamp_read_t is_stamp_read);
     geo_job_data_t(geo_job_data_t &&jd)
         : env(jd.env),
@@ -86,7 +84,7 @@ public:
             btree_slice_t *_slice,
             geo_sindex_data_t &&_sindex,
             ql::env_t *_env,
-            std::set<std::pair<store_key_t, boost::optional<uint64_t> > >
+            std::set<std::pair<store_key_t, optional<uint64_t> > >
                 *_distinct_emitted_in_out);
     virtual ~geo_intersecting_cb_t() { }
 
@@ -122,10 +120,10 @@ private:
 
     // Stores the primary key and tag of previously processed documents, up to some limit
     // (this is an optimization for small query ranges, trading memory for efficiency)
-    std::set<std::pair<store_key_t, boost::optional<uint64_t> > > already_processed;
+    std::set<std::pair<store_key_t, optional<uint64_t> > > already_processed;
     // In contrast to `already_processed`, this set is critical to avoid emitting
     // duplicates. It's not just an optimization.
-    std::set<std::pair<store_key_t, boost::optional<uint64_t> > > *distinct_emitted;
+    std::set<std::pair<store_key_t, optional<uint64_t> > > *distinct_emitted;
 
     // State for profiling.
     scoped_ptr_t<profile::disabler_t> disabler;
@@ -165,7 +163,7 @@ private:
     geo_job_data_t job;
     rget_read_response_t *response;
 
-    std::set<std::pair<store_key_t, boost::optional<uint64_t> > > distinct_emitted;
+    std::set<std::pair<store_key_t, optional<uint64_t> > > distinct_emitted;
 };
 
 
@@ -184,7 +182,7 @@ private:
     friend class nearest_traversal_cb_t;
 
     /* State that changes over time */
-    std::set<std::pair<store_key_t, boost::optional<uint64_t> > > distinct_emitted;
+    std::set<std::pair<store_key_t, optional<uint64_t> > > distinct_emitted;
     size_t previous_size;
     // Which radius around `center` has been previously processed?
     double processed_inradius;
@@ -229,7 +227,7 @@ private:
 
     // Accumulate results for the current batch until finish() is called
     std::vector<std::pair<double, ql::datum_t> > result_acc;
-    boost::optional<ql::exc_t> error;
+    optional<ql::exc_t> error;
 
     nearest_traversal_state_t *state;
 };

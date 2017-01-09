@@ -137,21 +137,21 @@ raw_term_t raw_term_t::arg(size_t index) const {
     return res;
 }
 
-boost::optional<raw_term_t> raw_term_t::optarg(const std::string &name) const {
-    boost::optional<raw_term_t> res;
+optional<raw_term_t> raw_term_t::optarg(const std::string &name) const {
+    optional<raw_term_t> res;
     visit_source(
         [&](const json_data_t &source) {
             if (source.optargs != nullptr) {
                 auto it = source.optargs->FindMember(name.c_str());
                 if (it != source.optargs->MemberEnd()) {
-                    res = raw_term_t(&it->value);
+                    res.set(raw_term_t(&it->value));
                 }
             }
         },
         [&](const counted_t<generated_term_t> &source) {
             auto it = source->optargs.find(name);
             if (it != source->optargs.end()) {
-                res = raw_term_t(it->second);
+                res.set(raw_term_t(it->second));
             }
         });
     return res;

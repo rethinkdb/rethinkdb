@@ -1,11 +1,11 @@
 <img style="width:100%;" src="/github-banner.png">
 
 [RethinkDB](https://www.rethinkdb.com)
-=================
+======================================
 
 
 What is RethinkDB?
------------
+------------------
 
 * **Open-source** database for building realtime web applications
 * **NoSQL** database that stores schemaless JSON documents
@@ -26,7 +26,7 @@ Not sure what types of projects RethinkDB can help you build? Here are a few exa
 
 
 Quickstart
------------
+----------
 
 For a thirty-second RethinkDB quickstart, check out  [rethinkdb.com/docs/quickstart](https://www.rethinkdb.com/docs/quickstart).
 
@@ -49,9 +49,40 @@ Besides our four official drivers, we also have many [third-party drivers](https
 
 Looking to explore what else RethinkDB offers or the specifics of ReQL? Check out [our RethinkDB docs](https://rethinkdb.com/docs/) and [ReQL API](https://rethinkdb.com/api/).
 
+Building
+--------
+
+First install some dependencies.  For example, on Ubuntu or Debian:
+
+    sudo apt-get install build-essential protobuf-compiler python \
+        libprotobuf-dev libcurl4-openssl-dev libboost-all-dev \
+        libncurses5-dev libjemalloc-dev wget m4 g++
+
+Generally, you will need
+
+* GCC or Clang
+* Protocol Buffers
+* jemalloc
+* Ncurses
+* Boost
+* Python 2
+* libcurl
+* libcrypto (OpenSSL)
+
+Then, to build:
+
+    ./configure --allow-fetch
+    # or run ./configure --allow-fetch CXX=clang++
+
+    make -j4
+    # or run make -j4 DEBUG=1
+
+    sudo make install
+    # or run ./build/debug_clang/rethinkdb
+
 
 Need help?
---------
+----------
 
 A great place to start is [rethinkdb.com/community](https://rethinkdb.com/community). Here you can find out how to ask us questions, reach out to us, or [report an issue](https://github.com/rethinkdb/rethinkdb/issues). You'll be able to find all the places we frequent online and at which conference or meetups you might be able to meet us next.
 
@@ -60,10 +91,10 @@ If you need help right now, you can also find us [on Slack](http://slack.rethink
 **Join us now:** <a href="http://slack.rethinkdb.com/"><img valign="middle"  src="http://slack.rethinkdb.com/badge.svg"></a>
 
 Contributing
------------------
+------------
 
 RethinkDB was built by a dedicated team, but it wouldn't have been possible without the support and contributions of hundreds of people from all over the world. We could use your help too! Check out our [contributing guidelines](CONTRIBUTING.md) to get started.
 
 Where's the changelog?
------------------
+----------------------
 We keep [a list of changes and feature explanations here](NOTES.md).

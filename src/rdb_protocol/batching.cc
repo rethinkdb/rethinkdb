@@ -177,7 +177,7 @@ batchspec_t batchspec_t::with_at_most(uint64_t raw_max_els) const {
 
 batchspec_t batchspec_t::with_lazy_sorting_override(sorting_t sort) const {
     batchspec_t ret = *this;
-    ret.lazy_sorting_override = sort;
+    ret.lazy_sorting_override.set(sort);
     return ret;
 }
 

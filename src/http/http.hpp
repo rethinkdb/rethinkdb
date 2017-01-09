@@ -10,12 +10,12 @@
 
 #include "errors.hpp"
 #include <boost/tokenizer.hpp>
-#include <boost/optional.hpp>
 
 #include "arch/address.hpp"
 #include "arch/io/openssl.hpp"
 #include "arch/types.hpp"
 #include "concurrency/auto_drainer.hpp"
+#include "containers/optional.hpp"
 #include "containers/shared_buffer.hpp"
 #include "parsing/util.hpp"
 
@@ -72,8 +72,8 @@ struct http_req_t {
     explicit http_req_t(const std::string &resource_path);
     http_req_t(const http_req_t &from, const resource_t::iterator& resource_start);
 
-    boost::optional<std::string> find_query_param(const std::string&) const;
-    boost::optional<std::string> find_header_line(const std::string&) const;
+    optional<std::string> find_query_param(const std::string&) const;
+    optional<std::string> find_header_line(const std::string&) const;
     void add_header_line(const std::string&, const std::string&);
     bool has_header_line(const std::string&) const;
 };

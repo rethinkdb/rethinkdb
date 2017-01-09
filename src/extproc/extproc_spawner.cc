@@ -15,6 +15,7 @@
 #include "extproc/extproc_spawner.hpp"
 #include "extproc/extproc_worker.hpp"
 #include "arch/fd_send_recv.hpp"
+#include "utils.hpp"
 
 extproc_spawner_t *extproc_spawner_t::instance = nullptr;
 

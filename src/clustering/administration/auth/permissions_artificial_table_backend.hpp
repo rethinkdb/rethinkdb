@@ -2,9 +2,6 @@
 #ifndef CLUSTERING_ADMINISTRATION_AUTH_PERMISSIONS_ARTIFICIAL_TABLE_BACKEND_HPP
 #define CLUSTERING_ADMINISTRATION_AUTH_PERMISSIONS_ARTIFICIAL_TABLE_BACKEND_HPP
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "clustering/administration/auth/base_artificial_table_backend.hpp"
 
 class name_resolver_t;
@@ -68,7 +65,7 @@ private:
 
     bool table_to_datum(
         username_t const &username,
-        boost::optional<database_id_t> const &database_id,
+        optional<database_id_t> const &database_id,
         namespace_id_t const &table_id,
         permissions_t const &permissions,
         cluster_semilattice_metadata_t const &cluster_metadata,

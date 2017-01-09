@@ -48,7 +48,7 @@ TEST(VarintTest, RangeError) {
     // First we test 1 + UINT64_MAX / 2, to make sure it works.
     std::string s;
     for (size_t i = 0; i < 9; ++i) {
-        s.push_back(128);
+        s.push_back(-128);
     }
     s.push_back(1);
 
@@ -74,7 +74,7 @@ TEST(VarintTest, RangeError) {
 
     // Next, we test an 11-byte varint.
     s.erase(s.end() - 1);
-    s.push_back(128);
+    s.push_back(-128);
     s.push_back(1);
 
     {

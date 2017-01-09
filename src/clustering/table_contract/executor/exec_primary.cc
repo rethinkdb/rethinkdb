@@ -45,7 +45,7 @@ void primary_execution_t::update_contract_or_raft_state(
         bool branch_matches = true;
         raft_state.current_branches.visit(region,
         [&](const region_t &, const branch_id_t &b) {
-            if (boost::make_optional(b) != our_branch_id) {
+            if (make_optional(b) != our_branch_id) {
                 branch_matches = false;
             }
         });
@@ -55,7 +55,7 @@ void primary_execution_t::update_contract_or_raft_state(
             branch_registered.pulse();
             /* Change `latest_ack` immediately so we don't keep sending the branch
             registration request */
-            latest_ack = boost::make_optional(contract_ack_t(
+            latest_ack = make_optional(contract_ack_t(
                 contract_ack_t::state_t::primary_in_progress));
             params->send_ack(contract_id, *latest_ack);
         }
@@ -86,7 +86,7 @@ void primary_execution_t::update_contract_or_raft_state(
     we sync with the replicas according to the new contract. */
     if (static_cast<bool>(latest_ack) &&
             latest_ack->state == contract_ack_t::state_t::primary_ready) {
-        latest_ack = boost::make_optional(contract_ack_t(
+        latest_ack = make_optional(contract_ack_t(
             contract_ack_t::state_t::primary_in_progress));
     }
 
@@ -137,23 +137,23 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
         */
         table_query_bcard_t tq_bcard_direct;
         tq_bcard_direct.region = region;
-        tq_bcard_direct.primary = boost::none;
-        tq_bcard_direct.direct = boost::make_optional(direct_query_server.get_bcard());
+        tq_bcard_direct.primary = r_nullopt;
+        tq_bcard_direct.direct = make_optional(direct_query_server.get_bcard());
         watchable_map_var_t<uuid_u, table_query_bcard_t>::entry_t directory_entry_direct(
             context->local_table_query_bcards, generate_uuid(), tq_bcard_direct);
 
         /* Send a request for the coordinator to register our branch */
         {
-            our_branch_id = boost::make_optional(primary_dispatcher.get_branch_id());
+            our_branch_id = make_optional(primary_dispatcher.get_branch_id());
             contract_ack_t ack(contract_ack_t::state_t::primary_need_branch);
-            ack.branch = boost::make_optional(*our_branch_id);
+            ack.branch.set(*our_branch_id);
             context->branch_history_manager->export_branch_history(
                 primary_dispatcher.get_branch_birth_certificate().origin,
                 &ack.branch_history);
             ack.branch_history.branches.insert(std::make_pair(
                 *our_branch_id,
                 primary_dispatcher.get_branch_birth_certificate()));
-            latest_ack = boost::make_optional(ack);
+            latest_ack = make_optional(ack);
             params->send_ack(latest_contract_home_thread->contract_id, ack);
         }
 
@@ -233,8 +233,8 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
         table_query_bcard_t tq_bcard_primary;
         tq_bcard_primary.region = region;
         tq_bcard_primary.primary =
-            boost::make_optional(primary_query_server.get_bcard());
-        tq_bcard_primary.direct = boost::none;
+            make_optional(primary_query_server.get_bcard());
+        tq_bcard_primary.direct = r_nullopt;
         watchable_map_var_t<uuid_u, table_query_bcard_t>::entry_t
             directory_entry_primary(
                 context->local_table_query_bcards, generate_uuid(), tq_bcard_primary);
@@ -526,7 +526,7 @@ void primary_execution_t::update_contract_on_store_thread(
 
         if (should_ack) {
             /* OK, time to ack the contract */
-            latest_ack = boost::make_optional(
+            latest_ack = make_optional(
                 contract_ack_t(contract_ack_t::state_t::primary_ready));
             params->send_ack(contract->contract_id, *latest_ack);
         }

@@ -2,9 +2,6 @@
 #ifndef CLUSTERING_ADMINISTRATION_TABLES_NAME_RESOLVER_HPP_
 #define CLUSTERING_ADMINISTRATION_TABLES_NAME_RESOLVER_HPP_
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "clustering/administration/artificial_reql_cluster_interface.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
@@ -24,10 +21,10 @@ public:
         : m_optional(std::forward<T>(value)),
           m_error(error_t::OK) { }
     explicit resolved_id_optional_t(no_such_name_t)
-        : m_optional(boost::none),
+        : m_optional(r_nullopt),
           m_error(error_t::NO_SUCH_NAME) { }
     explicit resolved_id_optional_t(ambiguous_name_t)
-        : m_optional(boost::none),
+        : m_optional(r_nullopt),
           m_error(error_t::AMBIGUOUS_NAME) { }
 
     explicit operator bool() const noexcept {
@@ -47,7 +44,7 @@ public:
     }
 
 private:
-    boost::optional<T> m_optional;
+    optional<T> m_optional;
     enum class error_t { OK = 0, NO_SUCH_NAME, AMBIGUOUS_NAME };
     error_t m_error;
 };
@@ -66,15 +63,15 @@ public:
     // multiple operations in a row it's more efficient to get a copy of the metadata
     // yourself using the function above and reusing it.
 
-    boost::optional<name_string_t> database_id_to_name(
+    optional<name_string_t> database_id_to_name(
             database_id_t const &) const noexcept;
-    boost::optional<name_string_t> database_id_to_name(
+    optional<name_string_t> database_id_to_name(
             database_id_t const &,
             cluster_semilattice_metadata_t const &) const noexcept;
 
-    boost::optional<table_basic_config_t> table_id_to_basic_config(
+    optional<table_basic_config_t> table_id_to_basic_config(
             namespace_id_t const &,
-            boost::optional<database_id_t> const & = boost::none) const noexcept;
+            optional<database_id_t> const & = r_nullopt) const noexcept;
 
     resolved_id_optional_t<database_id_t> database_name_to_id(
             name_string_t const &) const noexcept;

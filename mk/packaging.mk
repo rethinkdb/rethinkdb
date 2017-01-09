@@ -134,7 +134,7 @@ clean-dist-dir:
 	rm -rf $(DIST_DIR)
 
 .PHONY: reset-dist-dir
-reset-dist-dir: FORCE | web-assets
+reset-dist-dir: FORCE
 	test ! -e $(DIST_DIR) || { echo "error: $(DIST_DIR) exists. make clean-dist-dir first"; false; }
 	$P CP $(DIST_DIR)
 	mkdir -p $(DIST_DIR)

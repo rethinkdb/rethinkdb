@@ -5,9 +5,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/arch.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/cond_var.hpp"
@@ -266,7 +263,7 @@ void metablock_manager_t<metablock_t>::start_existing_callback(file_t *file, boo
 
 template<class metablock_t>
 bool metablock_manager_t<metablock_t>::start_existing(file_t *file, bool *mb_found, metablock_t *mb_out, metablock_read_callback_t *cb) {
-    coro_t::spawn_later_ordered(boost::bind(&metablock_manager_t<metablock_t>::start_existing_callback, this, file, mb_found, mb_out, cb));
+    coro_t::spawn_later_ordered(std::bind(&metablock_manager_t<metablock_t>::start_existing_callback, this, file, mb_found, mb_out, cb));
     return false;
 }
 template<class metablock_t>
@@ -301,7 +298,7 @@ void metablock_manager_t<metablock_t>::write_metablock_callback(metablock_t *mb,
 
 template<class metablock_t>
 bool metablock_manager_t<metablock_t>::write_metablock(metablock_t *mb, file_account_t *io_account, metablock_write_callback_t *cb) {
-    coro_t::spawn_later_ordered(boost::bind(&metablock_manager_t<metablock_t>::write_metablock_callback, this, mb, io_account, cb));
+    coro_t::spawn_later_ordered(std::bind(&metablock_manager_t<metablock_t>::write_metablock_callback, this, mb, io_account, cb));
     return false;
 }
 

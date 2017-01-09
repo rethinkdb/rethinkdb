@@ -5,9 +5,6 @@
 #include <map>
 #include <string>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "clustering/administration/auth/password.hpp"
 #include "clustering/administration/auth/permissions.hpp"
 #include "clustering/administration/auth/username.hpp"

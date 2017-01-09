@@ -110,8 +110,8 @@
 #ifndef RAPIDJSON_NO_INT64DEFINE
 //!@cond RAPIDJSON_HIDDEN_FROM_DOXYGEN
 #ifdef _MSC_VER
-#include "msinttypes/stdint.h"
-#include "msinttypes/inttypes.h"
+#include "rapidjson/msinttypes/stdint.h"
+#include "rapidjson/msinttypes/inttypes.h"
 #else
 // Other compilers should have this.
 #include <stdint.h>
@@ -462,8 +462,8 @@ RAPIDJSON_NAMESPACE_END
 ///////////////////////////////////////////////////////////////////////////////
 // Allocators and Encodings
 
-#include "allocators.h"
-#include "encodings.h"
+#include "rapidjson/allocators.h"
+#include "rapidjson/encodings.h"
 
 /*! \namespace rapidjson
     \brief main RapidJSON namespace

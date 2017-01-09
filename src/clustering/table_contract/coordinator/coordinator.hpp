@@ -37,7 +37,7 @@ public:
 
     /* `table_meta_client_t` calls `change_config()` (indirectly, over the network) to
     change the cluster config. */
-    boost::optional<raft_log_index_t> change_config(
+    optional<raft_log_index_t> change_config(
         const std::function<void(table_config_and_shards_t *)> &changer,
         signal_t *interruptor);
 

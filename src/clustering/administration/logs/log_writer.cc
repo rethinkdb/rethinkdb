@@ -12,9 +12,6 @@
 #include <io.h>
 #endif
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/io/disk/filestat.hpp"
 #include "arch/io/disk.hpp"
@@ -548,11 +545,11 @@ thread_pool_log_writer_t::thread_pool_log_writer_t()
         : has_parse_error(false) {
     pmap(
         get_num_threads(),
-        boost::bind(&thread_pool_log_writer_t::install_on_thread, this, _1));
+        std::bind(&thread_pool_log_writer_t::install_on_thread, this, ph::_1));
 }
 
 thread_pool_log_writer_t::~thread_pool_log_writer_t() {
-    pmap(get_num_threads(), boost::bind(&thread_pool_log_writer_t::uninstall_on_thread, this, _1));
+    pmap(get_num_threads(), std::bind(&thread_pool_log_writer_t::uninstall_on_thread, this, ph::_1));
 }
 
 std::vector<log_message_t> thread_pool_log_writer_t::tail(
@@ -579,7 +576,7 @@ std::vector<log_message_t> thread_pool_log_writer_t::tail(
 
     bool ok;
     thread_pool_t::run_in_blocker_pool(
-        boost::bind(
+        std::bind(
             &thread_pool_log_writer_t::tail_blocking,
             this,
             max_lines,
@@ -623,7 +620,7 @@ void thread_pool_log_writer_t::write(const log_message_t &lm) {
     mutex_t::acq_t write_mutex_acq(&write_mutex);
     std::string error_message;
     bool ok;
-    thread_pool_t::run_in_blocker_pool(boost::bind(&thread_pool_log_writer_t::write_blocking, this, lm, &error_message, &ok));
+    thread_pool_t::run_in_blocker_pool(std::bind(&thread_pool_log_writer_t::write_blocking, this, lm, &error_message, &ok));
     if (ok) {
         log_write_issue_tracker.report_success();
     } else {
@@ -719,7 +716,7 @@ void vlog_internal(UNUSED const char *src_file, UNUSED int src_line, log_level_t
         auto_drainer_t::lock_t lock(TLS_get_global_log_drainer());
 
         std::string message = vstrprintf(format, args);
-        coro_t::spawn_sometime(boost::bind(&log_coro, writer, level, message, lock));
+        coro_t::spawn_sometime(std::bind(&log_coro, writer, level, message, lock));
 
     } else {
         std::string message = vstrprintf(format, args);

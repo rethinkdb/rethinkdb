@@ -99,7 +99,7 @@ public:
             signal_t *interruptor,
             std::set<name_string_t> *names_out, admin_err_t *error_out);
     bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
-            boost::optional<admin_identifier_format_t> identifier_format,
+            optional<admin_identifier_format_t> identifier_format,
             signal_t *interruptor, counted_t<base_table_t> *table_out,
             admin_err_t *error_out);
     bool table_estimate_doc_counts(
@@ -210,7 +210,7 @@ public:
             auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
             const name_string_t &table,
-            const boost::optional<write_hook_config_t> &config,
+            const optional<write_hook_config_t> &config,
             signal_t *interruptor,
             admin_err_t *error_out);
 

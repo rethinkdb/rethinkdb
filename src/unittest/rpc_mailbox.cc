@@ -156,12 +156,12 @@ TPTEST_MULTITHREAD(RPCMailboxTest, TypedMailbox, 3) {
     test_cluster_run_t r(&c);
 
     std::vector<std::string> inbox;
-    mailbox_t<void(std::string)> mbox(&m,
+    mailbox_t<std::string> mbox(&m,
         [&](signal_t *, const std::string &str) {
             inbox.push_back(str);
         });
 
-    mailbox_addr_t<void(std::string)> addr = mbox.get_address();
+    mailbox_addr_t<std::string> addr = mbox.get_address();
 
     send(&m, addr, std::string("foo"));
     send(&m, addr, std::string("bar"));

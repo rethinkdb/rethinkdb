@@ -1321,17 +1321,18 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
         for (auto it = blocks_by_tokens.begin(); it != blocks_by_tokens.end();
              ++it) {
             if (it->is_deleted) {
-                write_ops.push_back(index_write_op_t(it->block_id,
-                                                     counted_t<standard_block_token_t>(),
-                                                     repli_timestamp_t::invalid));
+                write_ops.push_back(index_write_op_t(
+                    it->block_id,
+                    make_optional(counted_t<standard_block_token_t>()),
+                    make_optional(repli_timestamp_t::invalid)));
             } else if (it->block_token.has()) {
                 write_ops.push_back(index_write_op_t(it->block_id,
-                                                     it->block_token,
-                                                     it->tstamp));
+                                                     make_optional(it->block_token),
+                                                     make_optional(it->tstamp)));
             } else {
                 write_ops.push_back(index_write_op_t(it->block_id,
-                                                     boost::none,
-                                                     it->tstamp));
+                                                     r_nullopt,
+                                                     make_optional(it->tstamp)));
             }
         }
 

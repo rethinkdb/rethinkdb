@@ -4,9 +4,6 @@
 #include <string>
 #include <utility>
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"

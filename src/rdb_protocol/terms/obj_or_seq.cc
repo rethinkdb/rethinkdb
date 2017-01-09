@@ -96,7 +96,7 @@ scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
             stream->add_transformation(map_wire_func_t(f), target->backtrace());
             break;
         case FILTER:
-            stream->add_transformation(filter_wire_func_t(f, boost::none),
+            stream->add_transformation(filter_wire_func_t(f, r_nullopt),
                                        target->backtrace());
             break;
         case SKIP_MAP:

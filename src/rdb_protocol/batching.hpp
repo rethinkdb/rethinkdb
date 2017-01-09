@@ -4,8 +4,10 @@
 
 #include <utility>
 
+#include "btree/keys.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/versioned.hpp"
+#include "containers/optional.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "time.hpp"
@@ -91,7 +93,7 @@ public:
     // `ASCENDING` ordering allows the logic to be simpler.
     batchspec_t with_lazy_sorting_override(sorting_t sort) const;
     sorting_t lazy_sorting(sorting_t base) const {
-        return lazy_sorting_override ? *lazy_sorting_override : base;
+        return lazy_sorting_override.value_or(base);
     }
 
     batchspec_t scale_down(int64_t divisor) const;
@@ -113,7 +115,7 @@ private:
     batch_type_t batch_type;
     int64_t min_els, max_els, max_size, first_scaledown_factor, max_dur;
     microtime_t start_time;
-    boost::optional<sorting_t> lazy_sorting_override;
+    optional<sorting_t> lazy_sorting_override;
 };
 RDB_DECLARE_SERIALIZABLE(batchspec_t);
 

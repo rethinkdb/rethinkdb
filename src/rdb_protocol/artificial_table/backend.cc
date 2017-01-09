@@ -1,10 +1,11 @@
-#include "backend.hpp"
+#include "rdb_protocol/artificial_table/backend.hpp"
 
 #include <algorithm>
 
 #include "clustering/administration/artificial_reql_cluster_interface.hpp"
 #include "rdb_protocol/artificial_table/artificial_table.hpp"
 #include "rdb_protocol/datum_stream.hpp"
+#include "rdb_protocol/datum_stream/vector.hpp"
 
 const uuid_u artificial_table_backend_t::base_table_id =
     str_to_uuid("0eabef01-6deb-4069-9a2d-448db057ab1e");
@@ -76,7 +77,7 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
     ql::changefeed::keyspec_t::range_t range_keyspec;
     range_keyspec.sorting = sorting;
     range_keyspec.datumspec = datumspec;
-    boost::optional<ql::changefeed::keyspec_t> keyspec(ql::changefeed::keyspec_t(
+    optional<ql::changefeed::keyspec_t> keyspec(ql::changefeed::keyspec_t(
         std::move(range_keyspec),
         counted_t<base_table_t>(
             new artificial_table_t(
