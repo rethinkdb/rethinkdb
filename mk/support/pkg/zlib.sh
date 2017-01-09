@@ -1,8 +1,8 @@
 
-version=1.2.8
+version=1.2.10
 
 src_url=http://zlib.net/zlib-$version.tar.gz
-src_url_sha1=a4d316c404ff54ca545ea71a27af7dbc29817088
+src_url_sha1=76af0bfb4d17fad1d8bda13cb5593c311f59adee
 
 pkg_install-include () {
     mkdir -p "$install_dir/include"
