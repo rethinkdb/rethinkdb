@@ -414,12 +414,12 @@ public:
         std::vector<item_t> &&item_vec);
 
     void add(rwlock_in_line_t *spot,
-             store_key_t sk,
+             const store_key_t &sk,
              is_primary_t is_primary,
              datum_t key,
              datum_t val) THROWS_NOTHING;
     void del(rwlock_in_line_t *spot,
-             store_key_t sk,
+             const store_key_t &sk,
              is_primary_t is_primary) THROWS_NOTHING;
     void commit(rwlock_in_line_t *spot,
                 const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref)
