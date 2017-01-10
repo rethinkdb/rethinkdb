@@ -36,7 +36,7 @@ struct indexed_datum_t {
     datum_t val;
     optional<std::string> btree_index_key;
 
-    // TODO: It'd be nice if this was non-copyable.
+    MOVABLE_BUT_NOT_COPYABLE(indexed_datum_t);
 };
 
 struct stamped_range_t {
@@ -2938,21 +2938,17 @@ public:
         feed->on_point_sub(
             change.pkey,
             *lock,
-            std::bind(
-                &point_sub_t::add_el,
-                ph::_1,
-                std::cref(server_uuid),
-                stamp,
-                change.pkey,
-                r_nullopt,
-                change.old_val.has()
-                    ? optional<indexed_datum_t>(
-                        indexed_datum_t(change.old_val, r_nullopt))
-                    : r_nullopt,
-                change.new_val.has()
-                    ? optional<indexed_datum_t>(
-                        indexed_datum_t(change.new_val, r_nullopt))
-                    : r_nullopt));
+            [&](point_sub_t *sub) {
+                sub->add_el(server_uuid, stamp, change.pkey, r_nullopt,
+                            change.old_val.has()
+                                ? optional<indexed_datum_t>(
+                                        indexed_datum_t(change.old_val, r_nullopt))
+                                : r_nullopt,
+                            change.new_val.has()
+                                ? optional<indexed_datum_t>(
+                                        indexed_datum_t(change.new_val, r_nullopt))
+                                : r_nullopt);
+            });
     }
     void operator()(const msg_t::stop_t &) const {
         feed->abort_feed();
