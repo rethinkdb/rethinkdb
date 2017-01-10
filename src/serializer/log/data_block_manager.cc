@@ -61,8 +61,8 @@ private:
         // 512 * 2^14 = 2^23 = 8MB. Assumes extent size < 8 MB.  Right now extent size
         // is 2.  ("dblocks" = "device blocks").
         uint16_t relative_offset_in_dblocks : 14;
-        bool token_referenced : 1;
-        bool index_referenced : 1;
+        uint16_t token_referenced : 1;
+        uint16_t index_referenced : 1;
         block_size_t block_size;
     };
 
