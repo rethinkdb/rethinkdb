@@ -28,7 +28,10 @@ template <cluster_version_t W, class tuple_type, size_t... Is>
 size_t serialized_size_helper(const tuple_type &tup, rindex_sequence<Is...>) {
     (void)tup;
     size_t acc = 0;
-    int ign[] = { ((acc += serialized_size<W>(std::get<Is>(tup))), 0)... };
+    // We specify the array size, and add 1, to satisfy VS 2015
+    // complaining about array of size zero.
+    int ign[sizeof...(Is) + 1]
+        = { ((acc += serialized_size<W>(std::get<Is>(tup))), 0)... };
     (void)ign;
     return acc;
 }
@@ -43,7 +46,10 @@ void serialize_helper(write_message_t *wm, const tuple_type &tup, rindex_sequenc
     // Silence unused variable warning in gcc for tuple<>.
     (void)wm;
     (void)tup;
-    int ign[] = { (serialize<W>(wm, std::get<Is>(tup)), 0)... };
+    // We specify the array size, and add 1, to satisfy VS 2015
+    // complaining about array of size zero.
+    int ign[sizeof...(Is) + 1]
+        = { (serialize<W>(wm, std::get<Is>(tup)), 0)... };
     (void)ign;
 }
 
@@ -57,9 +63,10 @@ MUST_USE archive_result_t deserialize_helper(read_stream_t *s, tuple_type *tup, 
     (void)s;
     (void)tup;
     archive_result_t res = archive_result_t::SUCCESS;
-    int ign[] = { (res == archive_result_t::SUCCESS
-                   ? ((res = deserialize<W>(s, &std::get<Is>(*tup))), 0)
-                   : 0)... };
+    int ign[sizeof...(Is) + 1]
+        = { (res == archive_result_t::SUCCESS
+             ? ((res = deserialize<W>(s, &std::get<Is>(*tup))), 0)
+             : 0)... };
     (void)ign;
     return res;
 }
