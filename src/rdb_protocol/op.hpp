@@ -18,48 +18,41 @@ namespace ql {
 
 class func_term_t;
 
+enum class single_server { no, yes };
+enum class constant_now { no, yes };
+
+
 class deterministic_t {
 public:
-    // non-deterministic operations, like ones involving external queries
-    static const deterministic_t NONDET;
+    // Is non-deterministic.
+    static deterministic_t NONDET() { return deterministic_t(1); }
 
-    // deterministic on a single server, but not necessarily across the cluster (different
-    // cpus, compilers), like geo operations
-    static const deterministic_t SINGLE_SERVER;
+    // Is non-deterministic if run across the cluster (different cpus, compilers,
+    // libc's), but is deterministic on a single server.  Example: geo operations.
+    static const deterministic_t SINGLE_SERVER() { return deterministic_t(2); }
 
-    // deterministic if r.now is constant
-    static const deterministic_t CONSTANT_NOW;
+    // Is non-deterministic if r.now is non-constant.
+    static const deterministic_t CONSTANT_NOW() { return deterministic_t(4); }
 
-    // always deterministic
-    static const deterministic_t DETERMINISTIC;
+    // Is always deterministic.
+    static const deterministic_t DETERMINISTIC() { return deterministic_t(0); }
 
-    deterministic_t operator|(deterministic_t other) const {
+    // Computes the deterministic-ness of two expressions.
+    deterministic_t join(deterministic_t other) const {
         return deterministic_t(bitset | other.bitset);
     }
 
-    deterministic_t& operator|=(deterministic_t other) {
-        bitset |= other.bitset;
-        return *this;
-    }
-
-    deterministic_t operator&(deterministic_t other) const {
-        return deterministic_t(bitset & other.bitset);
-    }
-
-    deterministic_t operator~() const {
-        return deterministic_t(~bitset);
-    }
-
-    bool operator==(deterministic_t other) const {
-        return bitset == other.bitset;
-    }
-
-    bool operator!=(deterministic_t other) const {
-        return bitset != other.bitset;
-    }
-
-    operator bool() {
-        return bitset;
+    // Params tell the situation:
+    //  - ss: are we running the term on a single server?
+    //  - cn: is r.now() constant?
+    // Returns true if the expression this deterministic_t is about is deterministic
+    // (under the given conditions).
+    bool test(single_server ss, constant_now cn) const {
+        // Turn off the bits that don't apply.
+        int mask = (ss == single_server::yes ? SINGLE_SERVER().bitset : 0)
+            | (cn == constant_now::yes ? CONSTANT_NOW().bitset : 0);
+        int remaining_bits = bitset & ~mask;
+        return remaining_bits == 0;
     }
 
     explicit deterministic_t(int bits) : bitset(bits) { }
@@ -67,8 +60,6 @@ public:
 private:
     int bitset;
 };
-
-void debug_print(printf_buffer_t *buf, deterministic_t det);
 
 // Specifies the range of normal arguments a function can take (arguments
 // provided by `r.args` count toward the total).  You may also optionally

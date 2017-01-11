@@ -204,8 +204,8 @@ public:
         }
 
         config.func.compile_wire_func()->assert_deterministic(
-            deterministic_t::DETERMINISTIC,
-            "Index functions must be deterministic.");
+                constant_now::no,
+                "Index functions must be deterministic.");
 
         /* Check if we're doing a multi index or a normal index. */
         if (scoped_ptr_t<val_t> multi_val = args->optarg(env, "multi")) {
