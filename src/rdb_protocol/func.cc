@@ -141,7 +141,7 @@ optional<size_t> js_func_t::arity() const {
 }
 
 deterministic_t js_func_t::is_deterministic() const {
-    return deterministic_t::NONDET();
+    return deterministic_t::no();
 }
 
 void reql_func_t::visit(func_visitor_t *visitor) const {

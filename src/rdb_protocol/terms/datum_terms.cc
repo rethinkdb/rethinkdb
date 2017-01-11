@@ -25,7 +25,7 @@ public:
 private:
     virtual void accumulate_captures(var_captures_t *) const { /* do nothing */ }
     virtual deterministic_t is_deterministic() const {
-        return deterministic_t::DETERMINISTIC();
+        return deterministic_t::always();
     }
     virtual scoped_ptr_t<val_t> term_eval(scope_env_t *, eval_flags_t) const {
         return new_val(datum);
@@ -109,7 +109,7 @@ public:
     }
 
     deterministic_t is_deterministic() const {
-        deterministic_t combined = deterministic_t::DETERMINISTIC();
+        deterministic_t combined = deterministic_t::always();
         for (const auto &arg : optargs) {
             combined = combined.join(arg.second->is_deterministic());
         }

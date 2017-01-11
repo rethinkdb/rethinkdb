@@ -286,7 +286,7 @@ const std::vector<counted_t<const term_t> > &op_term_t::get_original_args() cons
 deterministic_t op_term_t::is_deterministic() const {
     const std::vector<counted_t<const term_t> > &original_args
         = arg_terms->get_original_args();
-    deterministic_t det = deterministic_t::DETERMINISTIC();
+    deterministic_t det = deterministic_t::always();
     for (const auto &arg : original_args) {
         det = det.join(arg->is_deterministic());
     }

@@ -25,19 +25,19 @@ enum class constant_now { no, yes };
 class deterministic_t {
 public:
     // Is non-deterministic.
-    static deterministic_t NONDET() { return deterministic_t(1); }
+    static deterministic_t no() { return deterministic_t(1); }
 
     // Is non-deterministic if run across the cluster (different cpus, compilers,
     // libc's), but is deterministic on a single server.  Example: geo operations.
-    static const deterministic_t SINGLE_SERVER() { return deterministic_t(2); }
+    static deterministic_t single_server() { return deterministic_t(2); }
 
     // Is non-deterministic if r.now is non-constant.
-    static const deterministic_t CONSTANT_NOW() { return deterministic_t(4); }
+    static deterministic_t constant_now() { return deterministic_t(4); }
 
     // Is always deterministic.
-    static const deterministic_t DETERMINISTIC() { return deterministic_t(0); }
+    static deterministic_t always() { return deterministic_t(0); }
 
-    // Computes the deterministic-ness of two expressions.
+    // Computes the combined deterministic-ness of two expressions.
     deterministic_t join(deterministic_t other) const {
         return deterministic_t(bitset | other.bitset);
     }
@@ -45,19 +45,20 @@ public:
     // Params tell the situation:
     //  - ss: are we running the term on a single server?
     //  - cn: is r.now() constant?
-    // Returns true if the expression this deterministic_t is about is deterministic
-    // (under the given conditions).
-    bool test(single_server ss, constant_now cn) const {
+    // Returns true if the expression is deterministic (under the given conditions).
+    // ("The expression" is whatever expression this deterministic_t value was
+    // computed from.)
+    bool test(enum single_server ss, enum constant_now cn) const {
         // Turn off the bits that don't apply.
-        int mask = (ss == single_server::yes ? SINGLE_SERVER().bitset : 0)
-            | (cn == constant_now::yes ? CONSTANT_NOW().bitset : 0);
+        int mask = (ss == single_server::yes ? single_server().bitset : 0)
+            | (cn == constant_now::yes ? constant_now().bitset : 0);
         int remaining_bits = bitset & ~mask;
         return remaining_bits == 0;
     }
 
+private:
     explicit deterministic_t(int bits) : bitset(bits) { }
 
-private:
     int bitset;
 };
 
