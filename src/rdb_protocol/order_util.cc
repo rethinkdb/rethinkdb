@@ -23,14 +23,15 @@ void check_r_args(const term_t *target, const raw_term_t &term) {
 
 std::pair<order_direction_t, counted_t<const func_t> >
 build_comparison(const term_t* target,
-                      scoped_ptr_t<val_t> arg,
-                      raw_term_t item) {
+                 scoped_ptr_t<val_t> arg,
+                 raw_term_t item) {
 
     check_r_args(target, item);
 
     counted_t<const func_t> comparison_function = arg->as_func(GET_FIELD_SHORTCUT);
     rcheck_target(target,
-                  (comparison_function->is_deterministic() & ~deterministic_t::SINGLE_SERVER) == deterministic_t::DETERMINISTIC,
+                  comparison_function->is_deterministic().test(single_server::yes,
+                                                               constant_now::no),
                   base_exc_t::LOGIC,
                   "Sorting by a non-deterministic function is not supported.");
 
