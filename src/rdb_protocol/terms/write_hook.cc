@@ -29,7 +29,7 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 
     deterministic_t is_deterministic() const final {
-        return deterministic_t::NONDET();
+        return deterministic_t::no();
     }
 
     virtual scoped_ptr_t<val_t> eval_impl(
@@ -157,7 +157,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 
     deterministic_t is_deterministic() const final {
-        return deterministic_t::NONDET();
+        return deterministic_t::no();
     }
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
