@@ -46,10 +46,10 @@ private:
     void set_next_threshold();
     int min_timeout_ms, max_timeout_ms;
     std::function<void()> callback;
-    microtime_t next_threshold;
+    ticks_t next_threshold;
     int num_blockers;
     state_t state;
-    
+
     auto_drainer_t drainer;
 };
 
