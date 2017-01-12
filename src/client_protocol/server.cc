@@ -710,14 +710,14 @@ void query_server_t::handle(const http_req_t &req,
                 ticks_t start = get_ticks();
                 // We don't throttle HTTP queries.
                 handler->run_query(query.get(), &response, &true_interruptor);
-                ticks_t ticks = get_ticks() - start;
+                ticks_t ticks = ticks_t{get_ticks().nanos - start.nanos};
 
                 if (!response.profile()) {
                     ql::datum_array_builder_t array_builder(
                         ql::configured_limits_t::unlimited);
                     ql::datum_object_builder_t object_builder;
                     object_builder.overwrite("duration(ms)",
-                        ql::datum_t(static_cast<double>(ticks) / MILLION));
+                        ql::datum_t(static_cast<double>(ticks.nanos) / MILLION));
                     array_builder.add(std::move(object_builder).to_datum());
                     response.set_profile(std::move(array_builder).to_datum());
                 }

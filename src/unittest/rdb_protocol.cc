@@ -985,7 +985,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
     for (const auto &pair : bundles) {
         ql::batchspec_t bs(ql::batchspec_t::all()
                            .with_new_batch_type(ql::batch_type_t::NORMAL)
-                           .with_max_dur(1000));
+                           .with_max_dur(kiloticks_t{1000}));
         size_t i = pair.first;
         std::vector<ql::datum_t> p0, p10, rng;
         p0 = pair.second.point_0->next_batch(&env, bs);

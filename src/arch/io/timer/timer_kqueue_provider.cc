@@ -32,7 +32,7 @@ timer_kqueue_provider_t::~timer_kqueue_provider_t() {
 }
 
 void timer_kqueue_provider_t::schedule_oneshot(const int64_t next_time_in_nanos, timer_provider_callback_t *const cb) {
-    const int64_t time_difference = next_time_in_nanos - static_cast<int64_t>(get_ticks());
+    const int64_t time_difference = next_time_in_nanos - get_ticks().nanos;
     const int64_t wait_nanos = std::max<int64_t>(1, time_difference);
 
     struct kevent64_s event;

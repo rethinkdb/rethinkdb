@@ -39,7 +39,7 @@ void timerfd_provider_t::schedule_oneshot(const int64_t next_time_in_nanos, time
     // but that would mean this code depends on the fact that get_ticks() is implemented in terms of
     // CLOCK_MONOTONIC.
 
-    const int64_t time_difference = next_time_in_nanos - static_cast<int64_t>(get_ticks());
+    const int64_t time_difference = next_time_in_nanos - get_ticks().nanos;
     const int64_t wait_nanos = std::max<int64_t>(1, time_difference);
 
     struct itimerspec spec;

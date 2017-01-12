@@ -70,7 +70,7 @@ void timer_signal_provider_t::schedule_oneshot(int64_t next_time_in_nanos, timer
     // relative timer, but that would make our code fragilely depend on get_ticks() using
     // CLOCK_MONOTONIC.
 
-    const int64_t ticks = get_ticks();
+    const int64_t ticks = get_ticks().nanos;
     const int64_t time_diff = next_time_in_nanos - ticks;
     const int64_t wait_time = std::max<int64_t>(1, time_diff);
 

@@ -33,7 +33,7 @@ void walk_wait_times(int i, uint64_t *mse) {
         ticks_t t1 = get_ticks();
         nap(expected_ms);
         ticks_t t2 = get_ticks();
-        int64_t actual_ns = t2 - t1;
+        int64_t actual_ns = t2.nanos - t1.nanos;
         int64_t error_ns = actual_ns - expected_ms * MILLION;
 
         EXPECT_LT(llabs(error_ns), max_error_ms * MILLION)

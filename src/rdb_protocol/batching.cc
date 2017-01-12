@@ -14,7 +14,7 @@ static const int64_t DEFAULT_MIN_ELS = 1;
 static const int64_t DEFAULT_FIRST_SCALEDOWN = 4;
 static const int64_t DEFAULT_MAX_SIZE = MEGABYTE;
 // The maximum duration of a batch in microseconds.
-static const int64_t DEFAULT_MAX_DURATION = 500 * 1000;
+static const kiloticks_t DEFAULT_MAX_DURATION{500 * 1000};
 // These numbers are sort of arbitrary, but they seem to work. See `scale_down()`
 // for an explanation.
 static const int64_t DIVISOR_SCALING_FACTOR = 8;
@@ -32,8 +32,8 @@ batchspec_t::batchspec_t(
     int64_t _max_els,
     int64_t _max_size,
     int64_t _first_scaledown,
-    int64_t _max_dur,
-    microtime_t _start_time)
+    kiloticks_t _max_dur,
+    kiloticks_t _start_time)
     : batch_type(_batch_type),
       min_els(_min_els),
       max_els(_max_els),
@@ -46,7 +46,7 @@ batchspec_t::batchspec_t(
     r_sanity_check(min_els >= 1);
     r_sanity_check(max_els >= min_els);
     r_sanity_check(max_size >= 1);
-    r_sanity_check(max_dur >= 0);
+    r_sanity_check(max_dur.micros >= 0);
 }
 
 batchspec_t batchspec_t::default_for(batch_type_t batch_type) {
@@ -56,7 +56,7 @@ batchspec_t batchspec_t::default_for(batch_type_t batch_type) {
                        DEFAULT_MAX_SIZE,
                        DEFAULT_FIRST_SCALEDOWN,
                        DEFAULT_MAX_DURATION,
-                       current_microtime());
+                       get_kiloticks());
 }
 
 batchspec_t batchspec_t::all() {
@@ -65,8 +65,8 @@ batchspec_t batchspec_t::all() {
                        std::numeric_limits<decltype(batchspec_t().max_els)>::max(),
                        std::numeric_limits<decltype(batchspec_t().max_size)>::max(),
                        1,
-                       0,  // Ignored when batch_type is TERMINAL.
-                       current_microtime());
+                       kiloticks_t{0},  // Ignored when batch_type is TERMINAL.
+                       get_kiloticks());
 }
 
 static bool set_if_present(const char *argname, env_t *env, datum_t * dest) {
@@ -105,7 +105,7 @@ batchspec_t batchspec_t::user(batch_type_t batch_type, env_t *env) {
     int64_t first_sd = first_scaledown_d.has()
                        ? first_scaledown_d.as_int()
                        : DEFAULT_FIRST_SCALEDOWN;
-    int64_t max_dur = DEFAULT_MAX_DURATION;
+    kiloticks_t max_dur = DEFAULT_MAX_DURATION;
     if (max_dur_d.has()) {
         rcheck_target(
             &max_dur_d,
@@ -123,7 +123,7 @@ batchspec_t batchspec_t::user(batch_type_t batch_type, env_t *env) {
                       PR_RECONSTRUCTABLE_DOUBLE "`).",
                       max_dur_d.as_num()));
 
-        max_dur = static_cast<int64_t>(max_dur_d.as_num() * SECS_TO_USECS);
+        max_dur.micros = static_cast<int64_t>(max_dur_d.as_num() * SECS_TO_USECS);
     }
     // Protect the user in case they're a dork.  Normally we would do rfail and
     // trigger exceptions, but due to NOTHROWs above this may not be safe.
@@ -134,7 +134,7 @@ batchspec_t batchspec_t::user(batch_type_t batch_type, env_t *env) {
                        max_size,
                        first_sd,
                        max_dur,
-                       current_microtime());
+                       get_kiloticks());
 }
 
 batchspec_t batchspec_t::with_new_batch_type(batch_type_t new_batch_type) const {
@@ -147,7 +147,7 @@ batchspec_t batchspec_t::with_min_els(int64_t new_min_els) const {
                        first_scaledown_factor, max_dur, start_time);
 }
 
-batchspec_t batchspec_t::with_max_dur(int64_t new_max_dur) const {
+batchspec_t batchspec_t::with_max_dur(kiloticks_t new_max_dur) const {
     return batchspec_t(batch_type, min_els, max_els, max_size,
                        first_scaledown_factor, new_max_dur, start_time);
 }
@@ -222,19 +222,19 @@ batcher_t batchspec_t::to_batcher() const {
         || batch_type != batch_type_t::NORMAL_FIRST
             ? max_size
             : std::max<int64_t>(1, max_size / first_scaledown_factor);
-    microtime_t cur_time = current_microtime();
-    microtime_t end_time;
+    kiloticks_t cur_time = get_kiloticks();
+    kiloticks_t end_time;
     switch (batch_type) {
     case batch_type_t::NORMAL:
-        end_time = std::max(cur_time + (cur_time - start_time), start_time + max_dur);
+        end_time.micros = std::max(cur_time.micros + (cur_time.micros - start_time.micros), start_time.micros + max_dur.micros);
         break;
     case batch_type_t::NORMAL_FIRST:
-        end_time = std::max(start_time + (max_dur / first_scaledown_factor),
-                            cur_time + (max_dur / (first_scaledown_factor * 2)));
+        end_time.micros = std::max(start_time.micros + (max_dur.micros / first_scaledown_factor),
+                                   cur_time.micros + (max_dur.micros / (first_scaledown_factor * 2)));
         break;
     case batch_type_t::SINDEX_CONSTANT: // fallthru
     case batch_type_t::TERMINAL:
-        end_time = std::numeric_limits<decltype(end_time)>::max();
+        end_time.micros = std::numeric_limits<decltype(end_time.micros)>::max();
         break;
     default: unreachable();
     }
@@ -252,14 +252,15 @@ void serialize(write_message_t *wm, const batchspec_t &batchspec) {
     serialize<W>(wm, batchspec.max_els);
     serialize<W>(wm, batchspec.max_size);
     serialize<W>(wm, batchspec.first_scaledown_factor);
-    serialize<W>(wm, batchspec.max_dur);
+    serialize<W>(wm, batchspec.max_dur.micros);
 
-    // Here we serialize the duration instead of the `start_time` to account for
-    // clocks being out of sync between machines.
-    microtime_t current_time = current_microtime();
-    static_assert(sizeof(uint64_t) >= sizeof(microtime_t),
+    // Here we serialize the duration instead of the `start_time` to account for clocks
+    // being out of sync between processes.  (Before, we needed this same logic for
+    // wall-clock time.  It's a hack that we serialize a "batchspec" this way.)
+    kiloticks_t current_kiloticks = get_kiloticks();
+    static_assert(sizeof(uint64_t) >= sizeof(current_kiloticks),
                   "Incorrect type for duration, it might overflow");
-    uint64_t duration = current_time - std::min(batchspec.start_time, current_time);
+    uint64_t duration = current_kiloticks.micros - std::min(batchspec.start_time.micros, current_kiloticks.micros);
     serialize<W>(wm, duration);
 }
 INSTANTIATE_SERIALIZE_FOR_CLUSTER(batchspec_t);
@@ -282,15 +283,15 @@ archive_result_t deserialize(read_stream_t *s, batchspec_t *batchspec) {
     if (bad(res)) { return res; }
     res = deserialize<W>(s, deserialize_deref(batchspec->first_scaledown_factor));
     if (bad(res)) { return res; }
-    res = deserialize<W>(s, deserialize_deref(batchspec->max_dur));
+    res = deserialize<W>(s, deserialize_deref(batchspec->max_dur.micros));
     if (bad(res)) { return res; }
 
     uint64_t duration = 0;
-    static_assert(sizeof(uint64_t) >= sizeof(microtime_t),
+    static_assert(sizeof(uint64_t) >= sizeof(kiloticks_t),
                   "Incorrect type for duration, it might overflow");
     res = deserialize<W>(s, &duration);
     if (bad(res)) { return res; }
-    batchspec->start_time = current_microtime() - duration;
+    batchspec->start_time.micros = get_kiloticks().micros - duration;
 
     return res;
 }
@@ -302,7 +303,7 @@ bool batcher_t::should_send_batch(ignore_latency_t ignore_latency) const {
     return els_left <= 0
         || (size_left <= 0 && min_els_left <= 0)
         || (ignore_latency == ignore_latency_t::NO
-            && (current_microtime() >= end_time && seen_one_el));
+            && (get_kiloticks().micros >= end_time.micros && seen_one_el));
 }
 
 batcher_t::batcher_t(
@@ -310,7 +311,7 @@ batcher_t::batcher_t(
     int64_t min_els,
     int64_t max_els,
     int64_t max_size,
-    microtime_t _end_time)
+    kiloticks_t _end_time)
     : batch_type(_batch_type),
       seen_one_el(false),
       min_els_left(min_els),

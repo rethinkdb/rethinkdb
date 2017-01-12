@@ -45,7 +45,7 @@ microtime_t current_microtime() {
 #endif
 
 ticks_t secs_to_ticks(time_t secs) {
-    return static_cast<ticks_t>(secs) * BILLION;
+    return ticks_t{static_cast<int64_t>(secs) * BILLION};
 }
 
 #ifdef __MACH__
@@ -180,16 +180,20 @@ bool operator>=(const struct timespec &t1, const struct timespec &t2) {
 
 ticks_t get_ticks() {
     timespec tv = clock_monotonic();
-    ticks_t ticks = secs_to_ticks(tv.tv_sec) + tv.tv_nsec;
+    ticks_t ticks = { secs_to_ticks(tv.tv_sec).nanos + int64_t(tv.tv_nsec) };
     return ticks;
 }
 
-time_t get_secs() {
+kiloticks_t get_kiloticks() {
+    return kiloticks_t{get_ticks().nanos / 1000};
+}
+
+time_t get_realtime_secs() {
     timespec tv = clock_realtime();
     return tv.tv_sec;
 }
 
 double ticks_to_secs(ticks_t ticks) {
-    return ticks / static_cast<double>(BILLION);
+    return ticks.nanos / static_cast<double>(BILLION);
 }
 

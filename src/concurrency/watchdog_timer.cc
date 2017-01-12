@@ -47,8 +47,8 @@ void watchdog_timer_t::notify() {
 void watchdog_timer_t::run(auto_drainer_t::lock_t keepalive) {
     try {
         for (;;) {
-            microtime_t now = current_microtime();
-            if (now > next_threshold) {
+            ticks_t now = get_ticks();
+            if (now.nanos > next_threshold.nanos) {
                 ASSERT_NO_CORO_WAITING;
                 if (num_blockers == 0) {
                     state = state_t::TRIGGERED;
@@ -59,13 +59,13 @@ void watchdog_timer_t::run(auto_drainer_t::lock_t keepalive) {
                 /* Wait a bit before calling `callback()` again */
                 set_next_threshold();
             }
-            if (next_threshold > now + max_timeout_ms * 1000) {
+            if (next_threshold.nanos > now.nanos + max_timeout_ms * MILLION) {
                 /* This can only happen if the system clock goes backwards. Rather than
                 wait until the system clock catches up to its old value, we reset
                 `next_threshold` to only `max_timeout_ms` in the future. */
-                next_threshold = now + max_timeout_ms * 1000;
+                next_threshold.nanos = now.nanos + max_timeout_ms * MILLION;
             }
-            nap((next_threshold - now) / 1000, keepalive.get_drain_signal());
+            nap((next_threshold.nanos - now.nanos) / MILLION, keepalive.get_drain_signal());
         }
     } catch (const interrupted_exc_t &) {
         /* `watchdog_timer_t` is being destroyed */
@@ -74,6 +74,6 @@ void watchdog_timer_t::run(auto_drainer_t::lock_t keepalive) {
 
 void watchdog_timer_t::set_next_threshold() {
     int timeout_ms = min_timeout_ms + randint(max_timeout_ms - min_timeout_ms + 1);
-    next_threshold = current_microtime() + timeout_ms * 1000;
+    next_threshold = ticks_t{get_ticks().nanos + timeout_ms * MILLION};
 }
 

@@ -57,10 +57,10 @@ public:
 
     struct func_info_t {
         explicit func_info_t(js_id_t _id) :
-            id(_id), timestamp(current_microtime()) { }
+            id(_id), timestamp(get_kiloticks()) { }
 
         js_id_t id;
-        microtime_t timestamp;
+        kiloticks_t timestamp;
     };
 
     std::map<std::string, func_info_t> id_cache;
@@ -250,7 +250,7 @@ void js_runner_t::trim_cache() {
 
     auto oldest_func = job_data->id_cache.begin();
     for (auto it = ++job_data->id_cache.begin(); it != job_data->id_cache.end(); ++it) {
-        if (it->second.timestamp < oldest_func->second.timestamp) {
+        if (it->second.timestamp.micros < oldest_func->second.timestamp.micros) {
             oldest_func = it;
         }
     }

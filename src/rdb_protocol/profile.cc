@@ -20,7 +20,7 @@ start_t::start_t() { }
 start_t::start_t(const std::string &description)
     : description_(description), when_(get_ticks()) { }
 
-RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(start_t, description_, when_);
+RDB_IMPL_SERIALIZABLE_2_SINCE_v1_13(start_t, description_, when_.nanos);
 
 split_t::split_t() { }
 
@@ -37,19 +37,20 @@ sample_t::sample_t(const std::string &description,
       n_samples_(n_samples)
 { }
 
-RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(sample_t, description_, mean_duration_, n_samples_);
+RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(sample_t, description_,
+                                    mean_duration_.nanos, n_samples_);
 
 stop_t::stop_t()
     : when_(get_ticks()) { }
 
-RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(stop_t, when_);
+RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(stop_t, when_.nanos);
 
 ql::datum_t construct_start(
         ticks_t duration, std::string description,
         ql::datum_t sub_tasks) {
         std::map<datum_string_t, ql::datum_t> res;
     res[datum_string_t("duration(ms)")] =
-        ql::datum_t(safe_to_double(duration) / MILLION);
+        ql::datum_t(safe_to_double(duration.nanos) / MILLION);
     res[datum_string_t("description")] =
         ql::datum_t(datum_string_t(description));
     res[datum_string_t("sub_tasks")] = sub_tasks;
@@ -66,7 +67,7 @@ ql::datum_t construct_split(
 ql::datum_t construct_sample(
         const sample_t *sample) {
     std::map<datum_string_t, ql::datum_t> res;
-    double mean_duration = safe_to_double(sample->mean_duration_) / MILLION;
+    double mean_duration = safe_to_double(sample->mean_duration_.nanos) / MILLION;
     double n_samples = safe_to_double(sample->n_samples_);
     res[datum_string_t("mean_duration(ms)")] = ql::datum_t(mean_duration);
     res[datum_string_t("n_samples")] = ql::datum_t(n_samples);
@@ -101,7 +102,7 @@ public:
         auto stop = boost::get<stop_t>(&**begin_);
         guarantee(stop);
         res_->push_back(construct_start(
-            stop->when_ - start.when_, start.description_, sub_tasks));
+            ticks_t{stop->when_.nanos - start.when_.nanos}, start.description_, sub_tasks));
             (*begin_)++;
     }
     void operator()(const split_t &split) const {
@@ -228,7 +229,7 @@ sampler_t::sampler_t(const std::string &description, const scoped_ptr_t<trace_t>
 void sampler_t::init(const std::string &description, trace_t *parent) {
     parent_ = parent;
     description_ = description;
-    total_time_ = 0;
+    total_time_ = ticks_t{0};
     n_samples_ = 0;
     if (parent_) {
         parent_->start_sample(&event_log_);
@@ -240,18 +241,18 @@ ticks_t duration(const event_log_t &event_log) {
     if (auto start = boost::get<start_t>(&event_log.at(0))) {
         auto stop = boost::get<stop_t>(&event_log.back());
         guarantee(stop);
-        return stop->when_ - start->when_;
+        return ticks_t{stop->when_.nanos - start->when_.nanos};
     } else {
         //This is a code path that is currently never hit and that will go a
         //way when we implement more meaningful sampling functions.
-        return 0;
+        return ticks_t{0};
     }
 }
 
 void sampler_t::new_sample() {
     if (!event_log_.empty()) {
         n_samples_++;
-        total_time_ += duration(event_log_);
+        total_time_.nanos += duration(event_log_).nanos;
     }
 
     event_log_.clear();
@@ -261,7 +262,7 @@ sampler_t::~sampler_t() {
     new_sample();
     if (parent_) {
         if (n_samples_ > 0) {
-            parent_->stop_sample(description_, total_time_ / n_samples_, n_samples_, &event_log_);
+            parent_->stop_sample(description_, ticks_t{total_time_.nanos / int64_t(n_samples_)}, n_samples_, &event_log_);
         } else {
             parent_->stop_sample(&event_log_);
         }
