@@ -184,7 +184,7 @@ ticks_t get_ticks() {
     return ticks;
 }
 
-time_t get_secs() {
+time_t get_realtime_secs() {
     timespec tv = clock_realtime();
     return tv.tv_sec;
 }
