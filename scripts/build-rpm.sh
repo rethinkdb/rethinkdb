@@ -31,7 +31,7 @@ EOF
 
     ... () { command="$command $(for x in "$@"; do printf "%q " "$x"; done)"; }
 
-    GLIBC_VERSION=`rpm -qa --queryformat '%{VERSION}' glibc`
+    GLIBC_VERSION=`rpm -qa --queryformat '%{VERSION}\n' glibc | head -n1`
 
     command=fpm
     ... -t rpm                  # Build an RPM package
