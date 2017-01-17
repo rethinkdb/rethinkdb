@@ -13,7 +13,7 @@ template <class T>
 class optional {
 public:
     optional() noexcept : has_value_(false) { }
-    explicit optional(r_nullopt_t) noexcept : has_value_(false) { }
+    optional(r_nullopt_t) noexcept : has_value_(false) { } // NOLINT(runtime/explicit)
     explicit optional(const T &x) noexcept(noexcept(T(std::declval<const T &>())))
         : has_value_(true) {
         new (&value_) T(x);
