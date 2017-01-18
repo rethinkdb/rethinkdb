@@ -13,7 +13,7 @@ template <class T>
 class optional {
 public:
     optional() noexcept : has_value_(false) { }
-    optional(r_nullopt_t) noexcept : has_value_(false) { }
+    optional(r_nullopt_t) noexcept : has_value_(false) { } // NOLINT(runtime/explicit)
     explicit optional(const T &x) noexcept(noexcept(T(std::declval<const T &>())))
         : has_value_(true) {
         new (&value_) T(x);
@@ -37,7 +37,7 @@ public:
     }
 
     optional(optional &&c) noexcept(std::is_nothrow_move_constructible<T>::value)
- : has_value_(c.has_value_) {
+        : has_value_(c.has_value_) {
         if (c.has_value_) {
             new (&value_) T(std::move(c.value_));
         }
