@@ -55,6 +55,7 @@ private:
         }
         r_sanity_check(static_cast<bool>(regexp));
         // We add 1 to account for $0.
+
         int ngroups = regexp->NumberOfCapturingGroups() + 1;
         scoped_array_t<re2::StringPiece> groups(ngroups);
         if (regexp->Match(str, 0, str.size(), re2::RE2::UNANCHORED, groups.data(), ngroups)) {
@@ -99,6 +100,87 @@ private:
     virtual const char *name() const { return "match"; }
 };
 
+
+class match_all_term_t : public op_term_t {
+public:
+    match_all_term_t(compile_env_t *env, const raw_term_t &term)
+        : op_term_t(env, term, argspec_t(2)) {}
+private:
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        std::string str = args->arg(env, 0)->as_str().to_std();
+        std::string re = args->arg(env, 1)->as_str().to_std();
+        std::shared_ptr<re2::RE2> regexp;
+        regex_cache_t &cache = env->env->regex_cache();
+        auto search = cache.regexes.find(re);
+        if (search == cache.regexes.end()) {
+            regexp.reset(new re2::RE2(re, re2::RE2::Quiet));
+            if (!regexp->ok()) {
+                rfail(base_exc_t::LOGIC,
+                      "Error in regexp `%s` (portion `%s`): %s",
+                      regexp->pattern().c_str(),
+                      regexp->error_arg().c_str(),
+                      regexp->error().c_str());
+            }
+            cache.regexes[re] = regexp;
+        } else {
+            regexp = search->second;
+        }
+        datum_array_builder_t match_array(env->env->limits());
+        r_sanity_check(static_cast<bool>(regexp));
+        // We add 1 to account for $0.
+        int ngroups = regexp->NumberOfCapturingGroups() + 1;
+        scoped_array_t<re2::StringPiece> groups(ngroups);
+        int lengthOfMatch = 0;
+        if (regexp->Match(str, 0, str.size(), re2::RE2::UNANCHORED, groups.data(), ngroups)) {
+            while (regexp->Match(str, 0 + lengthOfMatch, str.size(), re2::RE2::UNANCHORED, groups.data(), ngroups)){
+                datum_object_builder_t match;
+                // We use `b` to store whether or not we got a conflict when writing
+                // to an object.  This should never happen here because we aren't
+                // using user-generated keys, but the result of `add` is marked
+                // MUST_USE.
+                bool b = false;
+                lengthOfMatch += (groups[0].end() - groups[0].begin());
+                b |= match.add("str", datum_t(
+                                   datum_string_t(groups[0].as_string())));
+                b |= match.add("start", datum_t(
+                                   static_cast<double>(groups[0].begin() - str.data())));
+                b |= match.add("end", datum_t(
+                                   static_cast<double>(groups[0].end() - str.data())));
+                datum_array_builder_t match_groups(env->env->limits());
+                for (int i = 1; i < ngroups; ++i) {
+                    const re2::StringPiece &group = groups[i];
+                    if (group.data() == NULL) {
+                        match_groups.add(datum_t::null());
+                    } else {
+                        datum_object_builder_t match_group;
+                        b |= match_group.add(
+                            "str", datum_t(
+                                datum_string_t(group.as_string())));
+                        b |= match_group.add(
+                            "start", datum_t(
+                                static_cast<double>(group.begin() - str.data())));
+                        b |= match_group.add(
+                            "end", datum_t(
+                                static_cast<double>(group.end() - str.data())));
+                        match_groups.add(std::move(match_group).to_datum());
+                    }
+                }
+                b |= match.add("groups", std::move(match_groups).to_datum());
+                r_sanity_check(!b);
+                match_array.add(std::move(match).to_datum());
+            }
+            return new_val(std::move(match_array).to_datum());
+        } else {
+            return new_val(datum_t::null());
+        }
+    }
+    virtual const char *name() const { return "match"; }
+};
+
+
+
+
+
 template <typename It>
 It find_utf8_pred(It start, It end, std::function<bool(char32_t)> &&fn) {
     It pos(start);
@@ -138,7 +220,7 @@ public:
         : op_term_t(env, term, argspec_t(1, 3)) { }
 private:
     std::vector<datum_t> utf8_aware_split(const std::string &s,
-                                          const optional<std::string> &delim,
+                                          const boost::optional<std::string> &delim,
                                           size_t maxnum) const {
         const bool is_delim_empty = (delim && delim->size() == 0);
         std::vector<datum_t> res;
@@ -197,7 +279,7 @@ private:
         return res;
     }
     std::vector<datum_t> old_split(const std::string &s,
-                                    const optional<std::string> &delim,
+                                    const boost::optional<std::string> &delim,
                                     size_t maxnum) const {
         const char *const splitchars = " \t\n\r\x0B\x0C";
         // This logic is extremely finicky so as to mimick the behavior of
@@ -230,11 +312,11 @@ private:
         scope_env_t *env, args_t *args, eval_flags_t) const {
         std::string s = args->arg(env, 0)->as_str().to_std();
 
-        optional<std::string> delim;
+        boost::optional<std::string> delim;
         if (args->num_args() > 1) {
             datum_t d = args->arg(env, 1)->as_datum();
             if (d.get_type() != datum_t::R_NULL) {
-                delim.set(d.as_str().to_std());
+                delim = d.as_str().to_std();
             }
         }
 
@@ -273,6 +355,12 @@ counted_t<term_t> make_match_term(
         compile_env_t *env, const raw_term_t &term) {
     return make_counted<match_term_t>(env, term);
 }
+
+counted_t<term_t> make_match_all_term(
+        compile_env_t *env, const raw_term_t &term) {
+    return make_counted<match_all_term_t>(env, term);
+}
+
 counted_t<term_t> make_split_term(
         compile_env_t *env, const raw_term_t &term) {
     return make_counted<split_term_t>(env, term);

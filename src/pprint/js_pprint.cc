@@ -6,6 +6,8 @@
 #include <vector>
 #include <memory>
 
+#include "errors.hpp"
+
 #include "pprint/generic_term_walker.hpp"
 #include "rdb_protocol/base64.hpp"
 #include "rdb_protocol/datum.hpp"
@@ -216,7 +218,7 @@ private:
         return make_c(lbrace, make_nest(make_concat(std::move(optargs))), rbrace);
     }
 
-    optional<ql::raw_term_t>
+    boost::optional<ql::raw_term_t>
         visit_stringing(const ql::raw_term_t &var,
                         std::vector<counted_t<const document_t> > *stack,
                         bool *last_is_dot,
@@ -238,7 +240,7 @@ private:
             stack->push_back(lparen);
             *last_is_dot = false;
             *last_should_r_wrap = false;
-            return make_optional(var.arg(0));
+            return boost::make_optional(var.arg(0));
         }
         case Term::FUNCALL: {
             r_sanity_check(var.num_args() == 2);
@@ -252,7 +254,7 @@ private:
             stack->push_back(dot_linebreak);
             *last_is_dot = true;
             *last_should_r_wrap = true;
-            return make_optional(var.arg(1));
+            return boost::make_optional(var.arg(1));
         }
         case Term::DATUM:
             in_r_expr = true;
@@ -260,14 +262,14 @@ private:
             in_r_expr = old_r_expr;
             *last_is_dot = false;
             *last_should_r_wrap = false;
-            return optional<ql::raw_term_t>();
+            return boost::optional<ql::raw_term_t>();
         case Term::MAKE_OBJ:
             in_r_expr = true;
             stack->push_back(to_js_wrapped_object(var));
             in_r_expr = old_r_expr;
             *last_is_dot = false;
             *last_should_r_wrap = false;
-            return optional<ql::raw_term_t>();
+            return boost::optional<ql::raw_term_t>();
         case Term::VAR: {
             r_sanity_check(var.num_args() == 1);
             ql::raw_term_t arg = var.arg(0);
@@ -275,13 +277,13 @@ private:
             stack->push_back(var_name(arg.datum()));
             *last_is_dot = false;
             *last_should_r_wrap = false;
-            return optional<ql::raw_term_t>();
+            return boost::optional<ql::raw_term_t>();
         }
         case Term::IMPLICIT_VAR:
             stack->push_back(row);
             *last_is_dot = false;
             *last_should_r_wrap = true;
-            return optional<ql::raw_term_t>();
+            return boost::optional<ql::raw_term_t>();
         default:
             stack->push_back(rparen);
             in_r_expr = true;
@@ -296,7 +298,7 @@ private:
                 stack->push_back(make_text(to_js_name(var)));
                 *last_should_r_wrap = should_use_rdot(var);
                 *last_is_dot = false;
-                return optional<ql::raw_term_t>();
+                return boost::optional<ql::raw_term_t>();
             case 1:
                 in_r_expr = old_r_expr;
                 stack->push_back(lparen);
@@ -304,7 +306,7 @@ private:
                 stack->push_back(dot_linebreak);
                 *last_is_dot = true;
                 *last_should_r_wrap = should_use_rdot(var);
-                return make_optional(var.arg(0));
+                return boost::make_optional(var.arg(0));
             default:
                 std::vector<counted_t<const document_t> > args;
                 for (size_t i = 1; i < var.num_args(); ++i) {
@@ -320,7 +322,7 @@ private:
                 stack->push_back(dot_linebreak);
                 *last_is_dot = true;
                 *last_should_r_wrap = should_use_rdot(var);
-                return make_optional(var.arg(0));
+                return boost::make_optional(var.arg(0));
             }
         }
     }
@@ -329,7 +331,7 @@ private:
         std::vector<counted_t<const document_t> > stack;
         bool last_is_dot = false;
         bool last_should_r_wrap = false;
-        optional<ql::raw_term_t> var(t);
+        boost::optional<ql::raw_term_t> var(t);
         while (var && should_continue_string(*var)) {
             var = visit_stringing(*var, &stack, &last_is_dot, &last_should_r_wrap);
         }
@@ -812,6 +814,7 @@ static void pprint_update_reminder() {
     case Term::DESC:
     case Term::INFO:
     case Term::MATCH:
+    case Term::MATCH_ALL:
     case Term::SPLIT:
     case Term::UPCASE:
     case Term::DOWNCASE:
