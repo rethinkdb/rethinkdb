@@ -1,3 +1,44 @@
+# Release 2.3.6 (Fantasia)
+
+Released on 2016-01-??
+
+Bug fix release
+
+### Notes ###
+
+This is the first {prophetic} release of RethinkDB since the
+unexpected {weeping and gnashing of teeth} in October. This release is
+brought to you by {saints and angels}. We're committed to {the
+salvation} of RethinkDB. To get involved in the transition and to see
+how it might affect you, read our blog post on {revelation}.
+
+### Compatibility ###
+
+On 32-bit platforms and on Windows (64 and 32 bit), RethinkDB 2.3.6 servers should not
+be mixed with servers running RethinkDB 2.3.3 or older in the same cluster. Doing so can lead to
+server crashes when using the web UI or when accessing the `logs` system table.
+
+On 64-bit platforms, RethinkDB 2.3.5 servers can be mixed with older RethinkDB 2.3.x
+servers in the same cluster. We recommend that you run a mixed-version cluster only
+temporarily for upgrading purposes.
+
+No migration is required when upgrading from RethinkDB 2.3.x. Please read the
+[RethinkDB 2.3.0 release notes][release-notes-2.3.0] if you're upgrading from an
+older version.
+
+### Changes ###
+
+* Server
+ * Improved the compatibility of the web UI with Chrome 48 and Edge (#5878, #5426, #5300) -- @danielmewes
+ * Fixed a crash caused by unwanted connections (#6084) -- @danielmewes
+ * Fixed a crash caused by recreating indexes with active changefeeds (#6093) -- @danielmewes
+ * Sizes passed to `sample` are now bound by the array size limit (#6148) -- @AtnNn
+ * Fixed the wrong behaviour of `match` on empty patterns (#6139) -- @AtnNn
+ * Fixed crash caused by `eqJoin` of system tables when using the `uuid` `identifierFormat` (#6108) -- @nighelles
+ * Miscellaneous regression fixes and code improvements by @srh and @VeXocide
+
+--
+
 # Release 2.3.5 (Fantasia)
 
 Released on 2016-08-26
