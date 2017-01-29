@@ -18,7 +18,7 @@ On 32-bit platforms and on Windows (64 and 32 bit), RethinkDB 2.3.6 servers shou
 be mixed with servers running RethinkDB 2.3.3 or older in the same cluster. Doing so can lead to
 server crashes when using the web UI or when accessing the `logs` system table.
 
-On 64-bit platforms, RethinkDB 2.3.5 servers can be mixed with older RethinkDB 2.3.x
+On 64-bit platforms, RethinkDB 2.3.6 servers can be mixed with older RethinkDB 2.3.x
 servers in the same cluster. We recommend that you run a mixed-version cluster only
 temporarily for upgrading purposes.
 
