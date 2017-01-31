@@ -1,0 +1,5 @@
+desc: 6191 (bug in PR, order-by disallowed deterministic r.now())
+tests:
+  - py: r.expr([1, 2]).order_by(lambda x: r.now())
+    ot: [1, 2]
+
