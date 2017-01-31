@@ -465,9 +465,8 @@ private:
 
 struct rcheck_transform_visitor_t : public bt_rcheckable_t,
                                     public boost::static_visitor<void> {
-    template<class... Args>
-    explicit rcheck_transform_visitor_t(Args &&... args)
-        : bt_rcheckable_t(std::forward<Args...>(args)...) { }
+    explicit rcheck_transform_visitor_t(backtrace_id_t bt)
+        : bt_rcheckable_t(bt) { }
     void check_f(const wire_func_t &f) const {
         if (!f.compile_wire_func()->is_deterministic().test(single_server::yes,
                                                             constant_now::yes)) {
@@ -510,9 +509,8 @@ struct rcheck_transform_visitor_t : public bt_rcheckable_t,
 
 struct rcheck_spec_visitor_t : public bt_rcheckable_t,
                                public boost::static_visitor<void> {
-    template<class... Args>
-    explicit rcheck_spec_visitor_t(env_t *_env, Args &&... args)
-        : bt_rcheckable_t(std::forward<Args...>(args)...), env(_env) { }
+    explicit rcheck_spec_visitor_t(env_t *_env, backtrace_id_t bt)
+        : bt_rcheckable_t(bt), env(_env) { }
     void operator()(const changefeed::keyspec_t::range_t &spec) const {
         for (const auto &t : spec.transforms) {
             boost::apply_visitor(rcheck_transform_visitor_t(backtrace()), t);
