@@ -60,6 +60,8 @@ struct changespec_t {
     counted_t<datum_stream_t> stream;
 };
 
+void check_valid_changefeed_transform(const transform_variant_t &tv, backtrace_id_t bt);
+
 class datum_stream_t : public single_threaded_countable_t<datum_stream_t>,
                        public bt_rcheckable_t {
 public:
@@ -67,7 +69,14 @@ public:
     virtual void set_notes(response_t *) const { }
 
     virtual std::vector<changespec_t> get_changespecs() = 0;
-    virtual void add_transformation(transform_variant_t &&tv, backtrace_id_t bt) = 0;
+    void add_transformation(transform_variant_t &&tv, backtrace_id_t bt) {
+        if (cfeed_type() != feed_type_t::not_feed) {
+            check_valid_changefeed_transform(tv, bt);
+        }
+
+        help_add_transformation(std::move(tv), bt);
+    }
+    virtual void help_add_transformation(transform_variant_t &&tv, backtrace_id_t bt) = 0;
     virtual bool add_stamp(changefeed_stamp_t stamp);
     virtual optional<active_state_t> get_active_state();
     void add_grouping(transform_variant_t &&tv,
@@ -129,8 +138,7 @@ protected:
     }
     std::vector<transform_variant_t> transforms;
 
-    virtual void add_transformation(transform_variant_t &&tv,
-                                    backtrace_id_t bt);
+    virtual void help_add_transformation(transform_variant_t &&tv, backtrace_id_t bt);
 
 private:
     enum class done_t { YES, NO };

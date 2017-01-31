@@ -37,8 +37,7 @@ private:
     std::vector<datum_t >
     next_batch_impl(env_t *env, const batchspec_t &batchspec);
 
-    virtual void add_transformation(transform_variant_t &&tv,
-                                    backtrace_id_t bt);
+    virtual void help_add_transformation(transform_variant_t &&tv, backtrace_id_t bt);
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
 

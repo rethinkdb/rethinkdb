@@ -16,8 +16,7 @@ private:
     datum_t next_impl(env_t *);
     std::vector<datum_t> next_raw_batch(env_t *env, const batchspec_t &bs);
 
-    void add_transformation(
-        transform_variant_t &&tv, backtrace_id_t bt);
+    void help_add_transformation(transform_variant_t &&tv, backtrace_id_t bt);
 
     bool is_exhausted() const;
     virtual feed_type_t cfeed_type() const;

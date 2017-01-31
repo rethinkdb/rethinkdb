@@ -1429,7 +1429,7 @@ bool datum_stream_t::batch_cache_exhausted() const {
     return batch_cache_index >= batch_cache.size();
 }
 
-void eager_datum_stream_t::add_transformation(
+void eager_datum_stream_t::help_add_transformation(
     transform_variant_t &&tv, backtrace_id_t _bt) {
     ops.push_back(make_op(tv));
     transforms.push_back(std::move(tv));
@@ -1507,8 +1507,8 @@ lazy_datum_stream_t::lazy_datum_stream_t(scoped_ptr_t<reader_t> &&_reader,
       current_batch_offset(0),
       reader(std::move(_reader)) { }
 
-void lazy_datum_stream_t::add_transformation(transform_variant_t &&tv,
-                                             backtrace_id_t _bt) {
+void lazy_datum_stream_t::help_add_transformation(transform_variant_t &&tv,
+                                                  backtrace_id_t _bt) {
     reader->add_transformation(std::move(tv));
     update_bt(_bt);
 }
@@ -2107,10 +2107,10 @@ union_datum_stream_t::next_batch_impl(env_t *env, const batchspec_t &batchspec) 
     }
 }
 
-void union_datum_stream_t::add_transformation(transform_variant_t &&tv,
-                                              backtrace_id_t _bt) {
+void union_datum_stream_t::help_add_transformation(transform_variant_t &&tv,
+                                                   backtrace_id_t _bt) {
     for (auto &&coro_stream : coro_streams) {
-        coro_stream->stream->add_transformation(transform_variant_t(tv), _bt);
+        coro_stream->stream->help_add_transformation(transform_variant_t(tv), _bt);
     }
     update_bt(_bt);
 }
@@ -2563,14 +2563,14 @@ std::vector<datum_t> vector_datum_stream_t::next_raw_batch(
     return v;
 }
 
-void vector_datum_stream_t::add_transformation(
+void vector_datum_stream_t::help_add_transformation(
     transform_variant_t &&tv, backtrace_id_t _bt) {
     if (changespec) {
         if (auto *rng = boost::get<changefeed::keyspec_t::range_t>(&changespec->spec)) {
             rng->transforms.push_back(tv);
         }
     }
-    eager_datum_stream_t::add_transformation(std::move(tv), _bt);
+    eager_datum_stream_t::help_add_transformation(std::move(tv), _bt);
 }
 
 bool vector_datum_stream_t::is_exhausted() const {
@@ -2596,6 +2596,53 @@ std::vector<changespec_t> vector_datum_stream_t::get_changespecs() {
     } else {
         rfail(base_exc_t::LOGIC, "%s", "Cannot call `changes` on this stream.");
     }
+}
+
+struct valid_changefeed_transform_visitor : public bt_rcheckable_t,
+                                            public boost::static_visitor<void> {
+    explicit valid_changefeed_transform_visitor(backtrace_id_t bt)
+        : bt_rcheckable_t(bt) { }
+
+    void check_f(const wire_func_t &f) const {
+        if (f.compile_wire_func()->is_deterministic().uses_r_now()) {
+            rfail_src(f.get_bt(),
+                      base_exc_t::LOGIC,
+                      "Cannot call `now` after `changes`.");
+        }
+    }
+
+    void operator()(const map_wire_func_t &f) const {
+        check_f(f);
+    }
+    NORETURN void operator()(const group_wire_func_t &) const {
+        // TODO: This duplicates logic that says you can't call "group" on an infinite
+        // stream -- we just catch it earlier here.
+        rfail(base_exc_t::LOGIC, "Cannot call `group` after `changes`.");
+    }
+    void operator()(const filter_wire_func_t &f) const {
+        check_f(f.filter_func);
+        if (f.default_filter_val) {
+            check_f(*f.default_filter_val);
+        }
+    }
+    void operator()(const concatmap_wire_func_t &f) const {
+        // We _can_ call concatmap after changes().
+        check_f(f);
+    }
+    NORETURN void operator()(const distinct_wire_func_t &) const {
+        // TODO: This duplicates logic that says you can't call "distinct" on an
+        // infinite stream -- we just catch it earlier here, giving a different message.
+        rfail(base_exc_t::LOGIC, "Cannot call `distinct` after `changes`.");
+    }
+    void operator()(const zip_wire_func_t &) const {
+        // We can call zip after changes() -- but there's no function to check.  (It's
+        // generally weird that somebody would .map(...) a changefeed to a {left:,
+        // right:} document, but it's possible, and right now this code works.)
+    }
+};
+
+void check_valid_changefeed_transform(const transform_variant_t &tv, backtrace_id_t bt) {
+    boost::apply_visitor(valid_changefeed_transform_visitor(bt), tv);
 }
 
 } // namespace ql

@@ -56,6 +56,12 @@ public:
         return remaining_bits == 0;
     }
 
+    // True if r.now() is used in the query.
+    bool uses_r_now() const {
+        return 0 != (bitset & constant_now().bitset);
+    }
+
+
 private:
     explicit deterministic_t(int bits) : bitset(bits) { }
 
