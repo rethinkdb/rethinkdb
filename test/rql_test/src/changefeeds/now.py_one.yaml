@@ -1,0 +1,8 @@
+desc: Test that r.now() is allowed before changes(), disallowed after.
+table_variable_name: tbl
+tests:
+
+    - py: tbl.changes().merge({'a': r.now()})
+      ot: err('ReqlQueryLogicError')
+
+    - py: tbl.merge({'a': r.now()}).changes()
