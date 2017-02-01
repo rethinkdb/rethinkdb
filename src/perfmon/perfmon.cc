@@ -73,7 +73,8 @@ perfmon_sampler_t::perfmon_sampler_t(ticks_t _length, bool _include_rate)
     : perfmon_perthread_t<stats_t>(), thread_data(new thread_info_t[MAX_THREADS]), length(_length), include_rate(_include_rate)
 {
     for (int i = 0; i < MAX_THREADS; i++) {
-        thread_data[i].current_interval = get_ticks() / length;
+        // TODO: Why is current_interval an int?
+        thread_data[i].current_interval = get_ticks().nanos / length.nanos;
     }
 }
 
@@ -82,7 +83,8 @@ perfmon_sampler_t::~perfmon_sampler_t() {
 }
 
 void perfmon_sampler_t::update(ticks_t now) {
-    int interval = now / length;
+    // TODO: Why is this an int?
+    int interval = now.nanos / length.nanos;
     rassert(get_thread_id().threadnum >= 0);
     thread_info_t *thread = &thread_data[get_thread_id().threadnum];
 
@@ -245,12 +247,13 @@ perfmon_rate_monitor_t::perfmon_rate_monitor_t(ticks_t _length)
     : perfmon_perthread_t<double>(), length(_length)
 {
     for (int i = 0; i < MAX_THREADS; i++) {
-        thread_data[i].value.current_interval = get_ticks() / length;
+        thread_data[i].value.current_interval = get_ticks().nanos / length.nanos;
     }
 }
 
 void perfmon_rate_monitor_t::update(ticks_t now) {
-    int interval = now / length;
+    // TODO: Why is this an int?
+    int interval = now.nanos / length.nanos;
     rassert(get_thread_id().threadnum >= 0);
     thread_info_t &thread = thread_data[get_thread_id().threadnum].value;
 
@@ -280,7 +283,7 @@ void perfmon_rate_monitor_t::get_thread_stat(double *stat) {
     ticks_t now = get_ticks();
     update(now);
 
-    double ratio = 1.0 - (static_cast<double>(now % length) / length);
+    double ratio = 1.0 - (static_cast<double>(now.nanos % length.nanos) / length.nanos);
 
     // Return a rolling average of the current count plus the last count
     thread_info_t &thread = thread_data[get_thread_id().threadnum].value;
@@ -313,14 +316,14 @@ void perfmon_duration_sampler_t::begin(ticks_t *v) {
     if (global_full_perfmon || ignore_global_full_perfmon) {
         *v = get_ticks();
     } else {
-        *v = 0;
+        *v = ticks_t{0};
     }
 }
 
 void perfmon_duration_sampler_t::end(ticks_t *v) {
     --active;
-    if (*v != 0) {
-        recent.record(ticks_to_secs(get_ticks() - *v));
+    if (v->nanos != 0) {
+        recent.record(ticks_to_secs(ticks_t{get_ticks().nanos - v->nanos}));
     }
 }
 

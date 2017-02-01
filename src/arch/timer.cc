@@ -45,7 +45,7 @@ void timer_handler_t::on_oneshot() {
     // If the timer_provider tends to return its callback a touch early, we don't want to make a
     // bunch of calls to it, returning a tad early over and over again, leading up to a ticks
     // threshold.  So we bump the real time up to the threshold when processing the priority queue.
-    int64_t real_ticks = get_ticks();
+    int64_t real_ticks = get_ticks().nanos;
     int64_t ticks = std::max(real_ticks, expected_oneshot_time_in_nanos);
 
     while (!token_queue.empty() && token_queue.peek()->next_time_in_nanos <= ticks) {
@@ -76,7 +76,7 @@ timer_token_t *timer_handler_t::add_timer_internal(const int64_t ms, timer_callb
     const int64_t nanos = ms * MILLION;
     rassert(nanos > 0);
 
-    const int64_t next_time_in_nanos = get_ticks() + nanos;
+    const int64_t next_time_in_nanos = get_ticks().nanos + nanos;
 
     timer_token_t *const token = new timer_token_t;
     token->interval_nanos = once ? 0 : nanos;

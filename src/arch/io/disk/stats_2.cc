@@ -6,8 +6,8 @@
 
 void debug_print(printf_buffer_t *buf,
                  const stats_diskmgr_2_action_t &action) {
-    buf->appendf("stats_diskmgr_2_action{start_time=%" PRIu64 "}<",
-                 action.start_time);
+    buf->appendf("stats_diskmgr_2_action{start_time=%" PRIi64 "}<",
+                 action.start_time.nanos);
     const pool_diskmgr_t::action_t &parent_action = action;
     debug_print(buf, parent_action);
 }
