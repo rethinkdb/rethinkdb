@@ -1,16 +1,18 @@
 # Release 2.3.6 (Fantasia)
 
-Released on 2016-01-??
+Released on 2016-02-??
 
 Bug fix release
 
 ### Notes ###
 
-This is the first {prophetic} release of RethinkDB since the
-unexpected {weeping and gnashing of teeth} in October. This release is
-brought to you by {saints and angels}. We're committed to {the
-salvation} of RethinkDB. To get involved in the transition and to see
-how it might affect you, read our blog post on {revelation}.
+This is the first release of RethinkDB since the October. This release
+is brought to you by volunteers from the Open RethinkDB team. We're
+committed to building a bright future for RethinkDB. To get involved
+in the transition and to see how it might affect you, read our [blog
+post][blog-new-rethinkdb].
+
+[blog-new-rethinkdb]: TODO
 
 ### Compatibility ###
 
@@ -33,9 +35,11 @@ older version.
  * Fixed a crash caused by unwanted connections (#6084) -- @danielmewes
  * Fixed a crash caused by recreating indexes with active changefeeds (#6093) -- @danielmewes
  * Sizes passed to `sample` are now bound by the array size limit (#6148) -- @AtnNn
- * Fixed the wrong behaviour of `match` on empty patterns (#6139) -- @AtnNn
- * Fixed crash caused by `eqJoin` of system tables when using the `uuid` `identifierFormat` (#6108) -- @nighelles
+ * Fixed a crashing bug in the implementation of the `interleave` argument to `union` (#6139) -- @AtnNn
+ * Fixed a crash caused by `eqJoin` of system tables when using the `uuid` `identifierFormat` (#6108) -- @nighelles
  * Miscellaneous regression fixes and code improvements by @srh and @VeXocide
+* Packaging
+ * Fix glibc version detection in RPM packaging script (#6229) -- @gamename
 
 --
 
