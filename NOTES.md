@@ -37,6 +37,7 @@ older version.
  * Sizes passed to `sample` are now bound by the array size limit (#6148) -- @AtnNn
  * Fixed a crashing bug in the implementation of the `interleave` argument to `union` (#6139) -- @AtnNn
  * Fixed a crash caused by `eqJoin` of system tables when using the `uuid` `identifierFormat` (#6108) -- @nighelles
+ * Fixed a bug that caused `r.match('')` to return wrong results (#6241) -- @AtnNn
  * Miscellaneous regression fixes and code improvements by @srh and @VeXocide
 * Packaging
  * Fix glibc version detection in RPM packaging script (#6229) -- @gamename
