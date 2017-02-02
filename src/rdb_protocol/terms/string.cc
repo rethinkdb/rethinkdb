@@ -38,21 +38,14 @@ private:
         std::string str = args->arg(env, 0)->as_str().to_std();
         std::string re = args->arg(env, 1)->as_str().to_std();
         std::shared_ptr<re2::RE2> regexp;
-        regex_cache_t &cache = env->env->regex_cache();
-        auto search = cache.regexes.find(re);
-        if (search == cache.regexes.end()) {
-            regexp.reset(new re2::RE2(re, re2::RE2::Quiet));
-            if (!regexp->ok()) {
-                rfail(base_exc_t::LOGIC,
-                      "Error in regexp `%s` (portion `%s`): %s",
-                      regexp->pattern().c_str(),
-                      regexp->error_arg().c_str(),
-                      regexp->error().c_str());
-            }
-            cache.regexes[re] = regexp;
-        } else {
-            regexp = search->second;
-        }
+	regexp.reset(new re2::RE2(re, re2::RE2::Quiet));
+	if (!regexp->ok()) {
+	  rfail(base_exc_t::LOGIC,
+		"Error in regexp `%s` (portion `%s`): %s",
+		regexp->pattern().c_str(),
+		regexp->error_arg().c_str(),
+		regexp->error().c_str());
+	}
         r_sanity_check(static_cast<bool>(regexp));
         // We add 1 to account for $0.
         int ngroups = regexp->NumberOfCapturingGroups() + 1;
