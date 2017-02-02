@@ -18,8 +18,8 @@ namespace ql {
 
 class func_term_t;
 
-enum class single_server { no, yes };
-enum class constant_now { no, yes };
+enum class single_server_t { no, yes };
+enum class constant_now_t { no, yes };
 
 
 class deterministic_t {
@@ -48,10 +48,10 @@ public:
     // Returns true if the expression is deterministic (under the given conditions).
     // ("The expression" is whatever expression this deterministic_t value was
     // computed from.)
-    bool test(enum single_server ss, enum constant_now cn) const {
+    bool test(single_server_t ss, constant_now_t cn) const {
         // Turn off the bits that don't apply.
-        int mask = (ss == single_server::yes ? single_server().bitset : 0)
-            | (cn == constant_now::yes ? constant_now().bitset : 0);
+        int mask = (ss == single_server_t::yes ? single_server().bitset : 0)
+            | (cn == constant_now_t::yes ? constant_now().bitset : 0);
         int remaining_bits = bitset & ~mask;
         return remaining_bits == 0;
     }

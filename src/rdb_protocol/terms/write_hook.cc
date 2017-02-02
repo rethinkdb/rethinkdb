@@ -87,7 +87,7 @@ public:
 
                 config.set(conf);
                 config->func.compile_wire_func()->assert_deterministic(
-                        constant_now::yes,
+                        constant_now_t::yes,
                         "Write hook functions must be deterministic.");
 
                 optional<size_t> arity = config->func.compile_wire_func()->arity();
@@ -114,7 +114,7 @@ public:
 
             config.set(conf);
             config->func.compile_wire_func()->assert_deterministic(
-                    constant_now::yes,
+                    constant_now_t::yes,
                     "Write hook functions must be deterministic.");
 
             optional<size_t> arity = config->func.compile_wire_func()->arity();
