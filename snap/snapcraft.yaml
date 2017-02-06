@@ -1,0 +1,38 @@
+name: rethinkdb
+version: master
+summary: The open-source database for the realtime web
+description: |
+  RethinkDB is the first open-source scalable database built for realtime
+  applications. It exposes a new database access model -- instead of polling
+  for changes, the developer can tell the database to continuously push
+  updated query results to applications in realtime. RethinkDB allows
+  developers to build scalable realtime apps in a fraction of the time with
+  less effort.
+
+grade: devel # must be 'stable' to release into candidate/stable channels
+confinement: strict
+
+apps:
+  rethinkdb:
+    command: rethinkdb
+    plugs: [network, network-bind]
+
+parts:
+  rethinkdb:
+    source: .
+    plugin: autotools
+    build-packages:
+      - build-essential
+      - protobuf-compiler
+      - python
+      - libprotobuf-dev
+      - libcurl4-openssl-dev
+      - libboost-all-dev
+      - libncurses5-dev
+      - libjemalloc-dev
+      - wget
+      - m4
+      - g++
+      - npm
+      - nodejs-legacy
+    configflags: ['--allow-fetch']
