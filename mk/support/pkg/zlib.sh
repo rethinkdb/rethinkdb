@@ -1,8 +1,9 @@
 
-version=1.2.10
+version=1.2.11
 
 src_url=http://zlib.net/zlib-$version.tar.gz
-src_url_sha1=76af0bfb4d17fad1d8bda13cb5593c311f59adee
+src_url_backup=http://zlib.net/fossils/zlib-$version.tar.gz
+src_url_sha1=e6d119755acdf9104d7ba236b1242696940ed6dd
 
 pkg_install-include () {
     mkdir -p "$install_dir/include"
