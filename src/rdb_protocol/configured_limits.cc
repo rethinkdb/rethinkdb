@@ -9,7 +9,8 @@
 namespace ql {
 
 configured_limits_t from_optargs(
-    rdb_context_t *ctx, signal_t *interruptor, global_optargs_t *args) {
+        rdb_context_t *ctx, signal_t *interruptor, global_optargs_t *args,
+        ql::datum_t deterministic_time) {
     size_t changefeed_queue_size = configured_limits_t::default_changefeed_queue_size;
     size_t array_size_limit = configured_limits_t::default_array_size_limit;
     // Fake an environment with no arguments.  We have to fake it
@@ -30,7 +31,7 @@ configured_limits_t from_optargs(
                 serializable_env_t{
                     global_optargs_t(),
                     auth::user_context_t(auth::permissions_t(tribool::False, tribool::False, tribool::False, tribool::False)),
-                    datum_t()},
+                    deterministic_time},
                 nullptr);
             if (has_changefeed_queue_size) {
                 int64_t sz = args->get_optarg(&env, "changefeed_queue_size")->as_int();
