@@ -307,7 +307,7 @@ private:
                 return make_optional(var.arg(0));
             default:
                 std::vector<counted_t<const document_t> > args;
-                for (size_t i = 1; i < var.num_args(); ++i) {
+                for (size_t i = var.num_args() - 1; i > 0; --i) {
                     if (!args.empty()) { args.push_back(comma_linebreak); }
                     args.push_back(visit_generic(var.arg(i)));
                 }
