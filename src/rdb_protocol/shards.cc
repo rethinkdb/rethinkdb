@@ -484,8 +484,7 @@ private:
         if (is_grouped) {
             counted_t<grouped_data_t> ret(new grouped_data_t());
             for (auto kv = groups.begin(); kv != groups.end(); ++kv) {
-                (*ret)[kv->first] = datum_t(std::move(kv->second),
-                                                               limits);
+                (*ret)[kv->first] = datum_t(std::move(kv->second), limits);
             }
             return make_scoped<val_t>(std::move(ret), bt);
         } else if (groups.size() == 0) {

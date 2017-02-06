@@ -36,10 +36,20 @@ public:
     change. This must not block. */
     virtual std::string get_primary_key_name() = 0;
 
-    /* `read_all_rows_as_stream()` returns the full dataset as a stream (using
+    // Returns the full dataset in a vector (in `rows_out`) after applying the filtering
+    // and sorting specified by `datumspec` and `sorting`.
+    bool read_all_rows_filtered(
+        auth::user_context_t const &user_context,
+        const ql::datumspec_t &datumspec,
+        sorting_t sorting,
+        signal_t *interruptor,
+        std::vector<ql::datum_t> *rows_out,
+        admin_err_t *error_out);
+
+    /* `read_all_rows_filtered_as_stream()` returns the full dataset as a stream (using
        read_all_rows_as_vector) and applies the applicable filtering and sorting (as
        specified in `datumspec` and `sorting`). */
-    bool read_all_rows_as_stream(
+    bool read_all_rows_filtered_as_stream(
         auth::user_context_t const &user_context,
         ql::backtrace_id_t bt,
         const ql::datumspec_t &datumspec,

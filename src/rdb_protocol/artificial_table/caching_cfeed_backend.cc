@@ -253,29 +253,16 @@ bool caching_cfeed_artificial_table_backend_t::caching_machinery_t::get_values(
         signal_t *interruptor, std::map<store_key_t, ql::datum_t> *out) {
     out->clear();
     admin_err_t error;
-    counted_t<ql::datum_stream_t> stream;
-    if (!parent->read_all_rows_as_stream(
+    std::vector<ql::datum_t> datums;
+    if (!parent->read_all_rows_filtered(
             m_user_context,
-            ql::backtrace_id_t(),
             ql::datumspec_t(ql::datum_range_t::universe()),
             sorting_t::UNORDERED,
             interruptor,
-            &stream,
+            &datums,
             &error)) {
         return false;
     }
-    guarantee(stream->cfeed_type() == ql::feed_type_t::not_feed);
-    ql::env_t env(interruptor,
-                  ql::return_empty_normal_batches_t::NO,
-                  reql_version_t::LATEST);
-    std::vector<ql::datum_t> datums;
-    try {
-        datums = stream->next_batch(&env, ql::batchspec_t::all());
-    } catch (const ql::base_exc_t &) {
-        return false;
-    }
-    guarantee(stream->is_exhausted(), "We expect ql::batchspec_t::all() to read the "
-        "entire stream");
     for (const ql::datum_t &doc : datums) {
         ql::datum_t key = doc.get_field(
             datum_string_t(parent->get_primary_key_name()),
