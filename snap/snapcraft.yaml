@@ -15,7 +15,7 @@ confinement: strict
 apps:
   rethinkdb:
     command: usr/local/bin/rethinkdb
-    plugs: [network, network-bind]
+    plugs: [home, network, network-bind]
 
 parts:
   rethinkdb:
