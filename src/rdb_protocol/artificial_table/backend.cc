@@ -89,15 +89,3 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
         bt, std::move(rows), std::move(keyspec));
     return true;
 }
-
-bool artificial_table_backend_t::read_all_rows_as_vector(
-        UNUSED auth::user_context_t const &user_context,
-        UNUSED signal_t *interruptor,
-        UNUSED std::vector<ql::datum_t> *rows_out,
-        UNUSED admin_err_t *error_out) {
-    crash("Oops, the default implementation of `artificial_table_backend_t::"
-          "read_all_rows_as_vector()` was called. The `artificial_table_backend_t` "
-          "subclass must override at least one of `read_all_rows_as_stream()` or "
-          "`read_all_rows_as_vector()`. Also, the `artificial_table_backend_t` user "
-          "shouldn't ever call `read_all_rows_as_vector()` directly.");
-}
