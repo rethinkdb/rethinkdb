@@ -18,13 +18,13 @@ struct index_write_op_t {
     block_id_t block_id;
     // Buf to write.  r_nullopt if not to be modified.  Initialized to an empty
     // counted_t if the block is to be deleted.
-    optional<counted_t<standard_block_token_t> > token;
+    optional<counted_t<block_token_t>> token;
     // Recency, if it should be modified.  (It's unmodified when the data block
     // manager moves blocks around while garbage collecting.)
     optional<repli_timestamp_t> recency;
 
     explicit index_write_op_t(block_id_t _block_id,
-                              optional<counted_t<standard_block_token_t> > _token = r_nullopt,
+                              optional<counted_t<block_token_t>> _token = r_nullopt,
                               optional<repli_timestamp_t> _recency = r_nullopt)
         : block_id(_block_id), token(_token), recency(_recency) { }
 };
@@ -41,7 +41,7 @@ translator_serializer_t. */
 
 class serializer_t : public home_thread_mixin_t {
 public:
-    typedef standard_block_token_t block_token_type;
+    typedef block_token_t block_token_type;
 
     serializer_t() { }
     virtual ~serializer_t() { }
@@ -49,18 +49,20 @@ public:
     /* Allocates a new io account for the underlying file.
     Use delete to free it. */
     file_account_t *make_io_account(int priority);
-    virtual file_account_t *make_io_account(int priority, int outstanding_requests_limit) = 0;
+    virtual file_account_t *make_io_account(int priority,
+                                            int outstanding_requests_limit) = 0;
 
     /* Some serializer implementations support read-ahead to speed up cache warmup.
-    This is supported through a serializer_read_ahead_callback_t which gets called whenever the serializer has read-ahead some buf.
-    The callee can then decide whether it wants to use the offered buffer of discard it.
+    This is supported through a serializer_read_ahead_callback_t which gets called
+    whenever the serializer has read-ahead some buf.  The callee can then decide whether
+    it wants to use the offered buffer of discard it.
     */
     virtual void register_read_ahead_cb(serializer_read_ahead_callback_t *cb) = 0;
     virtual void unregister_read_ahead_cb(serializer_read_ahead_callback_t *cb) = 0;
 
     // Reading a block from the serializer.  Reads a block, blocks the coroutine.
-    virtual buf_ptr_t block_read(const counted_t<standard_block_token_t> &token,
-                               file_account_t *io_account) = 0;
+    virtual buf_ptr_t block_read(const counted_t<block_token_t> &token,
+                                 file_account_t *io_account) = 0;
 
     /* The index stores three pieces of information for each ID:
      * 1. A pointer to a data block on disk (which may be NULL)
@@ -96,7 +98,7 @@ public:
     virtual bool get_delete_bit(block_id_t id) = 0;
 
     /* Reads the block's actual data */
-    virtual counted_t<standard_block_token_t> index_read(block_id_t block_id) = 0;
+    virtual counted_t<block_token_t> index_read(block_id_t block_id) = 0;
 
     // Applies all given index operations in an atomic way.  The mutex_acq is for a
     // mutex belonging to the _caller_, used by the caller for pipelining, for
@@ -109,7 +111,7 @@ public:
                              const std::vector<index_write_op_t> &write_ops) = 0;
 
     // Returns block tokens in the same order as write_infos.
-    virtual std::vector<counted_t<standard_block_token_t> >
+    virtual std::vector<counted_t<block_token_t>>
     block_writes(const std::vector<buf_write_info_t> &write_infos,
                  file_account_t *io_account,
                  iocallback_t *cb) = 0;

@@ -23,7 +23,7 @@ merger_serializer_t::~merger_serializer_t() {
     rassert(outstanding_index_write_ops.empty());
 }
 
-counted_t<standard_block_token_t> merger_serializer_t::index_read(block_id_t block_id) {
+counted_t<block_token_t> merger_serializer_t::index_read(block_id_t block_id) {
     // First check if there is an updated entry for the block id...
     const auto write_op = outstanding_index_write_ops.find(block_id);
     if (write_op != outstanding_index_write_ops.end()) {

@@ -27,34 +27,35 @@ public:
         virtual void on_lba_load() = 0;
         virtual ~load_callback_t() {}
     };
-    lba_disk_structure_t(extent_manager_t *em, file_t *file, lba_shard_metablock_t *metablock);
+    lba_disk_structure_t(extent_manager_t *em, file_t *file,
+                         lba_shard_metablock_t *metablock);
     void set_load_callback(load_callback_t *lcb);
 
-    // Put entries in an LBA and then call sync() to write to disk
+    // Put entries in an LBA and then call wait_for_write_completion() to write to disk
     void add_entry(block_id_t block_id, repli_timestamp_t recency,
                    flagged_off64_t offset, uint32_t ser_block_size,
                    file_account_t *io_account,
                    extent_transaction_t *txn);
-    struct sync_callback_t {
-        virtual void on_lba_sync() = 0;
-        virtual ~sync_callback_t() {}
+    struct completion_callback_t {
+        virtual void on_lba_completion() = 0;
+        virtual ~completion_callback_t() {}
     };
-    void sync(file_account_t *io_account, sync_callback_t *cb);
+    void write_outstanding(file_account_t *io_account,
+                           completion_callback_t *cb);
 
-    // Returns a set of extents that are not currently active.
-    // The returned pointers are valid for as long as the LBA disk structure is not
-    // `destroy()`ed and `destroy_extents()` is not called on them.
+    // Returns a set of extents that are not currently active.  The returned pointers
+    // are valid for as long as the LBA disk structure is not `destroy()`ed and
+    // `destroy_extents()` is not called on them.
     std::set<lba_disk_extent_t *> get_inactive_extents() const;
 
-    // Destroy the given set of extents. Assumes that the extents pointed to
-    // are part of the `extents_in_superblock` list.
-    // Once the extents have been destroyed, a new superblock is written to persist
-    // the change.
+    // Destroy the given set of extents. Assumes that the extents pointed to are part of
+    // the `extents_in_superblock` list.  Once the extents have been destroyed, a new
+    // superblock is written to persist the change.
     void destroy_extents(const std::set<lba_disk_extent_t *> &extents,
                          file_account_t *io_account, extent_transaction_t *txn);
 
-    // If you call read(), then the in_memory_index_t will be populated and then the read_callback_t
-    // will be called when it is done.
+    // If you call read(), then the in_memory_index_t will be populated and then the
+    // read_callback_t will be called when it is done.
     struct read_callback_t {
         virtual void on_lba_extents_read() = 0;
         virtual ~read_callback_t() {}

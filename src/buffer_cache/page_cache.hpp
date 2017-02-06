@@ -81,7 +81,7 @@ class current_page_t {
 public:
     current_page_t(block_id_t block_id, buf_ptr_t buf, page_cache_t *page_cache);
     current_page_t(block_id_t block_id, buf_ptr_t buf,
-                   const counted_t<standard_block_token_t> &token,
+                   const counted_t<block_token_t> &token,
                    page_cache_t *page_cache);
     // Constructs a page to be loaded from the serializer.
     explicit current_page_t(block_id_t block_id);
@@ -278,7 +278,7 @@ public:
 
     void offer_read_ahead_buf(block_id_t block_id,
                               buf_ptr_t *buf,
-                              const counted_t<standard_block_token_t> &token);
+                              const counted_t<block_token_t> &token);
 
     void destroy_self();
 
@@ -376,7 +376,7 @@ private:
     friend class page_read_ahead_cb_t;
     void add_read_ahead_buf(block_id_t block_id,
                             scoped_device_block_aligned_ptr_t<ser_buffer_t> ptr,
-                            const counted_t<standard_block_token_t> &token);
+                            const counted_t<block_token_t> &token);
 
     void read_ahead_cb_is_destroyed();
 
@@ -402,17 +402,17 @@ private:
 
     friend class page_txn_t;
     static void do_flush_changes(page_cache_t *page_cache,
-                                 std::map<block_id_t, block_change_t> &&changes,
+                                 std::unordered_map<block_id_t, block_change_t> &&changes,
                                  const std::vector<page_txn_t *> &txns,
                                  fifo_enforcer_write_token_t index_write_token);
     static void do_flush_txn_set(page_cache_t *page_cache,
-                                 std::map<block_id_t, block_change_t> *changes_ptr,
+                                 std::unordered_map<block_id_t, block_change_t> *changes_ptr,
                                  const std::vector<page_txn_t *> &txns);
 
     static void remove_txn_set_from_graph(page_cache_t *page_cache,
                                           const std::vector<page_txn_t *> &txns);
 
-    static std::map<block_id_t, block_change_t>
+    static std::unordered_map<block_id_t, block_change_t>
     compute_changes(const std::vector<page_txn_t *> &txns);
 
     static std::vector<page_txn_t *> maximal_flushable_txn_set(page_txn_t *base);

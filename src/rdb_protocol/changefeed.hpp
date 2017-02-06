@@ -95,11 +95,13 @@ struct msg_t {
         RDB_DECLARE_ME_SERIALIZABLE(limit_stop_t);
     };
     struct change_t {
-        index_vals_t old_indexes, new_indexes;
+        index_vals_t old_indexes;
+        index_vals_t new_indexes;
         store_key_t pkey;
         /* For a newly-created row, `old_val` is an empty `datum_t`. For a deleted row,
         `new_val` is an empty `datum_t`. */
-        datum_t old_val, new_val;
+        datum_t old_val;
+        datum_t new_val;
         RDB_DECLARE_ME_SERIALIZABLE(change_t);
     };
     struct stop_t {
@@ -412,12 +414,12 @@ public:
         std::vector<item_t> &&item_vec);
 
     void add(rwlock_in_line_t *spot,
-             store_key_t sk,
+             const store_key_t &sk,
              is_primary_t is_primary,
              datum_t key,
              datum_t val) THROWS_NOTHING;
     void del(rwlock_in_line_t *spot,
-             store_key_t sk,
+             const store_key_t &sk,
              is_primary_t is_primary) THROWS_NOTHING;
     void commit(rwlock_in_line_t *spot,
                 const boost::variant<primary_ref_t, sindex_ref_t> &sindex_ref)

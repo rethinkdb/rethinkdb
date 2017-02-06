@@ -19,13 +19,15 @@
 class extent_zone_t;
 
 struct log_serializer_stats_t;
+struct extent_manager_metablock_mixin_t;
 
 // A reference to an extent in the extent manager.  An extent may not be freed until
 // all of the references go away (unless the server is shutting down).
 class extent_reference_t {
 public:
     extent_reference_t() : extent_offset_(-1) {}
-    explicit extent_reference_t(int64_t extent_offset) : extent_offset_(extent_offset) {}
+    explicit extent_reference_t(int64_t extent_offset)
+        : extent_offset_(extent_offset) {}
     extent_reference_t(extent_reference_t &&movee)
         : extent_offset_(movee.release()) {}
     ~extent_reference_t() { guarantee(extent_offset_ == -1); }
@@ -92,10 +94,6 @@ private:
 
 class extent_manager_t : public home_thread_mixin_debug_only_t {
 public:
-    struct metablock_mixin_t {
-        int64_t padding;
-    };
-
     extent_manager_t(file_t *file,
                      const log_serializer_on_disk_static_config_t *static_config,
                      log_serializer_stats_t *);
@@ -106,9 +104,9 @@ public:
 
     MUST_USE extent_reference_t reserve_extent(int64_t extent);
 
-    static void prepare_initial_metablock(metablock_mixin_t *mb);
+    static void prepare_initial_metablock(extent_manager_metablock_mixin_t *mb);
     void start_existing();
-    void prepare_metablock(metablock_mixin_t *metablock);
+    void prepare_metablock(extent_manager_metablock_mixin_t *metablock);
     void shutdown();
 
     /* The extent manager uses transactions to make sure that extents are not freed

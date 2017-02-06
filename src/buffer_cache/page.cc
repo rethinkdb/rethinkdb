@@ -93,7 +93,7 @@ page_t::page_t(block_id_t _block_id, buf_ptr_t buf,
 
 page_t::page_t(block_id_t _block_id,
                buf_ptr_t buf,
-               const counted_t<standard_block_token_t> &_block_token,
+               const counted_t<block_token_t> &_block_token,
                page_cache_t *page_cache)
     : block_id_(_block_id),
       loader_(nullptr),
@@ -177,7 +177,7 @@ void page_t::load_from_copyee(page_t *page, page_t *copyee,
 }
 
 void page_t::finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
-                                       counted_t<standard_block_token_t> block_token,
+                                       counted_t<block_token_t> block_token,
                                        buf_ptr_t buf) {
     rassert(!page->block_token_.has());
     rassert(!page->buf_.has());
@@ -195,7 +195,7 @@ void page_t::finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
 // This lives on the serializer thread.
 class deferred_block_token_t {
 public:
-    counted_t<standard_block_token_t> token;
+    counted_t<block_token_t> token;
 };
 
 class deferred_page_loader_t final : public page_loader_t {
@@ -347,7 +347,7 @@ void page_t::load_with_block_id(page_t *page, block_id_t block_id,
     auto_drainer_t::lock_t lock = page_cache->drainer_lock();
 
     buf_ptr_t buf;
-    counted_t<standard_block_token_t> block_token;
+    counted_t<block_token_t> block_token;
 
     {
         serializer_t *const serializer = page_cache->serializer();
@@ -442,7 +442,7 @@ void page_t::load_using_block_token(page_t *page, page_cache_t *page_cache,
 
     auto_drainer_t::lock_t lock = page_cache->drainer_lock();
 
-    counted_t<standard_block_token_t> block_token = page->block_token_;
+    counted_t<block_token_t> block_token = page->block_token_;
     rassert(block_token.has());
 
     buf_ptr_t buf;
@@ -492,12 +492,12 @@ uint32_t page_t::hypothetical_memory_usage(page_cache_t *page_cache) const {
     // Not every `page_t` corresponds to one `current_page_t`. and not every
     // `page_t` has a block token. However in typical workloads, most of them will.
     //
-    // It is tempting to account for the `standard_block_token_t` only if
+    // It is tempting to account for the `block_token_t` only if
     // `block_token_.has()` is `true`. However there are some places in the code
     // that assume that `hypothetical_memory_usage` doesn't change after setting
     // the block token.
     size_t base_size = sizeof(current_page_t) + sizeof(page_t) +
-        sizeof(standard_block_token_t);
+        sizeof(block_token_t);
     if (buf_.has()) {
         return base_size + buf_.aligned_block_size();
     } else if (block_token_.has()) {
@@ -566,7 +566,7 @@ ser_buffer_t *page_t::get_loaded_ser_buffer() {
 }
 
 // Used for after we've flushed the page.
-void page_t::init_block_token(counted_t<standard_block_token_t> token,
+void page_t::init_block_token(counted_t<block_token_t> token,
                               DEBUG_VAR page_cache_t *page_cache) {
     rassert(buf_.has());
     rassert(buf_.block_size().value() == token->block_size().value());

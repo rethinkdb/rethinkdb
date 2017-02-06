@@ -9,6 +9,7 @@
 #include "containers/scoped.hpp"
 #include "serializer/serializer.hpp"
 #include "serializer/log/extent_manager.hpp"
+#include "serializer/log/metablock.hpp"
 #include "serializer/log/lba/disk_format.hpp"
 #include "serializer/log/lba/in_memory_index.hpp"
 #include "serializer/log/lba/disk_structure.hpp"
@@ -19,25 +20,23 @@ class lba_syncer_t;
 class lba_list_t
 {
     friend class lba_start_fsm_t;
-    friend class lba_syncer_t;
+    friend class lba_writer_t;
 
     typedef std::function<void(const signal_t *, file_account_t *)> write_metablock_fun_t;
 
 public:
-    typedef lba_metablock_mixin_t metablock_mixin_t;
-
     explicit lba_list_t(extent_manager_t *em,
                         const write_metablock_fun_t &_write_metablock_fun);
     ~lba_list_t();
 
-    static void prepare_initial_metablock(metablock_mixin_t *mb_out);
-    void prepare_metablock(metablock_mixin_t *mb_out);
+    static void prepare_initial_metablock(lba_metablock_mixin_t *mb_out);
+    void prepare_metablock(lba_metablock_mixin_t *mb_out);
 
     struct ready_callback_t {
         virtual void on_lba_ready() = 0;
         virtual ~ready_callback_t() {}
     };
-    bool start_existing(file_t *dbfile, metablock_mixin_t *last_metablock,
+    bool start_existing(file_t *dbfile, lba_metablock_mixin_t *last_metablock,
                         ready_callback_t *cb);
 
     index_block_info_t get_block_info(block_id_t block);
@@ -50,8 +49,8 @@ public:
     segmented_vector_t<repli_timestamp_t> get_block_recencies(block_id_t first,
                                                               block_id_t step);
 
-    /* Returns a block ID such that all blocks that exist are guaranteed to have IDs less than
-    that block ID. */
+    /* Returns a block ID such that all blocks that exist are guaranteed to have IDs
+    less than that block ID. */
     block_id_t end_block_id();
     block_id_t end_aux_block_id();
 
@@ -66,11 +65,11 @@ public:
                         file_account_t *io_account,
                         extent_transaction_t *txn);
 
-    struct sync_callback_t {
-        virtual void on_lba_sync() = 0;
-        virtual ~sync_callback_t() {}
+    struct completion_callback_t {
+        virtual void on_lba_completion() = 0;
+        virtual ~completion_callback_t() {}
     };
-    void sync(file_account_t *io_account, sync_callback_t *cb);
+    void write_outstanding(file_account_t *io_account, completion_callback_t *cb);
 
     void consider_gc();
 
@@ -115,9 +114,10 @@ private:
     lba_entry_t inline_lba_entries[LBA_NUM_INLINE_ENTRIES];
     int32_t inline_lba_entries_count;
     bool check_inline_lba_full() const;
-    void move_inline_entries_to_extents(file_account_t *io_account, extent_transaction_t *txn);
+    void move_inline_entries_to_extents(file_account_t *io_account,
+                                        extent_transaction_t *txn);
     void add_inline_entry(block_id_t block, repli_timestamp_t recency,
-                                flagged_off64_t offset, uint16_t ser_block_size);
+                          flagged_off64_t offset, uint16_t ser_block_size);
 
     lba_disk_structure_t *disk_structures[LBA_SHARD_FACTOR];
 
