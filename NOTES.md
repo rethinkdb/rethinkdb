@@ -6,13 +6,17 @@ Bug fix release
 
 ### Notes ###
 
-This is the first release of RethinkDB since the October. This release
+This is the first release of RethinkDB since October. This release
 is brought to you by volunteers from the Open RethinkDB team. We're
 committed to building a bright future for RethinkDB. To get involved
 in the transition and to see how it might affect you, read our [blog
-post][blog-new-rethinkdb].
+post][blog-new-rethinkdb]. RethinkDB source code is now licensed under
+[ASLv2 license][ASLv2-license] thanks to [The Linux Foundation]
+[the-linux-foundation].
 
-[blog-new-rethinkdb]: TODO
+[blog-new-rethinkdb]: https://rethinkdb.com/blog/rethinkdb-joins-linux-foundation/
+[ASLv2-license]: https://www.apache.org/licenses/LICENSE-2.0
+[the-linux-foundation]: https://www.linuxfoundation.org/
 
 ### Compatibility ###
 
