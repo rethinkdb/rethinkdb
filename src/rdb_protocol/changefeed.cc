@@ -2395,10 +2395,7 @@ private:
                 outer_env->get_rdb_ctx(),
                 outer_env->return_empty_normal_batches,
                 drainer.get_drain_signal(),
-                serializable_env_t{
-                    outer_env->get_all_optargs(),
-                    outer_env->get_user_context(),
-                    outer_env->get_deterministic_time()},
+                outer_env->get_serializable_env(),
                 nullptr/*don't profile*/);
     }
 
