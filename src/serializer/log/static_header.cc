@@ -37,7 +37,8 @@ void co_static_header_write(file_t *file, void *data, size_t data_size) {
     scoped_device_block_aligned_ptr_t<static_header_t> buffer(DEVICE_BLOCK_SIZE);
     rassert(sizeof(static_header_t) + data_size < DEVICE_BLOCK_SIZE);
 
-    file->set_file_size_at_least(DEVICE_BLOCK_SIZE);
+    // We don't know what the extent size is yet, and it doesn't really matter.
+    file->set_file_size_at_least(DEVICE_BLOCK_SIZE, DEFAULT_EXTENT_SIZE);
 
     memset(buffer.get(), 0, DEVICE_BLOCK_SIZE);
 

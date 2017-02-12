@@ -71,7 +71,7 @@ public:
 
     int64_t get_file_size();
     void set_file_size(int64_t size);
-    void set_file_size_at_least(int64_t size);
+    void set_file_size_at_least(int64_t size, int64_t extent_size);
 
     void read_async(int64_t offset, size_t length, void *buf, file_account_t *account, linux_iocallback_t *cb);
     void write_async(int64_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *cb,
