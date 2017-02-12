@@ -256,18 +256,23 @@ void linux_file_t::set_file_size(int64_t new_size) {
 }
 
 // For growing in large chunks at a time.
-int64_t chunk_factor(int64_t size) {
-    // x is at most 12.5% of size. Overall we align to chunks no larger than
-    // 64 extents.
-    int64_t x = (size / (DEFAULT_EXTENT_SIZE * 8)) * DEFAULT_EXTENT_SIZE;
-    return clamp<int64_t>(x, DEFAULT_EXTENT_SIZE, DEFAULT_EXTENT_SIZE * 64);
+int64_t chunk_factor(int64_t size, int64_t extent_size) {
+    // x is at most 12.5% of size. Overall we align to chunks no larger than 64 extents.
+    // This ratio was increased from 6.25% for performance reasons.  Resizing a file
+    // (with ftruncate) doesn't actually use disk space, so it's OK if we pick a value
+    // that's too big.
+
+    // We round off at an extent_size because it would be silly to allocate a partial
+    // extent.
+    int64_t x = (size / (extent_size * 8)) * extent_size;
+    return clamp<int64_t>(x, extent_size, extent_size * 64);
 }
 
-void linux_file_t::set_file_size_at_least(int64_t size) {
+void linux_file_t::set_file_size_at_least(int64_t size, int64_t extent_size) {
     assert_thread();
     if (file_size < size) {
-        /* Grow in large chunks at a time */
-        set_file_size(ceil_aligned(size, chunk_factor(size)));
+        /* Grow in large chunks at a time. */
+        set_file_size(ceil_aligned(size, chunk_factor(size, extent_size)));
     }
 }
 

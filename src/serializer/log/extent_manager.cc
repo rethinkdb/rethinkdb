@@ -143,7 +143,7 @@ public:
             // the way it handles multi-threading.
             // So we calculate the *change* in file size and update it accordingly.
             const int64_t old_file_size = dbfile->get_file_size();
-            dbfile->set_file_size_at_least(extent + extent_size);
+            dbfile->set_file_size_at_least(extent + extent_size, extent_size);
             stats->pm_file_size_bytes += dbfile->get_file_size() - old_file_size;
         }
 
