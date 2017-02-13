@@ -306,9 +306,19 @@ const std::string stop_json(strprintf("[%" PRIi32 "]",
                                       Query::STOP));
 const std::string invalid_json("]");
 
-template <class T>
-void append_to_message(const T& item, std::string *message) {
-    message->append(reinterpret_cast<const char *>(&item), sizeof(item));
+template <class Integral>
+void append_to_message(Integral item, std::string *message) {
+    const size_t size = sizeof(Integral);
+    static_assert(std::is_integral<Integral>::value, "item must be an integral");
+    static_assert(size == 4 || size == 8, "item size must be 4 or 8 bytes");
+    switch (size) {
+    case 4:
+        message->append(encode_le32(item));
+        break;
+    case 8:
+        message->append(encode_le64(item));
+        break;
+    }
 }
 
 void append_to_message(const std::string &item, std::string *message) {
@@ -387,15 +397,18 @@ std::string get_query_response(tcp_conn_stream_t *conn) {
     int64_t res;
     int64_t token;
     uint32_t response_size;
-    res = conn->read(&token, sizeof(token));
+    char buf[8];
+    res = conn->read(buf, sizeof(token));
     if (res == 0) {
         return std::string();
     }
     guarantee(res == sizeof(token));
+    token = decode_le64(std::string(buf, 8));
     guarantee(token == unparsable_query_token || token == test_token);
 
-    res = conn->read(&response_size, sizeof(response_size));
+    res = conn->read(buf, sizeof(response_size));
     guarantee(res == sizeof(response_size));
+    response_size = decode_le32(std::string(buf, 4));
 
     scoped_array_t<char> response_data(response_size + 1);
     res = conn->read(response_data.data(), response_size);
@@ -500,8 +513,7 @@ http_req_t make_http_query(const std::string &conn_id, const std::string &query_
     http_req_t query_req("/query");
     query_req.method = http_method_t::POST;
     query_req.query_params.insert(std::make_pair("conn_id", conn_id));
-    query_req.body.append(reinterpret_cast<const char *>(&test_token),
-                          sizeof(test_token));
+    query_req.body.append(encode_le64(test_token));
     query_req.body.append(query_json);
     return query_req;
 }
@@ -510,10 +522,10 @@ std::string parse_http_result(const http_res_t &http_res, int32_t expected_type)
     guarantee(http_res.body.size() > sizeof(int64_t) + sizeof(uint32_t));
     const char *data = http_res.body.data();
 
-    int64_t token = *reinterpret_cast<const int64_t *>(data);
+    int64_t token = decode_le64(std::string(data, 8));
     data += sizeof(token);
 
-    uint32_t data_size = *reinterpret_cast<const uint32_t *>(data);
+    uint32_t data_size = decode_le32(std::string(data, 4));
     data += sizeof(data_size);
 
     return parse_json_error_message(data, expected_type);
