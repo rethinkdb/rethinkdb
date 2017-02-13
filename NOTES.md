@@ -43,6 +43,7 @@ older version.
  * Fixed a crash caused by `eqJoin` of system tables when using the `uuid` `identifierFormat` (#6108) -- @nighelles
  * Fixed a bug that caused `r.match('')` to return wrong results (#6241) -- @AtnNn
  * Miscellaneous regression fixes and code improvements by @srh and @VeXocide
+ * Fixed argument order in pretty-printed queries in the jobs table (#6240) -- @AtnNn
 * Packaging
  * Fix glibc version detection in RPM packaging script (#6229) -- @gamename
 
