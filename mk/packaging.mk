@@ -42,8 +42,16 @@ DSC_CONFIGURE_DEFAULT = --prefix=/usr --sysconfdir=/etc --localstatedir=/var
 DIST_CONFIGURE_DEFAULT_FETCH = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), --fetch $(pkg))
 DIST_SUPPORT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), $(SUPPORT_SRC_DIR)/$(pkg)_$($(pkg)_VERSION))
 
-DEB_BUILD_DEPENDS := g++, libboost-dev, libssl-dev, curl, m4, debhelper
+DEB_BUILD_DEPENDS := libboost-dev, libssl-dev, curl, m4, debhelper
 DEB_BUILD_DEPENDS += , fakeroot, python, libncurses5-dev, libcurl4-openssl-dev, libssl-dev
+
+ifeq ($(UBUNTU_RELEASE),yakkety)
+  # RethinkDB fails to compile with GCC 6 (#5757)
+  DEB_BUILD_DEPENDS += , g++-5
+  DSC_CONFIGURE_DEFAULT += CXX=g++-5
+else
+  DEB_BUILD_DEPENDS += , g++
+endif
 
 ifneq (1,$(BUILD_PORTABLE))
   DEB_BUILD_DEPENDS += , protobuf-compiler, libprotobuf-dev
