@@ -78,6 +78,26 @@ private:
     virtual const char *name() const { return "implicit_var"; }
 };
 
+class write_timestamp_term_t : public op_term_t {
+public:
+    write_timestamp_term_t(compile_env_t *env, const raw_term_t &term)
+        : op_term_t(env, term, argspec_t(0)) { }
+
+private:
+    scoped_ptr_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
+        // Return the write_timestamp from the env, if there is one.
+        // RSI: Implement.
+        r_sanity_fail();
+    }
+
+    virtual deterministic_t is_deterministic() const {
+        // RSI: Add a write_timestamp flag?  We could catch some errors earlier.
+        return deterministic_t::always();
+    }
+
+    virtual const char *name() const { return "write_timestamp"; }
+};
+
 counted_t<term_t> make_var_term(
         compile_env_t *env, const raw_term_t &term) {
     return make_counted<var_term_t>(env, term);
@@ -85,6 +105,11 @@ counted_t<term_t> make_var_term(
 counted_t<term_t> make_implicit_var_term(
         compile_env_t *env, const raw_term_t &term) {
     return make_counted<implicit_var_term_t>(env, term);
+}
+
+counted_t<term_t> make_write_timestamp_term(
+        compile_env_t *env, const raw_term_t &term) {
+    return make_counted<write_timestamp_term_t>(env, term);
 }
 
 } // namespace ql

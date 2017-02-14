@@ -348,6 +348,8 @@ counted_t<term_t> make_var_term(
     compile_env_t *env, const raw_term_t &term);
 counted_t<term_t> make_implicit_var_term(
     compile_env_t *env, const raw_term_t &term);
+counted_t<term_t> make_write_timestamp_term(
+    compile_env_t *env, const raw_term_t &term);
 
 // writes.cc
 counted_t<term_t> make_insert_term(
