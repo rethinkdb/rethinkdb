@@ -6,9 +6,14 @@
     "node": true
   },
   "globals": {
+    "Backbone": true,
+    "d3": true,
+    "_": true,
+    "$": true,
     "GENTLY": true
   },
   "rules": {
+    "camelcase": 0,
     "no-multi-spaces": 0,
     "comma-dangle": [
       "error",

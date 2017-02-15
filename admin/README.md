@@ -46,11 +46,11 @@ We do not use the method `Backbone.sync` but do rely on
 
 ### Initialization
 
-The initialization is done in `app.coffee`.
+The initialization is done in `app.js`.
 
 ### Router
 
-The router defined in `/admin/static/coffee/router.coffee` creates all the routes.
+The router defined in `/admin/static/src/router.js` creates all the routes.
 
 Every time the route is changed, we will create a new view and render it.
 
@@ -60,7 +60,7 @@ Every time the route is changed, we will create a new view and render it.
 Since the ReQL api to manage your cluster, all the data is retrieved via
 ReQL queries via HTTP.
 
-The class `Driver` in `/admin/static/coffee/app.coffee` wraps the driver with
+The class `Driver` in `/admin/static/src/app.js` wraps the driver with
 convenient way to retrieve data.
 
 __Note__: The class `Driver` will rename the `run` method to `private_run`
@@ -93,9 +93,9 @@ use them instead. Another solution would be to have a more complicated HTTP serv
 If possible, only the main view should run queries, and a main view's `remove` method should call
 `driver.stop_timer` if it previously called `driver.run`.
 This prevent us from forgetting to remove listeners/intervals since we will always call `remove`
-in `/admin/static/coffee/router.coffee`.
+in `/admin/static/src/router.js`.
 
-Having the queries run in `router.coffee` would have also work, but would have make the class a bit
+Having the queries run in `router.js` would have also work, but would have make the class a bit
 cumbersome.
 
 #### Tables used
@@ -214,7 +214,7 @@ in `$el`, but `prepend`, `append`, or use
 `@$('.element_class').eq(position-1).after view.render().$el`
 
 
-Here is a full example (taken from `/admin/static/coffee/table/database.coffee`)
+Here is a full example (taken from `/admin/static/src/table/database.js`)
 ```coffeescript
 initialize: =>
     @tables_views = []
@@ -271,18 +271,18 @@ initialize: =>
 
 ##### About views representing a collection of collections
 
-We have a collection of collections in `/admin/static/coffee/tables/index.coffee` (a list of databases
+We have a collection of collections in `/admin/static/src/tables/index.js` (a list of databases
 where each database has a list of tables).
 
-The proper way to handle this structure is done in `/admin/static/coffee/table/index.coffee`.
+The proper way to handle this structure is done in `/admin/static/src/table/index.js`.
 Each model of the main collection is going to create a new collection based on one of its
 attributes. The method `DatabaseView.update_collection` is the method doing it.
 
 
 While this is nice and is how things are (probably?) intended to be used, it makes the code
 cumbersome. In the case of simple collection of collections like for the responsabilities of
-a server in `admin/static/coffee/server/server.coffee` or the list of shard assignments in
-`/admin/static/coffee/table/shard_assignments.coffee`, we flatten the elements to get one unique
+a server in `admin/static/src/server/server.js` or the list of shard assignments in
+`/admin/static/src/table/shard_assignments.js`, we flatten the elements to get one unique
 collection.
 
 #### Removing a view
@@ -312,7 +312,7 @@ in the CoffeeScript file.
 Handlebars also has a `{{#each list}}...{{/each}}` control structure.
 
 You can also define helpers with `Handlebars.registerHelper`. See
-`/admin/static/coffee/util.coffee` to see about helpers currently defined.
+`/admin/static/src/util.js` to see about helpers currently defined.
 The most common one being probably `pluralize_noun`.
 
 ### The data explorer

@@ -374,7 +374,7 @@ class Driver {
               is_disconnected.display_fail()
             }
           } else {
-            const body = require('./body.coffee')
+            const body = require('./body')
             is_disconnected = new body.IsDisconnected()
           }
           return this.state = 'fail'
@@ -483,10 +483,10 @@ class Driver {
 Driver.initClass()
 
 $(() => {
-  const body = require('./body.coffee')
-  const data_explorer_view = require('./dataexplorer.coffee')
+  const body = require('./body')
+  const data_explorer_view = require('./dataexplorer')
   const main_container = new body.MainContainer()
-  const app = require('./app.coffee').main = main_container
+  const app = require('./app').main = main_container
   $('body').html(main_container.render().$el)
   // We need to start the router after the main view is bound to the DOM
   main_container.start_router()

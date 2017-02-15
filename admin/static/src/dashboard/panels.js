@@ -2,10 +2,10 @@
 
 const r = require('rethinkdb')
 const h = require('virtual-dom/h')
-const vdom = require('../vdom_util.coffee')
-const util = require('../util.coffee')
+const vdom = require('../vdom_util')
+const util = require('../util')
 
-const app = require('../app.coffee')
+const app = require('../app')
 const { system_db } = app
 
 const systable = name => r.db(system_db).table(name)

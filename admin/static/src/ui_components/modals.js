@@ -3,9 +3,9 @@
 // This file extends the UIComponents module with commonly used modal
 // dialog boxes.
 
-const models = require('../models.coffee')
-const util = require('../util.coffee')
-const app = require('../app.coffee')
+const models = require('../models')
+const util = require('../util')
+const app = require('../app')
 const { driver } = app
 const { system_db } = app
 

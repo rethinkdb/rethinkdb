@@ -1,7 +1,7 @@
 // Copyright 2010-2015 RethinkDB
 // TopBar module
 
-const app = require('./app.coffee')
+const app = require('./app')
 
 class NavBarView extends Backbone.View {
   constructor (...args) {

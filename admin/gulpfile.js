@@ -25,15 +25,15 @@ var ROOT_DIR = path.resolve(__dirname, '..'),
     WEB_ASSETS_DIR = BUILD_DIR+'/web_assets',
     WEB_OBJ_DIR = BUILD_DIR+'/web_obj',
     STATIC_DIR = WEBUI_DIR+'/static',
-    COFFEE_DIR = STATIC_DIR+'/coffee',
+    SRC_DIR = STATIC_DIR+'/src',
     JS_BUNDLE_FILE = 'cluster-min.js',
     LESS_DIR = STATIC_DIR+'/less',
     FONTS_DIR = STATIC_DIR+'/fonts',
     IMAGES_DIR = STATIC_DIR+'/images',
     JS_DIR = STATIC_DIR+'/js',
     DRIVER_BUILD_DIR = BUILD_DIR+'/packages/js',
-    VERSION_FILE = WEB_OBJ_DIR+'/version.coffee',
-    BROWSERIFY_BUNDLE_ENTRY_POINT = (COFFEE_DIR+'/body.coffee').replace(/\//g, path.sep),
+    VERSION_FILE = WEB_OBJ_DIR+'/version.js',
+    BROWSERIFY_BUNDLE_ENTRY_POINT = (SRC_DIR+'/body.js').replace(/\//g, path.sep),
     BROWSERIFY_CACHE_FILE = WEB_OBJ_DIR+'/browserify-cache.json',
     INDEX_FILE = WEBUI_DIR+'/templates/cluster.html';
 
@@ -117,7 +117,7 @@ function createBundler(watch) {
   var retval = uberWatchify(browserify({
     entries: [BROWSERIFY_BUNDLE_ENTRY_POINT],
     cache: uberWatchify.getCache(BROWSERIFY_CACHE_FILE),
-    extensions: ['.coffee', '.hbs'],
+    extensions: ['.js', '.hbs'],
     packageCache: {},
     fullPaths: true,
   }),{

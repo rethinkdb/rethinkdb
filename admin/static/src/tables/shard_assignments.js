@@ -1,7 +1,7 @@
 // Copyright 2010-2015 RethinkDB
 
-const models = require('../models.coffee')
-const util = require('../util.coffee')
+const models = require('../models')
+const util = require('../util')
 const h = require('virtual-dom/h')
 const diff = require('virtual-dom/diff')
 const patch = require('virtual-dom/patch')

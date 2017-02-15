@@ -7,17 +7,17 @@ const patch = require('virtual-dom/patch')
 const diff = require('virtual-dom/diff')
 const createElement = require('virtual-dom/create-element')
 
-const vdom = require('../vdom_util.coffee')
-const models = require('../models.coffee')
-const app = require('../app.coffee')
+const vdom = require('../vdom_util')
+const models = require('../models')
+const app = require('../app')
 const { driver } = app
 const { system_db } = app
-const vis = require('../vis.coffee')
-const log_view = require('../log_view.coffee')
-const ui_modals = require('../ui_components/modals.coffee')
+const vis = require('../vis')
+const log_view = require('../log_view')
+const ui_modals = require('../ui_components/modals')
 
-const server_profile = require('./profile.coffee')
-const server_resp = require('./responsibilities.coffee')
+const server_profile = require('./profile')
+const server_resp = require('./responsibilities')
 
 class Model extends Backbone.Model {
   static initClass () {

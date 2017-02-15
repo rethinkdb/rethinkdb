@@ -1,12 +1,12 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
-const dashboard = require('./dashboard/dashboard.coffee')
-const log_view = require('./log_view.coffee')
-const dataexplorer_view = require('./dataexplorer.coffee')
-const tables_view = require('./tables/index.coffee')
-const table_view = require('./tables/table.coffee')
-const servers_index = require('./servers/index.coffee')
-const server_view = require('./servers/server.coffee')
-const app = require('./app.coffee')
+const dashboard = require('./dashboard/dashboard')
+const log_view = require('./log_view')
+const dataexplorer_view = require('./dataexplorer')
+const tables_view = require('./tables/index')
+const table_view = require('./tables/table')
+const servers_index = require('./servers/index')
+const server_view = require('./servers/server')
+const app = require('./app')
 
 class BackboneCluster extends Backbone.Router {
   constructor (...args) {

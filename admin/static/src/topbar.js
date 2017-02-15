@@ -1,7 +1,7 @@
 // TopBar view
 
-const issues = require('./issues.coffee')
-const app = require('./app.coffee')
+const issues = require('./issues')
+const app = require('./app')
 const { driver } = app
 
 class Container extends Backbone.View {

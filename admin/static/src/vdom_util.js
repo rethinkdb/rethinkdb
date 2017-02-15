@@ -1,7 +1,7 @@
 // Helpers to eliminate some boilerplate for using virtual-dom and
 // backbone together.
 
-const app = require('./app.coffee')
+const app = require('./app')
 const { driver } = app
 
 const r = require('rethinkdb')

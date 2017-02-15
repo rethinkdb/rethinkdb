@@ -1,13 +1,13 @@
 // Copyright 2010-2015 RethinkDB
 
-const models = require('../models.coffee')
-const modals = require('../modals.coffee')
-const shard_assignments = require('./shard_assignments.coffee')
-const shard_distribution = require('./shard_distribution.coffee')
-const vis = require('../vis.coffee')
-const ui_modals = require('../ui_components/modals.coffee')
-const ui_progress = require('../ui_components/progressbar.coffee')
-const app = require('../app.coffee')
+const models = require('../models')
+const modals = require('../modals')
+const shard_assignments = require('./shard_assignments')
+const shard_distribution = require('./shard_distribution')
+const vis = require('../vis')
+const ui_modals = require('../ui_components/modals')
+const ui_progress = require('../ui_components/progressbar')
+const app = require('../app')
 const { driver } = app
 const { system_db } = app
 
@@ -743,7 +743,7 @@ class ReconfigureDiffView extends Backbone.View {
     // rerended the entire modal, you lose focus in the text boxes
     // since handlebars creates an entirely new dom tree.
     //
-    // You can find the ReconfigureModal in coffee/modals.coffee
+    // You can find the ReconfigureModal in src/modals.js
 
     this.prototype.className = 'reconfigure-diff'
     this.prototype.template = require('../../handlebars/reconfigure-diff.hbs')
@@ -868,7 +868,7 @@ class TableStatusIndicator extends Backbone.View {
     if (!status) {
       return 'unknown'
     }
-    // ensure this matches "humanize_table_readiness" in util.coffee
+    // ensure this matches "humanize_table_readiness" in util.js
     if (status.all_replicas_ready) {
       return 'ready'
     } else if (status.ready_for_writes) {

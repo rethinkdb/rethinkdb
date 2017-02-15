@@ -1,8 +1,8 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 
-const app = require('./app.coffee')
+const app = require('./app')
 const { driver } = app
-const models = require('./models.coffee')
+const models = require('./models')
 
 class LogsContainer extends Backbone.View {
   constructor (...args) {

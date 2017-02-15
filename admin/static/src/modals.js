@@ -1,10 +1,10 @@
 // Copyright 2010-2015 RethinkDB
 
-const ui_modals = require('./ui_components/modals.coffee');
-const util = require('./util.coffee');
-const models = require('./models.coffee');
-const table_view = require('./tables/table.coffee');
-const app = require('./app.coffee');
+const ui_modals = require('./ui_components/modals');
+const util = require('./util');
+const models = require('./models');
+const table_view = require('./tables/table');
+const app = require('./app');
 const { driver } = app;
 const { system_db } = app;
 

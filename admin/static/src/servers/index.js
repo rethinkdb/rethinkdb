@@ -7,11 +7,11 @@ const patch = require('virtual-dom/patch')
 const createElement = require('virtual-dom/create-element')
 const moment = require('moment')
 
-const util = require('../util.coffee')
-const app = require('../app.coffee')
+const util = require('../util')
+const app = require('../app')
 const { system_db } = app
 const { driver } = app
-const models = require('../models.coffee')
+const models = require('../models')
 
 class Model extends Backbone.Model {
   static initClass () {

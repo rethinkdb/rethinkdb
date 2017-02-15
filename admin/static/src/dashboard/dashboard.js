@@ -1,17 +1,17 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 
-const vdom = require('../vdom_util.coffee')
+const vdom = require('../vdom_util')
 const h = require('virtual-dom/h')
 const r = require('rethinkdb')
 
-const panels = require('./panels.coffee')
-const util = require('../util.coffee')
-const app = require('../app.coffee')
+const panels = require('./panels')
+const util = require('../util')
+const app = require('../app')
 const { driver } = app
 const { system_db } = app
-const models = require('../models.coffee')
-const log_view = require('../log_view.coffee')
-const vis = require('../vis.coffee')
+const models = require('../models')
+const log_view = require('../log_view')
+const vis = require('../vis')
 
 class View extends vdom.VirtualDomView {
   constructor (...args) {

@@ -1,10 +1,10 @@
 // Copyright 2010-2015 RethinkDB
 
-const app = require('../app.coffee')
+const app = require('../app')
 const { driver } = app
 const { system_db } = app
-const models = require('../models.coffee')
-const modals = require('../modals.coffee')
+const models = require('../models')
+const modals = require('../modals')
 
 const r = require('rethinkdb')
 
