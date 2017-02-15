@@ -1,0 +1,11 @@
+{
+  "presets": [
+    "es2015"
+  ],
+  "plugins": [
+    "add-module-exports",
+    "transform-object-assign",
+    "es6-promise",
+    "transform-async-to-generator"
+  ]
+}
