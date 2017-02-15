@@ -277,6 +277,12 @@ git_clone_tag () {
 
 # Download a file
 geturl () {
+    local cached=$external_dir/.cache/$(basename "$2")
+    if [[ -e "$cached" ]]; then
+        cp "$cached" "$2"
+	return
+    fi
+
     if [[ -n "${CURL:-}" ]]; then
         $CURL --silent -S --fail --location "$1" -o "$2"
     else
