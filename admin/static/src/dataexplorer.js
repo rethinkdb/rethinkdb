@@ -1510,62 +1510,62 @@ class Container extends Backbone.View {
                 const new_suggestions = []
                 let new_highlighted_suggestion = -1
                 for (let index = 0; index < this.current_suggestions.length; index++) {
-                    suggestion = this.current_suggestions[index]
-                    if (index < this.current_highlighted_suggestion) {
-                        new_highlighted_suggestion = new_suggestions.length
-                      }
-                    if (regex.test(suggestion) === true) {
-                        new_suggestions.push(suggestion)
-                      }
+                  suggestion = this.current_suggestions[index]
+                  if (index < this.current_highlighted_suggestion) {
+                    new_highlighted_suggestion = new_suggestions.length
                   }
+                  if (regex.test(suggestion) === true) {
+                    new_suggestions.push(suggestion)
+                  }
+                }
                 this.current_suggestions = new_suggestions
                 this.current_highlighted_suggestion = new_highlighted_suggestion
                 if (this.current_suggestions.length > 0) {
-                    this.$('.suggestion_name_list').empty()
-                    for (i = 0; i < this.current_suggestions.length; i++) {
-                        suggestion = this.current_suggestions[i]
-                        this.$('.suggestion_name_list').append(this.template_suggestion_name({
-                            id: i,
-                            suggestion,
-                          })
+                  this.$('.suggestion_name_list').empty()
+                  for (i = 0; i < this.current_suggestions.length; i++) {
+                    suggestion = this.current_suggestions[i]
+                    this.$('.suggestion_name_list').append(this.template_suggestion_name({
+                      id: i,
+                      suggestion,
+                    })
                                         )
-                      }
-                    this.ignored_next_keyup = true
-                  } else {
-                    this.hide_suggestion_and_description()
                   }
+                  this.ignored_next_keyup = true
+                } else {
+                  this.hide_suggestion_and_description()
+                }
               }
 
                             // Switch throught the suggestions
               if (event.shiftKey) {
                 this.current_highlighted_suggestion--
                 if (this.current_highlighted_suggestion < -1) {
-                    this.current_highlighted_suggestion = this.current_suggestions.length - 1
-                  } else if (this.current_highlighted_suggestion < 0) {
-                      this.show_suggestion_without_moving()
-                      this.remove_highlight_suggestion()
-                      this.write_suggestion({
-                          suggestion_to_write: this.current_element})
-                      this.ignore_tab_keyup = true // If we are switching suggestion, we don't want to do anything else related to tab
-                      return true
-                    }
+                  this.current_highlighted_suggestion = this.current_suggestions.length - 1
+                } else if (this.current_highlighted_suggestion < 0) {
+                  this.show_suggestion_without_moving()
+                  this.remove_highlight_suggestion()
+                  this.write_suggestion({
+                    suggestion_to_write: this.current_element})
+                  this.ignore_tab_keyup = true // If we are switching suggestion, we don't want to do anything else related to tab
+                  return true
+                }
               } else {
                 this.current_highlighted_suggestion++
                 if (this.current_highlighted_suggestion >= this.current_suggestions.length) {
-                    this.show_suggestion_without_moving()
-                    this.remove_highlight_suggestion()
-                    this.write_suggestion({
-                        suggestion_to_write: this.current_element})
-                    this.ignore_tab_keyup = true // If we are switching suggestion, we don't want to do anything else related to tab
-                    this.current_highlighted_suggestion = -1
-                    return true
-                  }
+                  this.show_suggestion_without_moving()
+                  this.remove_highlight_suggestion()
+                  this.write_suggestion({
+                    suggestion_to_write: this.current_element})
+                  this.ignore_tab_keyup = true // If we are switching suggestion, we don't want to do anything else related to tab
+                  this.current_highlighted_suggestion = -1
+                  return true
+                }
               }
               if (this.current_suggestions[this.current_highlighted_suggestion] != null) {
                 this.show_suggestion_without_moving()
                 this.highlight_suggestion(this.current_highlighted_suggestion) // Highlight the current suggestion
                 this.write_suggestion({
-                    suggestion_to_write: this.current_suggestions[this.current_highlighted_suggestion]}) // Auto complete with the highlighted suggestion
+                  suggestion_to_write: this.current_suggestions[this.current_highlighted_suggestion]}) // Auto complete with the highlighted suggestion
                 this.ignore_tab_keyup = true // If we are switching suggestion, we don't want to do anything else related to tab
                 return true
               }
@@ -1580,86 +1580,86 @@ class Container extends Backbone.View {
             if ((this.extra_suggestions != null) && (this.extra_suggestions.length > 0) && (this.extra_suggestion.start_body === this.extra_suggestion.start_body)) {
                             // Trim suggestion
               if (__guard__(__guard__(__guard__(this.extra_suggestion, x8 => x8.body), x7 => x7[0]), x6 => x6.type) === 'string') {
-                  if (this.extra_suggestion.body[0].complete === true) {
-                      this.extra_suggestions = []
-                    } else {
+                if (this.extra_suggestion.body[0].complete === true) {
+                  this.extra_suggestions = []
+                } else {
                                     // Remove quotes around the table/db name
-                      const current_name = this.extra_suggestion.body[0].name.replace(/^\s*('|")/, '').replace(/('|")\s*$/, '')
-                      regex = this.create_safe_regex(current_name)
-                      const new_extra_suggestions = []
-                      for (suggestion of Array.from(this.extra_suggestions)) {
-                          if (regex.test(suggestion) === true) {
-                            new_extra_suggestions.push(suggestion)
-                          }
-                        }
-                      this.extra_suggestions = new_extra_suggestions
+                  const current_name = this.extra_suggestion.body[0].name.replace(/^\s*('|")/, '').replace(/('|")\s*$/, '')
+                  regex = this.create_safe_regex(current_name)
+                  const new_extra_suggestions = []
+                  for (suggestion of Array.from(this.extra_suggestions)) {
+                    if (regex.test(suggestion) === true) {
+                      new_extra_suggestions.push(suggestion)
                     }
+                  }
+                  this.extra_suggestions = new_extra_suggestions
                 }
+              }
 
               if (this.extra_suggestions.length > 0) { // If there are still some valid suggestions
-                  let move_outside
-                  query = this.codemirror.getValue()
+                let move_outside
+                query = this.codemirror.getValue()
 
                                 // We did not parse what is after the cursor, so let's take a look
-                  let start_search = this.extra_suggestion.start_body
-                  if (__guard__(__guard__(this.extra_suggestion.body, x10 => x10[0]), x9 => x9.name.length) != null) {
-                      start_search += this.extra_suggestion.body[0].name.length
-                    }
+                let start_search = this.extra_suggestion.start_body
+                if (__guard__(__guard__(this.extra_suggestion.body, x10 => x10[0]), x9 => x9.name.length) != null) {
+                  start_search += this.extra_suggestion.body[0].name.length
+                }
 
                                 // Define @query_first_part and @query_last_part
                                 // Note that ) is not a valid character for a db/table name
-                  const end_body = query.indexOf(')', start_search)
-                  this.query_last_part = ''
-                  if (end_body !== -1) {
-                      this.query_last_part = query.slice(end_body)
-                    }
-                  this.query_first_part = query.slice(0, this.extra_suggestion.start_body)
-                  const lines = this.query_first_part.split('\n')
+                const end_body = query.indexOf(')', start_search)
+                this.query_last_part = ''
+                if (end_body !== -1) {
+                  this.query_last_part = query.slice(end_body)
+                }
+                this.query_first_part = query.slice(0, this.extra_suggestion.start_body)
+                const lines = this.query_first_part.split('\n')
 
-                  if (event.shiftKey === true) {
-                      this.current_highlighted_extra_suggestion--
-                    } else {
-                      this.current_highlighted_extra_suggestion++
-                    }
+                if (event.shiftKey === true) {
+                  this.current_highlighted_extra_suggestion--
+                } else {
+                  this.current_highlighted_extra_suggestion++
+                }
 
-                  if (this.current_highlighted_extra_suggestion >= this.extra_suggestions.length) {
-                      this.current_highlighted_extra_suggestion = -1
-                    } else if (this.current_highlighted_extra_suggestion < -1) {
-                        this.current_highlighted_extra_suggestion = this.extra_suggestions.length - 1
-                      }
+                if (this.current_highlighted_extra_suggestion >= this.extra_suggestions.length) {
+                  this.current_highlighted_extra_suggestion = -1
+                } else if (this.current_highlighted_extra_suggestion < -1) {
+                  this.current_highlighted_extra_suggestion = this.extra_suggestions.length - 1
+                }
 
                                 // Create the next suggestion
-                  suggestion = ''
-                  if (this.current_highlighted_extra_suggestion === -1) {
-                      if (this.current_extra_suggestion != null) {
-                          if (/^\s*'/.test(this.current_extra_suggestion) === true) {
-                            suggestion = this.current_extra_suggestion + "'"
-                          } else if (/^\s*"/.test(this.current_extra_suggestion) === true) {
-                            suggestion = this.current_extra_suggestion + '"'
-                          }
-                        }
-                    } else {
-                      let string_delimiter
-                      if (dataexplorer_state.options.electric_punctuation === false) {
-                          move_outside = true
-                        }
-                      if (/^\s*'/.test(this.current_extra_suggestion) === true) {
-                          string_delimiter = "'"
-                        } else if (/^\s*"/.test(this.current_extra_suggestion) === true) {
-                          string_delimiter = '"'
-                        } else {
-                          string_delimiter = "'"
-                          move_outside = true
-                        }
-                      suggestion = string_delimiter + this.extra_suggestions[this.current_highlighted_extra_suggestion] + string_delimiter
+                suggestion = ''
+                if (this.current_highlighted_extra_suggestion === -1) {
+                  if (this.current_extra_suggestion != null) {
+                    if (/^\s*'/.test(this.current_extra_suggestion) === true) {
+                      suggestion = this.current_extra_suggestion + "'"
+                    } else if (/^\s*"/.test(this.current_extra_suggestion) === true) {
+                      suggestion = this.current_extra_suggestion + '"'
                     }
-
-                  this.write_suggestion({
-                      move_outside,
-                      suggestion_to_write: suggestion,
-                    })
-                  this.ignore_tab_keyup = true // If we are switching suggestion, we don't want to do anything else related to tab
+                  }
+                } else {
+                  let string_delimiter
+                  if (dataexplorer_state.options.electric_punctuation === false) {
+                    move_outside = true
+                  }
+                  if (/^\s*'/.test(this.current_extra_suggestion) === true) {
+                    string_delimiter = "'"
+                  } else if (/^\s*"/.test(this.current_extra_suggestion) === true) {
+                    string_delimiter = '"'
+                  } else {
+                    string_delimiter = "'"
+                    move_outside = true
+                  }
+                  suggestion = string_delimiter + this.extra_suggestions[this.current_highlighted_extra_suggestion] + string_delimiter
                 }
+
+                this.write_suggestion({
+                  move_outside,
+                  suggestion_to_write: suggestion,
+                })
+                this.ignore_tab_keyup = true // If we are switching suggestion, we don't want to do anything else related to tab
+              }
             }
           }
         }
@@ -1714,22 +1714,22 @@ class Container extends Backbone.View {
           event.preventDefault()
           return true
         } else if (this.history_displayed_id === 1) {
-            this.history_displayed_id--
-            this.codemirror.setValue(this.draft)
-            this.codemirror.setCursor(this.codemirror.lineCount(), 0) // We hit the draft and put the cursor at the end
-          }
+          this.history_displayed_id--
+          this.codemirror.setValue(this.draft)
+          this.codemirror.setCursor(this.codemirror.lineCount(), 0) // We hit the draft and put the cursor at the end
+        }
       } else if ((event.type === 'keyup') && event.altKey && (event.which === 33)) { // Page up
         this.history_displayed_id = dataexplorer_state.history.length
         this.codemirror.setValue(dataexplorer_state.history[dataexplorer_state.history.length - this.history_displayed_id].query)
         event.preventDefault()
         return true
       } else if ((event.type === 'keyup') && event.altKey && (event.which === 34)) { // Page down
-          this.history_displayed_id = this.history.length
-          this.codemirror.setValue(dataexplorer_state.history[dataexplorer_state.history.length - this.history_displayed_id].query)
-          this.codemirror.setCursor(this.codemirror.lineCount(), 0) // We hit the draft and put the cursor at the end
-          event.preventDefault()
-          return true
-        }
+        this.history_displayed_id = this.history.length
+        this.codemirror.setValue(dataexplorer_state.history[dataexplorer_state.history.length - this.history_displayed_id].query)
+        this.codemirror.setCursor(this.codemirror.lineCount(), 0) // We hit the draft and put the cursor at the end
+        event.preventDefault()
+        return true
+      }
     }
         // If there is a hilighted suggestion, we want to catch enter
     if (this.$('.suggestion_name_li_hl').length > 0) {
@@ -2170,15 +2170,15 @@ class Container extends Backbone.View {
                     stack.push(element)
                     size_stack++
                     if (size_stack > this.max_size_stack) {
-                        return null
-                      }
+                      return null
+                    }
                     element = {
-                        type    : 'function',
-                        name    : '(',
-                        position: position + position_opening_parenthesis + 1,
-                        context,
-                        complete: 'false',
-                      }
+                      type    : 'function',
+                      name    : '(',
+                      position: position + position_opening_parenthesis + 1,
+                      context,
+                      complete: 'false',
+                    }
                     stack_stop_char = ['(']
                     start = position_opening_parenthesis
                     to_skip = result_regex[0].length - 1
@@ -2316,27 +2316,27 @@ class Container extends Backbone.View {
               if (stack_stop_char[stack_stop_char.length - 1] === this.stop_char.closing[char]) {
                 stack_stop_char.pop()
                 if (stack_stop_char.length === 0) {
-                    element.body = this.extract_data_from_query({
-                        size_stack,
-                        query   : query.slice(body_start, i),
-                        context : element.context,
-                        position: position + body_start,
-                      })
-                    if (element.body === null) {
-                        return null
-                      }
-                    element.complete = true
-                    stack.push(element)
-                    size_stack++
-                    if (size_stack > this.max_size_stack) {
-                        return null
-                      }
-                    element = {
-                        type: null,
-                        context,
-                      }
-                    start = i + 1
+                  element.body = this.extract_data_from_query({
+                    size_stack,
+                    query   : query.slice(body_start, i),
+                    context : element.context,
+                    position: position + body_start,
+                  })
+                  if (element.body === null) {
+                    return null
                   }
+                  element.complete = true
+                  stack.push(element)
+                  size_stack++
+                  if (size_stack > this.max_size_stack) {
+                    return null
+                  }
+                  element = {
+                    type: null,
+                    context,
+                  }
+                  start = i + 1
+                }
               }
             }
                             // else the written query is broken here. The user forgot to close something?
@@ -2346,62 +2346,62 @@ class Container extends Backbone.View {
               stack_stop_char.push(char)
             } else if (char in this.stop_char.closing) {
               if (stack_stop_char[stack_stop_char.length - 1] === this.stop_char.closing[char]) {
-                  stack_stop_char.pop()
-                  if (stack_stop_char.length === 0) {
-                      element.body = this.extract_data_from_query({
-                          size_stack,
-                          query   : query.slice(body_start, i),
-                          context : element.context,
-                          position: position + body_start,
-                        })
-                      if (element.body) {
-                          return null
-                        }
-                      element.complete = true
-                      stack.push(element)
-                      size_stack++
-                      if (size_stack > this.max_size_stack) {
-                          return null
-                        }
-                      element = {
-                          type: null,
-                          context,
-                        }
-                      start = i + 1
-                    }
+                stack_stop_char.pop()
+                if (stack_stop_char.length === 0) {
+                  element.body = this.extract_data_from_query({
+                    size_stack,
+                    query   : query.slice(body_start, i),
+                    context : element.context,
+                    position: position + body_start,
+                  })
+                  if (element.body) {
+                    return null
+                  }
+                  element.complete = true
+                  stack.push(element)
+                  size_stack++
+                  if (size_stack > this.max_size_stack) {
+                    return null
+                  }
+                  element = {
+                    type: null,
+                    context,
+                  }
+                  start = i + 1
                 }
+              }
             }
                     // Catch for function
           } else if (element.type === 'function') {
             if (char in this.stop_char.opening) {
               stack_stop_char.push(char)
             } else if (char in this.stop_char.closing) {
-                if (stack_stop_char[stack_stop_char.length - 1] === this.stop_char.closing[char]) {
-                    stack_stop_char.pop()
-                    if (stack_stop_char.length === 0) {
-                        element.body = this.extract_data_from_query({
-                            size_stack,
-                            query   : query.slice(start + element.name.length, i),
-                            context : element.context,
-                            position: position + start + element.name.length,
-                          })
-                        if (element.body === null) {
-                            return null
-                          }
-                        element.complete = true
-                        stack.push(element)
-                        size_stack++
-                        if (size_stack > this.max_size_stack) {
-                            return null
-                          }
-                        element = {
-                            type: null,
-                            context,
-                          }
-                        start = i + 1
-                      }
+              if (stack_stop_char[stack_stop_char.length - 1] === this.stop_char.closing[char]) {
+                stack_stop_char.pop()
+                if (stack_stop_char.length === 0) {
+                  element.body = this.extract_data_from_query({
+                    size_stack,
+                    query   : query.slice(start + element.name.length, i),
+                    context : element.context,
+                    position: position + start + element.name.length,
+                  })
+                  if (element.body === null) {
+                    return null
                   }
+                  element.complete = true
+                  stack.push(element)
+                  size_stack++
+                  if (size_stack > this.max_size_stack) {
+                    return null
+                  }
+                  element = {
+                    type: null,
+                    context,
+                  }
+                  start = i + 1
+                }
               }
+            }
 
                     // Catch for object
           } else if (element.type === 'object') {
@@ -2409,155 +2409,155 @@ class Container extends Backbone.View {
                         // Still, we need to check the stack_stop_char since we can have { key: { inner: 'test, 'other_inner'}, other_key: 'other_value'}
             const keys_values = []
             if (char in this.stop_char.opening) {
-                stack_stop_char.push(char)
-              } else if (char in this.stop_char.closing) {
-                  if (stack_stop_char[stack_stop_char.length - 1] === this.stop_char.closing[char]) {
-                      stack_stop_char.pop()
-                      if (stack_stop_char.length === 0) {
+              stack_stop_char.push(char)
+            } else if (char in this.stop_char.closing) {
+              if (stack_stop_char[stack_stop_char.length - 1] === this.stop_char.closing[char]) {
+                stack_stop_char.pop()
+                if (stack_stop_char.length === 0) {
                                     // We just reach a }, it's the end of the object
-                          if (element.next_key != null) {
-                              body = this.extract_data_from_query({
-                                size_stack,
-                                query   : query.slice(element.current_value_start, i),
-                                context : element.context,
-                                position: position + element.current_value_start,
-                              })
-                              if (body === null) {
-                                return null
-                              }
-                              new_element = {
-                                type        : 'object_key',
-                                key         : element.next_key,
-                                key_complete: true,
-                                complete    : false,
-                                body,
-                              }
-                              element.body[element.body.length - 1] = new_element
-                            }
-                          element.next_key = null // No more next_key
-                          element.complete = true
+                  if (element.next_key != null) {
+                    body = this.extract_data_from_query({
+                      size_stack,
+                      query   : query.slice(element.current_value_start, i),
+                      context : element.context,
+                      position: position + element.current_value_start,
+                    })
+                    if (body === null) {
+                      return null
+                    }
+                    new_element = {
+                      type        : 'object_key',
+                      key         : element.next_key,
+                      key_complete: true,
+                      complete    : false,
+                      body,
+                    }
+                    element.body[element.body.length - 1] = new_element
+                  }
+                  element.next_key = null // No more next_key
+                  element.complete = true
                                     // if not element.next_key?
                                     // The next key is not defined, this is a broken query.
                                     // TODO show error once brackets/ace will be used
 
-                          stack.push(element)
-                          size_stack++
-                          if (size_stack > this.max_size_stack) {
-                              return null
-                            }
-                          element = {
-                              type: null,
-                              context,
-                            }
-                          start = i + 1
-                          continue
-                        }
-                    }
+                  stack.push(element)
+                  size_stack++
+                  if (size_stack > this.max_size_stack) {
+                    return null
+                  }
+                  element = {
+                    type: null,
+                    context,
+                  }
+                  start = i + 1
+                  continue
                 }
+              }
+            }
 
             if (element.next_key == null) {
-                if ((stack_stop_char.length === 1) && (char === ':')) {
-                    new_element = {
-                        type        : 'object_key',
-                        key         : query.slice(element.current_key_start, i),
-                        key_complete: true,
-                      }
-                    if (element.body.length === 0) {
-                        element.body.push(new_element)
-                        size_stack++
-                        if (size_stack > this.max_size_stack) {
-                            return null
-                          }
-                      } else {
-                        element.body[element.body.length - 1] = new_element
-                      }
-                    element.next_key = query.slice(element.current_key_start, i)
-                    element.current_value_start = i + 1
+              if ((stack_stop_char.length === 1) && (char === ':')) {
+                new_element = {
+                  type        : 'object_key',
+                  key         : query.slice(element.current_key_start, i),
+                  key_complete: true,
+                }
+                if (element.body.length === 0) {
+                  element.body.push(new_element)
+                  size_stack++
+                  if (size_stack > this.max_size_stack) {
+                    return null
                   }
-              } else {
-                result_regex = this.regex.comma.exec(query.slice(i))
-                if ((stack_stop_char.length === 1) && (result_regex !== null)) { // We reached the end of a value
-                    body = this.extract_data_from_query({
-                        size_stack,
-                        query   : query.slice(element.current_value_start, i),
-                        context : element.context,
-                        position: element.current_value_start,
-                      })
-                    if (body === null) {
-                        return null
-                      }
-                    new_element = {
-                        type        : 'object_key',
-                        key         : element.next_key,
-                        key_complete: true,
-                        body,
-                      }
-                    element.body[element.body.length - 1] = new_element
-                    to_skip = result_regex[0].length - 1
-                    element.next_key = null
-                    element.current_key_start = i + result_regex[0].length
-                  }
+                } else {
+                  element.body[element.body.length - 1] = new_element
+                }
+                element.next_key = query.slice(element.current_key_start, i)
+                element.current_value_start = i + 1
               }
+            } else {
+              result_regex = this.regex.comma.exec(query.slice(i))
+              if ((stack_stop_char.length === 1) && (result_regex !== null)) { // We reached the end of a value
+                body = this.extract_data_from_query({
+                  size_stack,
+                  query   : query.slice(element.current_value_start, i),
+                  context : element.context,
+                  position: element.current_value_start,
+                })
+                if (body === null) {
+                  return null
+                }
+                new_element = {
+                  type        : 'object_key',
+                  key         : element.next_key,
+                  key_complete: true,
+                  body,
+                }
+                element.body[element.body.length - 1] = new_element
+                to_skip = result_regex[0].length - 1
+                element.next_key = null
+                element.current_key_start = i + result_regex[0].length
+              }
+            }
                     // Catch for array
           } else if (element.type === 'array') {
-              if (char in this.stop_char.opening) {
-                  stack_stop_char.push(char)
-                } else if (char in this.stop_char.closing) {
-                    if (stack_stop_char[stack_stop_char.length - 1] === this.stop_char.closing[char]) {
-                        stack_stop_char.pop()
-                        if (stack_stop_char.length === 0) {
+            if (char in this.stop_char.opening) {
+              stack_stop_char.push(char)
+            } else if (char in this.stop_char.closing) {
+              if (stack_stop_char[stack_stop_char.length - 1] === this.stop_char.closing[char]) {
+                stack_stop_char.pop()
+                if (stack_stop_char.length === 0) {
                                     // We just reach a ], it's the end of the object
-                            body = this.extract_data_from_query({
-                              size_stack,
-                              query   : query.slice(entry_start, i),
-                              context : element.context,
-                              position: position + entry_start,
-                            })
-                            if (body === null) {
-                              return null
-                            }
-                            new_element = {
-                              type    : 'array_entry',
-                              complete: true,
-                              body,
-                            }
-                            if (new_element.body.length > 0) {
-                              element.body.push(new_element)
-                              size_stack++
-                              if (size_stack > this.max_size_stack) {
-                                return null
-                              }
-                            }
-                            continue
-                          }
-                      }
-                  }
-
-              if ((stack_stop_char.length === 1) && (char === ',')) {
                   body = this.extract_data_from_query({
-                      size_stack,
-                      query   : query.slice(entry_start, i),
-                      context : element.context,
-                      position: position + entry_start,
-                    })
+                    size_stack,
+                    query   : query.slice(entry_start, i),
+                    context : element.context,
+                    position: position + entry_start,
+                  })
                   if (body === null) {
+                    return null
+                  }
+                  new_element = {
+                    type    : 'array_entry',
+                    complete: true,
+                    body,
+                  }
+                  if (new_element.body.length > 0) {
+                    element.body.push(new_element)
+                    size_stack++
+                    if (size_stack > this.max_size_stack) {
                       return null
                     }
-                  new_element = {
-                      type    : 'array_entry',
-                      complete: true,
-                      body,
-                    }
-                  if (new_element.body.length > 0) {
-                      element.body.push(new_element)
-                      size_stack++
-                      if (size_stack > this.max_size_stack) {
-                          return null
-                        }
-                    }
-                  entry_start = i + 1
+                  }
+                  continue
                 }
+              }
             }
+
+            if ((stack_stop_char.length === 1) && (char === ',')) {
+              body = this.extract_data_from_query({
+                size_stack,
+                query   : query.slice(entry_start, i),
+                context : element.context,
+                position: position + entry_start,
+              })
+              if (body === null) {
+                return null
+              }
+              new_element = {
+                type    : 'array_entry',
+                complete: true,
+                body,
+              }
+              if (new_element.body.length > 0) {
+                element.body.push(new_element)
+                size_stack++
+                if (size_stack > this.max_size_stack) {
+                  return null
+                }
+              }
+              entry_start = i + 1
+            }
+          }
         }
       }
     }
@@ -2650,8 +2650,8 @@ class Container extends Backbone.View {
           element.body.push(new_element)
           size_stack++
           if (size_stack > this.max_size_stack) {
-              return null
-            }
+            return null
+          }
         }
       }
       stack.push(element)
@@ -2889,10 +2889,10 @@ class Container extends Backbone.View {
               for (state of Array.from(this.map_state[element.name])) {
                 if (this.suggestions[state] != null) {
                   for (suggestion of Array.from(this.suggestions[state])) {
-                      if (result.suggestions_regex.test(suggestion) === true) {
-                          result.suggestions.push(suggestion)
-                        }
+                    if (result.suggestions_regex.test(suggestion) === true) {
+                      result.suggestions.push(suggestion)
                     }
+                  }
                 }
               }
             }
@@ -2904,10 +2904,10 @@ class Container extends Backbone.View {
             for (let type of Array.from(result.state)) {
               if (this.suggestions[type] != null) {
                 for (suggestion of Array.from(this.suggestions[type])) {
-                    if (result.suggestions_regex.test(suggestion) === true) {
-                        result.suggestions.push(suggestion)
-                      }
+                  if (result.suggestions_regex.test(suggestion) === true) {
+                    result.suggestions.push(suggestion)
                   }
+                }
               }
             }
             item = result.status = 'done'
@@ -4213,16 +4213,16 @@ class TableView extends ResultView {
       data['classname'] = 'jta_num'
     } else if (value_type === 'string') {
       if (/^(http|https):\/\/[^\s]+$/i.test(value)) {
-          data['classname'] = 'jta_url'
-        } else if (/^[a-z0-9]+@[a-z0-9]+.[a-z0-9]{2,4}/i.test(value)) { // We don't handle .museum extension and special characters
-            data['classname'] = 'jta_email'
-          } else {
-            data['classname'] = 'jta_string'
-          }
-    } else if (value_type === 'boolean') {
-        data['classname'] = 'jta_bool'
-        data.value = value === true ? 'true' : 'false'
+        data['classname'] = 'jta_url'
+      } else if (/^[a-z0-9]+@[a-z0-9]+.[a-z0-9]{2,4}/i.test(value)) { // We don't handle .museum extension and special characters
+        data['classname'] = 'jta_email'
+      } else {
+        data['classname'] = 'jta_string'
       }
+    } else if (value_type === 'boolean') {
+      data['classname'] = 'jta_bool'
+      data.value = value === true ? 'true' : 'false'
+    }
 
     return data
   }
