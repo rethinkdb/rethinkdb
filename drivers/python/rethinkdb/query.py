@@ -6,6 +6,7 @@ __all__ = [
     'literal', 'asc', 'desc',
     'db', 'db_create', 'db_drop', 'db_list',
     'table', 'table_create', 'table_drop', 'table_list', 'grant',
+    'write_timestamp',
     'group', 'reduce', 'count', 'sum', 'avg', 'min', 'max', 'distinct',
     'contains', 'eq', 'ne', 'le', 'ge', 'lt', 'gt', 'and_', 'or_', 'not_',
     'add', 'sub', 'mul', 'div', 'mod', 'floor', 'ceil', 'round',
@@ -93,6 +94,10 @@ def table_list(*args):
 
 def grant(*args, **kwargs):
     return ast.GrantTL(*args, **kwargs)
+
+
+def write_timestamp(*args):
+    return ast.WriteTimestamp(*args)
 
 
 def branch(*args):
