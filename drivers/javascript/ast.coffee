@@ -955,6 +955,10 @@ class GetWriteHook extends RDBOp
     tt: protoTermType.GET_WRITE_HOOK
     mt: 'getWriteHook'
 
+class WriteTimestamp extends RDBOp
+    tt: protoTermType.WRITE_TIMESTAMP
+    st: 'writeTimestamp'
+
 class IndexCreate extends RDBOp
     tt: protoTermType.INDEX_CREATE
     mt: 'indexCreate'
@@ -1287,6 +1291,8 @@ rethinkdb.tableDrop = (args...) -> new TableDrop {}, args...
 rethinkdb.tableList = (args...) -> new TableList {}, args...
 
 rethinkdb.grant = (args...) -> new Grant {}, args...
+
+rethinkdb.writeTimestamp = (args...) -> new WriteTimestamp {}, args...
 
 rethinkdb.do = varar 1, null, (args...) ->
     new FunCall {}, funcWrap(args[-1..][0]), args[...-1]...
