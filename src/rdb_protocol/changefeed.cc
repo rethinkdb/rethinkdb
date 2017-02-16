@@ -2390,6 +2390,7 @@ private:
         return outer_env->get_rdb_ctx() == nullptr
             ? make_scoped<env_t>(outer_env->interruptor,
                                  outer_env->return_empty_normal_batches,
+                                 ql::datum_t(),
                                  outer_env->reql_version())
             : make_scoped<env_t>(
                 outer_env->get_rdb_ctx(),

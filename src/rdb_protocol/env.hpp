@@ -62,6 +62,7 @@ public:
     // should be a dummy cond.)
     env_t(signal_t *interruptor,
           return_empty_normal_batches_t return_empty_normal_batches,
+          ql::datum_t write_timestamp_or_uninitialized,
           reql_version_t reql_version);
 
     ~env_t();

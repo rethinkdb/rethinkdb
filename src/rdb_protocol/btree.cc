@@ -318,10 +318,10 @@ batched_replace_response_t rdb_replace_and_return_superblock(
 }
 
 ql::datum_t btree_batched_replacer_t::apply_write_hook(
-    ql::env_t *env,
     const datum_string_t &pkey,
     const ql::datum_t &d,
     const ql::datum_t &res_,
+    const ql::datum_t &write_timestamp,
     const counted_t<const ql::func_t> &write_hook) const {
     ql::datum_t res = res_;
     if (write_hook.has()) {
@@ -336,7 +336,12 @@ ql::datum_t btree_batched_replacer_t::apply_write_hook(
         }
         ql::datum_t modified;
         try {
-            modified = write_hook->call(env,
+            cond_t non_interruptor;
+            ql::env_t write_hook_env(&non_interruptor,
+                                     ql::return_empty_normal_batches_t::NO,
+                                     write_timestamp,
+                                     reql_version_t::LATEST);
+            modified = write_hook->call(&write_hook_env,
                                         std::vector<ql::datum_t>{
                                             primary_key,
                                                 d,
@@ -738,8 +743,10 @@ rget_cb_t::rget_cb_t(rget_io_data_t &&_io,
         // Secondary index functions are deterministic (so no need for an
         // rdb_context_t) and evaluated in a pristine environment (without global
         // optargs).
+        // RSI: Comment on constructor says the interruptor should definitely be a dummy cond.
         sindex_env.init(new ql::env_t(job.env->interruptor,
                                       ql::return_empty_normal_batches_t::NO,
+                                      ql::datum_t(),
                                       sindex->func_reql_version));
     }
 
@@ -1522,6 +1529,7 @@ void compute_keys(const store_key_t &primary_key,
     cond_t non_interruptor;
     ql::env_t sindex_env(&non_interruptor,
                          ql::return_empty_normal_batches_t::NO,
+                         ql::datum_t(),
                          reql_version);
 
     ql::datum_t index =
