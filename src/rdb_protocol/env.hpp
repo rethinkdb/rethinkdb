@@ -58,7 +58,7 @@ public:
           profile::trace_t *_trace);
 
     // Used in unittest and for some secondary index environments (hence the
-    // reql_version parameter).  (For secondary indexes, the interruptor definitely
+    // reql_version parameter).  (For secondary index writes, the interruptor definitely
     // should be a dummy cond.)
     env_t(signal_t *interruptor,
           return_empty_normal_batches_t return_empty_normal_batches,

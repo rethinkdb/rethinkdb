@@ -743,7 +743,6 @@ rget_cb_t::rget_cb_t(rget_io_data_t &&_io,
         // Secondary index functions are deterministic (so no need for an
         // rdb_context_t) and evaluated in a pristine environment (without global
         // optargs).
-        // RSI: Comment on constructor says the interruptor should definitely be a dummy cond.
         sindex_env.init(new ql::env_t(job.env->interruptor,
                                       ql::return_empty_normal_batches_t::NO,
                                       ql::datum_t(),
