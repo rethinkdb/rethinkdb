@@ -84,10 +84,12 @@ public:
         : op_term_t(env, term, argspec_t(0)) { }
 
 private:
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *, args_t *, eval_flags_t) const {
-        // Return the write_timestamp from the env, if there is one.
-        // RSI: Implement.
-        r_sanity_fail();
+    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *, eval_flags_t) const {
+        const datum_t &d = env->env->get_write_timestamp();
+        rcheck(d.has(), base_exc_t::LOGIC,
+               "A write timestamp term is used without a write in context.");
+
+        return new_val(d);
     }
 
     virtual deterministic_t is_deterministic() const {
