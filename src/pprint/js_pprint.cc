@@ -703,6 +703,7 @@ counted_t<const document_t> render_as_javascript(const ql::raw_term_t &t) {
 //
 // Finally if a new datum type is added, `to_js_datum` would need to
 // be updated.
+// RSI: Update the pretty printer for WRITE_TIMESTAMP.
 #ifdef __GNUC__
 #pragma GCC diagnostic ignored "-Wunused-function"
 #endif
@@ -724,6 +725,7 @@ static void pprint_update_reminder() {
     case Term::GRANT:
     case Term::SET_WRITE_HOOK:
     case Term::GET_WRITE_HOOK:
+    case Term::WRITE_TIMESTAMP:
     case Term::INDEX_CREATE:
     case Term::INDEX_DROP:
     case Term::INDEX_WAIT:
