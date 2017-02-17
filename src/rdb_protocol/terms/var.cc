@@ -93,7 +93,6 @@ private:
     }
 
     virtual deterministic_t is_deterministic() const {
-        // RSI: Add a write_timestamp flag?  We could catch some errors earlier.
         return deterministic_t::always();
     }
 

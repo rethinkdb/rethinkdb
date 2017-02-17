@@ -81,13 +81,14 @@ public:
                 string_read_stream_t rs(str.to_std(), prefix_sz);
                 deserialize<cluster_version_t::LATEST_DISK>(&rs, &func);
 
+                // RSI: This is duplicate code.
                 const write_hook_config_t conf =
                     write_hook_config_t(func,
                                         reql_version_t::LATEST);
 
                 config.set(conf);
                 config->func.compile_wire_func()->assert_deterministic(
-                        constant_now_t::yes,
+                        constant_now_t::no,
                         "Write hook functions must be deterministic.");
 
                 optional<size_t> arity = config->func.compile_wire_func()->arity();
@@ -112,9 +113,10 @@ public:
                 write_hook_config_t(ql::wire_func_t(v->as_func()),
                                     reql_version_t::LATEST);
 
+            // RSI: This is duplicate code.
             config.set(conf);
             config->func.compile_wire_func()->assert_deterministic(
-                    constant_now_t::yes,
+                    constant_now_t::no,
                     "Write hook functions must be deterministic.");
 
             optional<size_t> arity = config->func.compile_wire_func()->arity();
