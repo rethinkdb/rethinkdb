@@ -270,13 +270,13 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         return;
     }
 
-    conn->enable_keepalive();
-
     uint8_t version = 0;
     std::unique_ptr<auth::base_authenticator_t> authenticator;
     uint32_t error_code = 0;
     std::string error_message;
     try {
+        conn->enable_keepalive();
+
         int32_t client_magic_number;
         conn->read_buffered(
             &client_magic_number, sizeof(client_magic_number), &ct_keepalive);

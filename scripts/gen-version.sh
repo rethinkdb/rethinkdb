@@ -75,8 +75,7 @@ git_gen_version () {
 }
 
 git_is_dirty () {
-    git update-index -q --refresh > /dev/null || true
-    [[ -n "$(git diff-index --name-only HEAD -- || true)" ]]
+    test -n "$(git status --porcelain)"
 }
 
 release_notes_version () {

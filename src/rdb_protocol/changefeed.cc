@@ -429,6 +429,7 @@ void server_t::add_limit_client(
         const client_t::addr_t &addr,
         const region_t &region,
         const std::string &table,
+        const boost::optional<uuid_u> &sindex_id,
         rdb_context_t *ctx,
         global_optargs_t optargs,
         auth::user_context_t user_context,
@@ -451,6 +452,7 @@ void server_t::add_limit_client(
             &spot,
             region,
             table,
+            sindex_id,
             ctx,
             std::move(optargs),
             std::move(user_context),
@@ -577,7 +579,7 @@ uuid_u server_t::get_uuid() {
 }
 
 bool server_t::has_limit(
-        const boost::optional<std::string> &sindex,
+        const boost::optional<std::string> &sindex_name,
         const auto_drainer_t::lock_t &keepalive) {
     keepalive.assert_is_holding(&drainer);
     auto spot = make_scoped<rwlock_in_line_t>(&clients_lock, access_t::read);
@@ -588,7 +590,7 @@ bool server_t::has_limit(
         rwlock_in_line_t lspot(client.second.limit_clients_lock.get(), access_t::read);
         lspot.read_signal()->wait_lazily_unordered();
         client_info_t *info = &client.second;
-        auto it = info->limit_clients.find(sindex);
+        auto it = info->limit_clients.find(sindex_name);
         if (it != info->limit_clients.end()) {
             return true;
         }
@@ -601,7 +603,8 @@ auto_drainer_t::lock_t server_t::get_keepalive() {
 }
 
 void server_t::foreach_limit(
-        const boost::optional<std::string> &sindex,
+        const boost::optional<std::string> &sindex_name,
+        const boost::optional<uuid_u> &sindex_id,
         const store_key_t *pkey,
         std::function<void(rwlock_in_line_t *,
                            rwlock_in_line_t *,
@@ -617,7 +620,7 @@ void server_t::foreach_limit(
         rwlock_in_line_t lspot(client.second.limit_clients_lock.get(), access_t::read);
         lspot.read_signal()->wait_lazily_unordered();
         client_info_t *info = &client.second;
-        auto it = info->limit_clients.find(sindex);
+        auto it = info->limit_clients.find(sindex_name);
         if (it == info->limit_clients.end()) {
             continue;
         }
@@ -631,10 +634,24 @@ void server_t::foreach_limit(
             auto_drainer_t::lock_t lc_lock(&(*lc)->drainer);
             rwlock_in_line_t lc_spot(&(*lc)->lock, access_t::write);
             lc_spot.write_signal()->wait_lazily_unordered();
+            boost::optional<exc_t> error;
             try {
+                if ((*lc)->sindex_id != sindex_id) {
+                    // Abort limit managers that don't match the index ID.
+                    // This can happen if an index is replaced by a different
+                    // index under the same name.
+                    r_sanity_check(sindex_name != boost::none);
+                    rfail_toplevel(
+                        base_exc_t::OP_FAILED,
+                        "The secondary index `%s` was replaced by a different one.",
+                        sindex_name->c_str());
+                }
                 f(spot.get(), &lspot, &lc_spot, (*lc).get());
             } catch (const exc_t &e) {
-                (*lc)->abort(e);
+                error = e;
+            }
+            if (error) {
+                (*lc)->abort(*error);
                 auto_drainer_t::lock_t sub_keepalive(keepalive);
                 auto sub_spot = make_scoped<rwlock_in_line_t>(
                     &clients_lock, access_t::read);
@@ -642,7 +659,7 @@ void server_t::foreach_limit(
                 // We spawn immediately so it can steal our locks.
                 coro_t::spawn_now_dangerously(
                     std::bind(&server_t::prune_dead_limit,
-                              this, &sub_keepalive, &sub_spot, info, sindex, i));
+                              this, &sub_keepalive, &sub_spot, info, sindex_name, i));
                 guarantee(!sub_keepalive.has_lock());
                 guarantee(!sub_spot.has());
             }
@@ -843,6 +860,7 @@ limit_manager_t::limit_manager_t(
     rwlock_in_line_t *clients_lock,
     region_t _region,
     std::string _table,
+    boost::optional<uuid_u> _sindex_id,
     rdb_context_t *ctx,
     global_optargs_t optargs,
     auth::user_context_t user_context,
@@ -854,6 +872,7 @@ limit_manager_t::limit_manager_t(
     std::vector<item_t> &&item_vec)
     : region(std::move(_region)),
       table(std::move(_table)),
+      sindex_id(std::move(_sindex_id)),
       uuid(std::move(_uuid)),
       parent(_parent),
       parent_client(std::move(_parent_client)),
@@ -863,7 +882,7 @@ limit_manager_t::limit_manager_t(
       aborted(false) {
     guarantee(clients_lock->read_signal()->is_pulsed());
 
-    // The final `NULL` argument means we don't profile any work done with this `env`.
+    // The final `nullptr` argument means we don't profile any work done with this `env`.
     env = make_scoped<env_t>(
         ctx,
         return_empty_normal_batches_t::NO,

@@ -13,22 +13,19 @@
 #include "rdb_protocol/geo/s2/base/logging.h"
 
 namespace geo {
-using std::min;
-using std::max;
-using std::swap;
-using std::reverse;
-using std::numeric_limits;
-using std::frexp;
-using std::fabs;
-using std::ldexp;
-using std::copysign;
 using std::ceil;
-using std::isnan;
+using std::copysign;
+using std::fabs;
+using std::frexp;
 using std::isinf;
-
-#ifndef __APPLE__
+using std::isnan;
+using std::ldexp;
+using std::max;
+using std::min;
+using std::numeric_limits;
+using std::reverse;
 using std::signbit;
-#endif
+using std::swap;
 
 // Define storage for constants.
 const int ExactFloat::kMinExp;
