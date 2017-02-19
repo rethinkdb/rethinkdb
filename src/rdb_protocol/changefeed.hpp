@@ -23,6 +23,7 @@
 #include "protocol_api.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/datumspec.hpp"
+#include "rdb_protocol/namespace_interface_access.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "region/region.hpp"
 #include "repli_timestamp.hpp"
@@ -36,7 +37,6 @@ class auto_drainer_t;
 class base_table_t;
 class btree_slice_t;
 class mailbox_manager_t;
-class namespace_interface_access_t;
 class real_superblock_t;
 class sindex_superblock_t;
 class table_meta_client_t;
