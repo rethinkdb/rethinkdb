@@ -23,9 +23,9 @@
 
 /*! \file document.h */
 
-#include "reader.h"
-#include "internal/meta.h"
-#include "internal/strfunc.h"
+#include "rapidjson/reader.h"
+#include "rapidjson/internal/meta.h"
+#include "rapidjson/internal/strfunc.h"
 #include <new>      // placement new
 
 #ifdef _MSC_VER

@@ -10,9 +10,9 @@ class multi_client_client_business_card_t {
 public:
     multi_client_client_business_card_t() { }
     multi_client_client_business_card_t(
-            const mailbox_addr_t<void(mailbox_addr_t<void(request_t)>)> &ia) :
+            const mailbox_addr_t<mailbox_addr_t<request_t>> &ia) :
         intro_addr(ia) { }
-    mailbox_addr_t<void(mailbox_addr_t<void(request_t)>)> intro_addr;
+    mailbox_addr_t<mailbox_addr_t<request_t>> intro_addr;
     RDB_MAKE_ME_SERIALIZABLE_1(multi_client_client_business_card_t, intro_addr);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_1(multi_client_client_business_card_t, intro_addr);
 };
@@ -21,7 +21,7 @@ template <class request_t>
 class multi_client_business_card_t {
 public:
     multi_client_business_card_t() { }
-    typedef mailbox_addr_t<void(request_t)> server_business_card_t;
+    typedef mailbox_addr_t<request_t> server_business_card_t;
     typedef multi_client_client_business_card_t<request_t>
         client_business_card_t;
 

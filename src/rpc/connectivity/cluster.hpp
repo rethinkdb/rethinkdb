@@ -33,6 +33,15 @@ class co_semaphore_t;
 class heartbeat_semilattice_metadata_t;
 template <class> class semilattice_read_view_t;
 
+/* An enum indicating the outcome of attempted intra-cluster joins */
+enum class join_result_t {
+    SUCCESS = 0,
+    TEMPORARY_ERROR = 1,
+    PERMANENT_ERROR = 2
+};
+
+typedef std::map<ip_and_port_t, join_result_t> join_results_t;
+
 /* Uncomment this to enable message profiling. Message profiling will keep track of how
 many messages of each type are sent over the network; it will dump the results to a file
 named `msg_profiler_out_PID.txt` on shutdown. Each line of that file will be of the
@@ -190,9 +199,9 @@ public:
               const int join_delay_secs,
               int port,
               int client_port,
-              boost::shared_ptr<semilattice_read_view_t<
+              std::shared_ptr<semilattice_read_view_t<
                   heartbeat_semilattice_metadata_t> > heartbeat_sl_view,
-              boost::shared_ptr<semilattice_read_view_t<
+              std::shared_ptr<semilattice_read_view_t<
                   auth_semilattice_metadata_t> > auth_sl_view,
               tls_ctx_t *tls_ctx)
             THROWS_ONLY(address_in_use_exc_t, tcp_socket_exc_t);
@@ -209,6 +218,7 @@ public:
 
     private:
         friend class connectivity_cluster_t;
+        friend class auto_reconnector_t;
 
         /* Sets a variable to a value in its constructor; sets it to NULL in its
         destructor. This is kind of silly. The reason we need it is that we need
@@ -237,18 +247,23 @@ public:
 
         /* `connect_to_peer` is spawned for each known ip address of a peer which we want
         to connect to, all but one should fail */
-        void connect_to_peer(const peer_address_t *addr,
+        join_result_t connect_to_peer(const peer_address_t *address,
+                             ip_and_port_t selected_addr,
                              int index,
-                             boost::optional<peer_id_t> expected_id,
+                             optional<peer_id_t> expected_id,
+                             optional<server_id_t> expected_server_id,
                              auto_drainer_t::lock_t drainer_lock,
                              bool *successful_join_inout,
                              const int join_delay_secs,
                              co_semaphore_t *rate_control) THROWS_NOTHING;
 
         /* `join_blocking()` is spawned in a new coroutine by `join()`. It's also run by
-        `handle()` when we hear about a new peer from a peer we are connected to. */
-        void join_blocking(const peer_address_t hosts,
-                           boost::optional<peer_id_t>,
+        `handle()` when we hear about a new peer from a peer we are connected to, and
+        directly by the auto_reconnector_t. For cases where it is used directly, it
+        returns a join_result_t, indicating whether the join was successful or not. */
+        join_results_t join_blocking(const peer_address_t &peer,
+                           optional<peer_id_t> expected_id,
+                           optional<server_id_t> expected_server_id,
                            const int join_delay_secs,
                            auto_drainer_t::lock_t) THROWS_NOTHING;
 
@@ -264,10 +279,12 @@ public:
         It handles the handshake, exchanging node maps, sending out the
         connect-notification, receiving messages from the peer until it
         disconnects or we are shut down, and sending out the
-        disconnect-notification. */
-        void handle(keepalive_tcp_conn_stream_t *c,
-            boost::optional<peer_id_t> expected_id,
-            boost::optional<peer_address_t> expected_address,
+        disconnect-notification. It returns a join_result_t indicating the outcome
+        of the attempted join. */
+        join_result_t handle(keepalive_tcp_conn_stream_t *c,
+            optional<peer_id_t> expected_id,
+            optional<peer_address_t> expected_address,
+            optional<server_id_t> expected_server_id,
             auto_drainer_t::lock_t,
             bool *successful_join_inout,
             const int join_delay_secs) THROWS_NOTHING;
@@ -312,10 +329,10 @@ public:
         /* For picking random threads */
         rng_t rng;
 
-        boost::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
+        std::shared_ptr<semilattice_read_view_t<heartbeat_semilattice_metadata_t> >
             heartbeat_sl_view;
 
-        boost::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t> >
+        std::shared_ptr<semilattice_read_view_t<auth_semilattice_metadata_t> >
             auth_sl_view;
 
         auto_drainer_t drainer;

@@ -90,6 +90,12 @@ public:
 
     ~txn_t();
 
+    // Every write transaction must be committed before it's
+    // destructed.
+    // There is no roll-back / abort! Destructing an uncommitted
+    // write-transaction will terminate the server.
+    void commit();
+
     cache_t *cache() { return cache_; }
     alt::page_txn_t *page_txn() { return page_txn_.get(); }
     access_t access() const { return access_; }
@@ -122,6 +128,8 @@ private:
     const write_durability_t durability_;
 
     scoped_ptr_t<alt::page_txn_t> page_txn_;
+
+    bool is_committed_;
 
     DISABLE_COPYING(txn_t);
 };

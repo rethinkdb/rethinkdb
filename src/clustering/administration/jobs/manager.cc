@@ -36,7 +36,7 @@ jobs_manager_t::jobs_manager_t(mailbox_manager_t *_mailbox_manager,
                                       this, ph::_1, ph::_2)),
     job_interrupt_mailbox(_mailbox_manager,
                           std::bind(&jobs_manager_t::on_job_interrupt,
-                                    this, ph::_1, ph::_2)) { }
+                                    this, ph::_1, ph::_2, ph::_3)) { }
 
 jobs_manager_business_card_t jobs_manager_t::get_business_card() {
     business_card_t business_card;
@@ -181,7 +181,9 @@ void jobs_manager_t::on_get_job_reports(
 }
 
 void jobs_manager_t::on_job_interrupt(
-        UNUSED signal_t *interruptor, uuid_u const &id) {
+        UNUSED signal_t *interruptor,
+        uuid_u const &id,
+        auth::user_context_t const &user_context) {
     if (drainer.is_draining()) {
         // We're shutting down, the query job will be interrupted regardless.
         return;
@@ -194,6 +196,11 @@ void jobs_manager_t::on_job_interrupt(
 
         if (rdb_context != nullptr) {
             for (auto &&query_cache : *rdb_context->get_query_caches_for_this_thread()) {
+                if (!user_context.is_admin_user() &&
+                        user_context != query_cache->get_user_context()) {
+                    continue;
+                }
+
                 for (auto &&pair : *query_cache) {
                     if (pair.second->job_id == id) {
                         query_cache->terminate_internal(pair.second.get());

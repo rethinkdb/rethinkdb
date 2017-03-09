@@ -4,11 +4,7 @@
 
 from __future__ import print_function
 
-from os import path
-from re import match, search, findall, MULTILINE, DOTALL
-from subprocess import check_output
-from sys import exit
-from weakref import WeakKeyDictionary
+import os, re, subprocess, weakref
 
 class SmartGetitem(object):
     def __getitem__(self, name):
@@ -16,8 +12,15 @@ class SmartGetitem(object):
             return self
         return getattr(self, name)
 
+def check_output(command, shell=False):
+    process = subprocess.Popen(command, shell=shell, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    stdout, _ = process.communicate()
+    if process.returncode != 0:
+        raise subprocess.CalledProcessError(process.returncode, command)
+    return stdout
+
 def cache(f):
-    box = WeakKeyDictionary()
+    box = weakref.WeakKeyDictionary()
     def get(self):
         if self in box:
             return box[self]
@@ -81,7 +84,7 @@ class Ref(SmartGetitem):
 
     def extract_version_macro(self, path, type):
         args_hpp = self.git_show(path)
-        res = search('^#define %s_VERSION_STRING "(.*)"' % type.upper(), args_hpp, flags=MULTILINE)
+        res = re.search('^#define %s_VERSION_STRING "(.*)"' % type.upper(), args_hpp, flags=re.MULTILINE)
         if not res:
             raise Exception("Missing %s version in %s:%s" % (path, self.ref, path))
         return res.groups()[0]
@@ -98,15 +101,15 @@ class Ref(SmartGetitem):
     def driver_magic_number(self, ref):
         path = 'src/rdb_protocol/ql2.proto'
         ql2_proto = self.git_show(path)
-        res = search('enum Version {(.*?)}', ql2_proto, flags=DOTALL)
+        res = re.search('enum Version {(.*?)}', ql2_proto, flags=re.DOTALL)
         if not res:
             raise Exception("Missing enum Version in %s:%s" % (ref, path))
-        numbers = findall("(V.*?) += (.*?);", res.groups()[0])
+        numbers = re.findall("(V.*?) += (.*?);", res.groups()[0])
         return numbers[-1][0]
 
     @cache
     def notes_version(self, ref):
-        return match('# Release (.*?) ', self.git_show('NOTES.md')).groups()[0]
+        return re.match('# Release (.*?) ', self.git_show('NOTES.md')).groups()[0]
 
 def info(description, *args):
     print(description + ":", *args)
@@ -125,7 +128,7 @@ def report():
     info_compare("Driver magic number", 'driver_magic_number')
     info_compare("Notes version", 'notes_version')
 
-repo = Repo(path.normpath(path.join(path.dirname(__file__), path.pardir)))
+repo = Repo(os.path.normpath(os.path.join(os.path.dirname(__file__), os.path.pardir)))
 
 if __name__ == '__main__':
     report()

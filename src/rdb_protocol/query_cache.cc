@@ -197,12 +197,15 @@ void query_cache_t::ref_t::fill_response(response_t *res) {
     }
 
     try {
+        serializable_env_t serializable{
+                entry->global_optargs,
+                query_cache->get_user_context(),
+                pseudo::time_now()};
         env_t env(
             query_cache->rdb_ctx,
             query_cache->return_empty_normal_batches,
             &combined_interruptor,
-            entry->global_optargs,
-            query_cache->get_user_context(),
+            serializable,
             trace.get_or_null());
 
         if (entry->state == entry_t::state_t::START) {

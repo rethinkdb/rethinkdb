@@ -1,10 +1,11 @@
-# Copyright 2010-2015 RethinkDB, all rights reserved.
+# Copyright 2010-2016 RethinkDB, all rights reserved.
 
 import collections
 import errno
 import imp
 import numbers
 import os
+import pprint
 import socket
 import ssl
 import struct
@@ -20,7 +21,7 @@ pErrorType = p.Response.ErrorType
 pResponse = p.Response.ResponseType
 pQuery = p.Query.QueryType
 
-from .ast import DB, Repl, ReQLDecoder, ReQLEncoder
+from .ast import DB, Repl, ReQLDecoder, ReQLEncoder, expr
 from .errors import *
 from .handshake import *
 
@@ -56,7 +57,7 @@ class Query(object):
         if self.term is not None:
             message.append(self.term)
         if self.global_optargs is not None:
-            message.append(self.global_optargs)
+            message.append(expr(self.global_optargs))
         query_str = reql_encoder.encode(message).encode('utf-8')
         query_header = struct.pack('<QL', self.token, len(query_str))
         return query_header + query_str
@@ -186,36 +187,42 @@ class Cursor(object):
 
         if self.outstanding_requests == 0 and self.error is not None:
             del self.conn._cursor_cache[res.token]
-
-    def __summary_string(self, token, end_token):
-        if len(self.items) > 10:
-            val_str = token.join(map(repr, [self.items[i] for i in range(0,10)]))
-        else:
-            val_str = token.join(map(repr, self.items))
-        if len(self.items) > 10 or self.error is None:
-            val_str += end_token
-
-        if self.error is None:
-            err_str = 'streaming'
-        elif isinstance(self.error, ReqlCursorEmpty):
-            err_str = 'done streaming'
-        else:
-            err_str = 'error: %s' % repr(self.error)
-
-        return val_str, err_str
-
+    
     def __str__(self):
-        val_str, err_str = self.__summary_string(",\n", ", ...\n")
-        return "%s (%s):\n[\n%s]" % (object.__repr__(self), err_str, val_str)
-
+        val_str = pprint.pformat([self.items[x] for x in range(min(10, len(self.items)))] + (['...'] if len(self.items) > 10 else []))
+        if val_str.endswith("'...']"):
+            val_str = val_str[:-len("'...']")] + "...]"
+        spacer_str = '\n' if '\n' in val_str else ''
+        if self.error is None:
+            status_str = 'streaming'
+        elif isinstance(self.error, ReqlCursorEmpty):
+            status_str = 'done streaming'
+        else:
+            status_str = 'error: %s' % str(self.error)
+        
+        return "%s.%s (%s): %s%s" % (
+            self.__class__.__module__, self.__class__.__name__,
+            status_str,
+            spacer_str, val_str
+        )
+    
     def __repr__(self):
-        val_str, err_str = self.__summary_string(", ", ", ...")
-        return "<%s.%s object at %s (%s):\n [%s]>" % (
-            self.__class__.__module__,
-            self.__class__.__name__,
+        val_str = pprint.pformat([self.items[x] for x in range(min(10, len(self.items)))] + (['...'] if len(self.items) > 10 else []))
+        if val_str.endswith("'...']"):
+            val_str = val_str[:-len("'...']")] + "...]"
+        spacer_str = '\n' if '\n' in val_str else ''
+        if self.error is None:
+            status_str = 'streaming'
+        elif isinstance(self.error, ReqlCursorEmpty):
+            status_str = 'done streaming'
+        else:
+            status_str = 'error: %s' % repr(self.error)
+        
+        return "<%s.%s object at %s (%s): %s%s>" % (
+            self.__class__.__module__, self.__class__.__name__,
             hex(id(self)),
-            err_str,
-            val_str
+            status_str,
+            spacer_str, val_str
         )
 
     def _error(self, message):
@@ -288,9 +295,14 @@ class SocketWrapper(object):
                         self._socket = ssl.wrap_socket(
                             self._socket, cert_reqs=ssl.CERT_REQUIRED, ssl_version=ssl.PROTOCOL_SSLv23,
                             ca_certs=self.ssl["ca_certs"])
-                except IOError as exc:
+                except IOError as err:
                     self._socket.close()
-                    raise ReqlDriverError("SSL handshake failed (see server log for more information): %s" % str(exc))
+                    
+                    if 'EOF occurred in violation of protocol' in str(err) or 'sslv3 alert handshake failure' in str(err):
+                        # probably on an older version of OpenSSL
+                        raise ReqlDriverError("SSL handshake failed, likely because Python is linked against an old version of OpenSSL that does not support either TLSv1.2 or any of the allowed ciphers. This can be worked around by lowering the security setting on the server with the options `--tls-min-protocol TLSv1 --tls-ciphers EECDH+AESGCM:EDH+AESGCM:AES256+EECDH:AES256+EDH:AES256-SHA` (see server log for more information): %s" % str(err))
+                    else:
+                        raise ReqlDriverError("SSL handshake failed (see server log for more information): %s" % str(err))
                 try:
                     match_hostname(self._socket.getpeercert(), hostname=self.host)
                 except CertificateError:
@@ -661,19 +673,22 @@ def connect(host=None, port=None, db=None, auth_key=None, user=None, password=No
 
 def set_loop_type(library):
     global connection_type
-
+    import pkg_resources
+    
     # find module file
-    moduleName = 'net_%s' % library
-    modulePath = None
-    driverDir = os.path.realpath(os.path.dirname(__file__))
-    if os.path.isfile(os.path.join(driverDir, library + '_net', moduleName + '.py')):
-        modulePath = os.path.join(driverDir, library + '_net', moduleName + '.py')
-    else:
+    manager = pkg_resources.ResourceManager()
+    libPath = '%(library)s_net/net_%(library)s.py' % {'library':library}
+    if not manager.resource_exists(__name__, libPath):
         raise ValueError('Unknown loop type: %r' % library)
-
+    
     # load the module
+    modulePath = manager.resource_filename(__name__, libPath)
+    moduleName = 'net_%s' % library
     moduleFile, pathName, desc = imp.find_module(moduleName, [os.path.dirname(modulePath)])
     module = imp.load_module('rethinkdb.' + moduleName, moduleFile, pathName, desc)
-
+    
     # set the connection type
     connection_type = module.Connection
+    
+    # cleanup
+    manager.cleanup_resources()

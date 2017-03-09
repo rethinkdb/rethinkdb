@@ -4,7 +4,6 @@
 #include <utility>
 
 #include "errors.hpp"
-#include <boost/optional.hpp>
 #include <boost/variant.hpp>
 
 #include "debug.hpp"
@@ -294,7 +293,7 @@ private:
                 std::make_pair(stream->substreams.begin()->first, keyed_stream_t()));
             ret = append_t::accumulate(env, el, &substream, key, lazy_sindex_val);
             for (auto &&item : substream.substreams.begin()->second.stream) {
-                if (boost::optional<datum_t> d
+                if (optional<datum_t> d
                     = ql::changefeed::apply_ops(item.data, *ops, env, item.sindex_key)) {
                     item.data = *d;
                     guarantee(stream->substreams.size() == 1);
@@ -334,7 +333,7 @@ private:
                         // the values are out of order because of truncation.
                         bool remember_key = (cur.size() >= ql::datum_t::max_trunc_size());
                         if (remember_key) {
-                            start_sindex = std::move(cur);
+                            start_sindex.set(std::move(cur));
                         } else {
                             seen_distinct = true;
                         }
@@ -344,7 +343,7 @@ private:
         }
         return ret;
     }
-    boost::optional<std::string> start_sindex;
+    optional<std::string> start_sindex;
     is_primary_t is_primary;
     bool seen_distinct;
     size_t seen, n;
@@ -422,8 +421,8 @@ private:
                 // `none` because GCC 4.8 hates us and keeps thinking that
                 // `*is_sindex_sort` is uninitialized even after checking
                 // `is_sindex_sort` to not be none.
-                boost::optional<bool> is_sindex_sort(false);
-                is_sindex_sort = boost::none;
+                optional<bool> is_sindex_sort(false);
+                is_sindex_sort = r_nullopt;
                 std::vector<std::pair<raw_stream_t::iterator,
                                       raw_stream_t::iterator> > v;
                 v.reserve(stream->substreams.size());
@@ -439,7 +438,7 @@ private:
                         if (is_sindex_sort) {
                             r_sanity_check(*is_sindex_sort == is_sindex);
                         } else {
-                            is_sindex_sort = is_sindex;
+                            is_sindex_sort.set(is_sindex);
                         }
                     }
                     r_sanity_check(pair.second.last_key == store_key_max
@@ -1035,7 +1034,7 @@ class filter_trans_t : public ungrouped_op_t {
 public:
     explicit filter_trans_t(const filter_wire_func_t &_f)
         : f(_f.filter_func.compile_wire_func()),
-          default_val(_f.default_filter_val
+          default_val(_f.default_filter_val.has_value()
                       ? _f.default_filter_val->compile_wire_func()
                       : counted_t<const func_t>()) { }
 private:

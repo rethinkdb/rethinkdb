@@ -2,9 +2,6 @@
 #ifndef CLUSTERING_QUERY_ROUTING_PRIMARY_QUERY_CLIENT_HPP_
 #define CLUSTERING_QUERY_ROUTING_PRIMARY_QUERY_CLIENT_HPP_
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "clustering/generic/multi_client_client.hpp"
 #include "clustering/generic/registrant.hpp"
 #include "clustering/query_routing/metadata.hpp"

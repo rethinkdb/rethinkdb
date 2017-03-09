@@ -60,7 +60,8 @@ class ChangeHandler < ValTypeHandler2
   end
 end
 
-class CleverChangeHandler < ChangeHandler
+class CallbackSpecificChangeHandler < ChangeHandler
+  # Show that we get on_state, and that on_initial are distinct from on_change values
   def on_state(state)
     @state << [:state, state]
   end
@@ -109,7 +110,7 @@ EM.run {
     end
   }
   $handlers = [DefaultHandler.new, ValTypeHandler.new, ValTypeHandler2.new,
-               ChangeOnlyHandler.new, ChangeHandler.new, CleverChangeHandler.new]
+               ChangeOnlyHandler.new, ChangeHandler.new, CallbackSpecificChangeHandler.new]
 
   $runners.each {|runner|
     ($handlers + [$lambda]).each {|handler|
@@ -126,7 +127,7 @@ EM.run {
     r.table('test').insert({id: 1}).run
     r.table('test').get(0).update({a: 1}).run
   }
-  EM.defer(proc{sleep 2}, proc{EM.stop})
+  EM.defer(proc{sleep 20}, proc{EM.stop})
 }
 
 def sub_canon x
@@ -194,7 +195,7 @@ $expected = [[DefaultHandler,
                [:stream_val, [["id", 0]]],
                [:stream_val, [["id", 0]]],
                [:stream_val, [["new_val", [["id", 0]]]]]]],
-             [CleverChangeHandler,
+             [CallbackSpecificChangeHandler,
               [[:atom, [["id", 0]]],
                [:change, [["id", 0]]],
                [:change, [["id", 0]]],
@@ -218,5 +219,5 @@ $expected = [[DefaultHandler,
 $expected = $expected.map{|arr| [arr[0], arr[1].flat_map{|x| [x]*$runners.size}]}
 
 if $res != $expected
-  raise RuntimeError, "Unexpected output:\n" + PP.pp($res, "")
+  raise RuntimeError, "Unexpected output:\n" + PP.pp($res, "") + "\nExpected:\n" + PP.pp($expected, "")
 end

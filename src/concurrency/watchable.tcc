@@ -2,9 +2,7 @@
 #include "concurrency/watchable.hpp"
 
 #include <functional>
-
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
+#include <memory>
 
 #include "arch/timing.hpp"
 #include "concurrency/cond_var.hpp"
@@ -111,14 +109,14 @@ private:
         typename watchable_t<outer_type>::subscription_t parent_subscription;
     };
 
-    explicit subview_watchable_t(const boost::shared_ptr<lensed_value_cache_t> &_cache) :
+    explicit subview_watchable_t(const std::shared_ptr<lensed_value_cache_t> &_cache) :
         cache(_cache) { }
 
     // If you clone a subview_watchable_t, all clones share the same cache.
     // As a consequence, the lens is only applied once for the whole family
     // of clones, not once per instance of subview_watchable_t. This should save
     // some CPU and memory as well.
-    boost::shared_ptr<lensed_value_cache_t> cache;
+    std::shared_ptr<lensed_value_cache_t> cache;
 };
 
 /* Given a non-incremental lens with the type signature

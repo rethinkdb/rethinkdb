@@ -101,22 +101,22 @@ TPTEST(RPCDirectoryTest, MapUpdate) {
     cr2.join(get_cluster_local_address(&c1), 0);
     cr3.join(get_cluster_local_address(&c1), 0);
     let_stuff_happen();
-    ASSERT_TRUE(boost::optional<int>(1) ==
+    ASSERT_TRUE(optional<int>(1) ==
         rm2.get_root_view()->get_key(std::make_pair(c1.get_me(), 101)));
-    ASSERT_TRUE(boost::optional<int>() ==
+    ASSERT_TRUE(optional<int>() ==
         rm2.get_root_view()->get_key(std::make_pair(c1.get_me(), 102)));
     w1.set_key(101, 2);
     w1.set_key(102, 1);
     let_stuff_happen();
-    ASSERT_TRUE(boost::optional<int>(2) ==
+    ASSERT_TRUE(optional<int>(2) ==
         rm2.get_root_view()->get_key(std::make_pair(c1.get_me(), 101)));
-    ASSERT_TRUE(boost::optional<int>(1) ==
+    ASSERT_TRUE(optional<int>(1) ==
         rm2.get_root_view()->get_key(std::make_pair(c1.get_me(), 102)));
     w1.delete_key(101);
     let_stuff_happen();
-    ASSERT_TRUE(boost::optional<int>() ==
+    ASSERT_TRUE(optional<int>() ==
         rm2.get_root_view()->get_key(std::make_pair(c1.get_me(), 101)));
-    ASSERT_TRUE(boost::optional<int>(1) ==
+    ASSERT_TRUE(optional<int>(1) ==
         rm2.get_root_view()->get_key(std::make_pair(c1.get_me(), 102)));
 }
 

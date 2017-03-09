@@ -62,10 +62,14 @@ TPTEST(BtreeMetainfo, MetainfoTest) {
 
     {
         txn_t txn(&cache_conn, write_durability_t::HARD, 1);
-        buf_lock_t sb_lock(&txn, SUPERBLOCK_ID, alt_create_t::create);
-        real_superblock_t superblock(std::move(sb_lock));
-        btree_slice_t::init_real_superblock(&superblock,
-                                            std::vector<char>(), binary_blob_t());
+        {
+            buf_lock_t sb_lock(&txn, SUPERBLOCK_ID, alt_create_t::create);
+            real_superblock_t superblock(std::move(sb_lock));
+            btree_slice_t::init_real_superblock(
+                &superblock,
+                std::vector<char>(), binary_blob_t());
+        }
+        txn.commit();
     }
 
     for (int i = 0; i < 3; ++i) {
@@ -75,18 +79,21 @@ TPTEST(BtreeMetainfo, MetainfoTest) {
         }
         {
             scoped_ptr_t<txn_t> txn;
-            scoped_ptr_t<real_superblock_t> superblock;
-            get_btree_superblock_and_txn_for_writing(
-                &cache_conn, nullptr, write_access_t::write, 1,
-                write_durability_t::SOFT, &superblock, &txn);
-            std::vector<std::vector<char> > keys;
-            std::vector<binary_blob_t> values;
-            for (const auto &pair : metainfo) {
-                keys.push_back(string_to_vector(pair.first));
-                values.push_back(string_to_blob(pair.second));
+            {
+                scoped_ptr_t<real_superblock_t> superblock;
+                get_btree_superblock_and_txn_for_writing(
+                    &cache_conn, nullptr, write_access_t::write, 1,
+                    write_durability_t::SOFT, &superblock, &txn);
+                std::vector<std::vector<char> > keys;
+                std::vector<binary_blob_t> values;
+                for (const auto &pair : metainfo) {
+                    keys.push_back(string_to_vector(pair.first));
+                    values.push_back(string_to_blob(pair.second));
+                }
+                set_superblock_metainfo(superblock.get(), keys, values,
+                    cluster_version_t::v2_1);
             }
-            set_superblock_metainfo(superblock.get(), keys, values,
-                                    cluster_version_t::v2_1);
+            txn->commit();
         }
         {
             scoped_ptr_t<txn_t> txn;

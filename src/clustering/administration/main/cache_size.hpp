@@ -5,7 +5,6 @@
 
 #include <string>
 
-uint64_t get_used_swap();
 uint64_t get_max_total_cache_size();
 uint64_t get_default_total_cache_size();
 void log_warnings_for_cache_size(uint64_t);

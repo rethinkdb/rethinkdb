@@ -5,12 +5,14 @@
 #include <list>
 #include <string>
 
+#include "assignment_sentry.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/queue/passive_producer.hpp"
 #include "concurrency/wait_any.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "containers/disk_backed_queue.hpp"
+#include "paths.hpp"
 
 /* `disk_backed_queue_t` can't be used directly as a `passive_producer_t`
 because its `pop()` method can sometimes block, and `passive_producer_t`'s

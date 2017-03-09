@@ -1,15 +1,18 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/log/lba/disk_extent.hpp"
 
+#include <limits>
+
 #include "arch/arch.hpp"
 #include "math.hpp"
 
-lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, file_t *file, file_account_t *io_account)
+lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, file_t *file,
+                                     file_account_t *io_account)
     : em(_em), data(new extent_t(em, file)), count(0) {
     em->assert_thread();
 
-    // Make sure that the size of the header is a multiple of the size of one entry, so that the
-    // header doesn't prevent the entries from aligning with DEVICE_BLOCK_SIZE.
+    // Make sure that the size of the header is a multiple of the size of one entry, so
+    // that the header doesn't prevent the entries from aligning with DEVICE_BLOCK_SIZE.
     rassert(divides(sizeof(lba_entry_t), offsetof(lba_extent_t, entries[0])));
     rassert(offsetof(lba_extent_t, entries[0]) == sizeof(lba_extent_t::header_t));
 
@@ -19,8 +22,12 @@ lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, file_t *file, file_a
     data->append(&header, sizeof(header), io_account);
 }
 
-lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, file_t *file, int64_t _offset, int _count)
-    : em(_em), data(new extent_t(em, file, _offset, offsetof(lba_extent_t, entries[0]) + sizeof(lba_entry_t) * _count)), count(_count) {
+lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, file_t *file,
+                                     int64_t _offset, int _count)
+    : em(_em),
+      data(new extent_t(em, file, _offset,
+                        offsetof(lba_extent_t, entries[0]) + sizeof(lba_entry_t) * _count)),
+      count(_count) {
     em->assert_thread();
 }
 
@@ -36,20 +43,23 @@ void lba_disk_extent_t::add_entry(lba_entry_t entry, file_account_t *io_account)
     count++;
 }
 
-void lba_disk_extent_t::sync(file_account_t *io_account, extent_t::sync_callback_t *cb) {
+void lba_disk_extent_t::write_outstanding(file_account_t *io_account,
+                                          extent_t::completion_callback_t *cb) {
     em->assert_thread();
     while (data->amount_filled % DEVICE_BLOCK_SIZE != 0) {
         add_entry(lba_entry_t::make_padding_entry(), io_account);
     }
 
-    data->sync(cb);
+    data->wait_for_write_completion(cb);
 }
 
-void lba_disk_extent_t::read_step_1(read_info_t *info_out, extent_t::read_callback_t *cb) {
+void lba_disk_extent_t::read_step_1(read_info_t *info_out,
+                                    extent_t::read_callback_t *cb) {
     em->assert_thread();
     info_out->buffer = scoped_device_block_aligned_ptr_t<lba_extent_t>(em->extent_size);
     info_out->count = count;
-    data->read(0, sizeof(lba_extent_t) + sizeof(lba_entry_t) * count, info_out->buffer.get(), cb);
+    data->read(0, sizeof(lba_extent_t) + sizeof(lba_entry_t) * count,
+               info_out->buffer.get(), cb);
 }
 
 void lba_disk_extent_t::read_step_2(read_info_t *info, in_memory_index_t *index) {

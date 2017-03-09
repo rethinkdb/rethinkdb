@@ -1,18 +1,18 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "unittest/rdb_protocol.hpp"
 
+#include <functional>
 #include <vector>
-
-#include "errors.hpp"
-#include <boost/function.hpp>
-#include <boost/shared_ptr.hpp>
 
 #include "arch/io/disk.hpp"
 #include "buffer_cache/cache_balancer.hpp"
+#include "clustering/administration/artificial_reql_cluster_interface.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "clustering/administration/tables/name_resolver.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "rdb_protocol/changefeed.hpp"
+#include "rdb_protocol/datum_stream/vector.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
@@ -31,7 +31,7 @@
 namespace unittest {
 
 void run_with_namespace_interface(
-        boost::function<void(
+        std::function<void(
             namespace_interface_t *,
             order_source_t *,
             const std::vector<scoped_ptr_t<store_t> > *
@@ -115,7 +115,7 @@ void run_with_namespace_interface(
 }
 
 void run_in_thread_pool_with_namespace_interface(
-        boost::function<void(
+        std::function<void(
             namespace_interface_t *,
             order_source_t *,
             const std::vector<scoped_ptr_t<store_t> > *)> fun,
@@ -159,7 +159,7 @@ void run_get_set_test(
 
         cond_t interruptor;
         nsi->write(
-            auth::user_context_t(auth::permissions_t(true, true, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::True, tribool::False, tribool::False)),
             write,
             &response,
             osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-A)"),
@@ -179,7 +179,7 @@ void run_get_set_test(
 
         cond_t interruptor;
         nsi->read(
-            auth::user_context_t(auth::permissions_t(true, false, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
             read,
             &response,
             osource->check_in("unittest::run_get_set_test(rdb_protocol.cc-B)"),
@@ -285,7 +285,7 @@ void run_create_drop_sindex_test(
 
         cond_t interruptor;
         nsi->write(
-            auth::user_context_t(auth::permissions_t(true, true, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::True, tribool::False, tribool::False)),
             write,
             &response,
             osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
@@ -306,7 +306,7 @@ void run_create_drop_sindex_test(
 
         cond_t interruptor;
         nsi->read(
-            auth::user_context_t(auth::permissions_t(true, false, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
             read,
             &response,
             osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
@@ -337,7 +337,7 @@ void run_create_drop_sindex_test(
 
         cond_t interruptor;
         nsi->write(
-            auth::user_context_t(auth::permissions_t(true, true, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::True, tribool::False, tribool::False)),
             write,
             &response,
             osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
@@ -357,7 +357,7 @@ void run_create_drop_sindex_test(
 
         cond_t interruptor;
         nsi->read(
-            auth::user_context_t(auth::permissions_t(true, false, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
             read,
             &response,
             osource->check_in("unittest::run_create_drop_sindex_test(rdb_protocol.cc-A"),
@@ -399,7 +399,7 @@ void populate_sindex(namespace_interface_t *nsi,
 
         cond_t interruptor;
         nsi->write(
-            auth::user_context_t(auth::permissions_t(true, true, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::True, tribool::False, tribool::False)),
             write,
             &response,
             osource->check_in(
@@ -461,7 +461,7 @@ void fuzz_sindex(namespace_interface_t *nsi,
 
         cond_t interruptor;
         nsi->write(
-            auth::user_context_t(auth::permissions_t(true, true, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::True, tribool::False, tribool::False)),
             write,
             &response,
             osource->check_in("unittest::fuzz_sindex(rdb_protocol.cc"),
@@ -589,7 +589,7 @@ void read_sindex(namespace_interface_t *nsi,
 
     cond_t interruptor;
     nsi->read(
-        auth::user_context_t(auth::permissions_t(true, false, false, false)),
+        auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
         read,
         &response,
         osource->check_in("unittest::run_rename_sindex_test(rdb_protocol.cc-A"),
@@ -769,7 +769,7 @@ void run_sindex_oversized_keys_test(
 
                 cond_t interruptor;
                 nsi->write(
-                    auth::user_context_t(auth::permissions_t(true, true, false, false)),
+                    auth::user_context_t(auth::permissions_t(tribool::True, tribool::True, tribool::False, tribool::False)),
                     write,
                     &response,
                     osource->check_in(
@@ -793,7 +793,7 @@ void run_sindex_oversized_keys_test(
 
                 cond_t interruptor;
                 nsi->read(
-                    auth::user_context_t(auth::permissions_t(true, false, false, false)),
+                    auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
                     read,
                     &response,
                     osource->check_in(
@@ -855,7 +855,7 @@ void run_sindex_missing_attr_test(
 
         cond_t interruptor;
         nsi->write(
-            auth::user_context_t(auth::permissions_t(true, true, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::True, tribool::False, tribool::False)),
             write,
             &response,
             osource->check_in(
@@ -884,13 +884,29 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
     using ql::changefeed::artificial_t;
     using ql::changefeed::keyspec_t;
     using ql::changefeed::msg_t;
+
+    extproc_pool_t extproc_pool(2);
+    dummy_semilattice_controller_t<auth_semilattice_metadata_t> auth_manager;
+    rdb_context_t rdb_context(&extproc_pool, nullptr, auth_manager.get_view());
+    artificial_reql_cluster_interface_t artificial_reql_cluster_interface(
+        auth_manager.get_view(),
+        &rdb_context);
+    dummy_semilattice_controller_t<cluster_semilattice_metadata_t> cluster_manager;
+    name_resolver_t name_resolver(
+        cluster_manager.get_view(),
+        nullptr,
+        make_lifetime(artificial_reql_cluster_interface));
+
     class dummy_artificial_t : public artificial_t {
     public:
+        explicit dummy_artificial_t(lifetime_t<name_resolver_t const &> name_resolver_)
+            : artificial_t(generate_uuid(), name_resolver_) { }
         /* This gets a notification when the last changefeed disconnects, but we don't
         care about that. */
         void maybe_remove() { }
     };
-    dummy_artificial_t artificial_cfeed;
+    dummy_artificial_t artificial_cfeed(make_lifetime(name_resolver));
+
     struct cfeed_bundle_t {
         cfeed_bundle_t(ql::env_t *env, artificial_t *a)
             : bt(ql::backtrace_id_t::empty()),
@@ -898,7 +914,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                           env,
                           ql::changefeed::streamspec_t(
                               make_counted<ql::vector_datum_stream_t>(
-                                  bt, std::vector<ql::datum_t>(), boost::none),
+                                  bt, std::vector<ql::datum_t>(), r_nullopt),
                               "test",
                               false,
                               false,
@@ -913,7 +929,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                            env,
                            ql::changefeed::streamspec_t(
                                make_counted<ql::vector_datum_stream_t>(
-                                   bt, std::vector<ql::datum_t>(), boost::none),
+                                   bt, std::vector<ql::datum_t>(), r_nullopt),
                                "test",
                                false,
                                false,
@@ -928,7 +944,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                         env,
                         ql::changefeed::streamspec_t(
                             make_counted<ql::vector_datum_stream_t>(
-                                bt, std::vector<ql::datum_t>(), boost::none),
+                                bt, std::vector<ql::datum_t>(), r_nullopt),
                             "test",
                             false,
                             false,
@@ -937,7 +953,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                             ql::datum_t::boolean(false),
                             keyspec_t::range_t{
                                 std::vector<ql::transform_variant_t>(),
-                                    boost::optional<std::string>(),
+                                    optional<std::string>(),
                                     sorting_t::UNORDERED,
                                     ql::datumspec_t(
                                         ql::datum_range_t(
@@ -945,7 +961,7 @@ TPTEST(RDBProtocol, ArtificialChangefeeds) {
                                             key_range_t::closed,
                                             ql::datum_t(10.0),
                                             key_range_t::open)),
-                                    boost::none}),
+                                    r_nullopt}),
                         "id",
                         std::vector<ql::datum_t>(),
                         bt)) { }

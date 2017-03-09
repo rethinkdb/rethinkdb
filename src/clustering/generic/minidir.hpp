@@ -30,14 +30,17 @@ public:
     of the recorded key-value pairs from that peer. If the write manager decides to
     start sending message again, or if contact is reestablished, then it will start over
     with a new `link_id` and a new `fifo_enforcer_source_t`. */
-    typedef mailbox_t<void(
-        peer_id_t peer_id,
-        minidir_link_id_t link_id,
-        fifo_enforcer_write_token_t fifo_token,
-        bool closing_link,
-        boost::optional<key_t> key,
-        boost::optional<value_t> value
-        )> update_mailbox_t;
+    struct update_message_t {
+        peer_id_t peer_id;
+        minidir_link_id_t link_id;
+        fifo_enforcer_write_token_t fifo_token;
+        bool closing_link;
+        optional<key_t> key;
+        optional<value_t> value;
+
+        RDB_MAKE_ME_SERIALIZABLE_6(update_message_t, peer_id, link_id, fifo_token, closing_link, key, value);
+    };
+    typedef mailbox_t<update_message_t> update_mailbox_t;
     typename update_mailbox_t::address_t update_mailbox;
 
     RDB_MAKE_ME_SERIALIZABLE_1(minidir_bcard_t, update_mailbox);
@@ -95,12 +98,7 @@ private:
 
     void on_update(
         signal_t *interruptor,
-        const peer_id_t &peer_id,
-        const minidir_link_id_t &link_id,
-        fifo_enforcer_write_token_t token,
-        bool closing_link,
-        const boost::optional<key_t> &key,
-        const boost::optional<value_t> &value);
+        const typename minidir_bcard_t<key_t, value_t>::update_message_t &msg);
 
     mailbox_manager_t *const mailbox_manager;
 
@@ -183,7 +181,7 @@ private:
     void spawn_update(
         typename peer_data_t::link_data_t *link_data,
         const key_t &key,
-        const boost::optional<value_t> &value);
+        const optional<value_t> &value);
     void spawn_closing_link(
         typename peer_data_t::link_data_t *link_data);
 

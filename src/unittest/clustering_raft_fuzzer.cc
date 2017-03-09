@@ -211,7 +211,7 @@ private:
                                 active_config.new_config.reset();
                                 RAFT_DEBUG("Config change succeeded\n");
                             } else {
-                                active_config.new_config = config;
+                                active_config.new_config.set(config);
                                 RAFT_DEBUG("Config change indeterminate\n");
                             }
                             print_config(active_config);

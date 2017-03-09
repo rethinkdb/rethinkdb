@@ -8,9 +8,6 @@
 #include <string>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "btree/concurrent_traversal.hpp"
 #include "btree/get_distribution.hpp"
 #include "btree/operations.hpp"
@@ -118,7 +115,7 @@ void kv_location_delete(keyvalue_location_t *kv_location,
     // As noted above, we can be sure that buf is valid.
     const max_block_size_t block_size = kv_location->buf.cache()->max_block_size();
 
-    if (mod_info_out != NULL) {
+    if (mod_info_out != nullptr) {
         guarantee(mod_info_out->deleted.second.empty());
 
         mod_info_out->deleted.second.assign(
@@ -166,7 +163,7 @@ kv_location_set(keyvalue_location_t *kv_location,
     if (kv_location->value.has()) {
         deletion_context->in_tree_deleter()->delete_value(
                 buf_parent_t(&kv_location->buf), kv_location->value.get());
-        if (mod_info_out != NULL) {
+        if (mod_info_out != nullptr) {
             guarantee(mod_info_out->deleted.second.empty());
             mod_info_out->deleted.second.assign(
                     kv_location->value_as<rdb_value_t>()->value_ref(),
@@ -320,6 +317,54 @@ batched_replace_response_t rdb_replace_and_return_superblock(
     }
 }
 
+ql::datum_t btree_batched_replacer_t::apply_write_hook(
+    ql::env_t *env,
+    const datum_string_t &pkey,
+    const ql::datum_t &d,
+    const ql::datum_t &res_,
+    const counted_t<const ql::func_t> &write_hook) const {
+    ql::datum_t res = res_;
+    if (write_hook.has()) {
+        ql::datum_t primary_key;
+        if (res.get_type() != ql::datum_t::type_t::R_NULL) {
+            primary_key = res.get_field(pkey, ql::throw_bool_t::NOTHROW);
+        } else if (d.get_type() != ql::datum_t::type_t::R_NULL) {
+            primary_key = d.get_field(pkey, ql::throw_bool_t::NOTHROW);
+        }
+        if (!primary_key.has()) {
+            primary_key = ql::datum_t::null();
+        }
+        ql::datum_t modified;
+        try {
+            modified = write_hook->call(env,
+                                        std::vector<ql::datum_t>{
+                                            primary_key,
+                                                d,
+                                                res})->as_datum();
+        } catch (ql::exc_t &e) {
+            throw ql::exc_t(e.get_type(),
+                            strprintf("Error in write hook: %s", e.what()),
+                            e.backtrace(),
+                            e.dummy_frames());
+        } catch (ql::datum_exc_t &e) {
+            throw ql::datum_exc_t(e.get_type(),
+                                  strprintf("Error in write hook: %s", e.what()));
+        }
+
+        rcheck_toplevel(!(res.get_type() == ql::datum_t::type_t::R_NULL &&
+                          modified.get_type() != ql::datum_t::type_t::R_NULL),
+                        ql::base_exc_t::OP_FAILED,
+                        "A write hook function must not turn a deletion into a "
+                        "replace/insert.");
+        rcheck_toplevel(!(res.get_type() != ql::datum_t::type_t::R_NULL &&
+                          modified.get_type() == ql::datum_t::type_t::R_NULL),
+                        ql::base_exc_t::OP_FAILED,
+                        "A write hook function must not turn a replace/insert "
+                        "into a deletion.");
+        res = modified;
+    }
+    return res;
+}
 
 class one_replace_t : public btree_point_replacer_t {
 public:
@@ -584,7 +629,7 @@ public:
     job_data_t(ql::env_t *_env,
                const ql::batchspec_t &batchspec,
                const std::vector<transform_variant_t> &_transforms,
-               const boost::optional<terminal_variant_t> &_terminal,
+               const optional<terminal_variant_t> &_terminal,
                region_t region,
                store_key_t last_key,
                sorting_t _sorting,
@@ -592,7 +637,7 @@ public:
         : env(_env),
           batcher(make_scoped<ql::batcher_t>(batchspec.to_batcher())),
           sorting(_sorting),
-          accumulator(_terminal
+          accumulator(_terminal.has_value()
                       ? ql::make_terminal(*_terminal)
                       : ql::make_append(std::move(region),
                                         std::move(last_key),
@@ -633,25 +678,25 @@ class rget_cb_t {
 public:
     rget_cb_t(rget_io_data_t &&_io,
               job_data_t &&_job,
-              boost::optional<rget_sindex_data_t> &&_sindex);
+              optional<rget_sindex_data_t> &&_sindex);
 
     continue_bool_t handle_pair(
         scoped_key_value_t &&keyvalue,
         size_t default_copies,
-        const boost::optional<std::string> &skey_left,
+        const optional<std::string> &skey_left,
         concurrent_traversal_fifo_enforcer_signal_t waiter)
         THROWS_ONLY(interrupted_exc_t);
     void finish(continue_bool_t last_cb) THROWS_ONLY(interrupted_exc_t);
 private:
     const rget_io_data_t io; // How do get data in/out.
     job_data_t job; // What to do next (stateful).
-    const boost::optional<rget_sindex_data_t> sindex; // Optional sindex information.
+    const optional<rget_sindex_data_t> sindex; // Optional sindex information.
 
     scoped_ptr_t<ql::env_t> sindex_env;
 
     // State for internal bookkeeping.
     bool bad_init;
-    boost::optional<std::string> last_truncated_secondary_for_abort;
+    optional<std::string> last_truncated_secondary_for_abort;
     scoped_ptr_t<profile::disabler_t> disabler;
     scoped_ptr_t<profile::sampler_t> sampler;
 };
@@ -663,7 +708,7 @@ public:
     rget_cb_wrapper_t(
             rget_cb_t *_cb,
             size_t _copies,
-            boost::optional<std::string> _skey_left)
+            optional<std::string> _skey_left)
         : cb(_cb), copies(_copies), skey_left(std::move(_skey_left)) { }
     virtual continue_bool_t handle_pair(
         scoped_key_value_t &&keyvalue,
@@ -678,12 +723,12 @@ public:
 private:
     rget_cb_t *cb;
     size_t copies;
-    boost::optional<std::string> skey_left;
+    optional<std::string> skey_left;
 };
 
 rget_cb_t::rget_cb_t(rget_io_data_t &&_io,
                      job_data_t &&_job,
-                     boost::optional<rget_sindex_data_t> &&_sindex)
+                     optional<rget_sindex_data_t> &&_sindex)
     : io(std::move(_io)),
       job(std::move(_job)),
       sindex(std::move(_sindex)),
@@ -714,7 +759,7 @@ void rget_cb_t::finish(continue_bool_t last_cb) THROWS_ONLY(interrupted_exc_t) {
 continue_bool_t rget_cb_t::handle_pair(
     scoped_key_value_t &&keyvalue,
     size_t default_copies,
-    const boost::optional<std::string> &skey_left,
+    const optional<std::string> &skey_left,
     concurrent_traversal_fifo_enforcer_signal_t waiter)
     THROWS_ONLY(interrupted_exc_t) {
 
@@ -722,7 +767,7 @@ continue_bool_t rget_cb_t::handle_pair(
     // STUFF THAT CAN HAPPEN OUT OF ORDER GOES HERE //
     //////////////////////////////////////////////////
     sampler->new_sample();
-    if (bad_init || boost::get<ql::exc_t>(&io.response->result) != NULL) {
+    if (bad_init || boost::get<ql::exc_t>(&io.response->result) != nullptr) {
         return continue_bool_t::ABORT;
     }
     // Load the key and value.
@@ -806,9 +851,8 @@ continue_bool_t rget_cb_t::handle_pair(
                     sindex->func->call(sindex_env.get(), val)->as_datum();
                 if (sindex->multi == sindex_multi_bool_t::MULTI
                     && sindex_val_cache.get_type() == ql::datum_t::R_ARRAY) {
-                    boost::optional<uint64_t> tag = *ql::datum_t::extract_tag(key);
-                    guarantee(tag);
-                    sindex_val_cache = sindex_val_cache.get(*tag, ql::NOTHROW);
+                    uint64_t tag = ql::datum_t::extract_tag(key).get();
+                    sindex_val_cache = sindex_val_cache.get(tag, ql::NOTHROW);
                     guarantee(sindex_val_cache.has());
                 }
             }
@@ -933,8 +977,8 @@ continue_bool_t rget_cb_t::handle_pair(
         continue_bool_t cont = (*job.accumulator)(job.env, &data, key, lazy_sindex_val);
         if (remember_key_for_sindex_batching) {
             if (cont == continue_bool_t::ABORT) {
-                last_truncated_secondary_for_abort =
-                    ql::datum_t::extract_truncated_secondary(key_to_unescaped_str(key));
+                last_truncated_secondary_for_abort.set(
+                    ql::datum_t::extract_truncated_secondary(key_to_unescaped_str(key)));
             }
             return continue_bool_t::CONTINUE;
         } else {
@@ -958,16 +1002,16 @@ void rdb_rget_slice(
         btree_slice_t *slice,
         const region_t &shard,
         const key_range_t &range,
-        const boost::optional<std::map<store_key_t, uint64_t> > &primary_keys,
+        const optional<std::map<store_key_t, uint64_t> > &primary_keys,
         superblock_t *superblock,
         ql::env_t *ql_env,
         const ql::batchspec_t &batchspec,
         const std::vector<transform_variant_t> &transforms,
-        const boost::optional<terminal_variant_t> &terminal,
+        const optional<terminal_variant_t> &terminal,
         sorting_t sorting,
         rget_read_response_t *response,
         release_superblock_t release_superblock) {
-    r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
+    r_sanity_check(boost::get<ql::exc_t>(&response->result) == nullptr);
     PROFILE_STARTER_IF_ENABLED(
         ql_env->profile() == profile_bool_t::PROFILE,
         "Do range scan on primary index.",
@@ -985,13 +1029,13 @@ void rdb_rget_slice(
                        : range.right.key_or_max(),
                    sorting,
                    require_sindexes_t::NO),
-        boost::none);
+        r_nullopt);
 
     direction_t direction = reversed(sorting) ? BACKWARD : FORWARD;
     continue_bool_t cont = continue_bool_t::CONTINUE;
-    if (primary_keys) {
+    if (primary_keys.has_value()) {
         auto cb = [&](const std::pair<store_key_t, uint64_t> &pair, bool is_last) {
-            rget_cb_wrapper_t wrapper(&callback, pair.second, boost::none);
+            rget_cb_wrapper_t wrapper(&callback, pair.second, r_nullopt);
             return btree_concurrent_traversal(
                 superblock,
                 key_range_t::one_key(pair.first),
@@ -1019,7 +1063,7 @@ void rdb_rget_slice(
             }
         }
     } else {
-        rget_cb_wrapper_t wrapper(&callback, 1, boost::none);
+        rget_cb_wrapper_t wrapper(&callback, 1, r_nullopt);
         cont = btree_concurrent_traversal(
             superblock, range, &wrapper, direction, release_superblock);
     }
@@ -1035,14 +1079,14 @@ void rdb_rget_secondary_slice(
         ql::env_t *ql_env,
         const ql::batchspec_t &batchspec,
         const std::vector<transform_variant_t> &transforms,
-        const boost::optional<terminal_variant_t> &terminal,
+        const optional<terminal_variant_t> &terminal,
         const key_range_t &pk_range,
         sorting_t sorting,
         require_sindexes_t require_sindex_val,
         const sindex_disk_info_t &sindex_info,
         rget_read_response_t *response,
         release_superblock_t release_superblock) {
-    r_sanity_check(boost::get<ql::exc_t>(&response->result) == NULL);
+    r_sanity_check(boost::get<ql::exc_t>(&response->result) == nullptr);
     guarantee(sindex_info.geo == sindex_geo_bool_t::REGULAR);
     PROFILE_STARTER_IF_ENABLED(
         ql_env->profile() == profile_bool_t::PROFILE,
@@ -1065,13 +1109,13 @@ void rdb_rget_secondary_slice(
                        : sindex_region_range.right.key_or_max(),
                    sorting,
                    require_sindex_val),
-        rget_sindex_data_t(
+        make_optional(rget_sindex_data_t(
             pk_range,
             datumspec,
             &active_region_range,
             sindex_func_reql_version,
             sindex_info.mapping,
-            sindex_info.multi));
+            sindex_info.multi)));
 
     direction_t direction = reversed(sorting) ? BACKWARD : FORWARD;
     auto cb = [&](const std::pair<ql::datum_range_t, uint64_t> &pair, bool is_last) {
@@ -1080,7 +1124,7 @@ void rdb_rget_secondary_slice(
         rget_cb_wrapper_t wrapper(
             &callback,
             pair.second,
-            key_to_unescaped_str(sindex_keyrange.left));
+            make_optional(key_to_unescaped_str(sindex_keyrange.left)));
         key_range_t active_range = active_region_range.intersection(sindex_keyrange);
         // This can happen sometimes with truncated keys.
         if (active_range.is_empty()) return continue_bool_t::CONTINUE;
@@ -1104,7 +1148,7 @@ void rdb_get_intersecting_slice(
         ql::env_t *ql_env,
         const ql::batchspec_t &batchspec,
         const std::vector<ql::transform_variant_t> &transforms,
-        const boost::optional<ql::terminal_variant_t> &terminal,
+        const optional<ql::terminal_variant_t> &terminal,
         const key_range_t &pk_range,
         const sindex_disk_info_t &sindex_info,
         is_stamp_read_t is_stamp_read,
@@ -1191,7 +1235,7 @@ void rdb_get_nearest_slice(
         } else {
             auto partial_res = boost::get<nearest_geo_read_response_t::result_t>(
                 &partial_response.results_or_error);
-            guarantee(partial_res != NULL);
+            guarantee(partial_res != nullptr);
             auto full_res = boost::get<nearest_geo_read_response_t::result_t>(
                 &response->results_or_error);
             std::move(partial_res->begin(), partial_res->end(),
@@ -1296,7 +1340,7 @@ bool rdb_modification_report_cb_t::has_pkey_cfeeds(
         auto cservers = store_->access_changefeed_servers();
         for (auto &&pair : *cservers.first) {
             if (pair.first.inner.overlaps(range)
-                && pair.second->has_limit(boost::optional<std::string>(),
+                && pair.second->has_limit(r_nullopt,
                                           pair.second->get_keepalive())) {
                 return true;
             }
@@ -1310,7 +1354,8 @@ void rdb_modification_report_cb_t::finish(
     auto cservers = store_->access_changefeed_servers();
     for (auto &&pair : *cservers.first) {
         pair.second->foreach_limit(
-            boost::optional<std::string>(),
+            r_nullopt,
+            r_nullopt,
             nullptr,
             [&](rwlock_in_line_t *clients_spot,
                 rwlock_in_line_t *limit_clients_spot,
@@ -1357,7 +1402,8 @@ void rdb_modification_report_cb_t::on_mod_report(
         auto cserver = store_->changefeed_server(report.primary_key);
         if (update_pkey_cfeeds && cserver.first != nullptr) {
             cserver.first->foreach_limit(
-                boost::optional<std::string>(),
+                r_nullopt,
+                r_nullopt,
                 &report.primary_key,
                 [&](rwlock_in_line_t *clients_spot,
                     rwlock_in_line_t *limit_clients_spot,
@@ -1422,7 +1468,7 @@ std::vector<std::string> expand_geo_key(
         reql_version_t reql_version,
         const ql::datum_t &key,
         const store_key_t &primary_key,
-        boost::optional<uint64_t> tag_num) {
+        optional<uint64_t> tag_num) {
     // Ignore non-geometry objects in geo indexes.
     // TODO (daniel): This needs to be changed once compound geo index
     // support gets added.
@@ -1489,7 +1535,7 @@ void compute_keys(const store_key_t &primary_key,
                 std::vector<std::string> geo_keys = expand_geo_key(reql_version,
                                                                    skey,
                                                                    primary_key,
-                                                                   i);
+                                                                   make_optional(i));
                 for (auto it = geo_keys.begin(); it != geo_keys.end(); ++it) {
                     keys_out->push_back(std::make_pair(store_key_t(*it), skey));
                 }
@@ -1506,7 +1552,8 @@ void compute_keys(const store_key_t &primary_key,
             } else {
                 try {
                     std::string store_key =
-                        skey.print_secondary(reql_version, primary_key, i);
+                        skey.print_secondary(reql_version, primary_key,
+                                             make_optional(i));
                     keys_out->push_back(
                         std::make_pair(store_key_t(store_key), skey));
                     if (cfeed_keys_out != nullptr) {
@@ -1527,7 +1574,7 @@ void compute_keys(const store_key_t &primary_key,
             std::vector<std::string> geo_keys = expand_geo_key(reql_version,
                                                                index,
                                                                primary_key,
-                                                               boost::none);
+                                                               r_nullopt);
             for (auto it = geo_keys.begin(); it != geo_keys.end(); ++it) {
                 keys_out->push_back(std::make_pair(store_key_t(*it), index));
             }
@@ -1543,7 +1590,7 @@ void compute_keys(const store_key_t &primary_key,
             }
         } else {
             std::string store_key =
-                index.print_secondary(reql_version, primary_key, boost::none);
+                index.print_secondary(reql_version, primary_key, r_nullopt);
             keys_out->push_back(
                 std::make_pair(store_key_t(store_key), index));
             if (cfeed_keys_out != nullptr) {
@@ -1605,7 +1652,8 @@ void deserialize_sindex_info(
     case cluster_version_t::v2_0:
     case cluster_version_t::v2_1:
     case cluster_version_t::v2_2:
-    case cluster_version_t::v2_3_is_latest:
+    case cluster_version_t::v2_3:
+    case cluster_version_t::v2_4_is_latest:
         success = deserialize_reql_version(
                 &read_stream,
                 &info_out->mapping_version_info.original_reql_version,
@@ -1641,7 +1689,8 @@ void deserialize_sindex_info(
     case cluster_version_t::v2_0: // fallthru
     case cluster_version_t::v2_1: // fallthru
     case cluster_version_t::v2_2: // fallthru
-    case cluster_version_t::v2_3_is_latest:
+    case cluster_version_t::v2_3: // fallthru
+    case cluster_version_t::v2_4_is_latest:
         success = deserialize_for_version(cluster_version, &read_stream, &info_out->geo);
         throw_if_bad_deserialization(success, "sindex description");
         break;
@@ -1721,7 +1770,8 @@ void rdb_update_single_sindex(
                 &keys, cfeed_old_keys_out);
             if (cserver.first != nullptr) {
                 cserver.first->foreach_limit(
-                    sindex->name.name,
+                    make_optional(sindex->name.name),
+                    make_optional(sindex->sindex.id),
                     &modification->primary_key,
                     [&](rwlock_in_line_t *clients_spot,
                         rwlock_in_line_t *limit_clients_spot,
@@ -1796,7 +1846,8 @@ void rdb_update_single_sindex(
             }
             if (cserver.first != nullptr) {
                 cserver.first->foreach_limit(
-                    sindex->name.name,
+                    make_optional(sindex->name.name),
+                    make_optional(sindex->sindex.id),
                     &modification->primary_key,
                     [&](rwlock_in_line_t *clients_spot,
                         rwlock_in_line_t *limit_clients_spot,
@@ -1867,7 +1918,8 @@ void rdb_update_single_sindex(
 
     if (cserver.first != nullptr) {
         cserver.first->foreach_limit(
-            sindex->name.name,
+            make_optional(sindex->name.name),
+            make_optional(sindex->sindex.id),
             &modification->primary_key,
             [&](rwlock_in_line_t *clients_spot,
                 rwlock_in_line_t *limit_clients_spot,
@@ -1927,15 +1979,15 @@ void rdb_update_sindexes(
                         &counter,
                         auto_drainer_t::lock_t(&drainer),
                         keys_available_cond,
-                        cfeed_old_keys_out == NULL
-                            ? NULL
+                        cfeed_old_keys_out == nullptr
+                            ? nullptr
                             : &(*cfeed_old_keys_out)[sindex->name.name],
-                        cfeed_new_keys_out == NULL
-                            ? NULL
+                        cfeed_new_keys_out == nullptr
+                            ? nullptr
                             : &(*cfeed_new_keys_out)[sindex->name.name]));
             }
         }
-        if (counter == 0 && keys_available_cond != NULL) {
+        if (counter == 0 && keys_available_cond != nullptr) {
             keys_available_cond->pulse();
         }
     }
@@ -1968,6 +2020,13 @@ public:
         // (this acquisition should never block)
         new_mutex_acq_t wtxn_acq(&wtxn_lock_);
         start_write_transaction(&wtxn_acq);
+    }
+
+    ~post_construct_traversal_helper_t() {
+        sindexes_.clear();
+        if (wtxn_.has()) {
+            wtxn_->commit();
+        }
     }
 
     continue_bool_t handle_pair(
@@ -2011,9 +2070,9 @@ public:
                                 &mod_report,
                                 wtxn_.get(),
                                 &deletion_context,
-                                NULL,
-                                NULL,
-                                NULL);
+                                nullptr,
+                                nullptr,
+                                nullptr);
         }
 
         // Account for the sindex writes in the stats
@@ -2036,6 +2095,7 @@ public:
             if (current_chunk_size_ >= MAX_CHUNK_SIZE) {
                 current_chunk_size_ = 0;
                 sindexes_.clear();
+                wtxn_->commit();
                 wtxn_.reset();
                 start_write_transaction(&wtxn_acq);
             }
@@ -2094,7 +2154,7 @@ private:
         superblock.reset();
         store_t::sindex_access_vector_t all_sindexes;
         store_->acquire_sindex_superblocks_for_write(
-            sindexes_to_post_construct_,
+            make_optional(sindexes_to_post_construct_),
             &sindex_block,
             &all_sindexes);
 

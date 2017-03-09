@@ -70,14 +70,8 @@ public:
     };
 
     int64_t get_file_size();
-    /* WARNING: resize operations do not wait for other operations to finish (with
-    the exception of other resize operations).
-    They do block other operations, but are not blocked themselves.
-    Only issue a `set_file_size()` with a size smaller than the current one if you can
-    make absolutely sure that no ongoing I/O operation wants to access the space
-    that gets truncated anymore. */
     void set_file_size(int64_t size);
-    void set_file_size_at_least(int64_t size);
+    void set_file_size_at_least(int64_t size, int64_t extent_size);
 
     void read_async(int64_t offset, size_t length, void *buf, file_account_t *account, linux_iocallback_t *cb);
     void write_async(int64_t offset, size_t length, const void *buf, file_account_t *account, linux_iocallback_t *cb,

@@ -146,6 +146,9 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
             }
         }
     }
+
+    sindex_block.reset_buf_lock();
+    txn->commit();
 }
 
 scoped_ptr_t<sindex_superblock_t> acquire_sindex_for_read(
@@ -196,10 +199,14 @@ void do_read(ql::env_t *env,
              real_superblock_t *superblock,
              const rget_read_t &rget,
              rget_read_response_t *res,
-             release_superblock_t release_superblock) {
-    guarantee(rget.current_shard);
-    if (!rget.sindex) {
-        // Normal rget
+             release_superblock_t release_superblock,
+             optional<uuid_u> *sindex_id_out) {
+    guarantee(rget.current_shard.has_value());
+    if (!rget.sindex.has_value()) {
+        // rget using a primary index
+        if (sindex_id_out != nullptr) {
+            *sindex_id_out = r_nullopt;
+        }
         rdb_rget_slice(
             btree,
             *rget.current_shard,
@@ -214,6 +221,7 @@ void do_read(ql::env_t *env,
             res,
             release_superblock);
     } else {
+        // rget using a secondary index
         sindex_disk_info_t sindex_info;
         uuid_u sindex_uuid;
         scoped_ptr_t<sindex_superblock_t> sindex_sb;
@@ -227,10 +235,13 @@ void do_read(ql::env_t *env,
                     rget.sindex->id,
                     &sindex_info,
                     &sindex_uuid);
+            if (sindex_id_out != nullptr) {
+                *sindex_id_out = make_optional(sindex_uuid);
+            }
             reql_version_t reql_version =
                 sindex_info.mapping_version_info.latest_compatible_reql_version;
             res->reql_version = reql_version;
-            if (static_cast<bool>(rget.sindex->region)) {
+            if (rget.sindex->region.has_value()) {
                 sindex_range = rget.sindex->region->inner;
             } else {
                 sindex_range =
@@ -294,10 +305,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             ctx,
             ql::return_empty_normal_batches_t::NO,
             interruptor,
-            s.optargs,
-            s.m_user_context,
+            s.serializable_env,
             trace);
         ql::raw_stream_t stream;
+        optional<uuid_u> sindex_id;
         {
             std::vector<scoped_ptr_t<ql::op_t> > ops;
             for (const auto &transform : s.spec.range.transforms) {
@@ -309,7 +320,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rget.table_name = s.table;
             rget.batchspec = ql::batchspec_t::all(); // Terminal takes care of stopping.
             if (s.spec.range.sindex) {
-                rget.terminal = ql::limit_read_t{
+                rget.terminal.set(ql::limit_read_t{
                     is_primary_t::NO,
                     s.spec.limit,
                     s.region,
@@ -317,13 +328,13 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                         ? store_key_t::min()
                         : store_key_t::max(),
                     s.spec.range.sorting,
-                    &ops};
-                rget.sindex = sindex_rangespec_t(
+                    &ops});
+                rget.sindex.set(sindex_rangespec_t(
                     *s.spec.range.sindex,
-                    boost::none, // We just want to use whole range.
-                    s.spec.range.datumspec);
+                    r_nullopt, // We just want to use whole range.
+                    s.spec.range.datumspec));
             } else {
-                rget.terminal = ql::limit_read_t{
+                rget.terminal.set(ql::limit_read_t{
                     is_primary_t::YES,
                     s.spec.limit,
                     s.region,
@@ -331,14 +342,15 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                         ? store_key_t::min()
                         : store_key_t::max(),
                     s.spec.range.sorting,
-                    &ops};
+                    &ops});
             }
             rget.sorting = s.spec.range.sorting;
             // The superblock will instead be released in `store_t::read`
             // shortly after this function returns.
             rget_read_response_t resp;
             do_read(&env, store, btree, superblock, rget, &resp,
-                    release_superblock_t::KEEP);
+                    release_superblock_t::KEEP,
+                    &sindex_id);
             auto *gs = boost::get<ql::grouped_t<ql::stream_t> >(&resp.result);
             if (gs == NULL) {
                 auto *exc = boost::get<ql::exc_t>(&resp.result);
@@ -360,16 +372,17 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.spec.range.sorting,
             s.spec.limit);
 
-        guarantee(s.current_shard);
+        guarantee(s.current_shard.has_value());
         auto cserver = store->get_or_make_changefeed_server(*s.current_shard);
         guarantee(cserver.first != nullptr);
         cserver.first->add_limit_client(
             s.addr,
             s.region,
             s.table,
+            sindex_id,
             ctx,
-            s.optargs,
-            s.m_user_context,
+            s.serializable_env.global_optargs,
+            s.serializable_env.user_context,
             s.uuid,
             s.spec,
             ql::changefeed::limit_order_t(s.spec.range.sorting),
@@ -389,10 +402,10 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
 
         auto cserver = store->changefeed_server(s.region);
         if (cserver.first != nullptr) {
-            if (boost::optional<uint64_t> stamp
+            if (optional<uint64_t> stamp
                     = cserver.first->get_stamp(s.addr, cserver.second)) {
                 changefeed_stamp_response_t out;
-                out.stamp_infos = std::map<uuid_u, shard_stamp_info_t>();
+                out.stamp_infos.set(std::map<uuid_u, shard_stamp_info_t>());
                 (*out.stamp_infos)[cserver.first->get_uuid()] = shard_stamp_info_t{
                     *stamp,
                     current_shard,
@@ -416,9 +429,9 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         auto *res = boost::get<changefeed_point_stamp_response_t>(&response->response);
         auto cserver = store->changefeed_server(s.key);
         if (cserver.first != nullptr) {
-            res->resp = changefeed_point_stamp_response_t::valid_response_t();
+            res->resp.set(changefeed_point_stamp_response_t::valid_response_t());
             auto *vres = &*res->resp;
-            if (boost::optional<uint64_t> stamp
+            if (optional<uint64_t> stamp
                     = cserver.first->get_stamp(s.addr, cserver.second)) {
                 vres->stamp = std::make_pair(cserver.first->get_uuid(), *stamp);
             } else {
@@ -430,7 +443,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             rdb_get(s.key, btree, superblock, &val, trace);
             vres->initial_val = val.data;
         } else {
-            res->resp = boost::none;
+            res->resp.reset();
         }
     }
 
@@ -446,16 +459,15 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             ctx,
             ql::return_empty_normal_batches_t::NO,
             interruptor,
-            geo_read.optargs,
-            geo_read.m_user_context,
+            geo_read.serializable_env,
             trace);
 
         response->response = rget_read_response_t();
         rget_read_response_t *res =
             boost::get<rget_read_response_t>(&response->response);
 
-        if (geo_read.stamp) {
-            res->stamp_response = changefeed_stamp_response_t();
+        if (geo_read.stamp.has_value()) {
+            res->stamp_response.set(changefeed_stamp_response_t());
 
             store_key_t read_left = geo_read.sindex.region
                 ? geo_read.sindex.region->inner.left
@@ -466,7 +478,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 geo_read.region,
                 read_left);
             if (r.stamp_infos) {
-                res->stamp_response = r;
+                res->stamp_response.set(r);
             } else {
                 res->result = ql::exc_t(
                     ql::base_exc_t::OP_FAILED,
@@ -527,8 +539,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             ctx,
             ql::return_empty_normal_batches_t::NO,
             interruptor,
-            geo_read.optargs,
-            geo_read.m_user_context,
+            geo_read.serializable_env,
             trace);
 
         response->response = nearest_geo_read_response_t();
@@ -580,7 +591,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
         auto *res = boost::get<rget_read_response_t>(&response->response);
 
         if (rget.stamp) {
-            res->stamp_response = changefeed_stamp_response_t();
+            res->stamp_response.set(changefeed_stamp_response_t());
             r_sanity_check(rget.current_shard);
             r_sanity_check(rget.sorting == sorting_t::UNORDERED);
             store_key_t read_left;
@@ -599,7 +610,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 *rget.current_shard,
                 read_left);
             if (r.stamp_infos) {
-                res->stamp_response = r;
+                res->stamp_response.set(r);
             } else {
                 res->result = ql::exc_t(
                     ql::base_exc_t::OP_FAILED,
@@ -619,17 +630,16 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             // This asserts that the optargs have been initialized.  (There is always
             // a 'db' optarg.)  We have the same assertion in
             // rdb_r_unshard_visitor_t.
-            rassert(rget.optargs.has_optarg("db"));
+            rassert(rget.serializable_env.global_optargs.has_optarg("db"));
         }
         ql::env_t ql_env(
             ctx,
             ql::return_empty_normal_batches_t::NO,
             interruptor,
-            rget.optargs,
-            rget.m_user_context,
+            rget.serializable_env,
             trace);
         do_read(&ql_env, store, btree, superblock, rget, res,
-                release_superblock_t::RELEASE);
+                release_superblock_t::RELEASE, nullptr);
     }
 
     void operator()(const distribution_read_t &dg) {
@@ -716,16 +726,28 @@ void store_t::protocol_read(const read_t &_read,
 
 class func_replacer_t : public btree_batched_replacer_t {
 public:
-    func_replacer_t(ql::env_t *_env, const ql::wire_func_t &wf, return_changes_t _return_changes)
-        : env(_env), f(wf.compile_wire_func()), return_changes(_return_changes) { }
+    func_replacer_t(ql::env_t *_env,
+                    std::string _pkey,
+                    const ql::wire_func_t &wf,
+                    counted_t<const ql::func_t> wh,
+                    return_changes_t _return_changes)
+        : env(_env),
+          pkey(std::move(_pkey)),
+          f(wf.compile_wire_func()),
+          write_hook(std::move(wh)),
+          return_changes(_return_changes) { }
     ql::datum_t replace(
         const ql::datum_t &d, size_t) const {
-        return f->call(env, d, ql::LITERAL_OK)->as_datum();
+        ql::datum_t res = f->call(env, d, ql::LITERAL_OK)->as_datum();
+
+        return apply_write_hook(env, pkey, d, res, write_hook);
     }
     return_changes_t should_return_changes() const { return return_changes; }
 private:
     ql::env_t *const env;
+    datum_string_t pkey;
     const counted_t<const ql::func_t> f;
+    const counted_t<const ql::func_t> write_hook;
     const return_changes_t return_changes;
 };
 
@@ -738,29 +760,37 @@ public:
           conflict_behavior(bi.conflict_behavior),
           pkey(bi.pkey),
           return_changes(bi.return_changes) {
-        if (bi.conflict_func) {
-            conflict_func = bi.conflict_func->compile_wire_func();
+        if (bi.conflict_func.has_value()) {
+            conflict_func.set(bi.conflict_func->compile_wire_func());
+        }
+        if (bi.write_hook.has_value()) {
+            write_hook = bi.write_hook->compile_wire_func();
         }
     }
     ql::datum_t replace(const ql::datum_t &d,
                         size_t index) const {
         guarantee(index < datums->size());
         ql::datum_t newd = (*datums)[index];
-        return resolve_insert_conflict(env,
-                                       pkey,
-                                       d,
-                                       newd,
-                                       conflict_behavior,
-                                       conflict_func);
+        ql::datum_t res = resolve_insert_conflict(env,
+                                             pkey,
+                                             d,
+                                             newd,
+                                             conflict_behavior,
+                                             conflict_func);
+        res = apply_write_hook(env, datum_string_t(pkey), d, res, write_hook);
+        return res;
     }
     return_changes_t should_return_changes() const { return return_changes; }
 private:
     ql::env_t *env;
+
+    counted_t<const ql::func_t> write_hook;
+
     const std::vector<ql::datum_t> *const datums;
     const conflict_behavior_t conflict_behavior;
     const std::string pkey;
     const return_changes_t return_changes;
-boost::optional<counted_t<const ql::func_t> > conflict_func;
+    optional<counted_t<const ql::func_t> > conflict_func;
 };
 
 struct rdb_write_visitor_t : public boost::static_visitor<void> {
@@ -769,13 +799,22 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             ctx,
             ql::return_empty_normal_batches_t::NO,
             interruptor,
-            br.optargs,
-            br.m_user_context,
+            br.serializable_env,
             trace);
         rdb_modification_report_cb_t sindex_cb(
             store, &sindex_block,
             auto_drainer_t::lock_t(&store->drainer));
-        func_replacer_t replacer(&ql_env, br.f, br.return_changes);
+
+        counted_t<const ql::func_t> write_hook;
+        if (br.write_hook.has_value()) {
+            write_hook = br.write_hook->compile_wire_func();
+        }
+
+        func_replacer_t replacer(&ql_env,
+                                 br.pkey,
+                                 br.f,
+                                 write_hook,
+                                 br.return_changes);
 
         response->response =
             rdb_batched_replace(
@@ -797,8 +836,7 @@ struct rdb_write_visitor_t : public boost::static_visitor<void> {
             ctx,
             ql::return_empty_normal_batches_t::NO,
             interruptor,
-            ql::global_optargs_t(),
-            bi.m_user_context,
+            bi.serializable_env,
             trace);
         datum_replacer_t replacer(&ql_env,
                                   bi);

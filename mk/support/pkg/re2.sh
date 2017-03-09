@@ -11,10 +11,6 @@ pkg_install-include () {
 
 pkg_install () {
     pkg_copy_src_to_build
-    if [[ "$OS" = Darwin ]]; then
-        CXXFLAGS="${CXXFLAGS:-} -stdlib=libc++"
-        LDFLAGS="${LDFLAGS:-} -lc++"
-    fi
     pkg_make install prefix="$install_dir" CXXFLAGS="${CXXFLAGS:-} -O3" LDFLAGS="${LDFLAGS:-} $PTHREAD_LIBS"
 }
 

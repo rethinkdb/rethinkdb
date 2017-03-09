@@ -48,7 +48,7 @@ private:
                  UNUSED signal_t *interruptor) :
             registrant(p->user_data),
             drainer(new auto_drainer_t),
-            request_mailbox(new mailbox_t<void(request_type)>(p->mailbox_manager,
+            request_mailbox(new mailbox_t<request_type>(p->mailbox_manager,
                 std::bind(&client_t::on_request, this, ph::_1, ph::_2)))
         {
             send(p->mailbox_manager, client_bc.intro_addr,
@@ -72,7 +72,7 @@ private:
         registrant_type registrant;
 
         scoped_ptr_t<auto_drainer_t> drainer;
-        scoped_ptr_t<mailbox_t<void(request_type)> > request_mailbox;
+        scoped_ptr_t<mailbox_t<request_type> > request_mailbox;
     };
 
     mailbox_manager_t *const mailbox_manager;

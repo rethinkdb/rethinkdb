@@ -37,9 +37,10 @@ struct pool_diskmgr_action_t
         buf_and_count.iov_base = const_cast<void *>(_buf);
         buf_and_count.iov_len = _count;
         offset = _offset;
+        size_change = 0;
     }
 
-    void make_resize(fd_t _fd, int64_t _new_size,
+    void make_resize(fd_t _fd, int64_t _old_size, int64_t _new_size,
                     bool _wrap_in_datasyncs) {
         type = ACTION_RESIZE;
         wrap_in_datasyncs = _wrap_in_datasyncs;
@@ -47,6 +48,7 @@ struct pool_diskmgr_action_t
         buf_and_count.iov_base = nullptr;
         buf_and_count.iov_len = 0;
         offset = _new_size;
+        size_change = _new_size - _old_size;
     }
 
 #ifndef USE_WRITEV
@@ -60,6 +62,7 @@ struct pool_diskmgr_action_t
         buf_and_count.iov_base = nullptr;
         buf_and_count.iov_len = _count;
         offset = _offset;
+        size_change = 0;
     }
 #endif
 
@@ -70,6 +73,7 @@ struct pool_diskmgr_action_t
         buf_and_count.iov_base = _buf;
         buf_and_count.iov_len = _count;
         offset = _offset;
+        size_change = 0;
     }
 
     bool get_is_write() const { return type == ACTION_WRITE; }
@@ -87,6 +91,7 @@ struct pool_diskmgr_action_t
     }
     size_t get_count() const { return buf_and_count.iov_len; }
     int64_t get_offset() const { return offset; }
+    int64_t get_size_change() const { return size_change; }
 
     void set_successful_due_to_conflict() { io_result = get_count(); }
     bool get_succeeded() const { return io_result == static_cast<int64_t>(get_count()); }
@@ -111,6 +116,9 @@ private:
     scoped_array_t<iovec> iovecs;
     iovec buf_and_count;
     int64_t offset;
+    // `size_change` is the number of bytes by which the file size gets
+    // changed by this operation. 0 unless the type is ACTION_RESIZE.
+    int64_t size_change;
 
     // Helper functions for vectored reads/writes
     static size_t advance_vector(iovec **vecs, size_t *count, size_t bytes_done);

@@ -4,10 +4,8 @@
 
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "containers/counted.hpp"
+#include "containers/optional.hpp"
 #include "rdb_protocol/sym.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rpc/serialize_macros.hpp"
@@ -41,10 +39,11 @@ public:
     friend archive_result_t deserialize_wire_func(read_stream_t *s, wire_func_t *wf);
 
     bool is_simple_selector() const;
-private:
-    friend class maybe_wire_func_t;  // for has().
+    std::string print_source() const;
 
+private:
     bool has() const { return func.has(); }
+    friend class maybe_wire_func_t;  // for has().
 
     counted_t<const func_t> func;
 };
@@ -77,16 +76,16 @@ class filter_wire_func_t {
 public:
     filter_wire_func_t() { }
     filter_wire_func_t(const ql::wire_func_t &_filter_func,
-                       const boost::optional<ql::wire_func_t> &_default_filter_val)
+                       const optional<ql::wire_func_t> &_default_filter_val)
         : filter_func(_filter_func),
           default_filter_val(_default_filter_val) { }
     filter_wire_func_t(const counted_t<const func_t> &_filter_func,
-                       const boost::optional<ql::wire_func_t> &_default_filter_val)
+                       const optional<ql::wire_func_t> &_default_filter_val)
         : filter_func(_filter_func),
           default_filter_val(_default_filter_val) { }
 
     ql::wire_func_t filter_func;
-    boost::optional<ql::wire_func_t> default_filter_val;
+    optional<ql::wire_func_t> default_filter_val;
 };
 RDB_DECLARE_SERIALIZABLE(filter_wire_func_t);
 

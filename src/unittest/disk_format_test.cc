@@ -52,6 +52,7 @@ TEST(DiskFormatTest, LbaMetablockMixinT) {
     EXPECT_EQ(METABLOCK_SIZE - 512, LBA_INLINE_SIZE);
     EXPECT_EQ(32u, sizeof(lba_entry_t));
     EXPECT_EQ(32ul * LBA_SHARD_FACTOR + 8ul + LBA_INLINE_SIZE, sizeof(lba_metablock_mixin_t));
+    EXPECT_EQ(3720u, sizeof(lba_metablock_mixin_t));
 }
 
 TEST(DiskFormatTest, LbaEntryT) {
@@ -98,30 +99,47 @@ TEST(DiskFormatTest, LbaSuperblockT) {
 }
 
 TEST(DiskFormatTest, DataBlockManagerMetablockMixinT) {
-    EXPECT_EQ(0u, offsetof(data_block_manager::metablock_mixin_t, active_extent));
-    EXPECT_EQ(8u, sizeof(data_block_manager::metablock_mixin_t));
+    EXPECT_EQ(0u, offsetof(dbm_metablock_mixin_t, active_extent));
+    EXPECT_EQ(8u, sizeof(dbm_metablock_mixin_t));
 }
 
 TEST(DiskFormatTest, ExtentManagerMetablockMixinT) {
-    EXPECT_EQ(0u, offsetof(extent_manager_t::metablock_mixin_t, padding));
-    EXPECT_EQ(8u, sizeof(extent_manager_t::metablock_mixin_t));
+    EXPECT_EQ(0u, offsetof(extent_manager_metablock_mixin_t, padding));
+    EXPECT_EQ(8u, sizeof(extent_manager_metablock_mixin_t));
 }
 
 TEST(DiskFormatTest, LogSerializerMetablockT) {
     size_t n = 0;
     EXPECT_EQ(n, offsetof(log_serializer_metablock_t, extent_manager_part));
 
-    n += sizeof(extent_manager_t::metablock_mixin_t);
+    n += sizeof(extent_manager_metablock_mixin_t);
     EXPECT_EQ(n, offsetof(log_serializer_metablock_t, lba_index_part));
 
-    n += sizeof(lba_list_t::metablock_mixin_t);
+    n += sizeof(lba_metablock_mixin_t);
     EXPECT_EQ(n, offsetof(log_serializer_metablock_t, data_block_manager_part));
 
-    n += sizeof(data_block_manager::metablock_mixin_t);
+    n += sizeof(dbm_metablock_mixin_t);
     EXPECT_EQ(n, sizeof(log_serializer_metablock_t));
 
     EXPECT_EQ(3736, 8 + (128 + 8 + 3584) + 8);
     EXPECT_EQ(3736u, sizeof(log_serializer_metablock_t));
+}
+
+TEST(DiskFormatTest, CrcMetablockT) {
+    size_t n = 0;
+    EXPECT_EQ(n, offsetof(crc_metablock_t, magic_marker));
+    n += 8;
+    EXPECT_EQ(n, offsetof(crc_metablock_t, disk_format_version));
+    n += 4;
+    EXPECT_EQ(n, offsetof(crc_metablock_t, _crc));
+    n += 4;
+    EXPECT_EQ(n, offsetof(crc_metablock_t, version));
+    n += 8;
+    EXPECT_EQ(24, n);
+    EXPECT_EQ(n, offsetof(crc_metablock_t, metablock));
+    n += 3736;
+    EXPECT_EQ(3760, n);
+    EXPECT_EQ(n, sizeof(crc_metablock_t));
 }
 
 TEST(DiskFormatTest, LogSerializerStaticConfigT) {

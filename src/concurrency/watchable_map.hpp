@@ -5,13 +5,11 @@
 #include <functional>
 #include <map>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "concurrency/signal.hpp"
 #include "concurrency/pubsub.hpp"
 #include "concurrency/watchable.hpp"
 #include "containers/map_sentries.hpp"
+#include "containers/optional.hpp"
 #include "utils.hpp"
 
 /* `watchable_map_t` is like `watchable_t` except specialized for holding a map in which
@@ -72,9 +70,9 @@ public:
     virtual std::map<key_t, value_t> get_all() = 0;
 
     /* Looks up a single key-value pair in the map. Returns the value if found, or an
-    empty `boost::optional` if not. This needs to copy the value, so it's likely to be
+    empty `optional` if not. This needs to copy the value, so it's likely to be
     slow. */
-    virtual boost::optional<value_t> get_key(const key_t &key) = 0;
+    virtual optional<value_t> get_key(const key_t &key) = 0;
 
     /* `read_all()` and `read_key()` are like `get_all()` and `get_key()`, except that
     they avoid copying. */
@@ -161,7 +159,7 @@ public:
     explicit watchable_map_var_t(std::map<key_t, value_t> &&source);
 
     std::map<key_t, value_t> get_all();
-    boost::optional<value_t> get_key(const key_t &key);
+    optional<value_t> get_key(const key_t &key);
     void read_all(const std::function<void(const key_t &, const value_t *)> &);
     void read_key(const key_t &key, const std::function<void(const value_t *)> &);
 

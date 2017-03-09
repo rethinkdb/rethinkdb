@@ -190,10 +190,12 @@ struct write_test_t {
 
 struct resize_test_t {
 
-    explicit resize_test_t(test_driver_t *_driver)
+    explicit resize_test_t(
+        test_driver_t *_driver, int64_t _old_size, int64_t _new_size)
         : driver(_driver),
           action(driver->make_action()) {
-        action->make_resize(IRRELEVANT_DEFAULT_FD, DEVICE_BLOCK_SIZE, false);
+        action->make_resize(
+            IRRELEVANT_DEFAULT_FD, _old_size, _new_size, false);
         driver->submit(action);
     }
 
@@ -310,8 +312,8 @@ TEST(DiskConflictTest, WriteReadSuperrange) {
 
 TEST(DiskConflictTest, ResizeResizeConflict) {
     test_driver_t d;
-    resize_test_t resize1(&d);
-    resize_test_t resize2(&d);
+    resize_test_t resize1(&d, 0, DEVICE_BLOCK_SIZE);
+    resize_test_t resize2(&d, 0, DEVICE_BLOCK_SIZE);
     ASSERT_TRUE(resize1.was_sent());
     ASSERT_FALSE(resize2.was_sent());
     resize1.go();
@@ -319,18 +321,34 @@ TEST(DiskConflictTest, ResizeResizeConflict) {
     resize2.go();
 }
 
-/* WriteResizeNonConflict verifies that resize doesn't wait for a previous write
-(while waiting would be ok, the current conflict_resolving queue doesn't do that
-and it is important for its implementation to work correctly) */
+/* WriteResizeIncreaseNonConflict verifies that resize doesn't wait for a
+previous write if it's increasing the file size */
 
-TEST(DiskConflictTest, WriteResizeNonConflict) {
+TEST(DiskConflictTest, WriteResizeIncreaseNonConflict) {
     test_driver_t d;
     write_test_t w(&d, 0, "foo");
-    resize_test_t resize(&d);
+    resize_test_t resize(&d, 0, DEVICE_BLOCK_SIZE);
     ASSERT_TRUE(w.was_sent());
     ASSERT_TRUE(resize.was_sent());
     w.go();
     resize.go();
+}
+
+/* WriteResizeDecreaseConflict checks that if we shrink the file, we wait for
+a previous write (only) in the conflicting file region. */
+
+TEST(DiskConflictTest, WriteResizeDecreaseConflict) {
+    test_driver_t d;
+    write_test_t w1(&d, 0, "foo");
+    write_test_t w2(&d, DEVICE_BLOCK_SIZE, "foo");
+    resize_test_t resize(&d, 2 * DEVICE_BLOCK_SIZE, DEVICE_BLOCK_SIZE);
+    ASSERT_TRUE(w1.was_sent());
+    ASSERT_TRUE(w2.was_sent());
+    ASSERT_FALSE(resize.was_sent());
+    w2.go();
+    ASSERT_TRUE(resize.was_sent());
+    resize.go();
+    w1.go();
 }
 
 /* ReadResizeNonConflict verifies that resize doesn't wait for a previous read
@@ -342,7 +360,7 @@ TEST(DiskConflictTest, ReadResizeNonConflict) {
     write_test_t initial_write(&d, 0, "foo");
     initial_write.go();
     read_test_t r(&d, 0, "foo");
-    resize_test_t resize(&d);
+    resize_test_t resize(&d, 0, DEVICE_BLOCK_SIZE);
     ASSERT_TRUE(r.was_sent());
     ASSERT_TRUE(resize.was_sent());
     r.go();
@@ -353,7 +371,7 @@ TEST(DiskConflictTest, ReadResizeNonConflict) {
 
 TEST(DiskConflictTest, ResizeWriteConflict) {
     test_driver_t d;
-    resize_test_t resize(&d);
+    resize_test_t resize(&d, 0, DEVICE_BLOCK_SIZE);
     write_test_t w(&d, 0, "foo");
     ASSERT_FALSE(w.was_sent());
     ASSERT_TRUE(resize.was_sent());
@@ -367,7 +385,7 @@ TEST(DiskConflictTest, ResizeReadConflict) {
     test_driver_t d;
     write_test_t initial_write(&d, 0, "foo");
     initial_write.go();
-    resize_test_t resize(&d);
+    resize_test_t resize(&d, 0, DEVICE_BLOCK_SIZE);
     read_test_t r(&d, 0, "foo");
     ASSERT_FALSE(r.was_sent());
     ASSERT_TRUE(resize.was_sent());
@@ -376,13 +394,13 @@ TEST(DiskConflictTest, ResizeReadConflict) {
 }
 
 /* ResizeSequenceConflict verifies that in case of multiple resize operations,
-writes wait exactly for all previous resizes. */
+all of which are size increases, writes wait exactly for all previous resizes. */
 
 TEST(DiskConflictTest, ResizeSequenceConflict) {
     test_driver_t d;
-    resize_test_t resize1(&d);
+    resize_test_t resize1(&d, 0, DEVICE_BLOCK_SIZE);
     write_test_t w1(&d, 0, "foo");
-    resize_test_t resize2(&d);
+    resize_test_t resize2(&d, 0, DEVICE_BLOCK_SIZE);
     write_test_t w2(&d, 0, "foo");
     ASSERT_TRUE(resize1.was_sent());
     ASSERT_FALSE(w1.was_sent());

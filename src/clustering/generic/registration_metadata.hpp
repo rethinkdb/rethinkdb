@@ -11,10 +11,10 @@ class registrar_business_card_t {
 public:
     typedef uuid_u registration_id_t;
 
-    typedef mailbox_t<void(registration_id_t, peer_id_t, business_card_t)> create_mailbox_t;
+    typedef mailbox_t<registration_id_t, peer_id_t, business_card_t> create_mailbox_t;
     typename create_mailbox_t::address_t create_mailbox;
 
-    typedef mailbox_t<void(registration_id_t)> delete_mailbox_t;
+    typedef mailbox_t<registration_id_t> delete_mailbox_t;
     typename delete_mailbox_t::address_t delete_mailbox;
 
     registrar_business_card_t() { }

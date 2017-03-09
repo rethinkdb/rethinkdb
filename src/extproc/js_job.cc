@@ -11,11 +11,10 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "extproc/extproc_job.hpp"
+#include "math.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/configured_limits.hpp"
 #include "utils.hpp"
-
-#include "debug.hpp"
 
 const js_id_t MIN_ID = 1;
 const js_id_t MAX_ID = std::numeric_limits<js_id_t>::max();
@@ -130,10 +129,10 @@ public:
 
 private:
     js_id_t remember_value(const v8::Handle<v8::Value> &value);
-    const boost::shared_ptr<persistent_value_t> find_value(js_id_t id);
+    const std::shared_ptr<persistent_value_t> find_value(js_id_t id);
 
     js_id_t next_id;
-    std::map<js_id_t, boost::shared_ptr<persistent_value_t> > values;
+    std::map<js_id_t, std::shared_ptr<persistent_value_t> > values;
 };
 
 // Cleans the worker process's environment when instantiated
@@ -474,15 +473,15 @@ js_id_t js_env_t::remember_value(const v8::Handle<v8::Value> &value) {
     // Save this value in a persistent handle so it isn't deallocated when
     // its scope is destructed.
 
-    boost::shared_ptr<persistent_value_t> persistent_handle(new persistent_value_t());
+    std::shared_ptr<persistent_value_t> persistent_handle(new persistent_value_t());
     persistent_handle->value.Reset(js_instance_t::isolate(), value);
 
     values.insert(std::make_pair(id, persistent_handle));
     return id;
 }
 
-const boost::shared_ptr<persistent_value_t> js_env_t::find_value(js_id_t id) {
-    std::map<js_id_t, boost::shared_ptr<persistent_value_t> >::iterator it = values.find(id);
+const std::shared_ptr<persistent_value_t> js_env_t::find_value(js_id_t id) {
+    std::map<js_id_t, std::shared_ptr<persistent_value_t> >::iterator it = values.find(id);
     guarantee(it != values.end());
     return it->second;
 }
@@ -523,7 +522,7 @@ js_result_t js_env_t::call(js_id_t id,
     js_result_t result("");
     std::string *err_out = boost::get<std::string>(&result);
 
-    const boost::shared_ptr<persistent_value_t> found_value = find_value(id);
+    const std::shared_ptr<persistent_value_t> found_value = find_value(id);
     guarantee(!found_value->value.IsEmpty());
 
     v8::Isolate *isolate = js_instance_t::isolate();

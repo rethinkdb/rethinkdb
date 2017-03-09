@@ -57,8 +57,6 @@ uuid_u str_to_uuid(const std::string &str);
 
 MUST_USE bool str_to_uuid(const std::string &str, uuid_u *out);
 
-bool is_uuid(const std::string& str);
-
 typedef uuid_u namespace_id_t;
 typedef uuid_u database_id_t;
 typedef uuid_u backfill_session_id_t;

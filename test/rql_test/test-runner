@@ -7,7 +7,7 @@ from __future__ import print_function
 import atexit, collections, copy, datetime, distutils.version, distutils.spawn, itertools, json, optparse, os
 import re, resource, shutil, signal, stat, string, subprocess, sys, tempfile, threading, time, traceback, warnings
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "../common"))
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "common"))
 import driver, parsePolyglot, test_exceptions, utils, http_support
 
 try:
@@ -26,7 +26,7 @@ except ImportError:
 # == constants
 
 TIMED_OUT_EXIT_CODE = -257 # outside the range of exit and signal codes
-CANCELED_EXIT_CODE = -278
+CANCELED_EXIT_CODE  = -278
 
 # -- repr subclass
 
@@ -722,11 +722,11 @@ class TestGroup(object):
                         test_case = variableMatch.group('expression')
                 
                 try:
-                    out.write("test(%(code)s, %(expected)s, %(name)s, %(driveropts)s, %(testopts)s)\n" % {
+                    out.write("test(%(code)s, %(expected)s, %(name)s, %(runopts)s, %(testopts)s)\n" % {
                         'code': lang.translate_query(test_case, name=True),
-                        'expected': '""' if testCode.expected is None else lang.translate_query(testCode.expected),
-                        'name': repr("line %d" % test_case.linenumber) if hasattr(test_case, 'linenumber') else repr(testName),
-                        'driveropts': lang.translate_query(testCode.runopts, quote=False),
+                        'expected': '"anything()"' if testCode.expected is None else lang.translate_query(testCode.expected),
+                        'name': '"line %d"' % test_case.linenumber if hasattr(test_case, 'linenumber') else repr(testName),
+                        'runopts': lang.translate_query(testCode.runopts, quote=False),
                         'testopts': lang.translate_query(testCode.testopts, quote=False)
                     })
                     
@@ -856,7 +856,31 @@ class Server(object):
     __conn   = None
     __server = None
     
-    def __init__(self, scratchDir=None):
+    connectedServerIds  = None
+    existingDBsToTables = None
+    existingUsers       = None
+    existingPermissions = None
+    
+    def __init__(self, *args, **kwargs):
+        
+        # - setup subclass
+        self.subclass_init(*args, **kwargs)
+        
+        # - collect list of existing tables
+        self.existingDBsToTables = {}
+        for dbName in r.db_list().run(self.conn):
+            if dbName == 'rethinkdb':
+                continue
+            self.existingDBsToTables[dbName] = r.db(dbName).table_list().run(self.conn)
+        
+        # - collect list of connected servers
+        self.connectedServerIds = list(r.db('rethinkdb').table('server_config')['id'].run(self.conn))
+        
+        # - collect list of non-default users/permissions
+        self.existingUsers = dict((x['id'], x) for x in r.db('rethinkdb').table('users').run(self.conn))
+        self.existingPermissions = dict((tuple(x['id']), x) for x in r.db('rethinkdb').table('permissions').run(self.conn))
+    
+    def subclass_init(self, scratchDir=None):
         # - start the server
         clusterFolder = tempfile.mkdtemp(prefix='cluster_', dir=scratchDir)
         self.__server = driver.Process(name=clusterFolder, console_output=True)
@@ -895,24 +919,75 @@ class Server(object):
         '''Check that the server is accessible and minimally sane'''
         assert r.expr(1).run(self.conn) == 1
     
-    def clean(self):
-        # - ensure that the test db is present
-        r.expr(['test']).set_difference(r.db_list()).for_each(r.db_create(r.row)).run(self.conn)
-        
-        # - drop all databases except test and rethinkdb
-        r.db_list().set_difference(['test', 'rethinkdb']).for_each(r.db_drop(r.row)).run(self.conn)
-        
-        # - drop all tables in test
-        r.db('test').table_list().for_each(r.db('test').table_drop(r.row)).run(self.conn)
+    def clean(self, final=False):
         
         # - clean rethinkdb._debug_scratch
         r.db('rethinkdb').table('_debug_scratch').delete().run(self.conn)
         
-        # - remove any other connected servers
-        r.db('rethinkdb').table('server_config').filter(r.row['id'] != self.__server.uuid).delete().run(self.conn)
+        # - restore users/permissions
+        expectedUsers = self.existingUsers
+        if not final:
+            expectedUsers = copy.deepcopy(self.existingUsers)
+            expectedUsers.update({
+                'admin':     {'id':'admin',     'password':False},
+                'test_user': {'id':'test_user', 'password':False}
+            })
         
-        # - wait for the test database to be completely ready
-        r.db('test').wait(wait_for='all_replicas_ready', timeout=5).run(self.conn)
+        expectedPermissions = self.existingPermissions
+        if not final:
+            expectedPermissions = dict((key, value) for key, value in expectedPermissions.items() if value['user'] != 'admin')
+            expectedPermissions.update({
+                ('test_user',): {'id':['test_user'], 'permissions':{'config':True, 'connect':True, 'read':True, 'write':True}}
+            })
+        
+        # wipe non-expected users/permissions
+        res = r.db('rethinkdb').table('users').filter(lambda row: r.expr(expectedUsers.keys()).contains(row["id"]).not_()).delete().run(self.conn)
+        assert res['errors'] == 0, 'Failed removing users from %s: %s' % (self.__server.name, res)
+        res = r.db('rethinkdb').table('permissions').filter(r.row['user'].ne('admin')).filter(lambda row: r.expr(expectedPermissions.keys()).contains(row["id"]).not_()).delete().run(self.conn)
+        assert res['errors'] == 0, 'Failed removing permissions from %s: %s' % (self.__server.name, res)
+        
+        # insert inital users/permissions
+        existingUsers = dict((x['id'], x) for x in r.db('rethinkdb').table('users').run(self.conn))
+        for username, userinfo in expectedUsers.items():
+            if username in existingUsers:
+                if existingUsers[username] != userinfo:
+                     res = r.db('rethinkdb').table('users').get(username).update(userinfo).run(self.conn)
+                     assert res['unchanged'] + res['replaced'] == 1, 'Unable to update user %s: %s' % (username, res)
+            else:
+                res = r.db('rethinkdb').table('users').insert(userinfo).run(self.conn)
+                assert res['inserted'] == 1, 'Unable to insert user %s: %s' % (username, res)
+        
+        if expectedPermissions:
+            existingPermissions = dict((tuple(x['id']), x) for x in r.db('rethinkdb').table('permissions').run(self.conn))
+            for permissionsName, permissionsInfo in expectedPermissions.items():
+                if permissionsName in existingPermissions:
+                    if existingPermissions[permissionsName] != permissionsInfo:
+                         res = r.db('rethinkdb').table('permissions').get(permissionsName).update(permissionsInfo).run(self.conn)
+                         assert res['unchanged'] + res['replaced'] == 1, 'Unable to update user permissions %s: %s' % (username, res)
+                else:
+                    res = r.db('rethinkdb').table('permissions').insert(permissionsInfo).run(self.conn)
+                    assert res['inserted'] == 1, 'Unable to insert user permissions %s: %s' % (permissionsName, res)
+        
+        # - drop any databases or tables that were not there initially
+        for dbName in r.db_list().run(self.conn):
+            if dbName == 'rethinkdb':
+                continue
+            if dbName not in self.existingDBsToTables and not (final and dbName == 'test'):
+                # drop dbs that were not there inially, except the `test` databse durring testing
+                r.db_drop(dbName).run(self.conn)
+            else:
+                # drop any tables that were not in this db initally
+                r.db(dbName).table_list().set_difference(self.existingDBsToTables.get(dbName, [])).for_each(r.db(dbName).table_drop(r.row)).run(self.conn)
+        
+        # - remove any newly connected servers
+        r.db('rethinkdb').table('server_config').filter(lambda row: r.expr(self.connectedServerIds).contains(row['id']).not_()).delete().run(self.conn)
+        
+        if not final:
+            # - ensure that the test db is present
+            r.expr(['test']).set_difference(r.db_list()).for_each(r.db_create(r.row)).run(self.conn)
+        
+            # - wait for the test database to be completely ready
+            r.db('test').wait(wait_for='all_replicas_ready', timeout=5).run(self.conn)
     
     def stop(self):
         self.__server.stop()
@@ -923,23 +998,14 @@ class ExternalServer(Server):
     __driver_port = None
     __host        = 'localhost'
     
-    existingDBsToTables = None
-    
-    def __init__(self, driver_port, host=None):
+    def subclass_init(self, driver_port, host=None):
         assert isinstance(driver_port, int) and driver_port > 0, 'Bad value for driver_port: %r' % driver_port
         self.__driver_port = driver_port
         if host:
             self.__host = host
         
-        # - collect the list of existing tables
-        self.existingDBsToTables = {}
-        for dbName in r.db_list().run(self.conn):
-            if dbName == 'rethinkdb':
-                continue
-            self.existingDBsToTables[dbName] = r.db(dbName).table_list().run(self.conn)
-        
         # - set it up to make sure it gets cleaned
-        atexit.register(self.clean)
+        atexit.register(self.clean, final=True)
     
     @property
     def host(self):
@@ -952,24 +1018,6 @@ class ExternalServer(Server):
     @property
     def logfile_path(self):
         return None # change after https://github.com/rethinkdb/rethinkdb/issues/4512
-    
-    def clean(self):
-        # - ensure that the test db is present
-        r.expr(['test']).set_difference(r.db_list()).for_each(r.db_create(r.row)).run(self.conn)
-
-        # - clean rethinkdb._debug_scratch
-        r.db('rethinkdb').table('_debug_scratch').delete().run(self.conn)
-        
-        # - drop any databases or tables that were not there initially
-        for dbName in r.db_list().run(self.conn):
-            if dbName == 'rethinkdb':
-                continue
-            r.db(dbName).table_list().set_difference(self.existingDBsToTables.get(dbName, [])).for_each(r.db(dbName).table_drop(r.row)).run(self.conn)
-            if dbName not in self.existingDBsToTables and dbName != 'test':
-                r.db_drop(dbName).run(self.conn)
-        
-        # - wait for the test database to be completely ready
-        r.db('test').wait(wait_for='all_replicas_ready', timeout=5).run(self.conn)
     
     def stop(self):
         # we don't stop the server, but we should clean up
@@ -1543,7 +1591,7 @@ class WorkerThread(threading.Thread):
         
         if not os.path.isdir(scratchDir):
             raise ValueError('scratchDir must be an existing directory, got: %s' % scratchDir)
-        self.scratchDir = scratchDir
+        self.scratchDir = os.path.realpath(scratchDir)
         
         if externalServer is not None:
             if not isinstance(externalServer, ExternalServer):

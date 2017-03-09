@@ -161,6 +161,8 @@ void small_value_test(cache_t *cache) {
     tk.unappend(&txn, 250);
     tk.unappend(&txn, 0);
     tk.append(&txn, "");
+
+    txn.commit();
 }
 
 void small_value_boundary_test(cache_t *cache) {
@@ -214,6 +216,8 @@ void small_value_boundary_test(cache_t *cache) {
     ASSERT_EQ(2u, tk.refsize(block_size));
     tk.unappend(&txn, 1);
     ASSERT_EQ(1u, tk.refsize(block_size));
+
+    txn.commit();
 }
 
 void general_journey_test(cache_t *cache, const std::vector<int64_t>& steps) {
@@ -237,6 +241,8 @@ void general_journey_test(cache_t *cache, const std::vector<int64_t>& steps) {
         v = (v == 'z' ? 'A' : v == 'Z' ? 'a' : v + 1);
     }
     tk.unappend(&txn, size);
+
+    txn.commit();
 }
 
 void combinations_test(cache_t *cache) {

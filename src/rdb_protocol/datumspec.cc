@@ -182,15 +182,15 @@ size_t datumspec_t::copies(datum_t key) const {
         });
 }
 
-boost::optional<std::map<store_key_t, uint64_t> > datumspec_t::primary_key_map() const {
-    return visit<boost::optional<std::map<store_key_t, uint64_t> > >(
-        [](const datum_range_t &) { return boost::none; },
+optional<std::map<store_key_t, uint64_t> > datumspec_t::primary_key_map() const {
+    return visit<optional<std::map<store_key_t, uint64_t> > >(
+        [](const datum_range_t &) { return r_nullopt; },
         [](const std::map<datum_t, uint64_t> &m) {
             std::map<store_key_t, uint64_t> ret;
             for (const auto &pair : m) {
                 ret[store_key_t(pair.first.print_primary())] = pair.second;
             }
-            return ret;
+            return make_optional(ret);
         });
 }
 

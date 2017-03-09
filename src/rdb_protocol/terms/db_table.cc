@@ -98,7 +98,7 @@ void get_replicas_and_primary(const scoped_ptr_t<val_t> &replicas,
     }
 }
 
-  // Meta operations (BUT NOT TABLE TERMS) should inherit from this.
+// Meta operations (BUT NOT TABLE TERMS) should inherit from this.
 class meta_op_term_t : public op_term_t {
 public:
     meta_op_term_t(compile_env_t *env, const raw_term_t &term,
@@ -442,7 +442,7 @@ protected:
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
             scope_env_t *env, args_t *args, eval_flags_t flags,
             const counted_t<const ql::db_t> &db,
-            const boost::optional<name_string_t> &name_if_table) const = 0;
+            const optional<name_string_t> &name_if_table) const = 0;
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
             scope_env_t *env, args_t *args, eval_flags_t flags) const {
@@ -455,11 +455,12 @@ private:
         }
         if (target->get_type().is_convertible(val_t::type_t::DB)) {
             return eval_impl_on_table_or_db(env, args, flags, target->as_db(),
-                boost::none);
+                r_nullopt);
         } else {
             counted_t<table_t> table = target->as_table();
             name_string_t table_name = name_string_t::guarantee_valid(table->name.c_str());
-            return eval_impl_on_table_or_db(env, args, flags, table->db, table_name);
+            return eval_impl_on_table_or_db(env, args, flags, table->db,
+                                            make_optional(table_name));
         }
     }
 };
@@ -478,7 +479,7 @@ private:
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
             scope_env_t *env, args_t *args, eval_flags_t,
 	    const counted_t<const ql::db_t> &db,
-            const boost::optional<name_string_t> &name_if_table) const {
+            const optional<name_string_t> &name_if_table) const {
       // Don't allow a wait call without explicit database
       if (args->num_args() == 0) {
 	rfail(base_exc_t::LOGIC, "`wait` can only be called on a table or database.");
@@ -564,7 +565,7 @@ private:
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
             scope_env_t *env, args_t *args, eval_flags_t,
             const counted_t<const ql::db_t> &db,
-            const boost::optional<name_string_t> &name_if_table) const {
+            const optional<name_string_t> &name_if_table) const {
         // Don't allow a reconfigure call without explicit database
         if (args->num_args() == 0) {
 	  rfail(base_exc_t::LOGIC, "`reconfigure` can only be called on a table or database.");
@@ -701,7 +702,7 @@ private:
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
             scope_env_t *env, args_t *args, eval_flags_t,
             const counted_t<const ql::db_t> &db,
-            const boost::optional<name_string_t> &name_if_table) const {
+            const optional<name_string_t> &name_if_table) const {
         // Don't allow a rebalance call without explicit database
         if (args->num_args() == 0) {
 	  rfail(base_exc_t::LOGIC, "`rebalance` can only be called on a table or database.");
@@ -850,15 +851,13 @@ private:
             }
         }
 
-        auto identifier_format =
-            boost::make_optional<admin_identifier_format_t>(
-                false, admin_identifier_format_t());
+        optional<admin_identifier_format_t> identifier_format;
         if (scoped_ptr_t<val_t> v = args->optarg(env, "identifier_format")) {
             const datum_string_t &str = v->as_str();
             if (str == "name") {
-                identifier_format = admin_identifier_format_t::name;
+                identifier_format.set(admin_identifier_format_t::name);
             } else if (str == "uuid") {
-                identifier_format = admin_identifier_format_t::uuid;
+                identifier_format.set(admin_identifier_format_t::uuid);
             } else {
                 rfail(base_exc_t::LOGIC, "Identifier format `%s` unrecognized "
                     "(options are \"name\" and \"uuid\").", str.to_std().c_str());

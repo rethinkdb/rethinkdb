@@ -503,7 +503,7 @@ for (var i = 0; i < numRows; i++) {
                             try {
                                 assert.equal(i, 10, 'Did not immediately stop iteration: ' + i);
                                 assert(err instanceof r.Error.ReqlDriverError, 'Expected ReqlDriverError, got: ' + err);
-                                assert.equal(err.message, 'Row handler for eachAsync may only return a Promise or undefined.');
+                                assert.equal(err.message, 'Row handler for eachAsync may only return undefined, or a Promise that resolves to undefined.');
                                 err = null;
                             } catch(innerErr) { err = innerErr; }
                             done(err);
@@ -971,7 +971,7 @@ for (var i = 0; i < numRows; i++) {
                         assert.fail(undefined, undefined, 'Did not get an error');
                     })
                     .catch(r.Error.ReqlDriverError, function(err) {
-                        assert.equal(err.message, 'Row handler for eachAsync may only return a Promise or undefined.')
+                        assert.equal(err.message, 'Row handler for eachAsync may only return undefined, or a Promise that resolves to undefined.')
                         assert.equal(i, 10, 'Did not immediately stop iteration: ' + i);
                     });
                 });

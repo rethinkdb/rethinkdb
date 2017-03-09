@@ -112,9 +112,13 @@ store_t::store_t(const region_t &_region,
         guarantee(!res);
 
         txn_t txn(general_cache_conn.get(), write_durability_t::HARD, 1);
-        buf_lock_t sb_lock(&txn, SUPERBLOCK_ID, alt_create_t::create);
-        real_superblock_t superblock(std::move(sb_lock));
-        btree_slice_t::init_real_superblock(&superblock, key.vector(), binary_blob_t());
+        {
+            buf_lock_t sb_lock(&txn, SUPERBLOCK_ID, alt_create_t::create);
+            real_superblock_t superblock(std::move(sb_lock));
+            btree_slice_t::init_real_superblock(
+                &superblock, key.vector(), binary_blob_t());
+        }
+        txn.commit();
     }
 
     btree.init(new btree_slice_t(cache.get(),
@@ -219,7 +223,19 @@ void store_t::write(
     DEBUG_ONLY_CODE(metainfo->visit(
         real_superblock.get(), metainfo_checker.region, metainfo_checker.callback));
     metainfo->update(real_superblock.get(), new_metainfo);
-    protocol_write(_write, response, timestamp, &real_superblock, interruptor);
+    try {
+        protocol_write(_write, response, timestamp, &real_superblock, interruptor);
+    } catch (const interrupted_exc_t &) {
+        // We hope that the operation itself is interruption-safe (i.e. always
+        // either completes all necessary changes that are part of the
+        // transaction, or doesn't perform any changes at all).
+        // Hence it should be save to commit here even when interrupted.
+        real_superblock.reset();
+        txn->commit();
+        throw;
+    }
+    real_superblock.reset();
+    txn->commit();
 }
 
 void store_t::reset_data(
@@ -279,6 +295,9 @@ void store_t::reset_data(
         if (!mod_reports.empty()) {
             update_sindexes(txn.get(), &sindex_block, mod_reports, true);
         }
+
+        sindex_block.reset_buf_lock();
+        txn->commit();
     }
 }
 
@@ -372,7 +391,7 @@ void store_t::sindex_create(
     guarantee(write_res == 0);
 
     sindex_name_t sindex_name(name);
-    boost::optional<uuid_u> sindex_id = add_sindex_internal(
+    optional<uuid_u> sindex_id = add_sindex_internal(
         sindex_name, stream.vector(), &sindex_block);
     guarantee(sindex_id, "sindex_create() called with a sindex name that exists");
 
@@ -382,6 +401,9 @@ void store_t::sindex_create(
                                      key_range_t::universe(),
                                      this,
                                      drainer.lock()));
+
+    sindex_block.reset_buf_lock();
+    txn->commit();
 }
 
 void store_t::sindex_rename_multi(
@@ -426,6 +448,9 @@ void store_t::sindex_rename_multi(
         set_secondary_index(&sindex_block, sindex_name_t(pair.first), pair.second.first);
         pair.second.second->rename(&perfmon_collection, "index-" + pair.first);
     }
+
+    sindex_block.reset_buf_lock();
+    txn->commit();
 }
 
 void store_t::sindex_drop(
@@ -456,6 +481,9 @@ void store_t::sindex_drop(
                                      this,
                                      sindex,
                                      drainer.lock()));
+
+    sindex_block.reset_buf_lock();
+    txn->commit();
 }
 
 new_mutex_in_line_t store_t::get_in_line_for_sindex_queue(buf_lock_t *sindex_block) {
@@ -593,13 +621,13 @@ microtime_t store_t::get_sindex_start_time(uuid_u const &id) {
     }
 }
 
-boost::optional<uuid_u> store_t::add_sindex_internal(
+optional<uuid_u> store_t::add_sindex_internal(
         const sindex_name_t &name,
         const std::vector<char> &opaque_definition,
         buf_lock_t *sindex_block) {
     secondary_index_t sindex;
     if (::get_secondary_index(sindex_block, name, &sindex)) {
-        return boost::none; // sindex was already created
+        return r_nullopt; // sindex was already created
     } else {
         {
             buf_lock_t sb_lock(sindex_block, alt_create_t::create);
@@ -620,7 +648,7 @@ boost::optional<uuid_u> store_t::add_sindex_internal(
         sindex.needs_post_construction_range = key_range_t::universe();
 
         ::set_secondary_index(sindex_block, name, sindex);
-        return sindex.id;
+        return make_optional(sindex.id);
     }
 }
 
@@ -725,14 +753,22 @@ void store_t::clear_sindex_data(
 
         /* 1. Collect a bunch of keys to delete */
         clear_sindex_traversal_cb_t traversal_cb(pkey_range_to_clear);
-        reached_end = (continue_bool_t::CONTINUE == btree_depth_first_traversal(
-            sindex_superblock.get(),
-            remaining_range,
-            &traversal_cb,
-            access_t::read,
-            direction_t::FORWARD,
-            release_superblock_t::KEEP,
-            interruptor));
+        try {
+            reached_end =
+                (continue_bool_t::CONTINUE == btree_depth_first_traversal(
+                    sindex_superblock.get(),
+                    remaining_range,
+                    &traversal_cb,
+                    access_t::read,
+                    direction_t::FORWARD,
+                    release_superblock_t::KEEP,
+                    interruptor));
+        } catch (const interrupted_exc_t &) {
+            // It's safe to interrupt in the middle of clearing the index.
+            sindex_superblock.reset();
+            txn->commit();
+            throw;
+        }
 
         /* Update the traversal range so we don't traverse the same range again */
         remaining_range = key_range_t(
@@ -779,6 +815,9 @@ void store_t::clear_sindex_data(
             sindex_superblock.init(static_cast<sindex_superblock_t *>(
                 superblock_promise.wait()));
         }
+
+        sindex_superblock.reset();
+        txn->commit();
     }
 }
 
@@ -873,6 +912,10 @@ void store_t::drop_sindex(uuid_u sindex_id) THROWS_NOTHING {
     ::delete_secondary_index(&sindex_block, compute_sindex_deletion_name(sindex.id));
     size_t num_erased = secondary_index_slices.erase(sindex.id);
     guarantee(num_erased == 1);
+
+    sindex_superblock_lock.reset_buf_lock();
+    sindex_block.reset_buf_lock();
+    txn->commit();
 }
 
 bool secondary_indexes_are_equivalent(const std::vector<char> &left,
@@ -1072,13 +1115,13 @@ void store_t::acquire_all_sindex_superblocks_for_write(
         sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_ready_exc_t) {
     acquire_sindex_superblocks_for_write(
-            boost::none,
+            r_nullopt,
             sindex_block,
             sindex_sbs_out);
 }
 
 bool store_t::acquire_sindex_superblocks_for_write(
-            boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
+            optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_ready_exc_t) {
@@ -1135,14 +1178,18 @@ void store_t::set_metainfo(const region_map_t<binary_blob_t> &new_metainfo,
     assert_thread();
 
     scoped_ptr_t<txn_t> txn;
-    scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_write(1,
-                                 durability,
-                                 token,
-                                 &txn,
-                                 &superblock,
-                                 interruptor);
-    metainfo->update(superblock.get(), new_metainfo);
+    {
+        scoped_ptr_t<real_superblock_t> superblock;
+        acquire_superblock_for_write(
+            1,
+            durability,
+            token,
+            &txn,
+            &superblock,
+            interruptor);
+        metainfo->update(superblock.get(), new_metainfo);
+    }
+    txn->commit();
 }
 
 cluster_version_t store_t::metainfo_version(read_token_t *token,
@@ -1167,14 +1214,18 @@ void store_t::migrate_metainfo(
     assert_thread();
 
     scoped_ptr_t<txn_t> txn;
-    scoped_ptr_t<real_superblock_t> superblock;
-    acquire_superblock_for_write(1,
-                                 write_durability_t::HARD,
-                                 token,
-                                 &txn,
-                                 &superblock,
-                                 interruptor);
-    metainfo->migrate(superblock.get(), from, to, get_region(), cb);
+    {
+        scoped_ptr_t<real_superblock_t> superblock;
+        acquire_superblock_for_write(
+            1,
+            write_durability_t::HARD,
+            token,
+            &txn,
+            &superblock,
+            interruptor);
+        metainfo->migrate(superblock.get(), from, to, get_region(), cb);
+    }
+    txn->commit();
 }
 
 void store_t::acquire_superblock_for_read(

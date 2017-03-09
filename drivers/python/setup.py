@@ -49,7 +49,8 @@ setuptools.setup(
             'rethinkdb-dump = rethinkdb._dump:main',
             'rethinkdb-export = rethinkdb._export:main',
             'rethinkdb-restore = rethinkdb._restore:main',
-            'rethinkdb-index-rebuild = rethinkdb._index_rebuild:main'
+            'rethinkdb-index-rebuild = rethinkdb._index_rebuild:main',
+            'rethinkdb-repl = rethinkdb.__main__:startInterpreter'
         ]
     }
 )

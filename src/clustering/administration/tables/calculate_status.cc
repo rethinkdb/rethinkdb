@@ -102,8 +102,8 @@ void get_table_status(
         for (const server_id_t &server : shard.all_replicas) {
             if (status_out->server_shards.count(server) == 0 &&
                     status_out->disconnected.count(server) == 0) {
-                if (static_cast<bool>(server_config_client->
-                        get_server_to_peer_map()->get_key(server))) {
+                if (server_config_client->
+                        get_server_to_peer_map()->get_key(server).has_value()) {
                     table_shard_status_t status;
                     status.transitioning = true;
                     status_out->server_shards.insert(std::make_pair(server,

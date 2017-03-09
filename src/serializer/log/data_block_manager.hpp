@@ -5,6 +5,8 @@
 #include <vector>
 
 #include "arch/types.hpp"
+#include "concurrency/new_semaphore.hpp"
+#include "concurrency/pump_coro.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/priority_queue.hpp"
 #include "containers/scoped.hpp"
@@ -19,13 +21,14 @@ class log_serializer_t;
 class data_block_manager_t;
 class gc_entry_t;
 
+struct dbm_metablock_mixin_t;
+
 struct gc_entry_less_t {
     bool operator() (const gc_entry_t *x, const gc_entry_t *y);
 };
 
 namespace data_block_manager {
 struct shutdown_callback_t;  // see log_serializer.hpp.
-struct metablock_mixin_t;  // see log_serializer.hpp.
 }  // namespace data_block_manager
 
 class data_block_manager_t {
@@ -42,11 +45,11 @@ public:
     database FD. When restarting an existing database, call start() with the last
     metablock. */
 
-    static void prepare_initial_metablock(data_block_manager::metablock_mixin_t *mb);
-    void start_existing(file_t *dbfile, data_block_manager::metablock_mixin_t *last_metablock);
+    static void prepare_initial_metablock(dbm_metablock_mixin_t *mb);
+    void start_existing(file_t *dbfile, const dbm_metablock_mixin_t *last_metablock);
 
     buf_ptr_t read(int64_t off_in, block_size_t block_size,
-                 file_account_t *io_account);
+                   file_account_t *io_account);
 
     /* exposed gc api */
     /* mark a buffer as garbage */
@@ -66,7 +69,7 @@ public:
     /* garbage collect the extents which meet the gc_criterion */
     void start_gc();
 
-    void prepare_metablock(data_block_manager::metablock_mixin_t *metablock);
+    void prepare_metablock(dbm_metablock_mixin_t *metablock);
     bool do_we_want_to_start_gcing() const;
 
     // This stops further GC rounds from starting, but it doesn't wait for all
@@ -79,12 +82,12 @@ public:
     // ratio of garbage to blocks in the system
     double garbage_ratio() const;
 
-    std::vector<counted_t<ls_block_token_pointee_t> >
+    std::vector<counted_t<block_token_t>>
     many_writes(const std::vector<buf_write_info_t> &writes,
                 file_account_t *io_account,
                 iocallback_t *cb);
 
-    std::vector<std::vector<counted_t<ls_block_token_pointee_t> > >
+    std::vector<std::vector<counted_t<block_token_t>>>
     gimme_some_new_offsets(const std::vector<buf_write_info_t> &writes);
 
     bool is_gc_active() const;
@@ -120,7 +123,13 @@ private:
 
     void gc_one_extent(gc_state_t *gc_state);
 
-    void write_gcs(const std::vector<gc_write_t> &writes, gc_state_t *gc_state);
+    void write_gcs(
+        std::vector<gc_write_t> &&writes,
+        gc_state_t *gc_state,
+        scoped_device_block_aligned_ptr_t<char> &&gc_blocks,
+        new_semaphore_in_line_t &&index_write_semaphore_acq);
+
+    void flush_gc_index_writes(signal_t *);
 
     // Determine how many GC processes should run concurrently at the moment.
     // Returns a number between 1 and MAX_CONCURRENT_GCS
@@ -208,6 +217,42 @@ private:
 
     /* The state of all currently active GC coroutines */
     intrusive_list_t<gc_state_t> active_gcs;
+
+    /* We aggregate GC index writes into few large index writes
+    to improve GC efficiency on drives with slow random access. */
+    struct gc_index_write_t {
+        gc_index_write_t(
+            std::vector<counted_t<block_token_t>> &&old_block_tokens_,
+            std::vector<counted_t<block_token_t>> &&new_block_tokens_,
+            std::vector<gc_write_t> &&writes_,
+            gc_state_t *gc_state_,
+            scoped_device_block_aligned_ptr_t<char> &&gc_blocks_)
+            : old_block_tokens(std::move(old_block_tokens_)),
+              new_block_tokens(std::move(new_block_tokens_)),
+              writes(std::move(writes_)),
+              gc_state(gc_state_),
+              gc_blocks(std::move(gc_blocks_)) { }
+        std::vector<counted_t<block_token_t>> old_block_tokens;
+        std::vector<counted_t<block_token_t>> new_block_tokens;
+        std::vector<gc_write_t> writes;
+        gc_state_t *gc_state;
+        scoped_device_block_aligned_ptr_t<char> gc_blocks;
+
+        MOVABLE_BUT_NOT_COPYABLE(gc_index_write_t);
+    };
+    std::vector<gc_index_write_t> collected_gc_index_writes;
+    pump_coro_t gc_index_write_pumper;
+
+    /* This semaphore is there to maximize the number of GC
+    threads that get combined into a given index_write.
+    GC threads get in line on this semaphore, and drop their
+    semaphore acquisition just when they start waiting on the
+    index write. The index write (`flush_gc_index_writes`)
+    on the other hand tries to acquire a certain number of
+    "tickets" from the semaphore, thereby making it more likely
+    that that number of GC threads get into the single index_write
+    (which in turn makes it more efficient). */
+    new_semaphore_t gc_index_write_semaphore;
 
 
     struct gc_stats_t {

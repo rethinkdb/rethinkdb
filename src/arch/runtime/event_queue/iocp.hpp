@@ -1,12 +1,15 @@
 #ifndef ARCH_RUNTIME_EVENT_QUEUE_IOCP_HPP_
 #define ARCH_RUNTIME_EVENT_QUEUE_IOCP_HPP_
 
+#include <stdint.h>
+
 #include <map>
 #include <list>
 
 #include "arch/runtime/system_event.hpp"
 #include "arch/runtime/event_queue_types.hpp"
 #include "arch/runtime/runtime_utils.hpp"
+#include "time.hpp"
 
 class linux_thread_t;
 class timer_provider_callback_t;

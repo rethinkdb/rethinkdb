@@ -2,14 +2,13 @@
 #ifndef CLUSTERING_ADMINISTRATION_TABLES_TABLE_COMMON_HPP_
 #define CLUSTERING_ADMINISTRATION_TABLES_TABLE_COMMON_HPP_
 
+#include <memory>
 #include <string>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-
 #include "clustering/administration/admin_op_exc.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "containers/lifetime.hpp"
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "rpc/semilattice/view.hpp"
 
@@ -21,7 +20,10 @@ class common_table_artificial_table_backend_t :
 {
 public:
     common_table_artificial_table_backend_t(
-            boost::shared_ptr< semilattice_readwrite_view_t<
+            name_string_t const &table_name,
+            rdb_context_t *rdb_context,
+            lifetime_t<name_resolver_t const &> name_resolver,
+            std::shared_ptr< semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > _semilattice_view,
             table_meta_client_t *_table_meta_client,
             admin_identifier_format_t _identifier_format);
@@ -29,11 +31,13 @@ public:
     std::string get_primary_key_name();
 
     bool read_all_rows_as_vector(
+            auth::user_context_t const &user_context,
             signal_t *interruptor_on_caller,
             std::vector<ql::datum_t> *rows_out,
             admin_err_t *error_out);
 
     bool read_row(
+            auth::user_context_t const &user_context,
             ql::datum_t primary_key,
             signal_t *interruptor_on_caller,
             ql::datum_t *row_out,
@@ -42,6 +46,7 @@ public:
 protected:
     /* This will always be called on the home thread */
     virtual void format_row(
+            auth::user_context_t const &user_context,
             const namespace_id_t &table_id,
             const table_config_and_shards_t &config,
             /* In theory `db_name_or_uuid` can be computed from `config`, but the
@@ -50,19 +55,24 @@ protected:
             const ql::datum_t &db_name_or_uuid,
             signal_t *interruptor_on_home,
             ql::datum_t *row_out)
-        THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t) = 0;
+        THROWS_ONLY(
+            interrupted_exc_t,
+            no_such_table_exc_t,
+            failed_table_op_exc_t,
+            auth::permission_error_t) = 0;
 
     /* This is called for tables that we couldn't even determine the current
     configuration of, because every single server for the table is disconnected. The
     default implementation produces a document with an `error` field describing the
     problem. */
     virtual void format_error_row(
+            auth::user_context_t const &user_context,
             const namespace_id_t &table_id,
             const ql::datum_t &db_name_or_uuid,
             const name_string_t &table_name,
             ql::datum_t *row_out);
 
-    boost::shared_ptr< semilattice_readwrite_view_t<
+    std::shared_ptr< semilattice_readwrite_view_t<
         cluster_semilattice_metadata_t> > semilattice_view;
     table_meta_client_t *table_meta_client;
     admin_identifier_format_t identifier_format;

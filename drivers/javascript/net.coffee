@@ -94,6 +94,13 @@ aropt = util.aropt
 mkAtom = util.mkAtom
 mkErr = util.mkErr
 
+# These are the default hostname and port used by RethinkDB
+DEFAULT_HOST = 'localhost'
+DEFAULT_PORT = 28015
+
+module.exports.DEFAULT_HOST = DEFAULT_HOST
+module.exports.DEFAULT_PORT = DEFAULT_PORT
+
 # These are strings returned by the server after a handshake
 # request. Since they must match exactly they're defined in
 # "constants" here at the top
@@ -121,10 +128,7 @@ HANDSHAKE_AUTHFAIL = "ERROR: Incorrect authorization key.\n"
 # - `"timeout"` will be emitted by the `TcpConnection` subclass if the
 #    underlying socket times out for any reason.
 class Connection extends events.EventEmitter
-
-    # These are the default hostname and port used by RethinkDB
-    DEFAULT_HOST: 'localhost'
-    DEFAULT_PORT: 28015
+    
     # By default, RethinkDB doesn't use an authorization key.
     DEFAULT_AUTH_KEY: ''
     # Each connection has a timeout (in seconds) for the initial handshake with the
@@ -145,8 +149,8 @@ class Connection extends events.EventEmitter
             host = {host: host}
 
         # Here we set all of the connection parameters to their defaults.
-        @host = host.host || @DEFAULT_HOST
-        @port = host.port || @DEFAULT_PORT
+        @host = host.host || DEFAULT_HOST
+        @port = host.port || DEFAULT_PORT
 
         # One notable exception to defaulting is the db name. If the
         # user doesn't specify it, we leave it undefined. On the
@@ -1063,6 +1067,7 @@ class TcpConnection extends Connection
                 pbkdf2_cache[cache_string] = u
                 return u
 
+            # a, b should be strings
             compare_digest = (a, b) ->
                 left = undefined
                 right = b
@@ -1070,13 +1075,13 @@ class TcpConnection extends Connection
                 if a.length is b.length
                     left = a
                     result = 0
-                else
+                if a.length != b.length
                     left = b
                     result = 1
 
-                len = Math.min(a.length, b.length)
+                len = Math.min(left.length, right.length)
                 for i in [0...len]
-                    result |= xor_bytes(a[i],b[i])
+                    result |= left[i] ^ right[i]
 
                 return result is 0
 

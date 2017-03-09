@@ -36,20 +36,20 @@ watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::get_all() {
 }
 
 template<class key1_t, class value1_t, class key2_t, class value2_t>
-boost::optional<value2_t>
+optional<value2_t>
 watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::get_key(
         const key2_t &key2) {
     key1_t key1;
     if (!key_2_to_1(key2, &key1)) {
-        return boost::optional<value2_t>();
+        return optional<value2_t>();
     }
-    boost::optional<value2_t> res;
+    optional<value2_t> res;
     inner->read_key(key1, [&](const value1_t *value1) {
         if (value1 != nullptr) {
             const value2_t *value2;
             this->value_1_to_2(value1, &value2);
             if (value2 != nullptr) {
-                res = boost::optional<value2_t>(*value2);
+                res = optional<value2_t>(*value2);
             }
         }
     });
@@ -97,10 +97,10 @@ watchable_map_transform_t<key1_t, value1_t, key2_t, value2_t>::get_rwi_lock() {
 }
 
 template<class key_t, class value_t>
-clone_ptr_t<watchable_t<boost::optional<value_t> > > get_watchable_for_key(
+clone_ptr_t<watchable_t<optional<value_t> > > get_watchable_for_key(
         watchable_map_t<key_t, value_t> *map,
         const key_t &key) {
-    class w_t : public watchable_t<boost::optional<value_t> > {
+    class w_t : public watchable_t<optional<value_t> > {
     public:
         w_t(watchable_map_t<key_t, value_t> *_map, const key_t &_key) :
             map(_map), key(_key),
@@ -114,12 +114,12 @@ clone_ptr_t<watchable_t<boost::optional<value_t> > > get_watchable_for_key(
         w_t *clone() const {
             return new w_t(map, key);
         }
-        boost::optional<value_t> get() {
+        optional<value_t> get() {
             return map->get_key(key);
         }
         void apply_read(
-                const std::function<void(const boost::optional<value_t> *)> &read) {
-            boost::optional<value_t> value = get();
+                const std::function<void(const optional<value_t> *)> &read) {
+            optional<value_t> value = get();
             read(&value);
         }
         publisher_t<std::function<void()> > *get_publisher() {
@@ -135,7 +135,7 @@ clone_ptr_t<watchable_t<boost::optional<value_t> > > get_watchable_for_key(
         key_t key;
         typename watchable_map_t<key_t, value_t>::key_subs_t subs;
     };
-    return clone_ptr_t<watchable_t<boost::optional<value_t> > >(new w_t(map, key));
+    return clone_ptr_t<watchable_t<optional<value_t> > >(new w_t(map, key));
 }
 
 template<class key_t, class value_t>
@@ -199,11 +199,11 @@ watchable_map_combiner_t<tag_t, key_t, value_t>::get_all() {
 }
 
 template<class tag_t, class key_t, class value_t>
-boost::optional<value_t> watchable_map_combiner_t<tag_t, key_t, value_t>::get_key(
+optional<value_t> watchable_map_combiner_t<tag_t, key_t, value_t>::get_key(
         const std::pair<tag_t, key_t> &key) {
     auto it = map.find(key.first);
     if (it == map.end()) {
-        return boost::none;
+        return r_nullopt;
     }
     return it->second->get_key(key.second);
 }

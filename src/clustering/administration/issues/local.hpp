@@ -27,7 +27,7 @@ RDB_DECLARE_SERIALIZABLE(local_issues_t);
 
 class local_issue_bcard_t {
 public:
-    typedef mailbox_t<void(mailbox_t<void(local_issues_t)>::address_t)> get_mailbox_t;
+    typedef mailbox_t<mailbox_addr_t<local_issues_t>> get_mailbox_t;
     get_mailbox_t::address_t get_mailbox;
 };
 
@@ -45,7 +45,7 @@ public:
     }
 
 private:
-    void on_get(signal_t *, const mailbox_t<void(local_issues_t)>::address_t &reply);
+    void on_get(signal_t *, const mailbox_t<local_issues_t>::address_t &reply);
 
     mailbox_manager_t *const mailbox_manager;
     log_write_issue_tracker_t *const log_write_issue_tracker;

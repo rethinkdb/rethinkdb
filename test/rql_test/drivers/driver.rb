@@ -8,12 +8,13 @@ DEBUG_ENABLED = ENV['VERBOSE'] ? ENV['VERBOSE'] == 'true' : false
 START_TIME = Time.now()
 
 def print_debug(message)
-    if DEBUG_ENABLED
-        puts("DEBUG %.2f:\t %s" % [Time.now() - START_TIME, message])
-    end
+  if DEBUG_ENABLED
+    puts("DEBUG %.2f:\t %s" % [Time.now() - START_TIME, message])
+  end
 end
 
-DRIVER_PORT = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || raise('driver port not supplied')).to_i
+DRIVER_PORT = (ARGV[0] || ENV['RDB_DRIVER_PORT'] || 28015).to_i
+SERVER_HOST = ENV['RDB_SERVER_HOST'] || 'localhost'
 print_debug("Using driver port #{DRIVER_PORT}")
 
 $required_external_tables = []
@@ -43,19 +44,22 @@ require_relative '../importRethinkDB.rb'
 
 # --
 
-$reql_conn = RethinkDB::Connection.new(:host => 'localhost', :port => DRIVER_PORT)
-begin
-  r.db_create('test').run($reql_conn)
-rescue
+$conn_cache = {}
+def reql_conn(user='admin')
+  if not $conn_cache.has_key?(user)
+    $conn_cache[user] = RethinkDB::Connection.new(:host => SERVER_HOST, :port => DRIVER_PORT, :user => user)
+  end
+  return $conn_cache[user]
 end
+
+# ensure `test` database 
+r.expr(['test']).set_difference(r.db_list()).for_each{|row| r.db_create(row)}.run(reql_conn())
 
 # --
 
 $defines = binding
-$defines.eval('conn = $reql_conn') # allow access to connection
+$defines.eval('conn = reql_conn()') # allow access to default connection
 
-NoError = "<no error>"
-AnyUUID = "<any uuid>"
 Err = Struct.new(:class, :message, :backtrace)
 Bag = Struct.new(:value, :ordered, :partial)
 
@@ -72,8 +76,14 @@ def show(x)
     return "#{x.class.name.sub(/^RethinkDB::/, "")}: #{message}"
   elsif x.is_a?(String)
     return x
+  elsif x == :anything
+    return "<no error>"
   end
   return (PP.pp x, "").chomp
+end
+
+def anything()
+  return :anything
 end
 
 def bag(expected, ordered=nil, partial=nil)
@@ -131,8 +141,22 @@ def arrlen(len, x)
   Array.new(len, x)
 end
 
+class UUID < Regexp
+  def initialize()
+    super('^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$')
+  end
+  
+  def to_s
+    return "<any uuid>"
+  end
+  
+  def inspect
+    return "<any uuid>"
+  end
+end
+
 def uuid
-  AnyUUID
+  UUID.new()
 end
 
 def regex(pattern)
@@ -185,14 +209,9 @@ end
 def cmp_test(expected, result, testopts={}, ordered=true, partial=false)
   print_debug("\tCompare - expected: <<#{show(expected)}>> (#{expected.class}) actual: <<#{show(result)}>> (#{result.class})")
   
-  # - NoError
-  if expected.object_id == NoError.object_id
-    if result.is_a?(Err) || result.is_a?(Exception) || result.is_a?(RethinkDB::ReqlError)
-      puts result
-      puts result.backtrace
-      return -1
-    end
-    return 0
+  # - Anything (non-error)
+  if expected == :anything
+    return result.is_a?(Err) || result.is_a?(Exception) ? -1 : 0
   end
   
   # - nils in expected or result
@@ -202,13 +221,6 @@ def cmp_test(expected, result, testopts={}, ordered=true, partial=false)
     return 1
   elsif expected.nil?
     return -1
-  end
-  
-  # - AnyUUID
-  if expected.object_id == AnyUUID.object_id
-    return -1 if not result.kind_of? String
-    return 0 if result.match /[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}/
-    return 1
   end
   
   # - unpack Bags
@@ -395,14 +407,14 @@ def cmp_test(expected, result, testopts={}, ordered=true, partial=false)
   end
 end
 
-def test(src, expected, name, opthash=nil, testopts=nil)
+def test(src, expected, name, runopts=nil, testopts=nil)
   $test_count += 1
-
+  user = 'admin'
   begin
-    # -- process the opthash
+    # -- process the runopts
 
-    if opthash
-      opthash = Hash[opthash.map{ |key,value|
+    if runopts
+      runopts = Hash[runopts.map{ |key,value|
         if value.is_a?(String)
           begin
             value = $defines.eval(value)
@@ -417,13 +429,20 @@ def test(src, expected, name, opthash=nil, testopts=nil)
         end
         [key, value]
       }]
-      if !opthash[:max_batch_rows] && !opthash['max_batch_rows']
-        opthash[:max_batch_rows] = 3
+      if !runopts[:max_batch_rows] && !runopts['max_batch_rows']
+        runopts[:max_batch_rows] = 3
+      end
+      if runopts.has_key?(:user)
+        user = runopts[:user]
+        runopts.delete(:user)
+      elsif runopts.has_key?('user')
+        user = runopts['user']
+        runopts.delete('user')
       end
     else
-      opthash = {:max_batch_rows => 3}
+      runopts = {:max_batch_rows => 3}
     end
-
+    
     # -- process the testopts
 
     if testopts
@@ -470,11 +489,11 @@ def test(src, expected, name, opthash=nil, testopts=nil)
 
       elsif result.kind_of?(RethinkDB::RQL)
 
-        if opthash and opthash.length > 0
-          optstring = opthash.to_s[1..-2].gsub(/(?<quoteChar>['"]?)\b(?<!:)(?<key>\w+)\b\k<quoteChar>\s*=>/, ':\k<key>=>')
-          queryString += '.run($reql_conn, ' + optstring + ')' # removing braces
+        if runopts and runopts.length > 0
+          optstring = runopts.to_s[1..-2].gsub(/(?<quoteChar>['"]?)\b(?<!:)(?<key>\w+)\b\k<quoteChar>\s*=>/, ':\k<key>=>')
+          queryString += ".run(reql_conn('#{user}'), " + optstring + ')' # removing braces
         else
-          queryString += '.run($reql_conn)'
+          queryString += ".run(reql_conn('#{user}'))"
         end
         print_debug("Running query: #{queryString} Options: #{testopts}")
         result = $defines.eval(queryString)
@@ -495,13 +514,49 @@ def test(src, expected, name, opthash=nil, testopts=nil)
     end
 
     if testopts && testopts.key?(:noreply_wait) && testopts[:noreply_wait]
-        $reql_conn.noreply_wait
+        reql_conn(user).noreply_wait
     end
 
     # -- process the result
-
-    return check_result(name, src, result, expected, testopts)
-
+    
+    begin
+      # - process expected
+      begin
+        expected = $defines.eval(expected.to_s)
+      rescue Exception => err
+        fail_test(name, src, err, expected, type="COMPARE SETUP ERROR")
+        return false
+      end
+      
+      # - read out cursors
+      if (result.kind_of?(RethinkDB::Cursor) || result.kind_of?(Enumerator)) && not(expected == :anything || testopts.has_key?('variable'))
+        begin
+          result = result.to_a
+        rescue Exception => err
+          result = err
+        end
+      end
+      
+      # - compare the result
+      begin
+        if cmp_test(expected, result, testopts) != 0
+          fail_test(name, src, result, expected)
+          return false
+        end
+      rescue Exception => err
+        fail_test(name, src, err, expected, type="COMPARE ERROR")
+        return false
+      end
+      
+      # - declare victory
+      $success_count += 1
+      return true
+      
+    rescue StandardError, SyntaxError => err
+      fail_test(name, src, err, expected, type="UNEXPECTED COMPARE ERROR")
+      return false
+    end
+  
   rescue StandardError, SyntaxError => err
     fail_test(name, src, err, expected, type="TEST")
   end
@@ -513,7 +568,7 @@ def setup_table(table_variable_name, table_name, db_name="test")
     # use one of the required tables
     db_name, table_name = $required_external_tables.pop
     begin
-        r.db(db_name).table(table_name).info().run($reql_conn)
+        r.db(db_name).table(table_name).info().run(reql_conn())
     rescue RethinkDB::ReqlRuntimeError
       "External table #{db_name}.#{table_name} did not exist"
     end
@@ -521,25 +576,25 @@ def setup_table(table_variable_name, table_name, db_name="test")
     puts("Using existing table: #{db_name}.#{table_name}, will be: #{table_variable_name}")
 
     at_exit do
-      res = r.db(db_name).table(table_name).delete().run($reql_conn)
+      res = r.db(db_name).table(table_name).delete().run(reql_conn())
       raise "Failed to clean out contents from table #{db_name}.#{table_name}: #{res}" unless res["errors"] == 0
-      r.db(db_name).table(table_name).index_list().for_each{|row| r.db(db_name).table(table_name).index_drop(row)}.run($reql_conn)
+      r.db(db_name).table(table_name).index_list().for_each{|row| r.db(db_name).table(table_name).index_drop(row)}.run(reql_conn())
     end
   else
     # create a new table
-    if r.db(db_name).table_list().set_intersection([table_name]).count().eq(1).run($reql_conn)
-      res = r.db(db_name).table_drop(table_name).run($reql_conn)
+    if r.db(db_name).table_list().set_intersection([table_name]).count().eq(1).run(reql_conn())
+      res = r.db(db_name).table_drop(table_name).run(reql_conn())
       raise "Unable to delete table before use #{db_name}.#{table_name}: #{res}" unless res['errors'] == 0
     end
-    res = r.db(db_name).table_create(table_name).run($reql_conn)
+    res = r.db(db_name).table_create(table_name).run(reql_conn())
     raise "Unable to create table #{db_name}.#{table_name}: #{res}" unless res["tables_created"] == 1
-    r.db(db_name).table(table_name).wait(:wait_for=>"all_replicas_ready").run($reql_conn)
+    r.db(db_name).table(table_name).wait(:wait_for=>"all_replicas_ready").run(reql_conn())
     
     print_debug("Created table: #{db_name}.#{table_name}, will be: #{table_variable_name}")
     $stdout.flush
 
     at_exit do
-      res = r.db(db_name).table_drop(table_name).run($reql_conn)
+      res = r.db(db_name).table_drop(table_name).run(reql_conn())
       raise "Failed to delete table #{db_name}.#{table_name}: #{res}" unless res["tables_dropped"] == 1
     end
   end
@@ -561,50 +616,6 @@ end
 
 at_exit do
   puts "Ruby: #{$success_count} of #{$test_count} tests passed. #{$test_count - $success_count} tests failed."
-end
-
-def check_result(name, src, result, expected, testopts={})
-  begin
-    # - process expected
-    begin
-      if expected && expected != ''
-        expected = $defines.eval(expected.to_s)
-      else
-        expected = NoError
-      end
-    rescue Exception => err
-      fail_test(name, src, err, expected, type="COMPARE SETUP ERROR")
-      return false
-    end
-    
-    # - read out cursors
-    if (result.kind_of?(RethinkDB::Cursor) || result.kind_of?(Enumerator)) && not(expected == NoError || testopts.has_key?('variable'))
-      begin
-        result = result.to_a
-      rescue Exception => err
-        result = err
-      end
-    end
-    
-    # - compare the result
-    begin
-      if cmp_test(expected, result, testopts) != 0
-        fail_test(name, src, result, expected)
-        return false
-      end
-    rescue Exception => err
-      fail_test(name, src, err, expected, type="COMPARE ERROR")
-      return false
-    end
-    
-    # - declare victory
-    $success_count += 1
-    return true
-    
-  rescue StandardError, SyntaxError => err
-    fail_test(name, src, err, expected, type="UNEXPECTED COMPARE ERROR")
-    return false
-  end
 end
 
 def fail_test(name, src, result, expected, type="TEST FAILURE")

@@ -51,7 +51,7 @@ public:
     size_t num_args() const;
     size_t num_optargs() const;
     raw_term_t arg(size_t index) const;
-    boost::optional<raw_term_t> optarg(const std::string &name) const;
+    optional<raw_term_t> optarg(const std::string &name) const;
 
     template <typename callable_t>
     void each_optarg(callable_t &&cb) const {

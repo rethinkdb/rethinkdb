@@ -4,9 +4,6 @@
 
 #include <functional>
 
-#include "errors.hpp"
-#include <boost/shared_ptr.hpp>
-
 #include "arch/runtime/coroutines.hpp"
 #include "arch/timing.hpp"
 #include "clustering/administration/issues/memory.hpp"
@@ -35,14 +32,12 @@ private:
     }
     memory_issue_tracker_t memory_issue_tracker;
 
-    uint64_t refresh_timer;
+    uint64_t checks_until_reset;
     uint64_t swap_usage;
 
     bool print_log_message;
 
-#if defined(__MACH__) || defined(_WIN32)
-    bool first_check;
-#endif
+    int practice_runs_remaining;
 
     // Timer must be destructed before drainer, because on_ring aquires a lock on drainer.
     auto_drainer_t drainer;

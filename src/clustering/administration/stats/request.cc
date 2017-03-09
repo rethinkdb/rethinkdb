@@ -143,20 +143,21 @@ void parsed_stats_t::store_serializer_values(const ql::datum_t &ser_perf,
     store_perfmon_value(ser_perf, "serializer_written_bytes_total",
                         &stats_out->written_bytes_total);
 
-    // TODO: these are not entirely accurate, but the underlying stats would need
-    // a good overhaul
     store_perfmon_value(ser_perf, "serializer_data_extents",
                         &stats_out->data_bytes);
     store_perfmon_value(ser_perf, "serializer_lba_extents",
                         &stats_out->metadata_bytes);
     store_perfmon_value(ser_perf, "serializer_old_garbage_block_bytes",
                         &stats_out->garbage_bytes);
-    store_perfmon_value(ser_perf, "serializer_bytes_in_use",
+    store_perfmon_value(ser_perf, "serializer_file_size_bytes",
                         &stats_out->preallocated_bytes);
     stats_out->data_bytes = stats_out->data_bytes * DEFAULT_EXTENT_SIZE - stats_out->garbage_bytes;
     stats_out->metadata_bytes *= DEFAULT_EXTENT_SIZE;
     stats_out->preallocated_bytes -= stats_out->data_bytes +
         stats_out->garbage_bytes + stats_out->metadata_bytes;
+    // The file size might temporarily lack behind if allocated extents haven't
+    // been written to disk yet.
+    stats_out->preallocated_bytes = std::max(0.0, stats_out->preallocated_bytes);
 }
 
 void parsed_stats_t::store_query_engine_stats(const ql::datum_t &qe_perf,
@@ -412,9 +413,9 @@ std::set<std::vector<std::string> > server_stats_request_t::get_filter() const {
 std::vector<peer_id_t> server_stats_request_t::get_peers(
         const std::map<peer_id_t, cluster_directory_metadata_t> &,
         server_config_client_t *server_config_client) const {
-    boost::optional<peer_id_t> peer =
+    optional<peer_id_t> peer =
         server_config_client->get_server_to_peer_map()->get_key(server_id);
-    if (!static_cast<bool>(peer)) {
+    if (!peer.has_value()) {
         return std::vector<peer_id_t>();
     }
     return std::vector<peer_id_t>(1, peer.get());
@@ -499,9 +500,9 @@ std::set<std::vector<std::string> > table_server_stats_request_t::get_filter() c
 std::vector<peer_id_t> table_server_stats_request_t::get_peers(
         const std::map<peer_id_t, cluster_directory_metadata_t> &,
         server_config_client_t *server_config_client) const {
-    boost::optional<peer_id_t> peer =
+    optional<peer_id_t> peer =
         server_config_client->get_server_to_peer_map()->get_key(server_id);
-    if (!static_cast<bool>(peer)) {
+    if (!peer.has_value()) {
         return std::vector<peer_id_t>();
     }
     return std::vector<peer_id_t>(1, peer.get());

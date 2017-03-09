@@ -16,8 +16,8 @@ $t = r.db(dbName).table(tableName)
 $t.wait(:wait_for=>"all_replicas_ready").run
 $t.delete.run
 $t.reconfigure(shards: 2, replicas: 1).run
-$t.insert((0...100).map{|i| {id: i}}).run
 $t.wait(:wait_for=>"all_replicas_ready").run
+$t.insert((0...100).map{|i| {id: i}}).run
 
 $streams = [
   $t,

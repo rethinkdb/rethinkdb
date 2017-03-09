@@ -347,6 +347,10 @@ class RDBVal extends TermBase
         new Max opts, @, keys.map(funcWrap)...
 
     insert: aropt (doc, opts) -> new Insert opts, @, rethinkdb.expr(doc)
+
+    setWriteHook: (args...) -> new SetWriteHook {}, @, args...
+    getWriteHook: () -> new GetWriteHook {}, @
+
     indexCreate: varar(1, 3, (name, defun_or_opts, opts) ->
         if opts?
             new IndexCreate opts, @, name, funcWrap(defun_or_opts)
@@ -942,6 +946,14 @@ class TableDrop extends RDBOp
 class TableList extends RDBOp
     tt: protoTermType.TABLE_LIST
     mt: 'tableList'
+
+class SetWriteHook extends RDBOp
+    tt: protoTermType.SET_WRITE_HOOK
+    mt: 'setWriteHook'
+
+class GetWriteHook extends RDBOp
+    tt: protoTermType.GET_WRITE_HOOK
+    mt: 'getWriteHook'
 
 class IndexCreate extends RDBOp
     tt: protoTermType.INDEX_CREATE

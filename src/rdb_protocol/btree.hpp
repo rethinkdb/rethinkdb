@@ -11,6 +11,7 @@
 #include "btree/types.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rdb_protocol/func.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/store.hpp"
 
@@ -95,6 +96,13 @@ struct btree_batched_replacer_t {
     virtual ql::datum_t replace(
         const ql::datum_t &d, size_t index) const = 0;
     virtual return_changes_t should_return_changes() const = 0;
+
+    ql::datum_t apply_write_hook(
+        ql::env_t *env,
+        const datum_string_t &pkey,
+        const ql::datum_t &d,
+        const ql::datum_t &res_,
+        const counted_t<const ql::func_t> &write_hook) const;
 };
 struct btree_point_replacer_t {
     virtual ~btree_point_replacer_t() { }
@@ -136,12 +144,12 @@ void rdb_rget_slice(
     btree_slice_t *slice,
     const region_t &shard,
     const key_range_t &range,
-    const boost::optional<std::map<store_key_t, uint64_t> > &primary_keys,
+    const optional<std::map<store_key_t, uint64_t> > &primary_keys,
     superblock_t *superblock,
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
     const std::vector<ql::transform_variant_t> &transforms,
-    const boost::optional<ql::terminal_variant_t> &terminal,
+    const optional<ql::terminal_variant_t> &terminal,
     sorting_t sorting,
     rget_read_response_t *response,
     release_superblock_t release_superblock);
@@ -155,7 +163,7 @@ void rdb_rget_secondary_slice(
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
     const std::vector<ql::transform_variant_t> &transforms,
-    const boost::optional<ql::terminal_variant_t> &terminal,
+    const optional<ql::terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     sorting_t sorting,
     require_sindexes_t require_sindex_val,
@@ -172,7 +180,7 @@ void rdb_get_intersecting_slice(
     ql::env_t *ql_env,
     const ql::batchspec_t &batchspec,
     const std::vector<ql::transform_variant_t> &transforms,
-    const boost::optional<ql::terminal_variant_t> &terminal,
+    const optional<ql::terminal_variant_t> &terminal,
     const key_range_t &pk_range,
     const sindex_disk_info_t &sindex_info,
     is_stamp_read_t is_stamp_read,

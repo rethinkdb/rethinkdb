@@ -128,11 +128,9 @@ private:
 
 class repli_timestamp_t;
 
-template <class serializer_type> struct serializer_traits_t;
-
 class log_serializer_t;
 
-class ls_block_token_pointee_t {
+class block_token_t {
 public:
     int64_t offset() const { return offset_; }
     block_size_t block_size() const { return block_size_; }
@@ -141,14 +139,14 @@ private:
     friend class log_serializer_t;
     friend class dbm_read_ahead_fsm_t;  // For read-ahead tokens.
 
-    friend void counted_add_ref(ls_block_token_pointee_t *p);
-    friend void counted_release(ls_block_token_pointee_t *p);
+    friend void counted_add_ref(block_token_t *p);
+    friend void counted_release(block_token_t *p);
 
-    ls_block_token_pointee_t(log_serializer_t *serializer,
-                             int64_t initial_offset,
-                             block_size_t initial_ser_block_size);
+    block_token_t(log_serializer_t *serializer,
+                  int64_t initial_offset,
+                  block_size_t initial_ser_block_size);
 
-    log_serializer_t *serializer_;
+    log_serializer_t *const serializer_;
     std::atomic<intptr_t> ref_count_;
 
     // The block's size.
@@ -159,19 +157,15 @@ private:
 
     void do_destroy();
 
-    DISABLE_COPYING(ls_block_token_pointee_t);
+    DISABLE_COPYING(block_token_t);
 };
 
 void debug_print(printf_buffer_t *buf,
-                 const counted_t<ls_block_token_pointee_t> &token);
+                 const counted_t<block_token_t> &token);
 
-void counted_add_ref(ls_block_token_pointee_t *p);
-void counted_release(ls_block_token_pointee_t *p);
+void counted_add_ref(block_token_t *p);
+void counted_release(block_token_t *p);
 
-template <>
-struct serializer_traits_t<log_serializer_t> {
-    typedef ls_block_token_pointee_t block_token_type;
-};
 
 class file_t;
 
@@ -189,24 +183,8 @@ public:
     virtual void unlink_serializer_file() = 0;
 };
 
-// TODO: This is a hack remaining from when we had the semantic checking serializer
-// and had to mask the implementation of a block token. We should check if we
-// can remove this indirection now.
-inline
-counted_t<ls_block_token_pointee_t>
-to_standard_block_token(UNUSED block_id_t block_id,
-                        counted_t<ls_block_token_pointee_t> tok) {
-    return tok;
-}
-
-typedef serializer_traits_t<log_serializer_t>::block_token_type standard_block_token_t;
-
 class serializer_t;
 
-template <>
-struct serializer_traits_t<serializer_t> {
-    typedef standard_block_token_t block_token_type;
-};
 
 // TODO: This is obsolete because the serializer multiplexer isn't used with multiple
 // files any more.
@@ -222,7 +200,7 @@ public:
     // ownership, by leaving `*buf` untouched.
     virtual void offer_read_ahead_buf(block_id_t block_id,
                                       buf_ptr_t *buf,
-                                      const counted_t<standard_block_token_t> &token) = 0;
+                                      const counted_t<block_token_t> &token) = 0;
 };
 
 struct buf_write_info_t {

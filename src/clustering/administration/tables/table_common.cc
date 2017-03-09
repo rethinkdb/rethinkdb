@@ -7,14 +7,17 @@
 #include "concurrency/cross_thread_signal.hpp"
 
 common_table_artificial_table_backend_t::common_table_artificial_table_backend_t(
-        boost::shared_ptr<semilattice_readwrite_view_t<
+        name_string_t const &table_name,
+        rdb_context_t *rdb_context,
+        lifetime_t<name_resolver_t const &> name_resolver,
+        std::shared_ptr<semilattice_readwrite_view_t<
             cluster_semilattice_metadata_t> > _semilattice_view,
         table_meta_client_t *_table_meta_client,
-        admin_identifier_format_t _identifier_format) :
-    semilattice_view(_semilattice_view),
-    table_meta_client(_table_meta_client),
-    identifier_format(_identifier_format)
-{
+        admin_identifier_format_t _identifier_format)
+    : timer_cfeed_artificial_table_backend_t(table_name, rdb_context, name_resolver),
+      semilattice_view(_semilattice_view),
+      table_meta_client(_table_meta_client),
+      identifier_format(_identifier_format) {
     semilattice_view->assert_thread();
 }
 
@@ -23,6 +26,7 @@ std::string common_table_artificial_table_backend_t::get_primary_key_name() {
 }
 
 bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
+        auth::user_context_t const &user_context,
         signal_t *interruptor_on_caller,
         std::vector<ql::datum_t> *rows_out,
         UNUSED admin_err_t *error_out) {
@@ -34,16 +38,21 @@ bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
     table_meta_client->list_configs(
         &interruptor_on_home, &configs, &disconnected_configs);
     rows_out->clear();
-    for (const auto &pair : configs) {
+    pmap(configs.cbegin(), configs.cend(),
+        [&](const std::pair<namespace_id_t, table_config_and_shards_t> &pair) {
         ql::datum_t db_name_or_uuid;
         if (!convert_database_id_to_datum(
-                pair.second.config.basic.database, identifier_format, metadata,
-                &db_name_or_uuid, nullptr)) {
+            pair.second.config.basic.database, identifier_format, metadata,
+            &db_name_or_uuid, nullptr)) {
             db_name_or_uuid = ql::datum_t("__deleted_database__");
         }
         try {
             ql::datum_t row;
-            format_row(pair.first, pair.second, db_name_or_uuid,
+            format_row(
+                user_context,
+                pair.first,
+                pair.second,
+                db_name_or_uuid,
                 &interruptor_on_home, &row);
             rows_out->push_back(row);
         } catch (const no_such_table_exc_t &) {
@@ -52,9 +61,18 @@ bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
         } catch (const failed_table_op_exc_t &) {
             ql::datum_t row;
             format_error_row(
-                pair.first, db_name_or_uuid, pair.second.config.basic.name, &row);
+                user_context,
+                pair.first,
+                db_name_or_uuid,
+                pair.second.config.basic.name,
+                &row);
             rows_out->push_back(row);
+        } catch (const interrupted_exc_t &) {
+            /* We're handling this outside the `pmap` */
         }
+    });
+    if (interruptor_on_home.is_pulsed()) {
+        throw interrupted_exc_t();
     }
     for (const auto &pair : disconnected_configs) {
         ql::datum_t db_name_or_uuid;
@@ -64,13 +82,15 @@ bool common_table_artificial_table_backend_t::read_all_rows_as_vector(
             db_name_or_uuid = ql::datum_t("__deleted_database__");
         }
         ql::datum_t row;
-        format_error_row(pair.first, db_name_or_uuid, pair.second.name, &row);
+        format_error_row(
+            user_context, pair.first, db_name_or_uuid, pair.second.name, &row);
         rows_out->push_back(row);
     }
     return true;
 }
 
 bool common_table_artificial_table_backend_t::read_row(
+        auth::user_context_t const &user_context,
         ql::datum_t primary_key,
         signal_t *interruptor_on_caller,
         ql::datum_t *row_out,
@@ -101,9 +121,16 @@ bool common_table_artificial_table_backend_t::read_row(
         table_config_and_shards_t config;
         try {
             table_meta_client->get_config(table_id, &interruptor_on_home, &config);
-            format_row(table_id, config, db_name_or_uuid, &interruptor_on_home, row_out);
+            format_row(
+                user_context,
+                table_id,
+                config,
+                db_name_or_uuid,
+                &interruptor_on_home,
+                row_out);
         } catch (const failed_table_op_exc_t &) {
-            format_error_row(table_id, db_name_or_uuid, basic_config.name, row_out);
+            format_error_row(
+                user_context, table_id, db_name_or_uuid, basic_config.name, row_out);
         }
         return true;
     } catch (const no_such_table_exc_t &) {
@@ -113,6 +140,7 @@ bool common_table_artificial_table_backend_t::read_row(
 }
 
 void common_table_artificial_table_backend_t::format_error_row(
+        UNUSED auth::user_context_t const &user_context,
         const namespace_id_t &table_id,
         const ql::datum_t &db_name_or_uuid,
         const name_string_t &table_name,

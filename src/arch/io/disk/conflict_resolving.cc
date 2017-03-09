@@ -56,6 +56,27 @@ void copy_full_action_buf(pool_diskmgr_action_t *dest, pool_diskmgr_action_t *so
     fill_bufs_from_source(dest_vecs, dest_size, source_vecs, source_size, offset_into_source);
 }
 
+void conflict_resolving_diskmgr_t::get_range(
+        const action_t *a, int64_t *begin, int64_t *end) {
+    int64_t begin_offset, end_offset;
+    if (a->get_is_resize()) {
+        if (a->get_size_change() < 0) {
+            /* Shrinks the file from `end_offset` to the new size `begin_offset`. */
+            begin_offset = a->get_offset();
+            end_offset = a->get_offset() - a->get_size_change();
+        } else {
+            /* Grows the file from `begin_offset` to the new size `end_offset`. */
+            begin_offset = a->get_offset() - a->get_size_change();
+            end_offset = a->get_offset();
+        }
+    } else {
+        begin_offset = a->get_offset();
+        end_offset = a->get_offset() + a->get_count();
+    }
+    *begin = begin_offset / DEVICE_BLOCK_SIZE;
+    *end = ceil_aligned(end_offset, DEVICE_BLOCK_SIZE) / DEVICE_BLOCK_SIZE;
+}
+
 void conflict_resolving_diskmgr_t::submit(action_t *action) {
     action->conflict_count = 0;
 
@@ -69,7 +90,15 @@ void conflict_resolving_diskmgr_t::submit(action_t *action) {
     if (action->get_is_resize()) {
         /* Block out subsequent operations; reads, writes and resizes alike. */
         ++resize_active[action->get_fd()];
-    } else {
+    }
+
+    /*
+    We calculate per-block conflicts for all operations except for resizes
+    that increase the file size.
+    Resizes that reduce the file size must wait for any queued operation
+    that accesses the affected region of the file, while size increases
+    are safe to run at any time, and we can skip the check. */
+    if (!action->get_is_resize() || action->get_size_change() < 0) {
         std::map<int64_t, std::deque<action_t *> > *chunk_queues = &all_chunk_queues[action->get_fd()];
         /* Determine the range of file-blocks that this action spans */
         int64_t start;
@@ -86,15 +115,21 @@ void conflict_resolving_diskmgr_t::submit(action_t *action) {
                 action->conflict_count++;
             }
 
-            /* Put ourself on the queue for this chunk */
-            if (it == chunk_queues->end()) {
+            /* Put ourself on the queue for this chunk.
+            The exception is if we are a resize and there is no queue yet.
+            This is safe because resize operations have their own queue
+            `resize_waiter_queues` on which other operations will queue up. */
+            if (it == chunk_queues->end() && !action->get_is_resize()) {
                 /* Start a queue because there isn't one already */
-                it = chunk_queues->insert(it, std::make_pair(block, std::deque<action_t *>()));
+                it = chunk_queues->insert(
+                    it, std::make_pair(block, std::deque<action_t *>()));
             }
-            rassert(it->first == block);
-            it->second.push_back(action);
+            if (it != chunk_queues->end()) {
+                rassert(it->first == block);
+                it->second.push_back(action);
+            }
         }
-    } // if (!action->get_is_resize())
+    }
 
     /* If there are no conflicts, we can start right away. */
     if (action->conflict_count == 0) {
@@ -136,10 +171,6 @@ void conflict_resolving_diskmgr_t::done(accounting_diskmgr_action_t *payload) {
             rassert(waiter->conflict_count > 0);
             waiter->conflict_count--;
 
-            /* Resizes only wait for other resizes. So if we get here, we must
-            be the last thing that `waiter` has been waiting for. */
-            rassert(!waiter->get_is_resize() || waiter->conflict_count == 0);
-
             if (waiter->conflict_count == 0) {
                 /* The waiter isn't waiting on anything else. Unblock it. */
                 waiters_to_unblock.push_back(waiter);
@@ -169,25 +200,35 @@ void conflict_resolving_diskmgr_t::done(accounting_diskmgr_action_t *payload) {
         for (size_t i = 0; i < waiters_to_unblock.size(); ++i) {
             submit_action_downwards(waiters_to_unblock[i]);
         }
+    }
 
-    } else {
+    if (!action->get_is_resize() || action->get_size_change() < 0) {
         std::map<int64_t, std::deque<action_t *> > *chunk_queues = &all_chunk_queues[action->get_fd()];
 
         int64_t start, end;
         get_range(action, &start, &end);
 
-        /* Visit every block and see if anything is blocking on us. As we iterate
-        over block indices, we iterate through the corresponding entries in the map. */
-
-        std::map<int64_t, std::deque<action_t*> >::iterator it = chunk_queues->find(start);
-        for (int64_t block = start; block < end; block++) {
-            /* We can assert this because at least we must still be on the queue */
-            rassert(it != chunk_queues->end() && it->first == block);
+        /* Visit every chunk queue in the block range and see if anything is
+        blocking on us. */
+        for (auto it = chunk_queues->lower_bound(start);
+             it != chunk_queues->end();) {
+            if (it->first >= end) {
+                break;
+            }
 
             std::deque<action_t *> &queue = it->second;
 
-            /* Remove ourselves from the queue */
-            rassert(queue.front() == action);
+            /* Remove ourselves from the queue.
+            Exception: If we are a resize and weren't on the queue in the first
+            place, we can skip this queue.
+            This can happen because resizes only go on queues that already
+            existed when the resize was added. */
+            guarantee(!queue.empty());
+            if (queue.front() != action) {
+                guarantee(action->get_is_resize());
+                ++it;
+                continue;
+            }
             queue.pop_front();
 
             if (!queue.empty()) {
@@ -207,7 +248,8 @@ void conflict_resolving_diskmgr_t::done(accounting_diskmgr_action_t *payload) {
 
                     /* If the waiter is a read, and the range it was supposed to read is a subrange of
                     our range, then we can just fill its buffer directly instead of going to disk. */
-                    if (waiter->get_is_read() &&
+                    if ((action->get_is_read() || action->get_is_write()) &&
+                            waiter->get_is_read() &&
                             waiter->get_offset() >= action->get_offset() &&
                             waiter->get_offset() + waiter->get_count() <= action->get_offset() + action->get_count() ) {
 

@@ -14,8 +14,9 @@
 #include "rdb_protocol/context.hpp"
 #include "rpc/semilattice/view.hpp"
 
-class admin_artificial_tables_t;
+class artificial_reql_cluster_interface_t;
 class artificial_table_backend_t;
+class name_resolver_t;
 class server_config_client_t;
 
 /* `real_reql_cluster_interface_t` is a concrete subclass of `reql_cluster_interface_t`
@@ -30,9 +31,9 @@ class real_reql_cluster_interface_t :
 public:
     real_reql_cluster_interface_t(
             mailbox_manager_t *mailbox_manager,
-            boost::shared_ptr<semilattice_readwrite_view_t<
+            std::shared_ptr<semilattice_readwrite_view_t<
                 auth_semilattice_metadata_t> > auth_semilattice_view,
-            boost::shared_ptr<semilattice_readwrite_view_t<
+            std::shared_ptr<semilattice_readwrite_view_t<
                 cluster_semilattice_metadata_t> > cluster_semilattice_view,
             rdb_context_t *rdb_context,
             server_config_client_t *server_config_client,
@@ -40,7 +41,8 @@ public:
             multi_table_manager_t *multi_table_manager,
             watchable_map_t<
                 std::pair<peer_id_t, std::pair<namespace_id_t, branch_id_t> >,
-                table_query_bcard_t> *table_query_directory);
+                table_query_bcard_t> *table_query_directory,
+            lifetime_t<name_resolver_t const &> name_resolver);
 
     bool db_create(
             auth::user_context_t const &user_context,
@@ -102,7 +104,7 @@ public:
     bool table_find(
             const name_string_t &name,
             counted_t<const ql::db_t> db,
-            boost::optional<admin_identifier_format_t> identifier_format,
+            optional<admin_identifier_format_t> identifier_format,
             signal_t *interruptor, counted_t<base_table_t> *table_out,
             admin_err_t *error_out);
     bool table_estimate_doc_counts(
@@ -209,6 +211,22 @@ public:
             ql::datum_t *result_out,
             admin_err_t *error_out);
 
+    bool set_write_hook(
+            auth::user_context_t const &user_context,
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            const optional<write_hook_config_t> &config,
+            signal_t *interruptor,
+            admin_err_t *error_out);
+
+    bool get_write_hook(
+            auth::user_context_t const &user_context,
+            counted_t<const ql::db_t> db,
+            const name_string_t &table,
+            signal_t *interruptor,
+            ql::datum_t *write_hook_datum_out,
+            admin_err_t *error_out);
+
     bool sindex_create(
             auth::user_context_t const &user_context,
             counted_t<const ql::db_t> db,
@@ -252,13 +270,13 @@ public:
 
     /* This is public because it needs to be set after we're created to solve a certain
     chicken-and-egg problem */
-    admin_artificial_tables_t *admin_tables;
+    artificial_reql_cluster_interface_t *artificial_reql_cluster_interface;
 
 private:
     mailbox_manager_t *m_mailbox_manager;
-    boost::shared_ptr<semilattice_readwrite_view_t<
+    std::shared_ptr<semilattice_readwrite_view_t<
         auth_semilattice_metadata_t> > m_auth_semilattice_view;
-    boost::shared_ptr<semilattice_readwrite_view_t<
+    std::shared_ptr<semilattice_readwrite_view_t<
         cluster_semilattice_metadata_t> > m_cluster_semilattice_view;
     table_meta_client_t *m_table_meta_client;
     scoped_array_t< scoped_ptr_t< cross_thread_watchable_variable_t<
@@ -277,7 +295,7 @@ private:
     void get_databases_metadata(databases_semilattice_metadata_t *out);
 
     void make_single_selection(
-            artificial_table_backend_t *table_backend,
+            auth::user_context_t const &user_context,
             const name_string_t &table_name,
             const uuid_u &primary_key,
             ql::backtrace_id_t bt,
@@ -294,6 +312,7 @@ private:
             THROWS_ONLY(interrupted_exc_t, admin_op_exc_t);
 
     void reconfigure_internal(
+            auth::user_context_t const &user_context,
             const counted_t<const ql::db_t> &db,
             const namespace_id_t &table_id,
             const table_generate_config_params_t &params,
@@ -304,6 +323,7 @@ private:
                 failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t);
 
     void emergency_repair_internal(
+            auth::user_context_t const &user_context,
             const counted_t<const ql::db_t> &db,
             const namespace_id_t &table_id,
             emergency_repair_mode_t mode,
@@ -314,6 +334,7 @@ private:
                 failed_table_op_exc_t, maybe_failed_table_op_exc_t, admin_op_exc_t);
 
     void rebalance_internal(
+            auth::user_context_t const &user_context,
             const namespace_id_t &table_id,
             signal_t *interruptor,
             ql::datum_t *results_out)

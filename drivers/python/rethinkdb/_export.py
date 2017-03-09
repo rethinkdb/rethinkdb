@@ -2,23 +2,23 @@
 
 from __future__ import print_function
 
-import csv, ctypes, datetime, json, multiprocessing, numbers, optparse, tempfile
-import os, re, signal, sys, time, traceback
+import collections, csv, ctypes, datetime, json, math, multiprocessing, numbers
+import optparse, os, platform, tempfile, re, signal, sys, time, traceback
 
-from . import utils_common, net
-r = utils_common.r
-
-# When running a subprocess, we may inherit the signal handler - remove it
-signal.signal(signal.SIGINT, signal.SIG_DFL)
+from . import errors, net, query, utils_common
 
 try:
     unicode
 except NameError:
     unicode = str
 try:
-    from multiprocessing import SimpleQueue
+    from Queue import Empty, Full
 except ImportError:
-    from multiprocessing.queues import SimpleQueue
+    from queue import Empty, Full
+try:
+    from multiprocessing import Queue, SimpleQueue
+except ImportError:
+    from multiprocessing.queues import Queue, SimpleQueue
 
 usage = """rethinkdb export [-c HOST:PORT] [-p] [--password-file FILENAME] [--tls-cert filename] [-d DIR] [-e (DB | DB.TABLE)]...
       [--format (csv | json | ndjson)] [--fields FIELD,FIELD...] [--delimiter CHARACTER]
@@ -44,7 +44,10 @@ rethinkdb export --fields id,value -e test.data
 '''
 
 def parse_options(argv, prog=None):
-    defaultDir = os.path.realpath("./rethinkdb_export_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S")) # "
+    if platform.system() == "Windows" or platform.system().lower().startswith('cygwin'):
+        defaultDir = "rethinkdb_export_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H-%M-%S") # no colons in name
+    else:
+        defaultDir = "rethinkdb_export_%s" % datetime.datetime.today().strftime("%Y-%m-%dT%H:%M:%S") # "
     
     parser = utils_common.CommonOptionsParser(usage=usage, description=help_description, epilog=help_epilog, prog=prog)
     
@@ -53,6 +56,7 @@ def parse_options(argv, prog=None):
     parser.add_option("--fields",          dest="fields",    metavar="<FIELD>,...",     default=None,       help='export only specified fields (required for CSV format)')
     parser.add_option("--format",          dest="format",    metavar="json|csv|ndjson", default="json",     help='format to write (defaults to json. ndjson is newline delimited json.)', type="choice", choices=['json', 'csv', 'ndjson'])
     parser.add_option("--clients",         dest="clients",   metavar="NUM",             default=3,          help='number of tables to export simultaneously (default: 3)', type="pos_int")
+    parser.add_option("--read-outdated",   dest="outdated",                             default=False,      help='use outdated read mode',  action="store_true")
     
     csvGroup = optparse.OptionGroup(parser, 'CSV options')
     csvGroup.add_option("--delimiter", dest="delimiter",     metavar="CHARACTER",       default=None,       help="character to be used as field delimiter, or '\\t' for tab (default: ',')")
@@ -146,7 +150,10 @@ def csv_writer(filename, fields, delimiter, task_queue, error_queue):
                     elif isinstance(row[field], unicode):
                         info.append(row[field].encode('utf-8'))
                     else:
-                        info.append(json.dumps(row[field]))
+                        if str == unicode:
+                            info.append(json.dumps(row[field]))
+                        else:
+                            info.append(json.dumps(row[field]).encode('utf-8'))
                 out_writer.writerow(info)
                 item = task_queue.get()
     except:
@@ -157,44 +164,51 @@ def csv_writer(filename, fields, delimiter, task_queue, error_queue):
         while not isinstance(task_queue.get(), StopIteration):
             pass
 
-def export_table(db, table, directory, fields, delimiter, format, error_queue, progress_info, sindex_counter, exit_event):
+def export_table(db, table, directory, options, error_queue, progress_info, sindex_counter, hook_counter, exit_event):
+    signal.signal(signal.SIGINT, signal.SIG_DFL) # prevent signal handlers from being set in child processes
+    
     writer = None
 
     try:
         # -- get table info
         
-        table_info = utils_common.retryQuery('table info: %s.%s' % (db, table), r.db(db).table(table).info())
+        table_info = options.retryQuery('table info: %s.%s' % (db, table), query.db(db).table(table).info())
         
         # Rather than just the index names, store all index information
-        table_info['indexes'] = utils_common.retryQuery(
+        table_info['indexes'] = options.retryQuery(
             'table index data %s.%s' % (db, table),
-            r.db(db).table(table).index_status(),
+            query.db(db).table(table).index_status(),
             runOptions={'binary_format':'raw'}
         )
         
+        sindex_counter.value += len(table_info["indexes"])
+
+        table_info['write_hook'] = options.retryQuery(
+            'table write hook data %s.%s' % (db, table),
+            query.db(db).table(table).get_write_hook(),
+            runOptions={'binary_format':'raw'})
+
+        if table_info['write_hook'] != None:
+            hook_counter.value += 1
+
         with open(os.path.join(directory, db, table + '.info'), 'w') as info_file:
             info_file.write(json.dumps(table_info) + "\n")
-        
-        sindex_counter.value += len(table_info["indexes"])
-        
+        with sindex_counter.get_lock():
+            sindex_counter.value += len(table_info["indexes"])
         # -- start the writer
-        
         task_queue = SimpleQueue()
         writer = None
-        if format == "json":
+        if options.format == "json":
             filename = directory + "/%s/%s.json" % (db, table)
-            writer = multiprocessing.Process(target=json_writer,
-                                           args=(filename, fields, task_queue, error_queue, format))
-        elif format == "csv":
+            writer = multiprocessing.Process(target=json_writer, args=(filename, options.fields, task_queue, error_queue, options.format))
+        elif options.format == "csv":
             filename = directory + "/%s/%s.csv" % (db, table)
-            writer = multiprocessing.Process(target=csv_writer,
-                                           args=(filename, fields, delimiter, task_queue, error_queue))
-        elif format == "ndjson":
+            writer = multiprocessing.Process(target=csv_writer, args=(filename, options.fields, options.delimiter, task_queue, error_queue))
+        elif options.format == "ndjson":
             filename = directory + "/%s/%s.ndjson" % (db, table)
-            writer = multiprocessing.Process(target=json_writer,
-                                           args=(filename, fields, task_queue, error_queue, format))
+            writer = multiprocessing.Process(target=json_writer, args=(filename, options.fields, task_queue, error_queue, options.format))
         else:
-            raise RuntimeError("unknown format type: %s" % format)
+            raise RuntimeError("unknown format type: %s" % options.format)
         writer.start()
         
         # -- read in the data source
@@ -202,11 +216,17 @@ def export_table(db, table, directory, fields, delimiter, format, error_queue, p
         # - 
         
         lastPrimaryKey = None
-        read_rows = 0
-        cursor = utils_common.retryQuery(
+        read_rows      = 0
+        runOptions     = {
+            "time_format":"raw",
+            "binary_format":"raw"
+        }
+        if options.outdated:
+            runOptions["read_mode"] = "outdated"
+        cursor = options.retryQuery(
             'inital cursor for %s.%s' % (db, table),
-            r.db(db).table(table).order_by(index=table_info["primary_key"]),
-            runOptions={"time_format":"raw", "binary_format":"raw"}
+            query.db(db).table(table).order_by(index=table_info["primary_key"]),
+            runOptions=runOptions
         )
         while not exit_event.is_set():
             try:
@@ -230,18 +250,18 @@ def export_table(db, table, directory, fields, delimiter, format, error_queue, p
                     progress_info[1].value = read_rows
                     break
             
-            except (r.ReqlTimeoutError, r.ReqlDriverError) as e:
+            except (errors.ReqlTimeoutError, errors.ReqlDriverError) as e:
                 # connection problem, re-setup the cursor
                 try:
                     cursor.close()
                 except Exception: pass
-                cursor = utils_common.retryQuery(
+                cursor = options.retryQuery(
                     'backup cursor for %s.%s' % (db, table),
-                    r.db(db).table(table).between(lastPrimaryKey, None, left_bound="open").order_by(index=table_info["primary_key"]),
-                    runOptions={"time_format":"raw", "binary_format":"raw"}
+                    query.db(db).table(table).between(lastPrimaryKey, None, left_bound="open").order_by(index=table_info["primary_key"]),
+                    runOptions=runOptions
                 )
     
-    except (r.ReqlError, r.ReqlDriverError) as ex:
+    except (errors.ReqlError, errors.ReqlDriverError) as ex:
         error_queue.put((RuntimeError, RuntimeError(ex.message), traceback.extract_tb(sys.exc_info()[2])))
     except:
         ex_type, ex_class, tb = sys.exc_info()
@@ -276,14 +296,15 @@ def update_progress(progress_info, options):
     if not options.quiet:
         utils_common.print_progress(float(rows_done) / total_rows, indent=4)
 
-def run_clients(options, partialDirectory, db_table_set):
-    # Spawn one client for each db.table
+def run_clients(options, workingDir, db_table_set):
+    # Spawn one client for each db.table, up to options.clients at a time
     exit_event = multiprocessing.Event()
     processes = []
     error_queue = SimpleQueue()
     interrupt_event = multiprocessing.Event()
     sindex_counter = multiprocessing.Value(ctypes.c_longlong, 0)
-
+    hook_counter = multiprocessing.Value(ctypes.c_longlong, 0)
+    
     signal.signal(signal.SIGINT, lambda a, b: abort_export(a, b, exit_event, interrupt_event))
     errors = []
 
@@ -292,18 +313,17 @@ def run_clients(options, partialDirectory, db_table_set):
         arg_lists = []
         for db, table in db_table_set:
             
-            tableSize = int(utils_common.retryQuery("count", r.db(db).table(table).info()['doc_count_estimates'].sum()))
+            tableSize = int(options.retryQuery("count", query.db(db).table(table).info()['doc_count_estimates'].sum()))
             
             progress_info.append((multiprocessing.Value(ctypes.c_longlong, 0),
                                   multiprocessing.Value(ctypes.c_longlong, tableSize)))
             arg_lists.append((db, table,
-                              partialDirectory,
-                              options.fields,
-                              options.delimiter,
-                              options.format,
+                              workingDir,
+                              options,
                               error_queue,
                               progress_info[-1],
                               sindex_counter,
+                              hook_counter,
                               exit_event,
                               ))
 
@@ -335,10 +355,12 @@ def run_clients(options, partialDirectory, db_table_set):
             return "%d %s" % (num, text if num == 1 else plural_text)
 
         if not options.quiet:
-            print("\n    %s exported from %s, with %s" %
+            print("\n    %s exported from %s, with %s, and %s" %
                   (plural(sum([max(0, info[0].value) for info in progress_info]), "row", "rows"),
                    plural(len(db_table_set), "table", "tables"),
-                   plural(sindex_counter.value, "secondary index", "secondary indexes")))
+                   plural(sindex_counter.value, "secondary index", "secondary indexes"),
+                   plural(hook_counter.value, "hook function", "hook functions")
+            ))
     finally:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
 
@@ -346,7 +368,7 @@ def run_clients(options, partialDirectory, db_table_set):
         raise RuntimeError("Interrupted")
 
     if len(errors) != 0:
-        # multiprocessing queues don't handling tracebacks, so they've already been stringified in the queue
+        # multiprocessing queues don't handle tracebacks, so they've already been stringified in the queue
         for error in errors:
             print("%s" % error[1], file=sys.stderr)
             if options.debug:
@@ -356,15 +378,15 @@ def run_clients(options, partialDirectory, db_table_set):
 def run(options):
     # Make sure this isn't a pre-`reql_admin` cluster - which could result in data loss
     # if the user has a database named 'rethinkdb'
-    utils_common.check_minimum_version('1.6')
+    utils_common.check_minimum_version(options, '1.6')
     
     # get the complete list of tables
     db_table_set = set()
-    allTables = [utils_common.DbTable(x['db'], x['name']) for x in utils_common.retryQuery('list tables', r.db('rethinkdb').table('table_config').pluck(['db', 'name']))]
+    allTables = [utils_common.DbTable(x['db'], x['name']) for x in options.retryQuery('list tables', query.db('rethinkdb').table('table_config').pluck(['db', 'name']))]
     if not options.db_tables:
         db_table_set = allTables # default to all tables
     else:
-        allDatabases = utils_common.retryQuery('list dbs', r.db_list().filter(r.row.ne('rethinkdb')))
+        allDatabases = options.retryQuery('list dbs', query.db_list().filter(query.row.ne('rethinkdb')))
         for db_table in options.db_tables:
             db, table = db_table
             assert db != 'rethinkdb', "Error: Cannot export tables from the system database: 'rethinkdb'" # should not be possible
@@ -385,7 +407,7 @@ def run(options):
     parentDir = os.path.dirname(options.directory)
     if not os.path.exists(parentDir):
         if os.path.isdir(parentDir):
-            raise RuntimeError("Ouput parent directory is not a directory: %s" % (opt, value))
+            raise RuntimeError("Output parent directory is not a directory: %s" % (opt, value))
         try:
             os.makedirs(parentDir)
         except OSError as e:
@@ -402,12 +424,16 @@ def run(options):
     
     # Move the temporary directory structure over to the original output directory
     try:
+        if os.path.isdir(options.directory):
+            os.rmdir(options.directory) # an empty directory is created here when using _dump
+        elif os.path.exists(options.directory):
+            raise Exception('There was a file at the output location: %s' % options.directory)
         os.rename(workingDir, options.directory)
     except OSError as e:
-        raise RuntimeError("Failed to move temporary directory to output directory (%s): %s" % (options.directory, ex.strerror))
+        raise RuntimeError("Failed to move temporary directory to output directory (%s): %s" % (options.directory, e.strerror))
 
 def main(argv=None, prog=None):
-    options = parse_options(argv or sys.argv[2:], prog=prog)
+    options = parse_options(argv or sys.argv[1:], prog=prog)
     
     start_time = time.time()
     try:

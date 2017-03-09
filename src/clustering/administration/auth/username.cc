@@ -32,6 +32,10 @@ bool username_t::operator==(username_t const &rhs) const {
     return m_username == rhs.m_username;
 }
 
+bool username_t::operator!=(username_t const &rhs) const {
+    return !(*this == rhs);
+}
+
 RDB_IMPL_SERIALIZABLE_1(username_t, m_username);
 INSTANTIATE_SERIALIZABLE_SINCE_v2_3(username_t);
 

@@ -49,6 +49,8 @@ int main(int argc, char *argv[]) {
             return main_rethinkdb_restore(argc, argv);
         } else if (subcommand == "index-rebuild") {
             return main_rethinkdb_index_rebuild(argc, argv);
+        } else if (subcommand == "repl") {
+            return main_rethinkdb_repl(argc, argv);
 #ifdef _WIN32
         } else if (subcommand == "run-service") {
             return main_rethinkdb_run_service(argc, argv);
@@ -89,6 +91,8 @@ int main(int argc, char *argv[]) {
                     help_rethinkdb_restore();
                 } else if (subcommand2 == "index-rebuild") {
                     help_rethinkdb_index_rebuild();
+                } else if (subcommand2 == "repl") {
+                    help_rethinkdb_repl();
 #ifdef _WIN32
                 } else if (subcommand2 == "install-service") {
                     help_rethinkdb_install_service();

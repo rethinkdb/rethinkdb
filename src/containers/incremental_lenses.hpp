@@ -4,9 +4,7 @@
 
 #include <map>
 #include <set>
-
-#include "errors.hpp"
-#include <boost/utility/result_of.hpp>
+#include <type_traits>
 
 #include "containers/scoped.hpp"
 #include "containers/uuid.hpp"
@@ -127,7 +125,7 @@ private:
 template <class key_type, class inner_type, class callable_type>
 class incremental_map_lens_t {
 public:
-    typedef typename boost::result_of<callable_type(inner_type)>::type inner_result_type;
+    typedef typename std::result_of<callable_type(inner_type)>::type inner_result_type;
     typedef change_tracking_map_t<key_type, inner_result_type> result_type;
 
     explicit incremental_map_lens_t(const callable_type &_inner_lens) :

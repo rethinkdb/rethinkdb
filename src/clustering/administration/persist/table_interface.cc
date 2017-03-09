@@ -235,6 +235,7 @@ void real_table_persistence_interface_t::write_metadata_active(
     storage_interfaces[table_id].init(new table_raft_storage_interface_t(
         metadata_file, &write_txn, table_id, raft_state));
     *raft_storage_out = storage_interfaces[table_id].get();
+    write_txn.commit();
 }
 
 void real_table_persistence_interface_t::write_metadata_inactive(
@@ -252,6 +253,7 @@ void real_table_persistence_interface_t::write_metadata_inactive(
         &non_interruptor);
     table_raft_storage_interface_t::erase(&write_txn, table_id);
     real_branch_history_manager_t::erase(&write_txn, table_id);
+    write_txn.commit();
 }
 
 void real_table_persistence_interface_t::delete_metadata(
@@ -267,6 +269,7 @@ void real_table_persistence_interface_t::delete_metadata(
         &non_interruptor);
     table_raft_storage_interface_t::erase(&write_txn, table_id);
     real_branch_history_manager_t::erase(&write_txn, table_id);
+    write_txn.commit();
 }
 
 void real_table_persistence_interface_t::load_multistore(

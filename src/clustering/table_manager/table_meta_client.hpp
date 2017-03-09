@@ -151,7 +151,7 @@ public:
     void get_raft_leader(
         const namespace_id_t &table_id,
         signal_t *interruptor,
-        boost::optional<server_id_t> *raft_leader_out)
+        optional<server_id_t> *raft_leader_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t);
 
     /* `get_debug_status()` fetches all status information from all servers. This is for
@@ -229,7 +229,7 @@ private:
     a particular table and that table doesn't exist, it throws `no_such_table_exc_t`. */
     enum class server_selector_t { EVERY_SERVER, BEST_SERVER_ONLY };
     void get_status(
-        const boost::optional<namespace_id_t> &table,
+        const optional<namespace_id_t> &table,
         const table_status_request_t &request,
         server_selector_t servers,
         signal_t *interruptor,

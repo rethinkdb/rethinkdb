@@ -270,13 +270,13 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         return;
     }
 
-    conn->enable_keepalive();
-
     uint8_t version = 0;
     std::unique_ptr<auth::base_authenticator_t> authenticator;
     uint32_t error_code = 0;
     std::string error_message;
     try {
+        conn->enable_keepalive();
+
         int32_t client_magic_number;
         conn->read_buffered(
             &client_magic_number, sizeof(client_magic_number), &ct_keepalive);
@@ -633,7 +633,7 @@ void query_server_t::handle(const http_req_t &req,
         return;
     }
 
-    boost::optional<std::string> optional_conn_id = req.find_query_param("conn_id");
+    optional<std::string> optional_conn_id = req.find_query_param("conn_id");
     if (!optional_conn_id) {
         *result = http_res_t(http_status_code_t::BAD_REQUEST, "application/text",
                              "Required parameter \"conn_id\" missing\n");

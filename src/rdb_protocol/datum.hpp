@@ -11,13 +11,10 @@
 #include <utility>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
-#include "btree/keys.hpp"
 #include "cjson/json.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/counted.hpp"
+#include "containers/optional.hpp"
 #include "rdb_protocol/datum_string.hpp"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
@@ -34,6 +31,8 @@
 class Datum;
 
 RDB_DECLARE_SERIALIZABLE(Datum);
+
+struct store_key_t;
 
 namespace ql {
 
@@ -63,8 +62,6 @@ enum throw_bool_t { NOTHROW = 0, THROW = 1 };
 // NOCLOBBER: Don't overwrite existing values.
 // CLOBBER: Overwrite existing values.
 enum clobber_bool_t { NOCLOBBER = 0, CLOBBER = 1 };
-
-enum class use_json_t { NO = 0, YES = 1 };
 
 // When getting the typename of a datum, this should be YES if the name will be
 // used for sorting datums by type, and NO if the name is to be given to a user.
@@ -102,7 +99,7 @@ struct components_t {
     skey_version_t skey_version;
     std::string secondary;
     std::string primary;
-    boost::optional<uint64_t> tag_num;
+    optional<uint64_t> tag_num;
 };
 
 // A `datum_t` is basically a JSON value, with some special handling for
@@ -239,7 +236,7 @@ public:
     static std::string compose_secondary(skey_version_t skey_version,
                                          const std::string &secondary_key,
                                          const store_key_t &primary_key,
-                                         boost::optional<uint64_t> tag_num);
+                                         optional<uint64_t> tag_num);
     static std::string mangle_secondary(
         skey_version_t skey_version,
         const std::string &secondary,
@@ -249,16 +246,16 @@ public:
     // tag_num is used for multi-indexes.
     std::string print_secondary(reql_version_t reql_version,
                                 const store_key_t &primary_key,
-                                boost::optional<uint64_t> tag_num) const;
+                                optional<uint64_t> tag_num) const;
     /* An inverse to print_secondary. Returns the primary key. */
     static std::string extract_primary(const std::string &secondary_and_primary);
     static store_key_t extract_primary(const store_key_t &secondary_key);
     static std::string extract_truncated_secondary(
         const std::string &secondary_and_primary);
     static std::string extract_secondary(const std::string &secondary_and_primary);
-    static boost::optional<uint64_t> extract_tag(
+    static optional<uint64_t> extract_tag(
         const std::string &secondary_and_primary);
-    static boost::optional<uint64_t> extract_tag(const store_key_t &key);
+    static optional<uint64_t> extract_tag(const store_key_t &key);
     static components_t extract_all(const std::string &secondary_and_primary);
     store_key_t truncated_secondary(
         reql_version_t reql_version,

@@ -1,9 +1,9 @@
 
-version=1.0.1t
+version=1.0.1u
 
 src_url="https://www.openssl.org/source/openssl-$version.tar.gz"
 src_url_backup="ftp://ftp.openssl.org/source/openssl-$version.tar.gz"
-src_url_sha1="a684ba59d6721a90f354b1953e19611646be7e7d"
+src_url_sha1="93e542696598517862115fbe76a93ab66369661d"
 
 pkg_configure () {
     case $($CXX -dumpmachine) in
@@ -14,11 +14,11 @@ pkg_configure () {
     # use shared instead of no-shared because curl's configure script
     # fails on some platforms if it can't find -lssl
     if [[ "$OS" = "Darwin" ]]; then
-        in_dir "$build_dir" ./Configure darwin64-x86_64-cc -shared --prefix="$(niceabspath "$install_dir")"
+        in_dir "$build_dir" ./Configure darwin64-x86_64-cc -shared --prefix="$(niceabspath "$install_dir")" $CFLAGS
     elif [[ "$arch" = arm ]]; then
-        in_dir "$build_dir" ./Configure linux-armv4 -shared --prefix="$(niceabspath "$install_dir")"
+        in_dir "$build_dir" ./Configure linux-armv4 -shared --prefix="$(niceabspath "$install_dir")" $CFLAGS
     else
-        in_dir "$build_dir" ./config shared --prefix="$(niceabspath "$install_dir")"
+        in_dir "$build_dir" ./config shared --prefix="$(niceabspath "$install_dir")" $CFLAGS
     fi
 }
 

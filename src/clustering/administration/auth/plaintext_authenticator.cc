@@ -19,7 +19,7 @@ plaintext_authenticator_t::plaintext_authenticator_t(
 
 /* virtual */ std::string plaintext_authenticator_t::next_message(
         std::string const &password) THROWS_ONLY(authentication_error_t) {
-    boost::optional<user_t> user;
+    optional<user_t> user;
 
     m_auth_watchable->apply_read(
         [&](auth_semilattice_metadata_t const *auth_metadata) {

@@ -21,7 +21,7 @@
 #ifndef RAPIDJSON_ERROR_EN_H__
 #define RAPIDJSON_ERROR_EN_H__
 
-#include "error.h"
+#include "rapidjson/error/error.h"
 
 RAPIDJSON_NAMESPACE_BEGIN
 

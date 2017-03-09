@@ -137,21 +137,21 @@ raw_term_t raw_term_t::arg(size_t index) const {
     return res;
 }
 
-boost::optional<raw_term_t> raw_term_t::optarg(const std::string &name) const {
-    boost::optional<raw_term_t> res;
+optional<raw_term_t> raw_term_t::optarg(const std::string &name) const {
+    optional<raw_term_t> res;
     visit_source(
         [&](const json_data_t &source) {
             if (source.optargs != nullptr) {
                 auto it = source.optargs->FindMember(name.c_str());
                 if (it != source.optargs->MemberEnd()) {
-                    res = raw_term_t(&it->value);
+                    res.set(raw_term_t(&it->value));
                 }
             }
         },
         [&](const counted_t<generated_term_t> &source) {
             auto it = source->optargs.find(name);
             if (it != source->optargs.end()) {
-                res = raw_term_t(it->second);
+                res.set(raw_term_t(it->second));
             }
         });
     return res;
@@ -538,8 +538,15 @@ MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_2>(
     term_storage_out->init(new wire_term_storage_t(std::move(data), std::move(doc)));
     return archive_result_t::SUCCESS;
 }
+
 template <>
-MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_3_is_latest>(
+MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_3>(
+        read_stream_t *s, scoped_ptr_t<term_storage_t> *term_storage_out) {
+    return deserialize_term_tree<cluster_version_t::v2_2>(s, term_storage_out);
+}
+
+template <>
+MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_4_is_latest>(
         read_stream_t *s, scoped_ptr_t<term_storage_t> *term_storage_out) {
     return deserialize_term_tree<cluster_version_t::v2_2>(s, term_storage_out);
 }

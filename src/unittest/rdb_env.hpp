@@ -205,7 +205,7 @@ public:
                 signal_t *interruptor,
                 std::set<name_string_t> *names_out, admin_err_t *error_out);
         bool table_find(const name_string_t &name, counted_t<const ql::db_t> db,
-                boost::optional<admin_identifier_format_t> identifier_format,
+                optional<admin_identifier_format_t> identifier_format,
                 signal_t *interruptor, counted_t<base_table_t> *table_out,
                 admin_err_t *error_out);
         bool table_estimate_doc_counts(
@@ -311,7 +311,20 @@ public:
                 signal_t *interruptor,
                 ql::datum_t *result_out,
                 admin_err_t *error_out);
-
+        bool set_write_hook(
+                auth::user_context_t const &user_context,
+                counted_t<const ql::db_t> db,
+                const name_string_t &table,
+                const optional<write_hook_config_t> &config,
+                signal_t *local_interruptor,
+                admin_err_t *error_out);
+        bool get_write_hook(
+                auth::user_context_t const &user_context,
+                counted_t<const ql::db_t> db,
+                const name_string_t &table,
+                signal_t *local_interruptor,
+                ql::datum_t *write_hook_datum_out,
+                admin_err_t *error_out);
         bool sindex_create(
                 auth::user_context_t const &user_context,
                 counted_t<const ql::db_t> db,

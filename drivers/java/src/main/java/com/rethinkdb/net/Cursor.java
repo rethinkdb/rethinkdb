@@ -33,6 +33,7 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T>, Closeable {
     protected int outstandingRequests = 0;
     protected int threshold = 1;
     protected Optional<RuntimeException> error = Optional.empty();
+    protected boolean alreadyIterated = false;
 
     protected Future<Response> awaitingContinue = null;
 
@@ -47,6 +48,7 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T>, Closeable {
     }
 
     public void close() {
+        connection.removeFromCache(this.token);
         if (!error.isPresent()) {
             error = Optional.of(new NoSuchElementException());
             if (connection.isOpen()) {
@@ -144,7 +146,11 @@ public abstract class Cursor<T> implements Iterator<T>, Iterable<T>, Closeable {
     }
 
     public Iterator<T> iterator(){
-        return this;
+        if (!alreadyIterated) {
+            alreadyIterated = true;
+            return this;
+        }
+        throw new ReqlDriverError("The results of this query have already been consumed.");
     }
 
     /**

@@ -20,6 +20,7 @@ class cache_t;
 class txn_t;
 class io_backender_t;
 class perfmon_collection_t;
+class serializer_filepath_t;
 
 ATTR_PACKED(struct queue_block_t {
     block_id_t next;

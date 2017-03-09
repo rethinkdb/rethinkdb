@@ -4,6 +4,8 @@
 #include <math.h>
 #include <unistd.h>
 
+#include <algorithm>
+
 #include "config/args.hpp"
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/thread_pool.hpp"

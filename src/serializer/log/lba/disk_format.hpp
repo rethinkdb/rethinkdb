@@ -5,10 +5,6 @@
 #include <limits.h>
 
 #include "serializer/serializer.hpp"
-#include "config/args.hpp"
-
-
-#define LBA_NUM_INLINE_ENTRIES                    (static_cast<int32_t>(LBA_INLINE_SIZE / sizeof(lba_entry_t)))
 
 
 // Contains an int64_t, or a "padding" value, or a "unused" value.  I
@@ -54,8 +50,8 @@ inline bool operator==(flagged_off64_t x, flagged_off64_t y) {
     return x.the_value_ == y.the_value_;
 }
 
-// PADDING_BLOCK_ID and flagged_off64_t::padding() indicate that an entry in the LBA list only exists to fill
-// out a DEVICE_BLOCK_SIZE-sized chunk of the extent.
+// PADDING_BLOCK_ID and flagged_off64_t::padding() indicate that an entry in the LBA
+// list only exists to fill out a DEVICE_BLOCK_SIZE-sized chunk of the extent.
 
 static const block_id_t PADDING_BLOCK_ID = NULL_BLOCK_ID;
 
@@ -96,7 +92,8 @@ ATTR_PACKED(struct lba_entry_t {
     }
 
     static lba_entry_t make_padding_entry() {
-        return make(PADDING_BLOCK_ID, repli_timestamp_t::invalid, flagged_off64_t::padding(), 0);
+        return make(PADDING_BLOCK_ID, repli_timestamp_t::invalid,
+                    flagged_off64_t::padding(), 0);
     }
 });
 
@@ -114,21 +111,6 @@ ATTR_PACKED(struct lba_shard_metablock_t {
     int64_t lba_superblock_offset;
     int32_t lba_superblock_entries_count;
     int32_t padding2;
-});
-
-ATTR_PACKED(struct lba_metablock_mixin_t {
-    lba_shard_metablock_t shards[LBA_SHARD_FACTOR];
-
-    /* Note that inline_lba_entries is not sharded into LBA_SHARD_FACTOR shards.
-     * Instead it contains entries from all shards. Sharding is not necessary
-     * for the inlined entries, because we do not perform any blocking operations
-     * on those (especially no garbage collection).
-     * You can assign an entry from the inline LBA to its respective LBA shard
-     * by taking the LBA_SHARD_FACTOR modulo of its block id.
-     */
-    lba_entry_t inline_lba_entries[LBA_NUM_INLINE_ENTRIES];
-    int32_t inline_lba_entries_count;
-    int32_t padding;
 });
 
 

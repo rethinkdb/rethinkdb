@@ -12,7 +12,7 @@ public:
     semilattice_persister_t(
         metadata_file_t *file,
         const metadata_file_t::key_t<metadata_t> &key,
-        boost::shared_ptr<semilattice_read_view_t<metadata_t> > view);
+        std::shared_ptr<semilattice_read_view_t<metadata_t> > view);
 
     /* `stop_and_flush()` finishes flushing the current value to disk but stops
     responding to future changes. It's usually called right before the
@@ -27,7 +27,7 @@ private:
 
     metadata_file_t * const file;
     metadata_file_t::key_t<metadata_t> const key;
-    boost::shared_ptr<semilattice_read_view_t<metadata_t> > const view;
+    std::shared_ptr<semilattice_read_view_t<metadata_t> > const view;
 
     pump_coro_t persist_pumper;
 

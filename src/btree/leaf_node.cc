@@ -6,9 +6,6 @@
 #include <algorithm>
 #include <set>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "btree/node.hpp"
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
@@ -164,7 +161,7 @@ struct entry_iter_t {
 
     bool done(value_sizer_t *sizer) const {
         int bs = sizer->block_size().value();
-        rassert(offset <= bs, "offset=%d, bs=%d", offset, bs);
+        guarantee(offset <= bs, "offset=%d, bs=%d", offset, bs);
         return offset == bs;
     }
 
@@ -588,7 +585,7 @@ void garbage_collect(
         leaf_node_t *node,
         int num_tstamped,
         int *preserved_index,
-        boost::optional<int> tstamp_cutoff_upper_bound = boost::optional<int>()) {
+        optional<int> tstamp_cutoff_upper_bound = optional<int>()) {
     scoped_array_t<uint16_t> indices(node->num_pairs);
 
     for (int i = 0; i < node->num_pairs; ++i) {
@@ -1342,7 +1339,7 @@ MUST_USE bool prepare_space_for_new_entry(
         guarantees that it will remain valid even as `pair_offsets` entries are
         moved around. */
         garbage_collect(sizer, node, MANDATORY_TIMESTAMPS - 1, &index,
-                        boost::make_optional(gc_tstamp_cutoff_upper_bound));
+                        make_optional(gc_tstamp_cutoff_upper_bound));
 
         /* Make sure that `index` still refers to where the new key should be
         inserted. */
@@ -1423,7 +1420,7 @@ MUST_USE bool prepare_space_for_new_entry(
         }
 
         if (drop_timestamps) {
-            erase_deletions(sizer, node, boost::optional<repli_timestamp_t>());
+            erase_deletions(sizer, node, optional<repli_timestamp_t>());
         }
 
         return false;
@@ -1603,11 +1600,11 @@ repli_timestamp_t min_deletion_timestamp(
 
 void erase_deletions(
         value_sizer_t *sizer, leaf_node_t *node,
-        boost::optional<repli_timestamp_t> min_del_timestamp) {
+        optional<repli_timestamp_t> min_del_timestamp) {
     int old_tstamp_cutpoint = node->tstamp_cutpoint;
     entry_iter_t iter = entry_iter_t::make(node);
 
-    if (min_del_timestamp) {
+    if (min_del_timestamp.has_value()) {
         /* Advance `iter` to the first entry with a timestamp that's lower than
         `min_del_timestamp - 1`. */
         while (true) {

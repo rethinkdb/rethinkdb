@@ -22,6 +22,12 @@ def expect_eq(left, right)
     end
 end
 
+def expect_in(needle, haystack)
+    if not (haystack.include?(needle))
+        raise RuntimeError, "Expected value #{needle} not in #{haystack}"
+    end
+end
+
 def expect_error(query, err_type, err_info)
     begin
         res = query.run()
@@ -43,7 +49,7 @@ def test_get()
 
     res = r.http(url).run()
     expect_eq(res['args'], {})
-    expect_eq(res['headers']['Accept-Encoding'], 'deflate;q=1, gzip;q=0.5')
+    expect_in('Accept-Encoding', res['headers'])
     expect_eq(res['headers']['User-Agent'].split('/')[0], 'RethinkDB')
 end
 

@@ -102,29 +102,6 @@ private:
                     base_exc_t::LOGIC,
                     strprintf("%s may only be used as an argument to ORDER_BY or UNION.",
                               (type == Term::ASC ? "ASC" : "DESC")));
-            } else if (type == Term::NOW) {
-                // This checking is not as strict as with other terms, for simplicity's sake
-                for (size_t i = 1; i < src->Size(); ++i) {
-                    rapidjson::Value *val = &(*src)[i];
-                    if (val->IsArray()) {
-                        rcheck_src(bt, val->Size() == 0, base_exc_t::LOGIC,
-                                   "NOW does not accept any args.");
-                    } else if (val->IsObject()) {
-                        rcheck_src(bt, val->MemberCount() == 0, base_exc_t::LOGIC,
-                                   "NOW does not accept any optargs.");
-                    }
-                }
-
-                // Set r.now() terms to the same literal time so it can be deteministic
-                type = Term::DATUM;
-                rapidjson::Value rewritten;
-                rewritten.SetArray();
-                rewritten.Reserve(2, *parent->allocator);
-                rewritten.PushBack(rapidjson::Value(static_cast<int>(type)),
-                                   *parent->allocator);
-                rewritten.PushBack(get_time_now().as_json(parent->allocator),
-                                   *parent->allocator);
-                src->Swap(rewritten);
             }
 
             // Append a backtrace to the term
@@ -250,6 +227,8 @@ bool term_type_is_valid(Term::TermType type) {
     case Term::REBALANCE:
     case Term::SYNC:
     case Term::GRANT:
+    case Term::SET_WRITE_HOOK:
+    case Term::GET_WRITE_HOOK:
     case Term::INDEX_CREATE:
     case Term::INDEX_DROP:
     case Term::INDEX_WAIT:
@@ -437,6 +416,8 @@ bool term_is_write_or_meta(Term::TermType type) {
     case Term::REBALANCE:
     case Term::SYNC:
     case Term::GRANT:
+    case Term::SET_WRITE_HOOK:
+    case Term::GET_WRITE_HOOK:
     case Term::INDEX_CREATE:
     case Term::INDEX_DROP:
     case Term::INDEX_WAIT:
@@ -705,6 +686,8 @@ bool term_forbids_writes(Term::TermType type) {
     case Term::REBALANCE:
     case Term::SYNC:
     case Term::GRANT:
+    case Term::SET_WRITE_HOOK:
+    case Term::GET_WRITE_HOOK:
     case Term::INDEX_CREATE:
     case Term::INDEX_DROP:
     case Term::INDEX_LIST:

@@ -17,9 +17,11 @@ init () {
     max_lessc_version=99.99.99
     min_coffee_version=1.7.0
     max_coffee_version=99.99.99
-    min_browserify_version=3.0.0
-    max_browserify_version=12.0.1
+    min_browserify_version=13.0.0
+    max_browserify_version=13.1.0
     min_python_version=2.6.0
+    
+    osx_min_version=10.7
 
     min_msbuild_version=14.0
     min_nmake_version=14.0
@@ -113,8 +115,11 @@ configure_unixlike () {
     if [ "$COMPILER" = CLANG ]; then
         require stdlib
         case "$OS" in
-            Darwin) var_append LDFLAGS -lc++
-                    var_append CXXFLAGS -stdlib=libc++ ;;
+            Darwin) var_append LDFLAGS -stdlib=libc++ -lc++
+                    var_append LDFLAGS -mmacosx-version-min="$osx_min_version"
+                    var_append CFLAGS -mmacosx-version-min="$osx_min_version"
+                    var_append CXXFLAGS -stdlib=libc++
+                    var_append CXXFLAGS -mmacosx-version-min="$osx_min_version" ;;
             *) var_append LDFLAGS -lstdc++ ;;
         esac
 
@@ -907,15 +912,25 @@ int main(){
 
 ~crypto:
 
-#include <openssl/evp.h>
-#include <openssl/crypto.h>
 #include <openssl/bn.h>
-int main(){ return 0; }
+#include <openssl/crypto.h>
+#include <openssl/evp.h>
+int main(){
+    CRYPTO_THREADID_set_callback([](CRYPTO_THREADID *id){ CRYPTO_THREADID_set_numeric(id, 0); });
+    unsigned char out[4];
+    PKCS5_PBKDF2_HMAC(static_cast<char const *>("pass"), 4, nullptr, 0, 1, EVP_sha256(), sizeof(out), out);
+    return 0;
+}
 
 ~ssl:
 
 #include <openssl/ssl.h>
-int main(){ return 0; }
+int main(){
+    SSL_CTX_set_options(
+        SSL_CTX_new(SSLv23_method()),
+        SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1|SSL_OP_CIPHER_SERVER_PREFERENCE|SSL_OP_SINGLE_DH_USE|SSL_OP_SINGLE_ECDH_USE);
+    return 0;
+}
 
 ~'
 

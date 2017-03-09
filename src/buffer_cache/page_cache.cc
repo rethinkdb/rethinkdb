@@ -62,7 +62,7 @@ page_read_ahead_cb_t::~page_read_ahead_cb_t() { }
 void page_read_ahead_cb_t::offer_read_ahead_buf(
         block_id_t block_id,
         buf_ptr_t *buf,
-        const counted_t<standard_block_token_t> &token) {
+        const counted_t<block_token_t> &token) {
     assert_thread();
     buf_ptr_t local_buf = std::move(*buf);
 
@@ -122,7 +122,7 @@ void page_cache_t::consider_evicting_current_page(block_id_t block_id) {
 
 void page_cache_t::add_read_ahead_buf(block_id_t block_id,
                                       scoped_device_block_aligned_ptr_t<ser_buffer_t> ptr,
-                                      const counted_t<standard_block_token_t> &token) {
+                                      const counted_t<block_token_t> &token) {
     assert_thread();
 
     // We MUST stop if read_ahead_cb_ is NULL because that means current_page_t's
@@ -331,6 +331,15 @@ void page_cache_t::flush_and_destroy_txn(
                                              std::move(on_flush_complete));
 
     sub->reset(&page_txn->flush_complete_cond_);
+}
+
+void page_cache_t::end_read_txn(scoped_ptr_t<page_txn_t> txn) {
+    guarantee(txn->touched_pages_.empty());
+    guarantee(txn->live_acqs_ == 0,
+        "A current_page_acq_t lifespan exceeds its page_txn_t's.");
+    guarantee(!txn->began_waiting_for_flush_);
+
+    txn->flush_complete_cond_.pulse();
 }
 
 
@@ -699,7 +708,7 @@ current_page_t::current_page_t(block_id_t block_id,
 
 current_page_t::current_page_t(block_id_t block_id,
                                buf_ptr_t buf,
-                               const counted_t<standard_block_token_t> &token,
+                               const counted_t<block_token_t> &token,
                                page_cache_t *page_cache)
     : block_id_(block_id),
       page_(new page_t(block_id, std::move(buf), token, page_cache)),
@@ -1066,14 +1075,14 @@ void page_txn_t::announce_waiting_for_flush() {
     page_cache_->im_waiting_for_flush(this);
 }
 
-std::map<block_id_t, page_cache_t::block_change_t>
+std::unordered_map<block_id_t, page_cache_t::block_change_t>
 page_cache_t::compute_changes(const std::vector<page_txn_t *> &txns) {
     // We combine changes, using the block_version_t value to see which change
     // happened later.  This even works if a single transaction acquired the same
     // block twice.
 
     // The map of changes we make.
-    std::map<block_id_t, block_change_t> changes;
+    std::unordered_map<block_id_t, block_change_t> changes;
 
     for (auto it = txns.begin(); it != txns.end(); ++it) {
         page_txn_t *txn = *it;
@@ -1190,7 +1199,7 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
 struct block_token_tstamp_t {
     block_token_tstamp_t(block_id_t _block_id,
                          bool _is_deleted,
-                         counted_t<standard_block_token_t> _block_token,
+                         counted_t<block_token_t> _block_token,
                          repli_timestamp_t _tstamp,
                          page_t *_page)
         : block_id(_block_id), is_deleted(_is_deleted),
@@ -1198,7 +1207,7 @@ struct block_token_tstamp_t {
           page(_page) { }
     block_id_t block_id;
     bool is_deleted;
-    counted_t<standard_block_token_t> block_token;
+    counted_t<block_token_t> block_token;
     repli_timestamp_t tstamp;
     // The page, or nullptr, if we don't know it.
     page_t *page;
@@ -1213,7 +1222,7 @@ struct ancillary_info_t {
 };
 
 void page_cache_t::do_flush_changes(page_cache_t *page_cache,
-                                    const std::map<block_id_t, block_change_t> &changes,
+                                    std::unordered_map<block_id_t, block_change_t> &&changes,
                                     const std::vector<page_txn_t *> &txns,
                                     fifo_enforcer_write_token_t index_write_token) {
     rassert(!changes.empty());
@@ -1234,7 +1243,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                     // The block is deleted.
                     blocks_by_tokens.push_back(block_token_tstamp_t(it->first,
                                                                     true,
-                                                                    counted_t<standard_block_token_t>(),
+                                                                    counted_t<block_token_t>(),
                                                                     repli_timestamp_t::invalid,
                                                                     nullptr));
                 } else {
@@ -1270,7 +1279,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                 // We only touched the page.
                 blocks_by_tokens.push_back(block_token_tstamp_t(it->first,
                                                                 false,
-                                                                counted_t<standard_block_token_t>(),
+                                                                counted_t<block_token_t>(),
                                                                 it->second.tstamp,
                                                                 nullptr));
             }
@@ -1287,7 +1296,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
             }
         } blocks_written_cb;
 
-        std::vector<counted_t<standard_block_token_t> > tokens
+        std::vector<counted_t<block_token_t>> tokens
             = page_cache->serializer_->block_writes(write_infos,
                                                     /* disk account is overridden
                                                      * by merger_serializer_t */
@@ -1312,17 +1321,18 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
         for (auto it = blocks_by_tokens.begin(); it != blocks_by_tokens.end();
              ++it) {
             if (it->is_deleted) {
-                write_ops.push_back(index_write_op_t(it->block_id,
-                                                     counted_t<standard_block_token_t>(),
-                                                     repli_timestamp_t::invalid));
+                write_ops.push_back(index_write_op_t(
+                    it->block_id,
+                    make_optional(counted_t<block_token_t>()),
+                    make_optional(repli_timestamp_t::invalid)));
             } else if (it->block_token.has()) {
                 write_ops.push_back(index_write_op_t(it->block_id,
-                                                     it->block_token,
-                                                     it->tstamp));
+                                                     make_optional(it->block_token),
+                                                     make_optional(it->tstamp)));
             } else {
                 write_ops.push_back(index_write_op_t(it->block_id,
-                                                     boost::none,
-                                                     it->tstamp));
+                                                     r_nullopt,
+                                                     make_optional(it->tstamp)));
             }
         }
 
@@ -1364,6 +1374,9 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                         }
                     }
 
+                    // Clear `changes`, since we are going to evict the pages
+                    // that it has pointers to in the next step.
+                    changes.clear();
                     for (auto &txn : txns) {
                         for (size_t i = 0, e = txn->snapshotted_dirtied_pages_.size();
                              i < e;
@@ -1388,7 +1401,7 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 }
 
 void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
-                                    std::map<block_id_t, block_change_t> *changes_ptr,
+                                    std::unordered_map<block_id_t, block_change_t> *changes_ptr,
                                     const std::vector<page_txn_t *> &txns) {
     // This is called with spawn_now_dangerously!  The reason is partly so that we
     // don't put a zillion coroutines on the message loop when doing a bunch of
@@ -1400,7 +1413,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
     // set of changes we're actually doing is, since any transaction may have touched
     // the same blocks.
 
-    std::map<block_id_t, block_change_t> changes = std::move(*changes_ptr);
+    std::unordered_map<block_id_t, block_change_t> changes = std::move(*changes_ptr);
     rassert(!changes.empty());
 
     fifo_enforcer_write_token_t index_write_token
@@ -1408,7 +1421,7 @@ void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
 
     // Okay, yield, thank you.
     coro_t::yield();
-    do_flush_changes(page_cache, changes, txns, index_write_token);
+    do_flush_changes(page_cache, std::move(changes), txns, index_write_token);
 
     // Flush complete.
 
@@ -1542,7 +1555,7 @@ void page_cache_t::im_waiting_for_flush(page_txn_t *base) {
             (*it)->spawned_flush_ = true;
         }
 
-        std::map<block_id_t, block_change_t> changes
+        std::unordered_map<block_id_t, block_change_t> changes
             = page_cache_t::compute_changes(flush_set);
 
         if (!changes.empty()) {

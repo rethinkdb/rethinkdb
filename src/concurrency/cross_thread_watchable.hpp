@@ -7,6 +7,7 @@
 #include "concurrency/watchable_map.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/pump_coro.hpp"
+#include "containers/optional.hpp"
 
 /* `cross_thread_watchable_variable_t` is used to "proxy" a `watchable_t` from
 one thread to another. Create the `cross_thread_watchable_variable_t` on the
@@ -148,7 +149,7 @@ private:
     void deliver(signal_t *interruptor);
     watchable_map_var_t<key_t, value_t> output_var;
     threadnum_t input_thread, output_thread;
-    std::map<key_t, boost::optional<value_t> > queued_changes;
+    std::map<key_t, optional<value_t> > queued_changes;
 
     /* This object's constructor rethreads our internal components to our other
     thread, and then reverses it in the destructor. It must be a separate object

@@ -21,12 +21,12 @@
 #ifndef RAPIDJSON_WRITER_H_
 #define RAPIDJSON_WRITER_H_
 
-#include "rapidjson.h"
-#include "internal/stack.h"
-#include "internal/strfunc.h"
-#include "internal/dtoa.h"
-#include "internal/itoa.h"
-#include "stringbuffer.h"
+#include "rapidjson/rapidjson.h"
+#include "rapidjson/internal/stack.h"
+#include "rapidjson/internal/strfunc.h"
+#include "rapidjson/internal/dtoa.h"
+#include "rapidjson/internal/itoa.h"
+#include "rapidjson/stringbuffer.h"
 #include <new>      // placement new
 
 #if RAPIDJSON_HAS_STDSTRING

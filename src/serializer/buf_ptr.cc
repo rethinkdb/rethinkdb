@@ -1,5 +1,7 @@
 #include "serializer/buf_ptr.hpp"
 
+#include <algorithm>
+
 #include "math.hpp"
 
 buf_ptr_t buf_ptr_t::alloc_uninitialized(block_size_t size) {
@@ -18,9 +20,9 @@ buf_ptr_t buf_ptr_t::alloc_zeroed(block_size_t size) {
     return ret;
 }
 
-scoped_device_block_aligned_ptr_t<ser_buffer_t> help_allocate_copy(const ser_buffer_t *copyee,
-                                                                   size_t amount_to_copy,
-                                                                   size_t reserved_size) {
+scoped_device_block_aligned_ptr_t<ser_buffer_t>
+help_allocate_copy(const ser_buffer_t *copyee, size_t amount_to_copy,
+                   size_t reserved_size) {
     rassert(amount_to_copy <= reserved_size);
     auto buf = scoped_device_block_aligned_ptr_t<ser_buffer_t>(reserved_size);
     memcpy(buf.get(), copyee, amount_to_copy);

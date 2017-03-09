@@ -144,11 +144,12 @@ tests:
       ot: err("ReqlDriverCompileError", "Calling '==' on result of infix bitwise operator:", [])
     - py: r.expr(r.and_(True, False) == r.or_(False, True))
       ot: False
-    - rb: r.expr(r.expr(True) & r.expr(False) >= r.expr(False) | r.expr(True))
-      py: r.expr(r.expr(True) & r.expr(False) >= r.expr(False) | r.expr(True))
+    - cd: r.expr(r.expr(True) & r.expr(False) >= r.expr(False) | r.expr(True))
+      js: # operators are not translated in JS
       ot: err("ReqlDriverCompileError", "Calling '>=' on result of infix bitwise operator:", [])
     - cd: r.expr(r.and(True, False) >= r.or(False, True))
       py: r.expr(r.and_(True, False) >= r.or_(False, True))
+      js: # operators are not translated in JS
       ot: False
 
     # Type errors

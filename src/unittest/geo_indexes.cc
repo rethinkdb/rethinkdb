@@ -139,7 +139,7 @@ void insert_data(namespace_interface_t *nsi,
 
         cond_t interruptor;
         nsi->write(
-            auth::user_context_t(auth::permissions_t(true, true, false, false)),
+            auth::user_context_t(auth::permissions_t(tribool::True, tribool::True, tribool::False, tribool::False)),
             write,
             &response,
             osource->check_in("unittest::insert_data(geo_indexes.cc"),
@@ -201,15 +201,17 @@ std::vector<nearest_geo_read_response_t::dist_pair_t> perform_get_nearest(
             WGS84_ELLIPSOID,
             table_name,
             idx_name,
-            ql::global_optargs_t(),
-            auth::user_context_t(auth::permissions_t(true, false, false, false))),
+            serializable_env_t{
+                ql::global_optargs_t(),
+                auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
+                ql::datum_t()}),
         profile_bool_t::PROFILE,
         read_mode_t::SINGLE);
     read_response_t response;
 
     cond_t interruptor;
     nsi->read(
-        auth::user_context_t(auth::permissions_t(true, false, false, false)),
+        auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
         read,
         &response,
         osource->check_in("unittest::perform_get_nearest(geo_indexes.cc"),
@@ -327,17 +329,19 @@ std::vector<datum_t> perform_get_intersecting(
     std::string idx_name = "geo";
     read_t read(
         intersecting_geo_read_t(
-            boost::optional<changefeed_stamp_t>(),
+            optional<changefeed_stamp_t>(),
             region_t::universe(),
-            ql::global_optargs_t(),
-            auth::user_context_t(auth::permissions_t(true, false, false, false)),
+            serializable_env_t{
+                ql::global_optargs_t(),
+                auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
+                datum_t()},
             table_name,
             ql::batchspec_t::all(),
             std::vector<ql::transform_variant_t>(),
-            boost::optional<ql::terminal_variant_t>(),
+            optional<ql::terminal_variant_t>(),
             sindex_rangespec_t(
                 idx_name,
-                region_t::universe(),
+                make_optional(region_t::universe()),
                 ql::datumspec_t(
                     ql::datum_range_t::universe()),
                 require_sindexes_t::NO),
@@ -348,7 +352,7 @@ std::vector<datum_t> perform_get_intersecting(
 
     cond_t interruptor;
     nsi->read(
-        auth::user_context_t(auth::permissions_t(true, false, false, false)),
+        auth::user_context_t(auth::permissions_t(tribool::True, tribool::False, tribool::False, tribool::False)),
         read,
         &response,
         osource->check_in("unittest::perform_get_intersecting(geo_indexes.cc"),

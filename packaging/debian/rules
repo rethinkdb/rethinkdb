@@ -11,7 +11,7 @@ clean:
 	dh_clean
 	if [ -e build ] ; then rm -rf build ; fi ;
 
-install: build
+install:
 	dh_clean
 	dh_installdirs
 	$(MAKE) DEBUG=$(DEBUG) DESTDIR=$(CURDIR)/debian/$(package) PVERSION=$(PVERSION) STRIP_ON_INSTALL=0 install

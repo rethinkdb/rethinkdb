@@ -1,6 +1,7 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "concurrency/watchable_map.hpp"
 
+#include "assignment_sentry.hpp"
 #include "concurrency/cond_var.hpp"
 #include "concurrency/interruptor.hpp"
 
@@ -185,12 +186,12 @@ std::map<key_t, value_t> watchable_map_var_t<key_t, value_t>::get_all() {
 }
 
 template<class key_t, class value_t>
-boost::optional<value_t> watchable_map_var_t<key_t, value_t>::get_key(const key_t &key) {
+optional<value_t> watchable_map_var_t<key_t, value_t>::get_key(const key_t &key) {
     auto it = map.find(key);
     if (it == map.end()) {
-        return boost::optional<value_t>();
+        return optional<value_t>();
     } else {
-        return boost::optional<value_t>(it->second);
+        return optional<value_t>(it->second);
     }
 }
 
@@ -259,8 +260,10 @@ void watchable_map_var_t<key_t, value_t>::set_key_no_equals(
 template<class key_t, class value_t>
 void watchable_map_var_t<key_t, value_t>::delete_key(const key_t &key) {
     rwi_lock_assertion_t::write_acq_t write_acq(&rwi_lock);
-    map.erase(key);
-    watchable_map_t<key_t, value_t>::notify_change(key, nullptr, &write_acq);
+    size_t res = map.erase(key);
+    if (res == 1) {
+        watchable_map_t<key_t, value_t>::notify_change(key, nullptr, &write_acq);
+    }
 }
 
 template<class key_t, class value_t>
