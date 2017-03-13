@@ -72,6 +72,25 @@ class AsyncioCursor(Cursor):
         Cursor.__init__(self, *args, **kwargs)
         self.new_response = asyncio.Future()
 
+    @asyncio.coroutine
+    def __aiter__(self):
+        return self
+
+    @asyncio.coroutine
+    def __anext__(self):
+        try:
+            return (yield from self._get_next(None))
+        except ReqlCursorEmpty:
+            raise StopAsyncIteration
+
+    @asyncio.coroutine
+    def close(self):
+        if self.error is None:
+            self.error = self._empty_error()
+            if self.conn.is_open():
+                self.outstanding_requests += 1
+                yield from self.conn._parent._stop(self)
+
     def _extend(self, res):
         Cursor._extend(self, res)
         self.new_response.set_result(True)
@@ -85,6 +104,8 @@ class AsyncioCursor(Cursor):
         waiter = reusable_waiter(self.conn._io_loop, timeout)
         while len(self.items) == 0 and self.error is None:
             self._maybe_fetch_batch()
+            if self.error is not None:
+                raise self.error
             with translate_timeout_errors():
                 yield from waiter(asyncio.shield(self.new_response))
         # If there is a (non-empty) error to be received, we return True, so the
@@ -285,6 +306,20 @@ class Connection(ConnectionBase):
             self.port = int(self.port)
         except ValueError:
             raise ReqlDriverError("Could not convert port %s to an integer." % self.port)
+
+    @asyncio.coroutine
+    def __aenter__(self):
+        return self
+
+    @asyncio.coroutine
+    def __aexit__(self, exception_type, exception_val, traceback):
+        yield from self.close(False)
+
+    @asyncio.coroutine
+    def _stop(self, cursor):
+        self.check_open()
+        q = Query(pQuery.STOP, cursor.query.token, None, None)
+        return (yield from self._instance.run_query(q, True))
 
     @asyncio.coroutine
     def reconnect(self, noreply_wait=True, timeout=None):
