@@ -319,7 +319,7 @@ class SocketWrapper(object):
                 # an optimization, then need to read each separately
                 if request is not "":
                     self.sendall(request)
-                
+
                 # The response from the server is a null-terminated string
                 response = b''
                 while True:
@@ -667,7 +667,7 @@ def connect(host=None, port=None, db=None, auth_key=None, user=None, password=No
         ssl = dict()
     if _handshake_version is None:
         _handshake_version = 10
-    
+
     conn = connection_type(host, port, db, auth_key, user, password, timeout, ssl, _handshake_version, **kwargs)
     return conn.reconnect(timeout=timeout)
 

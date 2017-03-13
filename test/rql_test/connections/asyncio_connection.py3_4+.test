@@ -233,10 +233,12 @@ class TestNoConnection(TestCaseAsyncioCompatible):
 
     @asyncio.coroutine
     def test_empty_run(self):
-        '''Test the error message when we pass nothing to run and didn't call `repl`'''
-        with self.assertRaisesRegexp(r.ReqlDriverError, "RqlQuery.run must be given a connection to run on."):
-             r.expr(1).run()
-
+        # Test the error message when we pass nothing to run and
+        # didn't call `repl`
+        with self.assertRaisesRegexp(r.ReqlDriverError,
+                                "RqlQuery.run must be given"
+                                " a connection to run on."):
+             yield from r.expr(1).run()
 
 class TestConnectionDefaults(TestWithConnection):
     if USE_DEFAULT_PORT:
@@ -429,7 +431,7 @@ class TestConnection(TestWithConnection):
                 yield from r.expr(1).run()
         finally:
             r.Repl.clear()
-    
+
     @asyncio.coroutine
     def test_port_conversion(self):
         with self.assertRaisesRegexp(r.ReqlDriverError, "Could not convert port 'abc' to an integer."):
@@ -598,7 +600,7 @@ class TestCursor(TestWithConnection):
     @asyncio.coroutine
     def test_cursor_after_cursor_close(self):
         cursor = yield from r.range().run(self.conn)
-        cursor.close()
+        yield from cursor.close()
         count = 0
         while (yield from cursor.fetch_next()):
             yield from cursor.next()
@@ -614,7 +616,7 @@ class TestCursor(TestWithConnection):
             yield from cursor.next()
             count += 1
             if count == 2:
-                cursor.close()
+                yield from cursor.close()
 
         self.assertTrue(count >= 2, "Did not get enough cursor results")
 
