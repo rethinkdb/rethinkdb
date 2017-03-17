@@ -207,4 +207,50 @@ std::string random_letter_string(rng_t *rng, int min_length, int max_length) {
     return ret;
 }
 
+// Zero extend the given byte to 64-bits.
+uint64_t zero_extend(char x) {
+    return static_cast<uint64_t>(static_cast<uint8_t>(x));
+}
+
+uint64_t decode_le64(const std::string& buf) {
+    return zero_extend(buf[0]) |
+        zero_extend(buf[1]) << 8 |
+        zero_extend(buf[2]) << 16 |
+        zero_extend(buf[3]) << 24 |
+        zero_extend(buf[4]) << 32 |
+        zero_extend(buf[5]) << 40 |
+        zero_extend(buf[6]) << 48 |
+        zero_extend(buf[7]) << 56;
+}
+
+uint32_t decode_le32(const std::string& buf) {
+    return static_cast<uint32_t>(
+        zero_extend(buf[0]) |
+        zero_extend(buf[1]) << 8 |
+        zero_extend(buf[2]) << 16 |
+        zero_extend(buf[3]) << 32);
+}
+
+std::string encode_le64(uint64_t x) {
+    char buf[8];
+    buf[0] = x;
+    buf[1] = x >> 8;
+    buf[2] = x >> 16;
+    buf[3] = x >> 24;
+    buf[4] = x >> 32;
+    buf[5] = x >> 40;
+    buf[6] = x >> 48;
+    buf[7] = x >> 56;
+    return std::string(&buf[0], 8);
+}
+
+std::string encode_le32(uint32_t x) {
+    char buf[4];
+    buf[0] = x;
+    buf[1] = x >> 8;
+    buf[2] = x >> 16;
+    buf[3] = x >> 24;
+    return std::string(&buf[0], 4);
+}
+
 }  // namespace unittest

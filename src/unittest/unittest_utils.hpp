@@ -65,6 +65,18 @@ state_timestamp_t make_state_timestamp(int n);
 
 std::string random_letter_string(rng_t *rng, int min_length, int max_length);
 
+// Read an 8-byte little-endian encoded integer from the given string.
+uint64_t decode_le64(const std::string& buf);
+
+// Read a 4-byte little-endian encoded integer from the given string.
+uint32_t decode_le32(const std::string& buf);
+
+// Write an 8-byte integer to a string in little-endian byte order.
+std::string encode_le64(uint64_t x);
+
+// Write a 4-byte integer to a string in little-endian byte order.
+std::string encode_le32(uint32_t x);
+
 }  // namespace unittest
 
 

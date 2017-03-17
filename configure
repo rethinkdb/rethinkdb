@@ -105,6 +105,8 @@ configure_unixlike () {
         arm*)
             var_append LDFLAGS -ldl
             final_warning="ARM support is still experimental" ;;
+        s390x)
+            final_warning="s390x support is still experimental" ;;
         *)
             error "unsupported architecture: $MACHINE"
     esac
