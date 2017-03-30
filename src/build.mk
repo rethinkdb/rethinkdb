@@ -54,6 +54,9 @@ else ifeq ($(COMPILER),GCC)
 
   ifeq ($(OS),Linux)
     RT_LDFLAGS += -Wl,--no-as-needed
+    ifeq ($(GCC_ARCH),ppc64le)
+      RT_CXXFLAGS += "-DV8_NEEDS_BUFFER_ALLOCATOR"
+    endif
   endif
 
   ifeq ($(STATICFORCE),1)

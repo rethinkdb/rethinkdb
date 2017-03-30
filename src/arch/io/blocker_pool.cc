@@ -95,12 +95,19 @@ blocker_pool_t::blocker_pool_t(int nthreads, linux_event_queue_t *_queue)
 
         // The coroutine stack size should be enough for blocker pool stacks.  Right
         // now that's 128 KB.
+        #if defined (__powerpc64__)
+            static_assert(COROUTINE_STACK_SIZE == 262144,
+                      "Expecting COROUTINE_STACK_SIZE to be 262144.  If you changed "
+                      "it, please double-check whether the value is appropriate for "
+                      "blocker pool threads.");
+	#else
         static_assert(COROUTINE_STACK_SIZE == 131072,
                       "Expecting COROUTINE_STACK_SIZE to be 131072.  If you changed "
                       "it, please double-check whether the value is appropriate for "
                       "blocker pool threads.");
         // Disregard failure -- we'll just use the default stack size if this somehow
         // fails.
+	#endif
         UNUSED int ignored_res = pthread_attr_setstacksize(&attr, COROUTINE_STACK_SIZE);
 
         res = pthread_create(&threads[i], &attr,
