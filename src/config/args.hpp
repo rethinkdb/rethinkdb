@@ -144,7 +144,11 @@
 // block infos.
 #define LBA_RECONSTRUCTION_BATCH_SIZE             1024
 
+#if defined (__powerpc64__)
+#define COROUTINE_STACK_SIZE                      262144
+#else
 #define COROUTINE_STACK_SIZE                      131072
+#endif
 
 
 /**

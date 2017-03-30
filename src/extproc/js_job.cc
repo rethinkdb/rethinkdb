@@ -31,6 +31,10 @@ ql::datum_t js_to_datum(const v8::Handle<v8::Value> &value,
 v8::Handle<v8::Value> js_from_datum(const ql::datum_t &datum,
                                     std::string *err_out);
 
+#if defined (__powerpc64__)
+#define V8_NEEDS_BUFFER_ALLOCATOR 1
+#endif
+
 #ifdef V8_NEEDS_BUFFER_ALLOCATOR
 class array_buffer_allocator_t : public v8::ArrayBuffer::Allocator {
 public:
