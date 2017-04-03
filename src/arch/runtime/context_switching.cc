@@ -574,7 +574,7 @@ asm(
     "mov r13, r1\n"
 #elif defined(__s390x__)
     /* On s390x, the second argument is in r3 */
-    "lgr %r15, %r3\n"a
+    "lgr %r15, %r3\n"
 #elif defined(__powerpc64__)
     "mr 1, 4\n"
 #endif
