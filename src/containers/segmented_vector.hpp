@@ -81,7 +81,8 @@ public:
     }
 
     void clear() {
-        set_size(0);
+        segments_.clear();
+        size_ = 0;
     }
 
     void resize_with_zeros(size_t new_size) {
@@ -106,12 +107,27 @@ private:
     // Note: sometimes elements will be initialized before you ask the
     // array to grow to that size (e.g. one hundred elements might be
     // initialized even though the array might be of size 1).
+    //
+    // Also some will remain initialized when you shrink.
     void set_size(size_t new_size) {
-        const size_t new_num_segs = new_size != 0 ? ((new_size - 1) / ELEMENTS_PER_SEGMENT) + 1 : 0;
+        const size_t new_num_segs = (new_size + (ELEMENTS_PER_SEGMENT - 1)) / ELEMENTS_PER_SEGMENT;
 
-	// Leave an additional segment when resizing to avoid allocating and
-	// deallocating large blocks at a boundary, i.e. 0 elements.
-        segments_.resize(new_num_segs + 1);
+        const size_t cap = segments_.capacity();
+
+        if (new_num_segs <= cap) {
+            // Prevent resizing down to zero -- avoids unnecessary
+            // deallocation+allocation when doing push/pop/push/pop on
+            // zero-length segmented_vector.
+            if (new_num_segs != 0) {
+                segments_.resize(new_num_segs);
+            }
+        } else {
+            // Force 2x growth.
+            if (new_num_segs < cap * 2) {
+                segments_.reserve(cap * 2);
+            }
+            segments_.resize(new_num_segs);
+        }
 
         size_ = new_size;
     }
