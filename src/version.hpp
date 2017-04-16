@@ -44,7 +44,7 @@ enum class cluster_version_t {
     CLUSTER = LATEST_OVERALL,
 };
 
-// Uncomment this if cluster_version_t::LATEST_DISK != cluster_version_t::CLUSTER.
+// Uncomment this if cluster_version_t::LATEST_DISK == cluster_version_t::CLUSTER.
 // Comment it otherwise. This macro is used to avoid instantiating the same version
 // twice in the `INSTANTIATE_SERIALIZE_FOR_CLUSTER_AND_DISK` macro.
 #define CLUSTER_AND_DISK_VERSIONS_ARE_SAME

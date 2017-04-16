@@ -26,6 +26,8 @@
 #include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
 
+// HSI: unordered_map allocates too much, use a different hash table type.
+
 class alt_txn_throttler_t;
 class cache_balancer_t;
 class auto_drainer_t;

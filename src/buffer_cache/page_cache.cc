@@ -734,8 +734,10 @@ void current_page_t::reset(page_cache_t *page_cache) {
     rassert(acquirers_.empty());
     rassert(num_keepalives_ == 0);
 
-    // KSI: Does last_write_acquirer_ even need to be NULL?  Could we not just inform
-    // it of our impending destruction?
+    // last_write_acquirer_ has to be null (flush started) so that we don't lose track
+    // of our in-memory block_version_t values that track which version of a buf is
+    // newer in compute_changes.  current_page_t::should_be_evicted tests for this being
+    // null.
     rassert(last_write_acquirer_ == nullptr);
 
     page_.reset_page_ptr(page_cache);
@@ -1172,8 +1174,9 @@ void page_cache_t::remove_txn_set_from_graph(page_cache_t *page_cache,
             rassert(current_page->last_write_acquirer_ == txn);
 
 #ifndef NDEBUG
-            // All existing acquirers should be read acquirers, since this txn _was_
-            // the last write acquirer.
+            // All existing acquirers should be read acquirers, since this txn _was_ the
+            // last write acquirer.  (Preceding write acquirers must have unacquired the
+            // page.)
             for (current_page_acq_t *acq = current_page->acquirers_.head();
                  acq != nullptr;
                  acq = current_page->acquirers_.next(acq)) {
