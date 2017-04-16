@@ -12,9 +12,10 @@ struct timer_callback_t {
     virtual ~timer_callback_t() { }
 };
 
-/* This timer class uses the underlying OS timer provider to get one-shot timing events. It then
- * manages a list of application timers based on that lower level interface. Everyone who needs a
- * timer should use this class (through the thread pool). */
+/* This timer class uses the underlying OS timer provider to get one-shot timing
+ * events. It then manages a list of application timers based on that lower level
+ * interface. Everyone who needs a timer should use this class (through the thread
+ * pool). */
 class timer_handler_t : private timer_provider_callback_t {
 public:
     explicit timer_handler_t(linux_event_queue_t *queue);
@@ -29,8 +30,8 @@ private:
     // The timer provider, a platform-dependent typedef for interfacing with the OS.
     timer_provider_t timer_provider;
 
-    // The expected time of the next on_oneshot call.  If the oneshot arrived earlier than this
-    // time, we pretend that it had arrived on time.
+    // The expected time of the next on_oneshot call.  If the oneshot arrived earlier
+    // than this time, we pretend that it had arrived on time.
     int64_t expected_oneshot_time_in_nanos;
 
     // A priority queue of timer tokens, ordered by the soonest.

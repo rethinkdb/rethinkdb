@@ -143,16 +143,16 @@ private:
     // This page_t's index into its eviction bag (managed by the page_cache_t -- one
     // of unevictable_pages_, etc).  Which bag we should be in:
     //
-    // if loader_ is non-null:  unevictable_pages_
-    // else if waiters_ is non-empty: unevictable_pages_
-    // else if buf_ is null: evicted_pages_ (and block_token_ is non-null)
-    // else if block_token_ is non-null: evictable_disk_backed_pages_
-    // else: evictable_unbacked_pages_ (buf_ is non-null, block_token_ is null)
+    // if loader_ is non-null:  unevictable_
+    // else if waiters_ is non-empty: unevictable_
+    // else if buf_ is null: evicted_ (and block_token_ is non-null)
+    // else if block_token_ is non-null: evictable_disk_backed_
+    // else: evictable_unbacked_ (buf_ is non-null, block_token_ is null)
     //
     // So, when loader_, waiters_, buf_, or block_token_ is touched, we might
     // need to change this page's eviction bag.
     //
-    // The logic above is implemented in page_cache_t::correct_eviction_category.
+    // The logic above is implemented in evicter_t::correct_eviction_category.
     backindex_bag_index_t eviction_index_;
 
     DISABLE_COPYING(page_t);
@@ -182,6 +182,7 @@ public:
     void init(page_t *page);
 
     page_t *get_page_for_read() const;
+    // Constructs a new page if there might be snapshot references.
     page_t *get_page_for_write(page_cache_t *page_cache,
                                cache_account_t *account);
 
