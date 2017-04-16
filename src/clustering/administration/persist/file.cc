@@ -57,7 +57,7 @@ cluster_version_t magic_to_version(block_magic_t magic) {
     case 'i': return cluster_version_t::v2_1;
     case 'j': return cluster_version_t::v2_2;
     case 'k': return cluster_version_t::v2_3;
-    case 'l': return cluster_version_t::v2_4;
+    case 'l': return cluster_version_t::v2_4_is_latest_disk;
     default:
         fail_due_to_user_error("You're trying to use an earlier version of RethinkDB "
             "to open a database created by a later version of RethinkDB.");

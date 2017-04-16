@@ -132,7 +132,9 @@ bool disk_format_version_is_recognized(uint32_t disk_format_version) {
     // cluster_version_t value and such changes have not happened, it is correct to
     // add the new cluster_version_t value to this list of recognized ones.
     if (disk_format_version
-        == static_cast<uint32_t>(obsolete_cluster_version_t::v1_13)) {
+        == static_cast<uint32_t>(obsolete_cluster_version_t::v1_13)
+     || disk_format_version
+        == static_cast<uint32_t>(obsolete_cluster_version_t::v1_13_2_is_latest)) {
         fail_due_to_user_error(
             "Data directory is from version 1.13 of RethinkDB, "
             "which is no longer supported.  "
@@ -147,7 +149,7 @@ bool disk_format_version_is_recognized(uint32_t disk_format_version) {
         || disk_format_version == static_cast<uint32_t>(cluster_version_t::v2_2)
         || disk_format_version == static_cast<uint32_t>(cluster_version_t::v2_3)
         || disk_format_version ==
-            static_cast<uint32_t>(cluster_version_t::v2_4_is_latest);
+            static_cast<uint32_t>(cluster_version_t::v2_4_is_latest_disk);
 }
 
 
