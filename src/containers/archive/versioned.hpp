@@ -33,6 +33,7 @@ inline MUST_USE archive_result_t deserialize_cluster_version(
     *thing = cluster_version_t::LATEST_OVERALL;
     int8_t raw;
     archive_result_t res = deserialize<cluster_version_t::LATEST_OVERALL>(s, &raw);
+    if (bad(res)) { return res; }
     if (raw == static_cast<int8_t>(obsolete_cluster_version_t::v1_13)
         || raw == static_cast<int8_t>(obsolete_cluster_version_t::v1_13_2)) {
         obsolete_cb();
@@ -59,6 +60,7 @@ inline MUST_USE archive_result_t deserialize_reql_version(
     *thing = reql_version_t::LATEST;
     int8_t raw;
     archive_result_t res = deserialize_universal(s, &raw);
+    if (bad(res)) { return res; }
     if (raw < static_cast<int8_t>(reql_version_t::EARLIEST)) {
         guarantee(raw >= static_cast<int8_t>(obsolete_reql_version_t::EARLIEST)
                   && raw <= static_cast<int8_t>(obsolete_reql_version_t::LATEST));
