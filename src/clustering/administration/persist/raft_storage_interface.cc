@@ -55,8 +55,8 @@ table_raft_storage_interface_t::table_raft_storage_interface_t(
     state.log.prev_term = snapshot.log_prev_term;
     txn->read_many<raft_log_entry_t<table_raft_state_t> >(
         mdprefix_table_raft_log().suffix(uuid_to_str(table_id) + "/"),
-        [&](const std::string &index_str,
-                const raft_log_entry_t<table_raft_state_t> &entry) {
+        [&](std::string &&index_str,
+            raft_log_entry_t<table_raft_state_t> &&entry) {
             guarantee(str_to_log_index(index_str) == state.log.get_latest_index() + 1,
                 "%" PRIu64 " ('%s') == %" PRIu64,
                 str_to_log_index(index_str),
@@ -117,8 +117,8 @@ void table_raft_storage_interface_t::erase(
     std::vector<std::string> log_keys;
     txn->read_many<raft_log_entry_t<table_raft_state_t> >(
         mdprefix_table_raft_log().suffix(uuid_to_str(table_id) + "/"),
-        [&](const std::string &index_str, const raft_log_entry_t<table_raft_state_t> &) {
-            log_keys.push_back(index_str);
+        [&](std::string &&index_str, raft_log_entry_t<table_raft_state_t> &&) {
+            log_keys.push_back(std::move(index_str));
         },
         &non_interruptor);
     for (const std::string &key : log_keys) {

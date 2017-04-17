@@ -71,17 +71,16 @@ public:
         template<class T, cluster_version_t W = cluster_version_t::LATEST_DISK>
         void read_many(
                 const key_t<T> &key_prefix,
-                const std::function<void(
-                    const std::string &key_suffix, const T &value)> &cb,
+                const std::function<void(std::string &&key_suffix, T &&value)> &cb,
                 signal_t *interruptor) {
             read_many_bin(
                 key_prefix.key,
-                [&](const std::string &key_suffix, read_stream_t *bin_value) {
+                [&](std::string &&key_suffix, read_stream_t *bin_value) {
                     T value;
                     archive_result_t res = deserialize<W>(bin_value, &value);
                     guarantee_deserialization(res,
                         "metadata_file_t::read_txn_t::read_many");
-                    cb(key_suffix, value);
+                    cb(std::move(key_suffix), std::move(value));
                 },
                 interruptor);
         }
@@ -110,7 +109,7 @@ public:
         void read_many_bin(
             const store_key_t &key_prefix,
             const std::function<void(
-                const std::string &key_suffix, read_stream_t *)> &cb,
+                std::string &&key_suffix, read_stream_t *)> &cb,
             signal_t *interruptor);
 
         metadata_file_t *file;

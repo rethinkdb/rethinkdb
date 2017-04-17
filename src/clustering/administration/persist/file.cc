@@ -217,7 +217,7 @@ void metadata_file_t::read_txn_t::read_bin(
 
 void metadata_file_t::read_txn_t::read_many_bin(
         const store_key_t &key_prefix,
-        const std::function<void(const std::string &key_suffix, read_stream_t *)> &cb,
+        const std::function<void(std::string &&key_suffix, read_stream_t *)> &cb,
         signal_t *interruptor) {
     buf_lock_t sb_lock(buf_parent_t(&txn), SUPERBLOCK_ID, access_t::read);
     wait_interruptible(sb_lock.read_acq_signal(), interruptor);
@@ -234,12 +234,12 @@ void metadata_file_t::read_txn_t::read_many_bin(
             txn->blob_to_stream(
                 kv.expose_buf(),
                 kv.value(),
-                [&](read_stream_t *s) { (*cb)(suffix, s); });
+                [&](read_stream_t *s) { (*cb)(std::move(suffix), s); });
             return continue_bool_t::CONTINUE;
         }
         read_txn_t *txn;
         store_key_t key_prefix;
-        const std::function<void(const std::string &key_suffix, read_stream_t *)> *cb;
+        const std::function<void(std::string &&key_suffix, read_stream_t *)> *cb;
     } dftcb;
     dftcb.txn = this;
     dftcb.key_prefix = key_prefix;
