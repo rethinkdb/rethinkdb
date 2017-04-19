@@ -658,7 +658,7 @@ private:
     bool began_waiting_for_flush_;
     bool spawned_flush_;
 
-    enum mark_state_t {
+    enum mark_state_t : uint8_t {
         marked_not,
         marked_red,
         marked_blue,
