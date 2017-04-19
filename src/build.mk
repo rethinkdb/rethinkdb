@@ -52,15 +52,12 @@ else ifeq ($(COMPILER),INTEL)
   RT_LDFLAGS += -lstdc++
 else ifeq ($(COMPILER),GCC)
 
-#if ! defined(__powerpc64__)
   ifeq ($(OS),Linux)
     RT_LDFLAGS += -Wl,--no-as-needed
+    ifeq ($(GCC_ARCH),ppc64le)
+      RT_CXXFLAGS += "-DV8_NEEDS_BUFFER_ALLOCATOR"
+    endif
   endif
-#elif defined(__powerpc64__)
-  ifeq ($(OS),Linux)
-    RT_LDFLAGS += -licui18n -licuuc -ldl -Wl,--no-as-needed
-  endif
-#endif
 
   ifeq ($(STATICFORCE),1)
     # TODO(OSX)

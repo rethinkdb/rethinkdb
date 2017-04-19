@@ -176,5 +176,6 @@ pkg_link-flags () {
         for lib in libv8_{base,libbase,nosnapshot,libplatform}; do
                 echo "$install_dir/lib/$lib.a"
         done
+        echo "-licui18n -licuuc -ldl"
     fi
 }
