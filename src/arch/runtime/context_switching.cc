@@ -261,7 +261,7 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     // This slot is used to store r12.
     const size_t min_frame = 1;
 #elif defined(__powerpc64__)
-    const size_t min_frame = 1;
+    const size_t min_frame = 4;
 #endif
     // Zero the caller stack frame. Prevents Valgrind complaining about uninitialized
     // value errors when throwing an uncaught exception.
@@ -272,9 +272,6 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
 
     // (4) write the return address to the stack.
     sp--;
-#if defined (__powerpc64__)
-    sp -= 22;
-#endif
     *sp = reinterpret_cast<uintptr_t>(initial_fun);
 
     // (5) allocate space for callee-save registers. These will be popped off the
@@ -292,7 +289,7 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
 #elif defined(__s390x__)
     sp -= 16; // r6-r13 and f8-f15.
 #elif defined (__powerpc64__)
-    sp += 24;
+    sp -= 20; // r14-r31, toc, cr.
 #else
 #error "Unsupported architecture."
 #endif
@@ -510,37 +507,30 @@ asm(
     "std %f14, 48(%r15)\n"
     "std %f15, 56(%r15)\n"
 #elif defined(__powerpc64__)
-    "std  1, 0(3)\n"
-    "addi 1,1,-200\n"
-    "mfcr     0\n"
-    "std      0, 0(1)\n"
-    "mflr     0\n"
-    "std      0, 8(1)\n"
-    "mfctr    0\n"
-    "std      0, 16(1)\n"
-    "mfxer    0\n"
-    "std      0, 24(1)\n"
-    "std       0, 32+(8*0)(1)\n"
-    "std       2, 32+(8*1)(1)\n"
-    "std       3, 32+(8*2)(1)\n"
-    "std      14, 32+(8*3)(1)\n"
-    "std      15, 32+(8*4)(1)\n"
-    "std      16, 32+(8*5)(1)\n"
-    "std      17, 32+(8*6)(1)\n"
-    "std      18, 32+(8*7)(1)\n"
-    "std      19, 32+(8*8)(1)\n"
-    "std      20, 32+(8*9)(1)\n"
-    "std      21, 32+(8*10)(1)\n"
-    "std      22, 32+(8*11)(1)\n"
-    "std      23, 32+(8*12)(1)\n"
-    "std      24, 32+(8*13)(1)\n"
-    "std      25, 32+(8*14)(1)\n"
-    "std      26, 32+(8*15)(1)\n"
-    "std      27, 32+(8*16)(1)\n"
-    "std      28, 32+(8*17)(1)\n"
-    "std      29, 32+(8*18)(1)\n"
-    "std      30, 32+(8*19)(1)\n"
-    "std      31, 32+(8*20)(1)\n"
+    "addi 1, 1, -(21*8)\n"
+    "std 2, (8*0)(1)\n"
+    "std 14, (8*1)(1)\n"
+    "std 15, (8*2)(1)\n"
+    "std 16, (8*3)(1)\n"
+    "std 17, (8*4)(1)\n"
+    "std 18, (8*5)(1)\n"
+    "std 19, (8*6)(1)\n"
+    "std 20, (8*7)(1)\n"
+    "std 21, (8*8)(1)\n"
+    "std 22, (8*9)(1)\n"
+    "std 23, (8*10)(1)\n"
+    "std 24, (8*11)(1)\n"
+    "std 25, (8*12)(1)\n"
+    "std 26, (8*13)(1)\n"
+    "std 27, (8*14)(1)\n"
+    "std 28, (8*15)(1)\n"
+    "std 29, (8*16)(1)\n"
+    "std 30, (8*17)(1)\n"
+    "std 31, (8*18)(1)\n"
+    "mfcr 0\n"
+    "std 0, (8*19)(1)\n"
+    "mflr 0\n"
+    "std 0, (8*20)(1)\n"
 #endif
 
     /* Save old stack pointer. */
@@ -558,6 +548,8 @@ asm(
 #elif defined(__s390x__)
     /* On s390x, the first argument is in r2. r15 is the stack pointer. */
     "stg %r15, 0(%r2)\n"
+#elif defined(__powerpc64__)
+    "std  1, 0(3)\n"
 #endif
 
     /* Load the new stack pointer and the preserved registers. */
@@ -607,37 +599,30 @@ asm(
     "ld %f15, 56(%r15)\n"
     "aghi %r15, 136\n"
 #elif defined(__powerpc64__)
-    "addi 1,1,-200\n"
-    "ld        0, 32+(8*0)(1)\n"
-    "ld        2, 32+(8*1)(1)\n"
-    "ld        3, 32+(8*2)(1)\n"
-    "ld       14, 32+(8*3)(1)\n"
-    "ld       15, 32+(8*4)(1)\n"
-    "ld       16, 32+(8*5)(1)\n"
-    "ld       17, 32+(8*6)(1)\n"
-    "ld       18, 32+(8*7)(1)\n"
-    "ld       19, 32+(8*8)(1)\n"
-    "ld       20, 32+(8*9)(1)\n"
-    "ld       21, 32+(8*10)(1)\n"
-    "ld       22, 32+(8*11)(1)\n"
-    "ld       23, 32+(8*12)(1)\n"
-    "ld       24, 32+(8*13)(1)\n"
-    "ld       25, 32+(8*14)(1)\n"
-    "ld       26, 32+(8*15)(1)\n"
-    "ld       27, 32+(8*16)(1)\n"
-    "ld       28, 32+(8*17)(1)\n"
-    "ld       29, 32+(8*18)(1)\n"
-    "ld       30, 32+(8*19)(1)\n"
-    "ld       31, 32+(8*20)(1)\n"
-    "ld       0, 0(1)\n"
-    "mtcr     0\n"
-    "ld       0, 8(1)\n"
-    "mtlr     0\n"
-    "ld       0, 16(1)\n"
-    "mtctr    0\n"
-    "ld       0, 24(1)\n"
-    "mtxer    0\n"
-    "addi 1,1,200\n"
+    "ld 2, (8*0)(1)\n"
+    "ld 14, (8*1)(1)\n"
+    "ld 15, (8*2)(1)\n"
+    "ld 16, (8*3)(1)\n"
+    "ld 17, (8*4)(1)\n"
+    "ld 18, (8*5)(1)\n"
+    "ld 19, (8*6)(1)\n"
+    "ld 20, (8*7)(1)\n"
+    "ld 21, (8*8)(1)\n"
+    "ld 22, (8*9)(1)\n"
+    "ld 23, (8*10)(1)\n"
+    "ld 24, (8*11)(1)\n"
+    "ld 25, (8*12)(1)\n"
+    "ld 26, (8*13)(1)\n"
+    "ld 27, (8*14)(1)\n"
+    "ld 28, (8*15)(1)\n"
+    "ld 29, (8*16)(1)\n"
+    "ld 30, (8*17)(1)\n"
+    "ld 31, (8*18)(1)\n"
+    "ld 0, (8*19)(1)\n"
+    "mtcr 0\n"
+    "ld 0, (8*20)(1)\n"
+    "mtlr 0\n"
+    "addi 1, 1, (8*21)\n"
 #endif
 
 #if defined(__i386__) || defined(__x86_64__)
