@@ -607,14 +607,6 @@ page_acq_t::~page_acq_t() {
     }
 }
 
-bool page_acq_t::has() const {
-    return page_ != nullptr;
-}
-
-signal_t *page_acq_t::buf_ready_signal() {
-    return &buf_ready_signal_;
-}
-
 block_size_t page_acq_t::get_buf_size() {
     buf_ready_signal_.wait();
     return page_->get_page_buf_size();

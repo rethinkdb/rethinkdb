@@ -230,8 +230,9 @@ void evicter_t::evict_if_necessary() THROWS_NOTHING {
     evict_if_necessary_active_ = true;
     page_t *page;
     while (in_memory_size() > memory_limit_
-           && evictable_disk_backed_.remove_oldish(&page, access_time_counter_,
-                                                   page_cache_)) {
+           && eviction_bag_t::remove_oldish(
+                &evictable_disk_backed_, access_time_counter_,
+                page_cache_, &page)) {
         evicted_.add(page, page->hypothetical_memory_usage(page_cache_));
         page->evict_self(page_cache_);
         page_cache_->consider_evicting_current_page(page->block_id());

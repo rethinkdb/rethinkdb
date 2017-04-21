@@ -38,27 +38,65 @@ bool eviction_bag_t::has_page(page_t *page) const {
     return bag_.has_element(page);
 }
 
-bool eviction_bag_t::remove_oldish(page_t **page_out, uint64_t access_time_offset,
-                                   page_cache_t *page_cache) {
-    if (bag_.size() == 0) {
+bool eviction_bag_t::remove_oldish(eviction_bag_t *eb, uint64_t access_time_offset,
+                                   page_cache_t *page_cache, page_t **page_out) {
+    if (eb->bag_.size() == 0) {
         return false;
-    } else {
-        const size_t num_randoms = 5;
-        page_t *oldest = bag_.access_random(randsize(bag_.size()));
-        for (size_t i = 1; i < num_randoms; ++i) {
-            page_t *page = bag_.access_random(randsize(bag_.size()));
-            // We compare relative to the access time offset, so that in the unlikely
-            // event of a 64-bit overflow, performance degradation is "smooth".
-            if (access_time_offset - page->access_time() >
-                access_time_offset - oldest->access_time()) {
-                oldest = page;
-            }
-        }
-
-        remove(oldest, oldest->hypothetical_memory_usage(page_cache));
-        *page_out = oldest;
-        return true;
     }
+    const size_t num_randoms = 5;
+    page_t *oldest = eb->bag_.access_random(randsize(eb->bag_.size()));
+    for (size_t i = 1; i < num_randoms; ++i) {
+        page_t *page = eb->bag_.access_random(randsize(eb->bag_.size()));
+        // We compare relative to the access time offset, so that in the unlikely
+        // event of a 64-bit overflow, performance degradation is "smooth".
+        if (access_time_offset - page->access_time() >
+            access_time_offset - oldest->access_time()) {
+            oldest = page;
+        }
+    }
+
+    eb->remove(oldest, oldest->hypothetical_memory_usage(page_cache));
+    *page_out = oldest;
+    return true;
+}
+
+template <class T>
+T access_random2(const backindex_bag_t<T> &b1, const backindex_bag_t<T> &b2,
+                 size_t index) {
+    size_t n = b1.size();
+    if (index < n) {
+        return b1.access_random(index);
+    } else {
+        return b2.access_random(index - n);
+    }
+}
+
+bool eviction_bag_t::remove_oldish2(eviction_bag_t *eb1, eviction_bag_t *eb2,
+                                    uint64_t access_time_offset,
+                                    page_cache_t *page_cache, page_t **page_out) {
+    size_t total_size = eb1->bag_.size() + eb2->bag_.size();
+    if (total_size == 0) {
+        return false;
+    }
+    const size_t num_randoms = 5;
+    page_t *oldest = access_random2(eb1->bag_, eb2->bag_, randsize(total_size));
+    for (size_t i = 1; i < num_randoms; ++i) {
+        page_t *page = access_random2(eb1->bag_, eb2->bag_, randsize(total_size));
+        // We compare relative to the access time offset, so that in the unlikely
+        // event of a 64-bit overflow, performance degradation is "smooth".
+        if (access_time_offset - page->access_time() >
+            access_time_offset - oldest->access_time()) {
+            oldest = page;
+        }
+    }
+    size_t oldest_mem_usage = oldest->hypothetical_memory_usage(page_cache);
+    if (eb1->bag_.has_element(oldest)) {
+        eb1->remove(oldest, oldest_mem_usage);
+    } else {
+        eb2->remove(oldest, oldest_mem_usage);
+    }
+    *page_out = oldest;
+    return true;
 }
 
 

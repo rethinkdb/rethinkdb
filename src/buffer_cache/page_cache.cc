@@ -1217,11 +1217,10 @@ struct block_token_tstamp_t {
 };
 
 struct ancillary_info_t {
-    ancillary_info_t(repli_timestamp_t _tstamp,
-                     page_t *_page)
-        : tstamp(_tstamp), page(_page) { }
+    explicit ancillary_info_t(repli_timestamp_t _tstamp)
+        : tstamp(_tstamp) { }
     repli_timestamp_t tstamp;
-    page_t *page;
+    page_acq_t page_acq;
 };
 
 void page_cache_t::do_flush_changes(page_cache_t *page_cache,
@@ -1232,6 +1231,9 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
     std::vector<block_token_tstamp_t> blocks_by_tokens;
     blocks_by_tokens.reserve(changes.size());
 
+    // ancillary_infos holds a page_acq_t for any page we need to write, to prevent its
+    // buf from getting freed out from under us (by a force-eviction operation, or
+    // anything else).
     std::vector<ancillary_info_t> ancillary_infos;
     std::vector<buf_write_info_t> write_infos;
     ancillary_infos.reserve(changes.size());
@@ -1244,20 +1246,22 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
             if (it->second.modified) {
                 if (it->second.page == nullptr) {
                     // The block is deleted.
-                    blocks_by_tokens.push_back(block_token_tstamp_t(it->first,
-                                                                    true,
-                                                                    counted_t<block_token_t>(),
-                                                                    repli_timestamp_t::invalid,
-                                                                    nullptr));
+                    blocks_by_tokens.push_back(block_token_tstamp_t(
+                        it->first,
+                        true,
+                        counted_t<block_token_t>(),
+                        repli_timestamp_t::invalid,
+                        nullptr));
                 } else {
                     page_t *page = it->second.page;
                     if (page->block_token().has()) {
                         // It's already on disk, we're not going to flush it.
-                        blocks_by_tokens.push_back(block_token_tstamp_t(it->first,
-                                                                        false,
-                                                                        page->block_token(),
-                                                                        it->second.tstamp,
-                                                                        page));
+                        blocks_by_tokens.push_back(block_token_tstamp_t(
+                            it->first,
+                            false,
+                            page->block_token(),
+                            it->second.tstamp,
+                            page));
                     } else {
                         // We can't be in the process of loading a block we're going
                         // to write for which we don't have a block token.  That's
@@ -1268,23 +1272,25 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
 
                         rassert(page->is_loaded());
 
-                        // KSI: Is there a page_acq_t for this buf we're writing?  Is it
-                        // possible that we might be trying to do an unbacked eviction
-                        // for this page right now?  (No, we don't do that yet.)
-                        write_infos.push_back(buf_write_info_t(page->get_loaded_ser_buffer(),
-                                                               page->get_page_buf_size(),
-                                                               it->first));
-                        ancillary_infos.push_back(ancillary_info_t(it->second.tstamp,
-                                                                   page));
+                        write_infos.push_back(buf_write_info_t(
+                            page->get_loaded_ser_buffer(),
+                            page->get_page_buf_size(),
+                            it->first));
+                        ancillary_infos.push_back(ancillary_info_t(it->second.tstamp));
+                        // The account doesn't matter because the page is already
+                        // loaded.
+                        ancillary_infos.back().page_acq.init(
+                            page, page_cache, page_cache->default_reads_account());
                     }
                 }
             } else {
                 // We only touched the page.
-                blocks_by_tokens.push_back(block_token_tstamp_t(it->first,
-                                                                false,
-                                                                counted_t<block_token_t>(),
-                                                                it->second.tstamp,
-                                                                nullptr));
+                blocks_by_tokens.push_back(block_token_tstamp_t(
+                    it->first,
+                    false,
+                    counted_t<block_token_t>(),
+                    it->second.tstamp,
+                    nullptr));
             }
         }
     }
@@ -1309,11 +1315,12 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
         rassert(tokens.size() == write_infos.size());
         rassert(write_infos.size() == ancillary_infos.size());
         for (size_t i = 0; i < write_infos.size(); ++i) {
-            blocks_by_tokens.push_back(block_token_tstamp_t(write_infos[i].block_id,
-                                                            false,
-                                                            std::move(tokens[i]),
-                                                            ancillary_infos[i].tstamp,
-                                                            ancillary_infos[i].page));
+            blocks_by_tokens.push_back(block_token_tstamp_t(
+                write_infos[i].block_id,
+                false,
+                std::move(tokens[i]),
+                ancillary_infos[i].tstamp,
+                ancillary_infos[i].page_acq.page()));
         }
 
         // KSI: Unnecessary copying between blocks_by_tokens and write_ops, inelegant
@@ -1340,6 +1347,9 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
         }
 
         blocks_written_cb.wait();
+        // Note: There is some reason related to fixing issue 4545 (see efec93e092c1)
+        // why we don't just update pages' block tokens here, and instead wait for index
+        // writes to be reflected below.
 
         fifo_enforcer_sink_t::exit_write_t exiter(&page_cache->index_write_sink_->sink,
                                                   index_write_token);
@@ -1362,8 +1372,8 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                             // We know page is still a valid pointer because of the
                             // page_ptr_t in snapshotted_dirtied_pages_.
 
-                            // KSI: This assertion would fail if we try to force-evict the page
-                            // simultaneously as this write.
+                            // HSI: This assertion would fail if we try to force-evict
+                            // the page simultaneously as this write.
                             rassert(!block.page->block_token().has());
                             eviction_bag_t *old_bag
                                 = page_cache->evicter().correct_eviction_category(
@@ -1380,6 +1390,11 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
                     // Clear `changes`, since we are going to evict the pages
                     // that it has pointers to in the next step.
                     changes.clear();
+
+                    // Clear the page acqs before we reset their associated page ptr's
+                    // below.
+                    ancillary_infos.clear();
+
                     for (auto &txn : txns) {
                         for (size_t i = 0, e = txn->snapshotted_dirtied_pages_.size();
                              i < e;

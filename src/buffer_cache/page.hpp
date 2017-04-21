@@ -227,16 +227,30 @@ class page_acq_t : public half_intrusive_list_node_t<page_acq_t> {
 public:
     page_acq_t();
     ~page_acq_t();
+    page_acq_t(page_acq_t &&other) noexcept
+        : half_intrusive_list_node_t<page_acq_t>(std::move(other)),
+          page_(other.page_), page_cache_(other.page_cache_),
+          buf_ready_signal_(std::move(other.buf_ready_signal_)) {
+        other.page_ = nullptr;
+        other.page_cache_ = nullptr;
+        other.buf_ready_signal_.reset();
+    }
+    void operator=(page_acq_t &&) = delete;
 
     void init(page_t *page, page_cache_t *page_cache, cache_account_t *account);
+
+    page_t *page() const {
+        rassert(page_ != nullptr);
+        return page_;
+    }
 
     page_cache_t *page_cache() const {
         rassert(page_cache_ != NULL);
         return page_cache_;
     }
 
-    signal_t *buf_ready_signal();
-    bool has() const;
+    signal_t *buf_ready_signal() { return &buf_ready_signal_; }
+    bool has() const { return page_ != nullptr; }
 
     // These block, uninterruptibly waiting for buf_ready_signal() to be pulsed.
     block_size_t get_buf_size();

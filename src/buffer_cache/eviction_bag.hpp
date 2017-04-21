@@ -30,8 +30,13 @@ public:
 
     uint64_t size() const { return size_; }
 
-    bool remove_oldish(page_t **page_out, uint64_t access_time_offset,
-                       page_cache_t *page_cache);
+    static bool remove_oldish(
+        eviction_bag_t *eb, uint64_t access_time_offset,
+        page_cache_t *page_cache, page_t **page_out);
+
+    static bool remove_oldish2(
+        eviction_bag_t *eb1, eviction_bag_t *eb2, uint64_t access_time_offset,
+        page_cache_t *page_cache, page_t **page_out);
 
 private:
     backindex_bag_t<page_t *> bag_;
