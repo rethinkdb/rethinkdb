@@ -13,12 +13,17 @@ template <class T>
 class half_intrusive_list_half_node_t {
 public:
     half_intrusive_list_half_node_t() : next_(nullptr) { }
+
+    half_intrusive_list_half_node_t(half_intrusive_list_half_node_t &&other) noexcept;
+    void operator=(half_intrusive_list_half_node_t&&) = delete;
+
     ~half_intrusive_list_half_node_t() {
         guarantee(next_ == nullptr, "non-detached intrusive list half-node destroyed");
     }
 
 protected:
     friend class half_intrusive_list_t<T>;
+    friend class half_intrusive_list_node_t<T>;
     half_intrusive_list_node_t<T> *next_;
 
     DISABLE_COPYING(half_intrusive_list_half_node_t);
@@ -33,16 +38,38 @@ public:
                   "non-detached half-intrusive-list node destroyed");
     }
 
+    half_intrusive_list_node_t(half_intrusive_list_node_t &&other) noexcept
+        : half_intrusive_list_half_node_t<T>(std::move(other)), prev_(other.prev_) {
+        other.prev_ = nullptr;
+        if (prev_ != nullptr) {
+            rassert(prev_->next_ == &other);
+            prev_->next_ = this;
+        }
+    }
+    void operator=(half_intrusive_list_node_t &&) = delete;
+
     bool in_a_list() const {
         return prev_ != nullptr;
     }
 
 private:
     friend class half_intrusive_list_t<T>;
+    friend class half_intrusive_list_half_node_t<T>;
     half_intrusive_list_half_node_t<T> *prev_;
 
     DISABLE_COPYING(half_intrusive_list_node_t);
 };
+
+template <class T>
+half_intrusive_list_half_node_t<T>::half_intrusive_list_half_node_t(
+        half_intrusive_list_half_node_t &&other) noexcept
+        : next_(other.next_) {
+    other.next_ = nullptr;
+    if (next_ != nullptr) {
+        rassert(next_->prev_ == &other);
+        next_->prev_ = this;
+    }
+}
 
 
 template <class T>
