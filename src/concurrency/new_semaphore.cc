@@ -52,6 +52,14 @@ new_semaphore_in_line_t::~new_semaphore_in_line_t() {
     reset();
 }
 
+new_semaphore_in_line_t &new_semaphore_in_line_t::operator=(new_semaphore_in_line_t &&movee) {
+    new_semaphore_in_line_t tmp(std::move(movee));
+    std::swap(semaphore_, tmp.semaphore_);
+    std::swap(count_, tmp.count_);
+    cond_.swap(tmp.cond_);
+    return *this;
+}
+
 void new_semaphore_in_line_t::reset() {
     if (semaphore_ != nullptr) {
         semaphore_->remove_acquirer(this);
@@ -86,10 +94,6 @@ new_semaphore_in_line_t::new_semaphore_in_line_t(new_semaphore_in_line_t &&movee
     movee.semaphore_ = nullptr;
     movee.count_ = 0;
     movee.cond_.reset();
-}
-
-int64_t new_semaphore_in_line_t::count() const {
-    return count_;
 }
 
 void new_semaphore_in_line_t::change_count(int64_t new_count) {

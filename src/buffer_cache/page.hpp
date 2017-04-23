@@ -165,23 +165,41 @@ inline backindex_bag_index_t *access_backindex(page_t *page) {
 // A page_ptr_t holds a pointer to a page_t.
 class page_ptr_t {
 public:
-    explicit page_ptr_t(page_t *page)
-        : page_(nullptr) { init(page); }
-    page_ptr_t();
+    explicit page_ptr_t(page_t *page) : page_(nullptr) {
+        init(page);
+    }
+    page_ptr_t() : page_(nullptr) { }
 
     // The page_ptr_t MUST be reset before the destructor is called.
-    ~page_ptr_t();
+    ~page_ptr_t() {
+        rassert(page_ == nullptr);
+    }
 
     // You MUST manually call reset_page_ptr() to reset the page_ptr_t.  Then, please
     // call consider_evicting_current_page if applicable.
     void reset_page_ptr(page_cache_t *page_cache);
 
-    page_ptr_t(page_ptr_t &&movee);
-    page_ptr_t &operator=(page_ptr_t &&movee);
+    page_ptr_t(page_ptr_t &&movee) : page_(movee.page_) {
+        movee.page_ = nullptr;
+    }
+    page_ptr_t &operator=(page_ptr_t &&movee) noexcept {
+        // We can't do true assignment, destructing an old page-having value, because
+        // reset() has to manually be called.  (This assertion is redundant with the one
+        // that'll enforce this fact in tmp's destructor.)
+        rassert(page_ == nullptr);
+
+        page_ptr_t tmp(std::move(movee));
+        swap_with(&tmp);
+        return *this;
+    }
 
     void init(page_t *page);
 
-    page_t *get_page_for_read() const;
+    page_t *get_page_for_read() const {
+        rassert(page_ != nullptr);
+        return page_;
+    }
+
     // Constructs a new page if there might be snapshot references.
     page_t *get_page_for_write(page_cache_t *page_cache,
                                cache_account_t *account);
@@ -214,6 +232,8 @@ public:
     repli_timestamp_t timestamp() const { return timestamp_; }
 
     void reset_page_ptr(page_cache_t *page_cache);
+
+    page_ptr_t &&remove_ptr() && { return std::move(page_ptr_); }
 
 private:
     repli_timestamp_t timestamp_;

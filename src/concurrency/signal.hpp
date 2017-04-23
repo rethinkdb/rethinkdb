@@ -107,6 +107,9 @@ protected:
 
     void reset();
 
+    // You can only call this when it's safe to destruct or reset both objects.
+    void swap(signal_t &other);
+
 private:
     static void call(subscription_t *subscription) THROWS_NOTHING {
         subscription->run();

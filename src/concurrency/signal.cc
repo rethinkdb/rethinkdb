@@ -51,6 +51,15 @@ signal_t::signal_t(signal_t &&movee)
     movee.pulsed = false;
 }
 
+void signal_t::swap(signal_t &other) {
+    assert_thread();
+    other.assert_thread();
+
+    std::swap(pulsed, other.pulsed);
+    publisher_controller.swap(other.publisher_controller);
+    lock.swap(other.lock);
+}
+
 // The same thing that happens when a signal_t is destructed happens: We crash if
 // there are any current waiters.
 void signal_t::reset() {

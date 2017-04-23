@@ -58,5 +58,39 @@ TPTEST(TimerTest, TestApproximateWaitTimes) {
         << "Average timer error too high";
 }
 
+TPTEST(TimerTest, TestRepeatingTimer) {
+    int64_t first_ticks = get_ticks().nanos;
+    int count = 0;
+    repeating_timer_t timer(30, [&]() {
+        ++count;
+        int64_t ticks = get_ticks().nanos;
+        int64_t diff = ticks - first_ticks;
+        EXPECT_LT(std::abs(diff - 30 * MILLION * count), max_error_ms * MILLION);
+    });
+    nap(100);
+}
+
+TPTEST(TimerTest, TestChangeInterval) {
+    ticks_t first_ticks = get_ticks();
+    int count = 0;
+    int64_t expected[] = { 5, 10, 20, 40, 65 };
+    int64_t naps[] = {0,  0,  0,  25, 0};
+    int64_t ms[] = { 10, 20, 30, 10, 50};
+    repeating_timer_t timer(10, [&]() {
+        coro_t::spawn_now_dangerously([&]() {
+            ASSERT_LT(count, 5);
+            ticks_t ticks = get_ticks();
+            int64_t diff = ticks.nanos - first_ticks.nanos;
+            EXPECT_LT(std::abs(diff - expected[count] * MILLION),
+                      max_error_ms * MILLION);
+            nap(naps[count]);
+            timer.change_interval(ms[count]);
+            ++count;
+        });
+    });
+    timer.change_interval(5);
+    nap(70);
+}
+
 
 }  // namespace unittest

@@ -430,7 +430,8 @@ void check_for_obsolete_sindexes(io_backender_t *io_backender,
                                       base_path,
                                       info.first,
                                       /* Important: Don't update indexes yet. */
-                                      update_sindexes_t::LEAVE_ALONE);
+                                      update_sindexes_t::LEAVE_ALONE,
+                                      which_cpu_shard_t{index, CPU_SHARDING_FACTOR});
 
                         store.sindex_list(interruptor);
                     });
@@ -478,7 +479,8 @@ void migrate_tables(io_backender_t *io_backender,
                                       io_backender,
                                       base_path,
                                       info.first,
-                                      update_sindexes_t::UPDATE);
+                                      update_sindexes_t::UPDATE,
+                                      which_cpu_shard_t{index, CPU_SHARDING_FACTOR});
 
                         if (index == 0) {
                             sindex_list = store.sindex_list(interruptor);
@@ -628,7 +630,7 @@ void migrate_auth_metadata_to_v2_1(io_backender_t *io_backender,
     }
 
     dummy_cache_balancer_t balancer(MEGABYTE);
-    cache_t cache(&serializer, &balancer, &dummy_stats);
+    cache_t cache(&serializer, &balancer, &dummy_stats, which_cpu_shard_t{0, 1});
     cache_conn_t cache_conn(&cache);
 
     txn_t read_txn(&cache_conn, read_access_t::read);

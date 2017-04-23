@@ -16,6 +16,11 @@ public:
     cond_t(cond_t &&movee) : signal_t(std::move(movee)) { }
     void pulse_if_not_already_pulsed();
 
+    void swap(cond_t &other) {
+        signal_t &sig_other = other;
+        signal_t::swap(sig_other);
+    }
+
     using signal_t::pulse;
     using signal_t::reset;
 

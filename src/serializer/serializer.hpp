@@ -111,8 +111,9 @@ public:
                              const std::vector<index_write_op_t> &write_ops) = 0;
 
     // Returns block tokens in the same order as write_infos.
-    virtual std::vector<counted_t<block_token_t>>
-    block_writes(const std::vector<buf_write_info_t> &write_infos,
+    virtual std::vector<counted_t<block_token_t> >
+    block_writes(const buf_write_info_t *write_infos,
+                 size_t num_write_infos,
                  file_account_t *io_account,
                  iocallback_t *cb) = 0;
 

@@ -6,6 +6,7 @@
 #include <vector>
 #include <utility>
 
+#include "arch/timing.hpp"
 #include "buffer_cache/page_cache.hpp"
 #include "buffer_cache/types.hpp"
 #include "containers/two_level_array.hpp"
@@ -24,8 +25,8 @@ public:
     explicit alt_txn_throttler_t(int64_t minimum_unwritten_changes_limit);
     ~alt_txn_throttler_t();
 
-    alt::throttler_acq_t begin_txn_or_throttle(int64_t expected_change_count);
-    void end_txn(alt::throttler_acq_t acq);
+    alt::throttler_acq_t begin_txn_or_throttle(
+        write_durability_t durability, int64_t expected_change_count);
 
     void inform_memory_limit_change(uint64_t memory_limit,
                                     block_size_t max_block_size);
@@ -39,11 +40,17 @@ private:
     DISABLE_COPYING(alt_txn_throttler_t);
 };
 
+struct which_cpu_shard_t {
+    int which_shard;
+    int num_shards;
+};
+
 class cache_t : public home_thread_mixin_t {
 public:
     explicit cache_t(serializer_t *serializer,
                      cache_balancer_t *balancer,
-                     perfmon_collection_t *perfmon_collection);
+                     perfmon_collection_t *perfmon_collection,
+                     which_cpu_shard_t which_cpu_shard);
     ~cache_t();
 
     max_block_size_t max_block_size() const { return page_cache_.max_block_size(); }
@@ -54,6 +61,8 @@ public:
     // i.e. define a "default" priority etc.  TODO: As soon as we can support it, we
     // might consider supporting a mem_cap parameter.
     cache_account_t create_cache_account(int priority);
+
+    void configure_flush_interval(flush_interval_t interval);
 
 private:
     friend class txn_t;
@@ -75,6 +84,10 @@ private:
 
     std::map<block_id_t, intrusive_list_t<alt_snapshot_node_t> >
         snapshot_nodes_by_block_id_;
+
+    // We maintain this flusher so that the different CPU shards are offset from one another.
+    repeating_timer_t soft_durability_flusher_;
+    which_cpu_shard_t which_cpu_shard_;
 
     DISABLE_COPYING(cache_t);
 };
@@ -104,16 +117,6 @@ public:
     cache_account_t *account() { return cache_account_; }
 
 private:
-    // Resets the *throttler_acq parameter.
-    static void inform_tracker(cache_t *cache,
-                               alt::throttler_acq_t *throttler_acq);
-
-    // Resets the *throttler_acq parameter.
-    static void pulse_and_inform_tracker(cache_t *cache,
-                                         alt::throttler_acq_t *throttler_acq,
-                                         cond_t *pulsee);
-
-
     void help_construct(int64_t expected_change_count, cache_conn_t *cache_conn);
 
     cache_t *const cache_;

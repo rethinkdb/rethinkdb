@@ -227,6 +227,54 @@ bool convert_durability_from_datum(
     return true;
 }
 
+struct convert_flush_interval_visitor_t : public boost::static_visitor<ql::datum_t> {
+    ql::datum_t operator()(flush_interval_default_t) const {
+        return ql::datum_t("default");
+    }
+
+    ql::datum_t operator()(flush_interval_never_t) const {
+        return ql::datum_t("never");
+    }
+
+    ql::datum_t operator()(double x) const {
+        return ql::datum_t(x);
+    }
+};
+
+ql::datum_t convert_flush_interval_to_datum(
+        const flush_interval_config_t &flush_interval) {
+    return boost::apply_visitor(
+        convert_flush_interval_visitor_t{},
+        flush_interval.variant);
+}
+
+bool convert_flush_interval_from_datum(
+        const ql::datum_t &datum,
+        flush_interval_config_t *flush_interval_out,
+        admin_err_t *error_out) {
+    if (datum == ql::datum_t("default")) {
+        flush_interval_out->variant = flush_interval_default_t{};
+    } else if (datum == ql::datum_t("never")) {
+        flush_interval_out->variant = flush_interval_never_t{};
+    } else if (datum.get_type() == ql::datum_t::R_NUM) {
+        double val = datum.as_num();
+        if (std::signbit(val)) {
+            *error_out = admin_err_t{
+                "Expected non-negative number, got: " + datum.print(),
+                query_state_t::FAILED};
+            return false;
+        }
+        flush_interval_out->variant = val;
+    } else {
+        *error_out = admin_err_t{
+            "Expected \"default\", \"never\", or a non-negative number, got: "
+                + datum.print(),
+            query_state_t::FAILED};
+        return false;
+    }
+    return true;
+}
+
 ql::datum_t convert_table_config_shard_to_datum(
         const table_config_t::shard_t &shard,
         admin_identifier_format_t identifier_format,
@@ -410,6 +458,8 @@ ql::datum_t convert_table_config_to_datum(
         convert_write_ack_config_to_datum(config.write_ack_config));
     builder.overwrite("durability",
         convert_durability_to_datum(config.durability));
+    builder.overwrite("flush_interval",
+        convert_flush_interval_to_datum(config.flush_interval));
     builder.overwrite("data", config.user_data.datum);
     return std::move(builder).to_datum();
 }
@@ -602,6 +652,22 @@ bool convert_table_config_and_name_from_datum(
         }
     } else {
         config_out->durability = write_durability_t::HARD;
+    }
+
+    if (existed_before || converter.has("flush_interval")) {
+        ql::datum_t flush_interval_datum;
+        if (!converter.get("flush_interval", &flush_interval_datum, error_out)) {
+            return false;
+        }
+        if (!convert_flush_interval_from_datum(
+                flush_interval_datum,
+                &config_out->flush_interval,
+                error_out)) {
+            error_out->msg = "In `flush_interval`: " + error_out->msg;
+            return false;
+        }
+    } else {
+        config_out->flush_interval = default_flush_interval_config();
     }
 
     if (converter.has("write_hook")) {

@@ -108,6 +108,16 @@ public:
 
     void remove(T *elem) {
         guarantee(elem->in_a_list());
+        help_remove(elem);
+    }
+
+    void pop_front() {
+        guarantee(!empty());
+        help_remove(this->next_);
+    }
+
+private:
+    void help_remove(half_intrusive_list_node_t<T> *elem) {
         if (elem->next_ != nullptr) {
             elem->next_->prev_ = elem->prev_;
         }

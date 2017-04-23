@@ -38,8 +38,8 @@ bool eviction_bag_t::has_page(page_t *page) const {
     return bag_.has_element(page);
 }
 
-bool eviction_bag_t::remove_oldish(eviction_bag_t *eb, uint64_t access_time_offset,
-                                   page_cache_t *page_cache, page_t **page_out) {
+bool eviction_bag_t::select_oldish(eviction_bag_t *eb, uint64_t access_time_offset,
+                                   page_t **page_out) {
     if (eb->bag_.size() == 0) {
         return false;
     }
@@ -55,7 +55,6 @@ bool eviction_bag_t::remove_oldish(eviction_bag_t *eb, uint64_t access_time_offs
         }
     }
 
-    eb->remove(oldest, oldest->hypothetical_memory_usage(page_cache));
     *page_out = oldest;
     return true;
 }
@@ -71,9 +70,9 @@ T access_random2(const backindex_bag_t<T> &b1, const backindex_bag_t<T> &b2,
     }
 }
 
-bool eviction_bag_t::remove_oldish2(eviction_bag_t *eb1, eviction_bag_t *eb2,
+bool eviction_bag_t::select_oldish2(eviction_bag_t *eb1, eviction_bag_t *eb2,
                                     uint64_t access_time_offset,
-                                    page_cache_t *page_cache, page_t **page_out) {
+                                    page_t **page_out) {
     size_t total_size = eb1->bag_.size() + eb2->bag_.size();
     if (total_size == 0) {
         return false;
@@ -89,12 +88,7 @@ bool eviction_bag_t::remove_oldish2(eviction_bag_t *eb1, eviction_bag_t *eb2,
             oldest = page;
         }
     }
-    size_t oldest_mem_usage = oldest->hypothetical_memory_usage(page_cache);
-    if (eb1->bag_.has_element(oldest)) {
-        eb1->remove(oldest, oldest_mem_usage);
-    } else {
-        eb2->remove(oldest, oldest_mem_usage);
-    }
+
     *page_out = oldest;
     return true;
 }

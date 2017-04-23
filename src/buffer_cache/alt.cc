@@ -70,8 +70,15 @@ alt_txn_throttler_t::alt_txn_throttler_t(int64_t minimum_unwritten_changes_limit
 
 alt_txn_throttler_t::~alt_txn_throttler_t() { }
 
-throttler_acq_t alt_txn_throttler_t::begin_txn_or_throttle(int64_t expected_change_count) {
-    throttler_acq_t acq;
+throttler_acq_t alt_txn_throttler_t::begin_txn_or_throttle(
+        write_durability_t durability,
+        int64_t expected_change_count) {
+    throttler_acq_t acq(durability, expected_change_count);
+    if (!acq.pre_spawn_flush()) {
+        // Changes don't count until we "want" to flush the txn -- which for hard
+        // durability is right away, but for soft durability is later.
+        expected_change_count = 0;
+    }
     acq.index_changes_semaphore_acq_.init(
         &unwritten_index_changes_semaphore_,
         expected_change_count);
@@ -81,10 +88,6 @@ throttler_acq_t alt_txn_throttler_t::begin_txn_or_throttle(int64_t expected_chan
         expected_change_count);
     acq.block_changes_semaphore_acq_.acquisition_signal()->wait();
     return acq;
-}
-
-void alt_txn_throttler_t::end_txn(UNUSED throttler_acq_t acq) {
-    // Just let the acq destructor do its thing.
 }
 
 void alt_txn_throttler_t::inform_memory_limit_change(uint64_t memory_limit,
@@ -100,15 +103,42 @@ void alt_txn_throttler_t::inform_memory_limit_change(uint64_t memory_limit,
     unwritten_block_changes_semaphore_.set_capacity(throttler_limit);
 }
 
+int64_t clamp_ring_length(which_cpu_shard_t w, int64_t interval) {
+    if (w.which_shard == 0) {
+        return interval;
+    } else {
+        return interval * w.which_shard / w.num_shards;
+    }
+}
+
 cache_t::cache_t(serializer_t *serializer,
                  cache_balancer_t *balancer,
-                 perfmon_collection_t *perfmon_collection)
+                 perfmon_collection_t *perfmon_collection,
+                 which_cpu_shard_t which_cpu_shard)
     : throttler_(MINIMUM_SOFT_UNWRITTEN_CHANGES_LIMIT),
       page_cache_(serializer, balancer, &throttler_),
-      stats_(make_scoped<alt_cache_stats_t>(&page_cache_, perfmon_collection)) { }
+      stats_(make_scoped<alt_cache_stats_t>(&page_cache_, perfmon_collection)),
+      soft_durability_flusher_(DEFAULT_FLUSH_INTERVAL, [this]() {
+          // Smear it over 6.25% of the time.  (Not a well thought-through number.)
+          // 6.25% is a worst case -- we'll smear faster if we can.
+          page_cache_.soft_durability_interval_flush(
+              ticks_t{get_ticks().nanos + soft_durability_flusher_.interval_ms() * MILLION / 16});
+      }),
+      which_cpu_shard_(which_cpu_shard) {
+
+  soft_durability_flusher_.clamp_next_ring(
+      clamp_ring_length(which_cpu_shard, DEFAULT_FLUSH_INTERVAL));
+}
 
 cache_t::~cache_t() {
     guarantee(snapshot_nodes_by_block_id_.empty());
+}
+
+void cache_t::configure_flush_interval(flush_interval_t interval) {
+    rassert(interval.millis > 0);
+    soft_durability_flusher_.change_interval(interval.millis);
+    soft_durability_flusher_.clamp_next_ring(
+        clamp_ring_length(which_cpu_shard_, interval.millis));
 }
 
 cache_account_t cache_t::create_cache_account(int priority) {
@@ -224,25 +254,14 @@ void txn_t::help_construct(int64_t expected_change_count,
     }
     throttler_acq_t throttler_acq(
         access_ == access_t::write
-        ? cache_->throttler_.begin_txn_or_throttle(expected_change_count)
-        : throttler_acq_t());
+        ? cache_->throttler_.begin_txn_or_throttle(durability_, expected_change_count)
+        : throttler_acq_t(durability_, expected_change_count));
 
     ASSERT_FINITE_CORO_WAITING;
 
     page_txn_.init(new page_txn_t(&cache_->page_cache_,
                                   std::move(throttler_acq),
                                   cache_conn));
-}
-
-void txn_t::inform_tracker(cache_t *cache, throttler_acq_t *throttler_acq) {
-    cache->throttler_.end_txn(std::move(*throttler_acq));
-}
-
-void txn_t::pulse_and_inform_tracker(cache_t *cache,
-                                     throttler_acq_t *throttler_acq,
-                                     cond_t *pulsee) {
-    inform_tracker(cache, throttler_acq);
-    pulsee->pulse();
 }
 
 txn_t::~txn_t() {
@@ -263,17 +282,17 @@ void txn_t::commit() {
     is_committed_ = true;
 
     if (durability_ == write_durability_t::SOFT) {
-        cache_->page_cache_.flush_and_destroy_txn(std::move(page_txn_),
-            std::bind(&txn_t::inform_tracker,
-                cache_,
-                ph::_1));
-    } else {
-        cond_t cond;
         cache_->page_cache_.flush_and_destroy_txn(
             std::move(page_txn_),
-            std::bind(&txn_t::pulse_and_inform_tracker,
-                cache_, ph::_1, &cond));
-        cond.wait();
+            durability_,
+            nullptr);
+    } else {
+        page_txn_complete_cb_t cb;
+        cache_->page_cache_.flush_and_destroy_txn(
+            std::move(page_txn_),
+            durability_,
+            &cb);
+        cb.cond.wait_lazily_unordered();
     }
 }
 

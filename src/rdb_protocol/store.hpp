@@ -88,7 +88,8 @@ public:
             io_backender_t *io_backender,
             const base_path_t &base_path,
             namespace_id_t table_id,
-            update_sindexes_t update_sindexes);
+            update_sindexes_t update_sindexes,
+            which_cpu_shard_t which_cpu_shard);
     ~store_t();
 
     void note_reshard(const region_t &shard_region);
@@ -198,6 +199,8 @@ public:
             const std::string &id,
             signal_t *interruptor)
             THROWS_ONLY(interrupted_exc_t);
+
+    void configure_flush_interval(flush_interval_t interval);
 
     new_mutex_in_line_t get_in_line_for_sindex_queue(buf_lock_t *sindex_block);
     rwlock_in_line_t get_in_line_for_cfeed_stamp(access_t access);

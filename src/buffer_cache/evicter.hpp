@@ -10,6 +10,7 @@
 #include "concurrency/cache_line_padded.hpp"
 #include "concurrency/pubsub.hpp"
 #include "threading.hpp"
+#include "time.hpp"
 
 class cache_balancer_t;
 class alt_txn_throttler_t;
@@ -47,13 +48,36 @@ public:
                              bool read_ahead_ok);
 
     uint64_t next_access_time() {
-        guarantee(initialized_);
+        guarantee_initialized();
         return ++access_time_counter_;
     }
 
-    uint64_t memory_limit() const;
-    uint64_t access_count() const;
-    int64_t get_bytes_loaded() const;
+    uint64_t memory_limit() const {
+        guarantee_initialized();
+        return memory_limit_;
+    }
+    uint64_t access_count() const {
+        guarantee_initialized();
+        return access_count_counter_;
+    }
+    uint64_t unevictable_size() const {
+        guarantee_initialized();
+        return unevictable_.size();
+    }
+    uint64_t evictable_disk_backed_size() const {
+        guarantee_initialized();
+        return evictable_disk_backed_.size();
+    }
+    uint64_t evictable_unbacked_size() const {
+        guarantee_initialized();
+        return evictable_unbacked_.size();
+    }
+
+    int64_t get_bytes_loaded() const {
+        guarantee_initialized();
+        return bytes_loaded_counter_;
+    }
+
 
     uint64_t in_memory_size() const;
 
@@ -62,6 +86,11 @@ public:
     static const uint64_t INITIAL_ACCESS_TIME = UINT64_MAX - 100;
 
 private:
+    void guarantee_initialized() const {
+        assert_thread();
+        guarantee(initialized_);
+    }
+
     friend class usage_adjuster_t;
 
     // Tells the cache balancer about a page being loaded
@@ -97,6 +126,8 @@ private:
     eviction_bag_t evictable_disk_backed_;
     eviction_bag_t evictable_unbacked_;
     eviction_bag_t evicted_;
+
+    ticks_t last_force_flush_time_;
 
     auto_drainer_t drainer_;
 

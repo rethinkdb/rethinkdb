@@ -82,13 +82,14 @@ public:
     // ratio of garbage to blocks in the system
     double garbage_ratio() const;
 
-    std::vector<counted_t<block_token_t>>
-    many_writes(const std::vector<buf_write_info_t> &writes,
+    std::vector<counted_t<block_token_t> >
+    many_writes(const buf_write_info_t *writes,
+                size_t writes_count,
                 file_account_t *io_account,
                 iocallback_t *cb);
 
-    std::vector<std::vector<counted_t<block_token_t>>>
-    gimme_some_new_offsets(const std::vector<buf_write_info_t> &writes);
+    std::vector<std::vector<counted_t<block_token_t> > >
+    gimme_some_new_offsets(const buf_write_info_t *writes, size_t writes_count);
 
     bool is_gc_active() const;
 

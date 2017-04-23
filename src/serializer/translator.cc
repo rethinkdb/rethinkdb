@@ -33,10 +33,10 @@ counted_t<block_token_t> serializer_block_write(serializer_t *ser, const buf_ptr
         void on_io_complete() { pulse(); }
     } cb;
 
-    std::vector<counted_t<block_token_t>> tokens
-        = ser->block_writes({ buf_write_info_t(buf.ser_buffer(), buf.block_size(),
-                                               block_id) },
-                            io_account, &cb);
+    std::vector<buf_write_info_t> write_infos = {
+        buf_write_info_t(buf.ser_buffer(), buf.block_size(), block_id) };
+    std::vector<counted_t<block_token_t> > tokens
+        = ser->block_writes(write_infos.data(), write_infos.size(), io_account, &cb);
     guarantee(tokens.size() == 1);
     cb.wait();
     return tokens[0];
@@ -249,18 +249,20 @@ void translator_serializer_t::index_write(
     inner->index_write(mutex_acq, on_writes_reflected, translated_ops);
 }
 
-std::vector<counted_t<block_token_t>>
-translator_serializer_t::block_writes(const std::vector<buf_write_info_t> &write_infos,
+std::vector<counted_t<block_token_t> >
+translator_serializer_t::block_writes(const buf_write_info_t *write_infos,
+                                      size_t write_infos_count,
                                       file_account_t *io_account, iocallback_t *cb) {
     std::vector<buf_write_info_t> tmp;
-    tmp.reserve(write_infos.size());
-    for (auto it = write_infos.begin(); it != write_infos.end(); ++it) {
-        guarantee(it->block_id != NULL_BLOCK_ID);
-        tmp.push_back(buf_write_info_t(it->buf, it->block_size,
-                                       translate_block_id(it->block_id)));
+    tmp.reserve(write_infos_count);
+    for (size_t i = 0; i < write_infos_count; ++i) {
+        const buf_write_info_t *info = &write_infos[i];
+        guarantee(info->block_id != NULL_BLOCK_ID);
+        tmp.push_back(buf_write_info_t(info->buf, info->block_size,
+                                       translate_block_id(info->block_id)));
     }
 
-    return inner->block_writes(tmp, io_account, cb);
+    return inner->block_writes(tmp.data(), tmp.size(), io_account, cb);
 }
 
 

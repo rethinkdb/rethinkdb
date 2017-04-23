@@ -306,7 +306,8 @@ metadata_file_t::metadata_file_t(
     filepath_file_opener_t file_opener(get_filename(base_path), io_backender);
     init_serializer(&file_opener, perfmon_parent);
     balancer.init(new dummy_cache_balancer_t(METADATA_CACHE_SIZE));
-    cache.init(new cache_t(serializer.get(), balancer.get(), perfmon_parent));
+    cache.init(new cache_t(serializer.get(), balancer.get(), perfmon_parent,
+                           which_cpu_shard_t{0, 1}));
     cache_conn.init(new cache_conn_t(cache.get()));
 
     /* Migrate data if necessary */
@@ -398,7 +399,7 @@ metadata_file_t::metadata_file_t(
         log_serializer_t::static_config_t());
     init_serializer(&file_opener, perfmon_parent);
     balancer.init(new dummy_cache_balancer_t(METADATA_CACHE_SIZE));
-    cache.init(new cache_t(serializer.get(), balancer.get(), perfmon_parent));
+    cache.init(new cache_t(serializer.get(), balancer.get(), perfmon_parent, which_cpu_shard_t{0, 1}));
     cache_conn.init(new cache_conn_t(cache.get()));
 
     {

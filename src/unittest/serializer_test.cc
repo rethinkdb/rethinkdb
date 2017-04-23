@@ -47,8 +47,8 @@ void run_AddDeleteRepeatedly(bool perform_index_write) {
             }
         } cb;
 
-        std::vector<counted_t<block_token_t>> tokens
-            = ser.block_writes(infos, account.get(), &cb);
+        std::vector<counted_t<block_token_t> > tokens
+            = ser.block_writes(infos.data(), infos.size(), account.get(), &cb);
 
         // Wait for it to be written (because we're nice).
         cb.wait();

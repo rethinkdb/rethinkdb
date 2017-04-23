@@ -40,7 +40,7 @@ public:
     bool is_running() const;
 
 private:
-    void on_timer();
+    void on_timer(ticks_t ticks);
     timer_token_t *timer;
 };
 
@@ -62,8 +62,21 @@ public:
     repeating_timer_t(int64_t interval_ms, repeating_timer_callback_t *ringee);
     ~repeating_timer_t();
 
+    // Increases or decreases the interval.  The next ring of the timer will always be
+    // based on the minimum value of the timing interval held before that ring.
+    void change_interval(int64_t interval_ms);
+
+    // Makes next ring happen no later than delay_ms milliseconds from now (or slightly
+    // later).
+    void clamp_next_ring(int64_t delay_ms);
+
+    int64_t interval_ms() const { return interval; }
+
 private:
-    void on_timer();
+    void on_timer(ticks_t ticks);
+    int64_t interval;  // milliseconds
+    ticks_t last_ticks;
+    ticks_t expected_next_ticks;
     timer_token_t *timer;
     std::function<void()> ringee;
 

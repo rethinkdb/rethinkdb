@@ -496,8 +496,13 @@ uint32_t page_t::hypothetical_memory_usage(page_cache_t *page_cache) const {
     // `block_token_.has()` is `true`. However there are some places in the code
     // that assume that `hypothetical_memory_usage` doesn't change after setting
     // the block token.
-    size_t base_size = sizeof(current_page_t) + sizeof(page_t) +
-        sizeof(block_token_t);
+    size_t base_size = sizeof(current_page_t) + sizeof(page_t)
+        + sizeof(block_token_t);
+    // page_cache->current_pages_ fluff
+    base_size += sizeof(std::pair<block_id_t, current_page_t *>) + 24;
+    // Account for page_txn_t overhead a bit...
+    base_size += sizeof(current_page_dirtier_t)
+        + sizeof(std::pair<block_id_t, block_change_t>) + 24;
     if (buf_.has()) {
         return base_size + buf_.aligned_block_size();
     } else if (block_token_.has()) {
@@ -624,29 +629,6 @@ const void *page_acq_t::get_buf_read() {
     return page_->get_page_buf(page_cache_);
 }
 
-page_ptr_t::page_ptr_t() : page_(nullptr) {
-}
-
-page_ptr_t::~page_ptr_t() {
-    rassert(page_ == nullptr);
-}
-
-page_ptr_t::page_ptr_t(page_ptr_t &&movee)
-    : page_(movee.page_) {
-    movee.page_ = nullptr;
-}
-
-page_ptr_t &page_ptr_t::operator=(page_ptr_t &&movee) {
-    // We can't do true assignment, destructing an old page-having value, because
-    // reset() has to manually be called.  (This assertion is redundant with the one
-    // that'll enforce this fact in tmp's destructor.)
-    rassert(page_ == nullptr);
-
-    page_ptr_t tmp(std::move(movee));
-    swap_with(&tmp);
-    return *this;
-}
-
 void page_ptr_t::init(page_t *page) {
     rassert(page_ == nullptr);
     page_ = page;
@@ -661,11 +643,6 @@ void page_ptr_t::reset_page_ptr(page_cache_t *page_cache) {
         page_ = nullptr;
         ptr->remove_snapshotter(page_cache);
     }
-}
-
-page_t *page_ptr_t::get_page_for_read() const {
-    rassert(page_ != nullptr);
-    return page_;
 }
 
 page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache,

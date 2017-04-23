@@ -295,7 +295,8 @@ TPTEST(BlobTest, AllTests) {
             &get_global_perfmon_collection());
 
     dummy_cache_balancer_t balancer(GIGABYTE);
-    cache_t cache(&log_serializer, &balancer, &get_global_perfmon_collection());
+    cache_t cache(&log_serializer, &balancer, &get_global_perfmon_collection(),
+                  which_cpu_shard_t{0, 1});
 
     run_tests(&cache);
 }

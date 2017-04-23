@@ -17,6 +17,9 @@ alt_cache_balancer_t::cache_data_t::cache_data_t(alt::evicter_t *_evicter) :
     evicter(_evicter),
     new_size(0),
     old_size(evicter->memory_limit()),
+    unevictable_size(evicter->unevictable_size()),
+    evictable_disk_backed_size(evicter->evictable_disk_backed_size()),
+    evictable_unbacked_size(evicter->evictable_unbacked_size()),
     bytes_loaded(evicter->get_bytes_loaded()),
     access_count(evicter->access_count()) { }
 
@@ -151,6 +154,8 @@ void alt_cache_balancer_t::rebalance_blocking(UNUSED signal_t *interruptor) {
     if (total_evicters > 0) {
         uint64_t total_new_sizes = 0;
 
+        uint64_t total_unmaxed_evicters = 0;
+
         for (size_t i = 0; i < cache_data.size(); ++i) {
             for (size_t j = 0; j < cache_data[i].size(); ++j) {
                 cache_data_t *data = &cache_data[i][j];
@@ -165,6 +170,14 @@ void alt_cache_balancer_t::rebalance_blocking(UNUSED signal_t *interruptor) {
                     new_size += data->old_size;
                     new_size = std::max<int64_t>(new_size, 0);
 
+                    int64_t existing_unevictable
+                        = data->unevictable_size + data->evictable_unbacked_size;
+
+                    if (new_size < existing_unevictable) {
+                        new_size = existing_unevictable;
+                        total_unmaxed_evicters += 1;
+                    }
+
                     data->new_size = new_size;
                     total_new_sizes += new_size;
                 } else {
@@ -175,6 +188,40 @@ void alt_cache_balancer_t::rebalance_blocking(UNUSED signal_t *interruptor) {
 
         // Distribute any rounding error across shards
         int64_t extra_bytes = total_cache_size - total_new_sizes;
+        int64_t last_extra_bytes = 0;
+        while (extra_bytes != last_extra_bytes && total_evicters != total_unmaxed_evicters) {
+            last_extra_bytes = extra_bytes;
+            int64_t delta = extra_bytes / static_cast<int64_t>(total_evicters - total_unmaxed_evicters);
+            if (delta == 0) {
+                delta = ((extra_bytes < 0) ? -1 : 1);
+            }
+            for (size_t i = 0; i < cache_data.size() && extra_bytes != 0; ++i) {
+                for (size_t j = 0; j < cache_data[i].size() && extra_bytes != 0; ++j) {
+                    cache_data_t *data = &cache_data[i][j];
+
+                    int64_t existing_unevictable
+                        = data->unevictable_size + data->evictable_unbacked_size;
+                    // Give soft durability flush caches with high intervals some
+                    // breathing room.  (This is really gross.)
+                    existing_unevictable *= 1.05;
+
+                    // Avoid underflow
+                    if (static_cast<int64_t>(data->new_size) + delta > existing_unevictable) {
+                        data->new_size += delta;
+                        extra_bytes -= delta;
+                    } else {
+                        if (data->new_size > static_cast<uint64_t>(existing_unevictable)) {
+                            extra_bytes += data->new_size - existing_unevictable;
+                            data->new_size = existing_unevictable;
+                            total_unmaxed_evicters -= 1;
+                        }
+                    }
+                }
+            }
+        }
+
+        // If there are big soft-durability-heavy caches we'll lower their memory limits
+        // and force them to flush.
         while (extra_bytes != 0) {
             int64_t delta = extra_bytes / static_cast<int64_t>(total_evicters);
             if (delta == 0) {
@@ -185,7 +232,7 @@ void alt_cache_balancer_t::rebalance_blocking(UNUSED signal_t *interruptor) {
                     cache_data_t *data = &cache_data[i][j];
 
                     // Avoid underflow
-                    if (static_cast<int64_t>(data->new_size) + delta >= 0) {
+                    if (static_cast<int64_t>(data->new_size) + delta > 0) {
                         data->new_size += delta;
                         extra_bytes -= delta;
                     } else {
@@ -194,6 +241,7 @@ void alt_cache_balancer_t::rebalance_blocking(UNUSED signal_t *interruptor) {
                     }
                 }
             }
+
         }
 
         // Send new cache sizes to each thread
@@ -227,10 +275,9 @@ void alt_cache_balancer_t::collect_stats_from_thread(
     bool all_access_counts_zero = true;
 
     per_evicter_data->reserve(evicters->size());
-    for (auto j = evicters->begin(); j != evicters->end(); ++j) {
-        cache_data_t data(*j);
-        all_access_counts_zero &= (data.access_count == 0);
-        per_evicter_data->push_back(data);
+    for (alt::evicter_t *evicter : *evicters) {
+        per_evicter_data->emplace_back(evicter);
+        all_access_counts_zero &= (per_evicter_data->back().access_count == 0);
     }
 
     per_thread_data[index].wake_up_balancer = all_access_counts_zero;
@@ -246,13 +293,13 @@ void alt_cache_balancer_t::apply_rebalance_to_thread(int index,
     const std::vector<cache_data_t> *sizes = &(*new_sizes)[index];
 
     ASSERT_NO_CORO_WAITING;
-    for (auto it = sizes->begin(); it != sizes->end(); ++it) {
+    for (const cache_data_t &new_size : *sizes) {
         // Make sure the evicter still exists
-        if (evicters->find(it->evicter) != evicters->end()) {
-            it->evicter->update_memory_limit(it->new_size,
-                                             it->bytes_loaded,
-                                             it->access_count,
-                                             new_read_ahead_ok);
+        if (evicters->find(new_size.evicter) != evicters->end()) {
+            new_size.evicter->update_memory_limit(new_size.new_size,
+                                                  new_size.bytes_loaded,
+                                                  new_size.access_count,
+                                                  new_read_ahead_ok);
         }
     }
 }

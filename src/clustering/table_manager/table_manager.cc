@@ -61,6 +61,13 @@ table_manager_t::table_manager_t(
                     -> table_config_t {
                 return sc.state.config.config;
             })),
+    flush_interval_manager(
+        multistore_ptr,
+        raft.get_raft()->get_committed_state()->subview(
+            [](const raft_member_t<table_raft_state_t>::state_and_config_t &sc)
+                    -> table_config_t {
+                return sc.state.config.config;
+            })),
     table_directory_subs(
         _table_manager_directory,
         std::bind(&table_manager_t::on_table_directory_change, this, ph::_1, ph::_2),

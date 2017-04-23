@@ -2,13 +2,16 @@
 #ifndef ARCH_TIMER_HPP_
 #define ARCH_TIMER_HPP_
 
-#include "containers/intrusive_priority_queue.hpp"
 #include "arch/io/timer_provider.hpp"
+#include "containers/intrusive_priority_queue.hpp"
+#include "time.hpp"
 
 class timer_token_t;
 
 struct timer_callback_t {
-    virtual void on_timer() = 0;
+    // The same "ticks" value gets passed to multiple on_timer() callbacks, so it could
+    // become "old" if a callback is slow.
+    virtual void on_timer(ticks_t ticks) = 0;
     virtual ~timer_callback_t() { }
 };
 
@@ -21,7 +24,9 @@ public:
     explicit timer_handler_t(linux_event_queue_t *queue);
     ~timer_handler_t();
 
-    timer_token_t *add_timer_internal(int64_t ms, timer_callback_t *callback, bool once);
+    // If interval_ms is zero that means a non-repeating callback.
+    timer_token_t *add_timer_internal(ticks_t next_time, int64_t interval_ms,
+                                      timer_callback_t *callback);
     void cancel_timer(timer_token_t *timer);
 
 private:
@@ -45,6 +50,11 @@ private:
  * executed on the same thread that they were created on. Thus, non-thread-safe
  * (but coroutine-safe) concurrency primitives can be used where appropriate.
  */
+
+// Adds a repeating timer where the first ring starts at next_time (or immediately,
+// if that time was in the past).
+timer_token_t *add_timer2(ticks_t next_time, int64_t interval_ms,
+                          timer_callback_t *callback);
 timer_token_t *add_timer(int64_t ms, timer_callback_t *callback);
 timer_token_t *fire_timer_once(int64_t ms, timer_callback_t *callback);
 void cancel_timer(timer_token_t *timer);

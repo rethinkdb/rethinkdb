@@ -13,6 +13,7 @@
 #include "clustering/administration/tables/database_metadata.hpp"
 #include "clustering/generic/nonoverlapping_regions.hpp"
 #include "containers/name_string.hpp"
+#include "containers/optional.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/semilattice/joins/deletable.hpp"
@@ -45,6 +46,29 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     int8_t,
     write_ack_config_t::SINGLE,
     write_ack_config_t::MAJORITY);
+
+class flush_interval_default_t {
+public:
+    bool operator==(flush_interval_default_t) const { return true; }
+    RDB_MAKE_ME_SERIALIZABLE_0(flush_interval_default_t);
+};
+class flush_interval_never_t {
+public:
+    bool operator==(flush_interval_never_t) const { return true; }
+    RDB_MAKE_ME_SERIALIZABLE_0(flush_interval_never_t);
+};
+
+class flush_interval_config_t {
+public:
+    // Use the default value, or never flush, or specify a non-negative double.
+    boost::variant<flush_interval_default_t,
+                   flush_interval_never_t,
+                   double> variant;
+};
+
+flush_interval_config_t default_flush_interval_config();
+
+RDB_MAKE_SERIALIZABLE_1(flush_interval_config_t, variant);
 
 class user_data_t {
 public:
@@ -81,6 +105,7 @@ public:
     optional<write_hook_config_t> write_hook;
     write_ack_config_t write_ack_config;
     write_durability_t durability;
+    flush_interval_config_t flush_interval;
     user_data_t user_data;  // has user-exposed name "data"
 };
 
@@ -88,6 +113,8 @@ RDB_DECLARE_EQUALITY_COMPARABLE(table_config_t);
 
 RDB_DECLARE_SERIALIZABLE(table_config_t::shard_t);
 RDB_DECLARE_EQUALITY_COMPARABLE(table_config_t::shard_t);
+
+flush_interval_t get_flush_interval(const table_config_t &);
 
 class table_shard_scheme_t {
 public:

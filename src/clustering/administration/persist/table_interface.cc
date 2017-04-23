@@ -94,7 +94,8 @@ public:
                 io_backender,
                 base_path,
                 table_id,
-                update_sindexes_t::UPDATE));
+                update_sindexes_t::UPDATE,
+                which_cpu_shard_t{ix, CPU_SHARDING_FACTOR}));
 
             /* Initialize the metainfo if necessary */
             if (create) {

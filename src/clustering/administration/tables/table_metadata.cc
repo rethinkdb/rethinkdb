@@ -24,9 +24,15 @@ user_data_t default_user_data() {
     return user_data_t{ql::datum_t::empty_object()};
 }
 
+flush_interval_config_t default_flush_interval_config() {
+    return flush_interval_config_t{flush_interval_default_t{}};
+}
+
 RDB_MAKE_SERIALIZABLE_1(user_data_t, datum);
 
 RDB_IMPL_EQUALITY_COMPARABLE_1(user_data_t, datum);
+
+RDB_IMPL_EQUALITY_COMPARABLE_1(flush_interval_config_t, variant);
 
 RDB_DECLARE_SERIALIZABLE(table_config_t);
 
@@ -60,6 +66,7 @@ archive_result_t deserialize_table_config_pre_v2_4(
     tc->sindexes = std::move(sindexes);
     tc->write_ack_config = std::move(write_ack_config);
     tc->durability = std::move(durability);
+    tc->flush_interval = default_flush_interval_config();
     tc->user_data = default_user_data();
 
     return res;
@@ -100,6 +107,7 @@ archive_result_t deserialize_table_config_v2_4(
                          std::move(write_hook),
                          std::move(write_ack_config),
                          std::move(durability),
+                         default_flush_interval_config(),
                          default_user_data()};
 
     return res;
@@ -129,11 +137,13 @@ archive_result_t deserialize<cluster_version_t::v2_4>(
     return deserialize_table_config_v2_4(s, tc);
 }
 
-RDB_IMPL_SERIALIZABLE_7_SINCE_v2_5(table_config_t,
-    basic, shards, write_hook, sindexes, write_ack_config, durability, user_data);
+RDB_IMPL_SERIALIZABLE_8_SINCE_v2_5(table_config_t,
+    basic, shards, write_hook, sindexes, write_ack_config, durability,
+    flush_interval, user_data);
 
-RDB_IMPL_EQUALITY_COMPARABLE_7(table_config_t,
-    basic, shards, write_hook, sindexes, write_ack_config, durability, user_data);
+RDB_IMPL_EQUALITY_COMPARABLE_8(table_config_t,
+    basic, shards, write_hook, sindexes, write_ack_config, durability,
+    flush_interval, user_data);
 
 RDB_IMPL_SERIALIZABLE_1_SINCE_v1_16(table_shard_scheme_t, split_points);
 RDB_IMPL_EQUALITY_COMPARABLE_1(table_shard_scheme_t, split_points);
@@ -164,3 +174,39 @@ RDB_IMPL_SERIALIZABLE_1_SINCE_v1_13(databases_semilattice_metadata_t, databases)
 RDB_IMPL_SEMILATTICE_JOINABLE_1(databases_semilattice_metadata_t, databases);
 RDB_IMPL_EQUALITY_COMPARABLE_1(databases_semilattice_metadata_t, databases);
 
+struct get_flush_interval_visitor_t : public boost::static_visitor<flush_interval_t> {
+    flush_interval_t operator()(flush_interval_default_t) const {
+        return flush_interval_t{DEFAULT_FLUSH_INTERVAL};
+    }
+    flush_interval_t operator()(flush_interval_never_t) const {
+        return flush_interval_t{NEVER_FLUSH_INTERVAL};
+    }
+    flush_interval_t operator()(double x) const {
+        rassert(x >= 0);
+        double value_ms = x * 1000;
+        if (value_ms <= 0) {
+            // The behavior of 0 is unspecified "reasonable" behavior.  For example, it
+            // could be treated the same as default (5 seconds), or whatnot.  We go with
+            // 100 ms.
+            return flush_interval_t{100};
+        }
+
+        // We don't want any flush interval bigger than NEVER_FLUSH_INTERVAL.  (We also
+        // don't want a value in milliseconds that would overflow when converted to
+        // nanoseconds.  Hence this logic here.)
+        static_assert(NEVER_FLUSH_INTERVAL == (0x100000000ll * 1000ll),
+                      "NEVER_FLUSH_INTERVAL value changed");
+        if (value_ms >= static_cast<double>(NEVER_FLUSH_INTERVAL)) {
+            return flush_interval_t{NEVER_FLUSH_INTERVAL};
+        }
+
+        int64_t value_int = ceil(value_ms);
+        return flush_interval_t{value_int};
+    }
+};
+
+flush_interval_t get_flush_interval(const table_config_t &config) {
+    return boost::apply_visitor(
+        get_flush_interval_visitor_t{},
+        config.flush_interval.variant);
+}

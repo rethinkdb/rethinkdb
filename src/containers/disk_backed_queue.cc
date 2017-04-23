@@ -28,7 +28,8 @@ internal_disk_backed_queue_t::internal_disk_backed_queue_t(io_backender_t *io_ba
                                               &perfmon_collection));
 
     balancer.init(new dummy_cache_balancer_t(2 * MEGABYTE));
-    cache.init(new cache_t(serializer.get(), balancer.get(), &perfmon_collection));
+    cache.init(new cache_t(serializer.get(), balancer.get(), &perfmon_collection,
+                           which_cpu_shard_t{0, 1}));
     cache_conn.init(new cache_conn_t(cache.get()));
     // Emulate cache_t::create behavior by zeroing the block with id SUPERBLOCK_ID.
     txn_t txn(cache_conn.get(), write_durability_t::HARD, 1);

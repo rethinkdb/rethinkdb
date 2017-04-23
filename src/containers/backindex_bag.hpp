@@ -69,7 +69,7 @@ public:
 
     ~backindex_bag_t() {
         // Another way to implement this would be to simply remove all its elements.
-        guarantee(vector_.size() == 0);
+        guarantee(empty());
     }
 
     // Returns true if the potential element of this container is in fact an element
@@ -128,6 +128,10 @@ public:
 
     size_t size() const {
         return vector_.size();
+    }
+
+    bool empty() const {
+        return vector_.empty();
     }
 
     // Accesses an element by index.  This is called "access random" because

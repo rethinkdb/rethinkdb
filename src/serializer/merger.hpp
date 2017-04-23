@@ -92,15 +92,17 @@ public:
                      const std::vector<index_write_op_t> &write_ops);
 
     // Returns block tokens in the same order as write_infos.
-    std::vector<counted_t<block_token_t>>
-    block_writes(const std::vector<buf_write_info_t> &write_infos,
+    std::vector<counted_t<block_token_t> >
+    block_writes(const buf_write_info_t *write_infos,
+                 size_t write_infos_count,
                  UNUSED file_account_t *io_account,
                  iocallback_t *cb) {
         // Currently, we do not merge block writes, only index writes.
         // However we do use a common file account for all of them, which
         // reduces random disk seeks that would arise from trying to interleave
         // writes from the individual accounts further down in the i/o layer.
-        return inner->block_writes(write_infos, block_writes_io_account.get(), cb);
+        return inner->block_writes(write_infos, write_infos_count,
+                                   block_writes_io_account.get(), cb);
     }
 
     /* The size, in bytes, of each serializer block */

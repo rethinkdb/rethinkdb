@@ -86,7 +86,8 @@ store_t::store_t(const region_t &_region,
                  io_backender_t *io_backender,
                  const base_path_t &base_path,
                  namespace_id_t _table_id,
-                 update_sindexes_t _update_sindexes)
+                 update_sindexes_t _update_sindexes,
+                 which_cpu_shard_t which_cpu_shard)
     : store_view_t(_region),
       perfmon_collection(),
       io_backender_(io_backender), base_path_(base_path),
@@ -95,7 +96,7 @@ store_t::store_t(const region_t &_region,
       table_id(_table_id),
       write_superblock_acq_semaphore(WRITE_SUPERBLOCK_ACQ_WAITERS_LIMIT)
 {
-    cache.init(new cache_t(serializer, balancer, &perfmon_collection));
+    cache.init(new cache_t(serializer, balancer, &perfmon_collection, which_cpu_shard));
     general_cache_conn.init(new cache_conn_t(cache.get()));
 
     if (create) {
@@ -484,6 +485,10 @@ void store_t::sindex_drop(
 
     sindex_block.reset_buf_lock();
     txn->commit();
+}
+
+void store_t::configure_flush_interval(flush_interval_t interval) {
+    cache->configure_flush_interval(interval);
 }
 
 new_mutex_in_line_t store_t::get_in_line_for_sindex_queue(buf_lock_t *sindex_block) {

@@ -33,7 +33,8 @@ TPTEST(BTreeSindex, LowLevelOps) {
         &file_opener,
         &get_global_perfmon_collection());
 
-    cache_t cache(&serializer, &balancer, &get_global_perfmon_collection());
+    cache_t cache(&serializer, &balancer, &get_global_perfmon_collection(),
+                  which_cpu_shard_t{0, 1});
     cache_conn_t cache_conn(&cache);
 
     {
@@ -169,7 +170,8 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
             &io_backender,
             base_path_t("."),
             generate_uuid(),
-            update_sindexes_t::UPDATE);
+            update_sindexes_t::UPDATE,
+            which_cpu_shard_t{0, 1});
 
     cond_t dummy_interruptor;
 

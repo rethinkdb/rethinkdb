@@ -42,10 +42,6 @@ struct mock_ser_t {
     }
 };
 
-void reset_throttler_acq(alt::throttler_acq_t *acq) {
-    alt::throttler_acq_t movee(std::move(*acq));
-}
-
 class test_txn_t;
 
 class test_cache_t : public page_cache_t {
@@ -57,13 +53,13 @@ public:
           throttler_(throttler) { }
 
     void flush(scoped_ptr_t<test_txn_t> txn) {
-        flush_and_destroy_txn(std::move(txn), &reset_throttler_acq);
+        flush_and_destroy_txn(std::move(txn), write_durability_t::SOFT, nullptr);
     }
 
     alt::throttler_acq_t make_throttler_acq() {
         // KSI: We could make these tests better by varying the expected change
         // count.
-        return throttler_->begin_txn_or_throttle(0);
+        return throttler_->begin_txn_or_throttle(write_durability_t::SOFT, 0);
     }
 
 private:

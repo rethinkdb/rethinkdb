@@ -54,7 +54,8 @@ public:
                 std::move(inner_serializer),
                 MERGER_SERIALIZER_MAX_ACTIVE_WRITES);
 
-        cache = make_scoped<cache_t>(serializer.get(), &balancer, &get_global_perfmon_collection());
+        cache = make_scoped<cache_t>(serializer.get(), &balancer, &get_global_perfmon_collection(),
+                                     which_cpu_shard_t{0, 1});
         cache_conn = make_scoped<cache_conn_t>(cache.get());
         sizer = make_scoped<short_value_sizer_t>(cache.get()->max_block_size());
 

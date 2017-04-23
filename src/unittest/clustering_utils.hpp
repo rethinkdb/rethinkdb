@@ -65,7 +65,8 @@ public:
             store(region_t::universe(), serializer.get(), balancer.get(),
                 temp_file.name().permanent_path(), true,
                 &get_global_perfmon_collection(), ctx, io_backender, base_path_t("."),
-                generate_uuid(), update_sindexes_t::UPDATE) {
+                generate_uuid(), update_sindexes_t::UPDATE,
+                which_cpu_shard_t({0, 1})) {
         /* Initialize store metadata */
         cond_t non_interruptor;
         write_token_t token;
