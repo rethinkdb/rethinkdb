@@ -50,6 +50,8 @@ else
 
     src_url=http://commondatastorage.googleapis.com/chromium-browser-official/v8-${version/-patched/}.tar.bz2
     src_url_sha1=e753b6671eecf565d96c1e5a83563535ee2fe24b
+
+    separate_install_include=false
 fi
 
 pkg_install-include () {
