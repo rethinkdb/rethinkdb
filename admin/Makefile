@@ -1,4 +1,4 @@
-OVERRIDE_GOALS += default-goal=web-assets watch=web-assets-watch
+OVERRIDE_GOALS += default-goal=web-assets
 
 TOP := ..
 include $(TOP)/Makefile
