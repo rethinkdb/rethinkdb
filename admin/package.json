@@ -4,7 +4,8 @@
   "description": "WebUI for RethinkDB",
   "scripts": {
     "test": "echo \"Error: see ../test/rql_tests/README.md\" && exit 1",
-    "build": "./build.sh"
+    "build": "./build.sh",
+    "start": "node serve.js"
   },
   "repository": {
     "type": "git",
@@ -25,5 +26,10 @@
     "less": "^2.4.0",
     "moment": "^2.10.3",
     "virtual-dom": "^2.1.1"
+  },
+  "devDependencies": {
+    "express": "^4.15.2",
+    "http-route-proxy": "^0.2.2",
+    "rethinkdb": "^2.3.3"
   }
 }
