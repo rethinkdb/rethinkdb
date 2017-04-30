@@ -2,9 +2,9 @@ set -ex
 
 build_all () {
     mkdir -p dist
-    build-js
-    build-css
-    build-static
+    build_js
+    build_css
+    build_static
 }
 
 build_js () {

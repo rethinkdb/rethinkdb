@@ -4,8 +4,7 @@
   "description": "WebUI for RethinkDB",
   "scripts": {
     "test": "echo \"Error: see ../test/rql_tests/README.md\" && exit 1",
-    "build": "./build.sh",
-    "start": "node serve.js"
+    "build": "./build.sh"
   },
   "repository": {
     "type": "git",

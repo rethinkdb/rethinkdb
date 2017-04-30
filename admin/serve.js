@@ -1,4 +1,4 @@
-// A stand-alone web UI for RethinkDB
+// A stand-alone web UI for RethinkDB development purposes
 
 var express = require('express');
 var proxyServer = require('http-route-proxy');
