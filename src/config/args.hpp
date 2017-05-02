@@ -145,8 +145,9 @@
 #define LBA_RECONSTRUCTION_BATCH_SIZE             1024
 
 #if defined (__powerpc64__)
-// POWER ABI requires more number of registers to be saved
-// in stack during context switch.
+// getifaddrs() calls alloca() and it tries to allocate 64KB of memory
+// in stack frame. To avoid stack overflow, increasing the stack size
+// to accomodate both alloca() and regsiter save area during context switch.
 #define COROUTINE_STACK_SIZE                      262144
 #else
 #define COROUTINE_STACK_SIZE                      131072

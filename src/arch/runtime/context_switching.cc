@@ -289,6 +289,9 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
 #elif defined(__s390x__)
     sp -= 16; // r6-r13 and f8-f15.
 #elif defined (__powerpc64__)
+    // Considering the performance, non volatile floating point and vector
+    // registers are saved and restored for powerpc.  There are no failures
+    // seen during context switch on ubuntu/RHEL powerpc64le systems.
     sp -= 20; // r14-r31, toc, cr.
 #else
 #error "Unsupported architecture."
