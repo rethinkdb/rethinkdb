@@ -1223,10 +1223,11 @@ struct ancillary_info_t {
     page_acq_t page_acq;
 };
 
-void page_cache_t::do_flush_changes(page_cache_t *page_cache,
-                                    std::unordered_map<block_id_t, block_change_t> &&changes,
-                                    const std::vector<page_txn_t *> &txns,
-                                    fifo_enforcer_write_token_t index_write_token) {
+void page_cache_t::do_flush_changes(
+        page_cache_t *page_cache,
+        std::unordered_map<block_id_t, block_change_t> &&changes,
+        const std::vector<page_txn_t *> &txns,
+        fifo_enforcer_write_token_t index_write_token) {
     rassert(!changes.empty());
     std::vector<block_token_tstamp_t> blocks_by_tokens;
     blocks_by_tokens.reserve(changes.size());
@@ -1418,9 +1419,10 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
     blocks_released_cond.wait();
 }
 
-void page_cache_t::do_flush_txn_set(page_cache_t *page_cache,
-                                    std::unordered_map<block_id_t, block_change_t> *changes_ptr,
-                                    const std::vector<page_txn_t *> &txns) {
+void page_cache_t::do_flush_txn_set(
+        page_cache_t *page_cache,
+        std::unordered_map<block_id_t, block_change_t> *changes_ptr,
+        const std::vector<page_txn_t *> &txns) {
     // This is called with spawn_now_dangerously!  The reason is partly so that we
     // don't put a zillion coroutines on the message loop when doing a bunch of
     // reads.  The other reason is that passing changes through a std::bind without
