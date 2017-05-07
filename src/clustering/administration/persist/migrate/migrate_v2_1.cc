@@ -76,10 +76,10 @@ void migrate_metadata_v2_1_to_v2_3(cluster_version_t serialization_version,
         migrate_metadata_v2_1_to_v2_3<cluster_version_t::v2_2>(txn, interruptor);
         break;
     case cluster_version_t::v2_3:
-        // This only really needs to migrate auth data, but this should be fine
         migrate_metadata_v2_1_to_v2_3<cluster_version_t::v2_3>(txn, interruptor);
         break;
     case cluster_version_t::v2_4_is_latest:
+        migrate_metadata_v2_1_to_v2_3<cluster_version_t::v2_4>(txn, interruptor);
         break;
     case cluster_version_t::v1_14:
     case cluster_version_t::v1_15:

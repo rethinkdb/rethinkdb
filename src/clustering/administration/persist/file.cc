@@ -355,6 +355,9 @@ metadata_file_t::metadata_file_t(
             logNTC("Migrating cluster metadata to v2.3");
             migrate_metadata_v2_1_to_v2_3(
                 metadata_version, &write_txn, &non_interruptor);
+
+            // The metadata is now serialized using the latest serialization version
+            metadata_version = cluster_version_t::LATEST_DISK;
         } // fallthrough intentional
         case cluster_version_t::v2_3: {
             if (sb_lock.has()) {
@@ -366,6 +369,9 @@ metadata_file_t::metadata_file_t(
             logNTC("Migrating cluster metadata to v2.4");
             migrate_metadata_v2_3_to_v2_4(
                 metadata_version, &write_txn, &non_interruptor);
+
+            // The metadata is now serialized using the latest serialization version
+            metadata_version = cluster_version_t::LATEST_DISK;
         } // fallthrough intentional
         case cluster_version_t::v2_4_is_latest:
             break; // Up-to-date, do nothing
