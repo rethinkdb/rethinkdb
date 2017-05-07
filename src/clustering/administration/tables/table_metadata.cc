@@ -129,7 +129,7 @@ archive_result_t deserialize<cluster_version_t::v2_2>(
 template <>
 archive_result_t deserialize<cluster_version_t::v2_3>(
     read_stream_t *s, table_config_t *tc) {
-    return deserialize_table_config_pre_v2_4<cluster_version_t::v2_4>(s, tc);
+    return deserialize_table_config_pre_v2_4<cluster_version_t::v2_3>(s, tc);
 }
 
 template archive_result_t deserialize<cluster_version_t::v2_4_is_latest>(
