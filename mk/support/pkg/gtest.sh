@@ -1,6 +1,6 @@
 version=1.7.0
-src_url=https://googletest.googlecode.com/files/gtest-$version.zip
-src_url_sha1=f85f6d2481e2c6c4a18539e391aa4ea8ab0394af
+src_url=https://github.com/google/googletest/archive/release-$version.tar.gz
+src_url_sha1=d7aa4b8536f3a007b480cf016be8a4333dbf4768
 
 pkg_install () {
     pkg_copy_src_to_build
