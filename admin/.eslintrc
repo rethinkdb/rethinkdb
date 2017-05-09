@@ -1,0 +1,40 @@
+{
+  "extends": "standard",
+  "env": {
+    "es6": true,
+    "jest": true,
+    "node": true
+  },
+  "globals": {
+    "Backbone": true,
+    "d3": true,
+    "_": true,
+    "jQuery": true,
+    "$": true,
+    "GENTLY": true
+  },
+  "rules": {
+    "no-this-before-super": 0,
+    "camelcase": 0,
+    "no-multi-spaces": 0,
+    "comma-dangle": [
+      "error",
+      "always-multiline"
+    ],
+    "key-spacing": [
+      "error",
+      {
+        "multiLine": {
+          "beforeColon": false,
+          "afterColon": true
+        },
+        "align": {
+          "beforeColon": false,
+          "afterColon": true,
+          "on": "colon",
+          "mode": "strict"
+        }
+      }
+    ]
+  }
+}

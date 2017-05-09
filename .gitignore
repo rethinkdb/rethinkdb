@@ -54,3 +54,5 @@ last_tested_versions
 /precompiled
 *.xml
 *.iml
+
+admin/npm-debug.log
