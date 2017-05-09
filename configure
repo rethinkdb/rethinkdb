@@ -1226,6 +1226,8 @@ bin_pkg_name () {
         # The curl-bin package doesn't exist. It is placed here to avoid
         # the circular dependency of curl being used to fetch curl.
         curl) echo curl-bin ;;
+	lessc) echo admin-deps ;;
+	handlebars) echo admin-deps ;;
         *) echo "$1" ;;
     esac
 }
@@ -1288,11 +1290,12 @@ check_cxx11 () {
 
 check_admin_deps () {
     require "web UI dependencies"
+    fetch_bin handlebars
+    fetch_bin lessc
     local version
     version=$(pkg version admin-deps)
-    add_fetch admin-deps
-    macro "GULP"         "\$(abspath \$(SUPPORT_BUILD_DIR)/admin-deps_$version/bin/gulp)"
-    macro "GULP_BIN_DEP" "\$(SUPPORT_BUILD_DIR)/admin-deps_$version/bin/gulp"
+    macro "WEBUI_NODE_MODULES" "\$(SUPPORT_BUILD_DIR)/admin-deps_$version/node_modules/rethinkdb-webui/node_modules"
+    macro "WEBUI_DEPS" "\$(SUPPORT_BUILD_DIR)/admin-deps_$version/install.witness"
 }
 
 check_vs_bin () {

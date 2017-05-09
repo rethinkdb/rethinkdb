@@ -8,7 +8,6 @@ navbar = require('./navbar.coffee')
 models = require('./models.coffee')
 modals = require('./modals.coffee')
 router = require('./router.coffee')
-VERSION = require('rethinkdb-version')
 
 r = require('rethinkdb')
 
@@ -135,7 +134,7 @@ class OptionsView extends Backbone.View
     render: =>
         @$el.html @template
             check_update: if window.localStorage?.check_updates? then JSON.parse window.localStorage.check_updates else true
-            version: VERSION
+            version: "unknown" # TODO: get version string from server
         @
 
     turn_updates_on: (event) =>
@@ -181,7 +180,8 @@ class AlertUpdates extends Backbone.View
 
     check: =>
         # If it's fail, it's fine - like if the user is just on a local network without access to the Internet.
-        $.getJSON "https://update.rethinkdb.com/update_for/#{VERSION}?callback=?", @render_updates
+        # TODO: get version string from server
+        # $.getJSON "https://update.rethinkdb.com/update_for/#{VERSION}?callback=?", @render_updates
 
     # Callback on the ajax request
     render_updates: (data) =>
