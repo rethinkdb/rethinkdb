@@ -4,7 +4,8 @@
   "description": "WebUI for RethinkDB",
   "scripts": {
     "test": "echo \"Error: see ../test/rql_tests/README.md\" && exit 1",
-    "build": "./build.sh"
+    "build": "./build.sh",
+    "watch": "./build.sh watch"
   },
   "repository": {
     "type": "git",
@@ -27,8 +28,12 @@
     "virtual-dom": "^2.1.1"
   },
   "devDependencies": {
+    "cpx": "^1.5.0",
     "express": "^4.15.2",
     "http-route-proxy": "^0.2.2",
-    "rethinkdb": "^2.3.3"
+    "onchange": "^3.2.1",
+    "rethinkdb": "^2.3.3",
+    "watch-run": "^1.2.5",
+    "watchify": "^3.9.0"
   }
 }

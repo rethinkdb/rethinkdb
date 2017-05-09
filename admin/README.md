@@ -31,10 +31,29 @@ PORT=3000 node serve.js localhost:8080
 Where `3000` is the port to listen on and `localhost:8080` is the URL
 of the upstream RethinkDB web UI.
 
+To rebuild the web UI when source files change:
+
+```
+npm run watch
+```
+
 ## Bundled mode
 
-To build the web UI for inclusion into RethinkDB itself, use `make`
-instead of `npm`.
+To build the web UI for inclusion into RethinkDB itself, use
+`make`. There is no need to call `npm install` or `npm run build`
+
+
+```
+rethinkdb/admin$ make
+```
+
+or the equivalent build from the top-level folder:
+
+```
+rethinkdb$ make web-assets
+```
+
+This will build the web UI into `../build/web_assets`
 
 ### Adding dependencies
 

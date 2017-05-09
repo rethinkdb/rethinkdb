@@ -16,7 +16,6 @@ WEBUI_NPM += WEBUI_NODE_MODULES=$(abspath $(WEBUI_NODE_MODULES))/
 WEBUI_NPM += NPM=$(abspath $(NPM)) BROWSERIFY=$(abspath $(BROWSERIFY)) LESSC=$(abspath $(LESSC))
 WEBUI_NPM += WEBUI_DIST_DIR=$(abspath $(WEBUI_DIST_DIR))
 WEBUI_NPM += WEBUI_BUNDLE=1
-# ATN WEBUI_NPM += WEBUI_RETHINKDB_JS=$(abspath $(JS_BUILD_DIR))/rethinkdb.js
 WEBUI_NPM += $(NPM) --prefix $(TOP)/admin --silent
 
 $(WEBUI_DIST_DIR)/%: $(TOP)/admin/assets/%
