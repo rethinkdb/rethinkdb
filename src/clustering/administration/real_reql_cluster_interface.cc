@@ -334,6 +334,7 @@ bool real_reql_cluster_interface_t::table_create(
 
         config.config.write_ack_config = write_ack_config_t::MAJORITY;
         config.config.durability = durability;
+        config.config.user_data = default_user_data();
 
         table_id = generate_uuid();
         m_table_meta_client->create(table_id, config, &interruptor_on_home);
@@ -689,6 +690,7 @@ void real_reql_cluster_interface_t::reconfigure_internal(
     new_config.config.sindexes = old_config.config.sindexes;
     new_config.config.write_ack_config = old_config.config.write_ack_config;
     new_config.config.durability = old_config.config.durability;
+    new_config.config.user_data = old_config.config.user_data;
 
     calculate_split_points_intelligently(
         table_id,

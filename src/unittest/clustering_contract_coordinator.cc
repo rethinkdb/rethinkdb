@@ -52,6 +52,7 @@ public:
         cs.config.basic.primary_key = "id";
         cs.config.write_ack_config = write_ack_config_t::MAJORITY;
         cs.config.durability = write_durability_t::HARD;
+        cs.config.user_data = default_user_data();
 
         key_range_t::right_bound_t prev_right(store_key_t::min());
         for (const quick_shard_args_t &qs : qss) {

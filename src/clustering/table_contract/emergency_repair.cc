@@ -123,6 +123,7 @@ void calculate_emergency_repair(
         new_state_out->config.config.write_ack_config =
             old_state.config.config.write_ack_config;
         new_state_out->config.config.durability = old_state.config.config.durability;
+        new_state_out->config.config.user_data = old_state.config.config.user_data;
 
         /* We first calculate all the voting and nonvoting replicas for each range in a
         `range_map_t`. */
