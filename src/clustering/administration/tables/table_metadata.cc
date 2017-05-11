@@ -245,7 +245,10 @@ archive_result_t deserialize<cluster_version_t::v2_3>(
     return deserialize_table_config_pre_v2_4<cluster_version_t::v2_3>(s, tc);
 }
 
-template archive_result_t deserialize<cluster_version_t::v2_4_is_latest>(
+template archive_result_t deserialize<cluster_version_t::v2_4>(
+    read_stream_t *, table_config_t *);
+
+template archive_result_t deserialize<cluster_version_t::v2_5_is_latest>(
     read_stream_t *, table_config_t *);
 
 RDB_IMPL_EQUALITY_COMPARABLE_6(table_config_t,
