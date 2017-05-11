@@ -46,6 +46,13 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
     write_ack_config_t::SINGLE,
     write_ack_config_t::MAJORITY);
 
+class user_value_t {
+public:
+    ql::datum_t datum;
+};
+
+user_value_t default_user_value();
+
 /* `table_config_t` describes the complete contents of the `rethinkdb.table_config`
 artificial table. */
 
@@ -74,6 +81,7 @@ public:
     optional<write_hook_config_t> write_hook;
     write_ack_config_t write_ack_config;
     write_durability_t durability;
+    user_value_t user_value;
 };
 
 RDB_DECLARE_EQUALITY_COMPARABLE(table_config_t);

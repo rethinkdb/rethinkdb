@@ -384,8 +384,8 @@ bool convert_sindexes_from_datum(
     return true;
 }
 
-/* This is separate from `format_row()` because it needs to be publicly exposed so it can
-   be used to create the return value of `table.reconfigure()`. */
+/* This is separate from `format_row()` because it needs to be publicly exposed so it
+   can be used to create the return value of `table.reconfigure()`. */
 ql::datum_t convert_table_config_to_datum(
         namespace_id_t table_id,
         const ql::datum_t &db_name_or_uuid,
@@ -410,6 +410,7 @@ ql::datum_t convert_table_config_to_datum(
         convert_write_ack_config_to_datum(config.write_ack_config));
     builder.overwrite("durability",
         convert_durability_to_datum(config.durability));
+    builder.overwrite("user_value", config.user_value.datum);
     return std::move(builder).to_datum();
 }
 
@@ -480,7 +481,7 @@ bool convert_table_config_and_name_from_datum(
     }
 
     /* As a special case, we allow the user to omit `indexes`, `primary_key`, `shards`,
-    `write_acks`, and/or `durability` for newly-created tables. */
+    `write_acks`, `durability`, and/or `user_value` for newly-created tables. */
 
     if (converter.has("indexes")) {
         ql::datum_t indexes_datum;
@@ -624,6 +625,16 @@ bool convert_table_config_and_name_from_datum(
             error_out->msg = "Expected a field named `write_hook`.";
             return false;
         }
+    }
+
+    if (existed_before || converter.has("user_value")) {
+        ql::datum_t user_value_datum;
+        if (!converter.get("user_value", &user_value_datum, error_out)) {
+            return false;
+        }
+        config_out->user_value = {std::move(user_value_datum)};
+    } else {
+        config_out->user_value = default_user_value();
     }
 
     if (!converter.check_no_extra_keys(error_out)) {
