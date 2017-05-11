@@ -1653,7 +1653,8 @@ void deserialize_sindex_info(
     case cluster_version_t::v2_1:
     case cluster_version_t::v2_2:
     case cluster_version_t::v2_3:
-    case cluster_version_t::v2_4_is_latest:
+    case cluster_version_t::v2_4:
+    case cluster_version_t::v2_5_is_latest:
         success = deserialize_reql_version(
                 &read_stream,
                 &info_out->mapping_version_info.original_reql_version,
@@ -1690,7 +1691,8 @@ void deserialize_sindex_info(
     case cluster_version_t::v2_1: // fallthru
     case cluster_version_t::v2_2: // fallthru
     case cluster_version_t::v2_3: // fallthru
-    case cluster_version_t::v2_4_is_latest:
+    case cluster_version_t::v2_4: // fallthru
+    case cluster_version_t::v2_5_is_latest:
         success = deserialize_for_version(cluster_version, &read_stream, &info_out->geo);
         throw_if_bad_deserialization(success, "sindex description");
         break;
