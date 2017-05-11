@@ -25,6 +25,7 @@ table_config_and_shards_t make_table_config_and_shards() {
     calculate_split_points_for_uuids(1, &table_config_and_shards.shard_scheme);
     table_config_and_shards.config.write_ack_config = write_ack_config_t::MAJORITY;
     table_config_and_shards.config.durability = write_durability_t::HARD;
+    table_config_and_shards.config.user_data = default_user_data();
     table_config_and_shards.server_names.names[shard.primary_replica] =
         std::make_pair(0ul, name_string_t::guarantee_valid("primary"));
 
