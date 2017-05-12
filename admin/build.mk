@@ -1,43 +1,17 @@
 #### Web UI sources
 
-WEBUI_DIST_DIR := $(BUILD_ROOT_DIR)/web_assets
+WEB_ASSETS_SRC_FILES := $(shell find $(TOP)/admin -path $(TOP)/admin/node_modules -prune -o -print)
 
-WEBUI_STATIC_ASSETS := $(shell find $(TOP)/admin/assets -type f)
-WEBUI_COPIED_ASSETS := $(patsubst $(TOP)/admin/assets/%, $(WEBUI_DIST_DIR)/%, $(WEBUI_STATIC_ASSETS))
+ALL_WEB_ASSETS := $(BUILD_ROOT_DIR)/web-assets
 
-WEBUI_JS_SRC := $(shell find $(TOP)/admin/src/{coffee,handlebars})
-
-WEBUI_CSS_SRC := $(shell find $(TOP)/admin/src/less)
-
-ALL_WEB_ASSETS := $(WEBUI_DIST_DIR).witness
-
-WEBUI_NPM := NODE_PATH=$(abspath $(WEBUI_NODE_MODULES))
-WEBUI_NPM += WEBUI_NODE_MODULES=$(abspath $(WEBUI_NODE_MODULES))/
-WEBUI_NPM += NPM=$(abspath $(NPM)) BROWSERIFY=$(abspath $(BROWSERIFY)) LESSC=$(abspath $(LESSC))
-WEBUI_NPM += WEBUI_DIST_DIR=$(abspath $(WEBUI_DIST_DIR))
-WEBUI_NPM += WEBUI_BUNDLE=1
-WEBUI_NPM += $(NPM) --prefix $(TOP)/admin --silent
-
-$(WEBUI_DIST_DIR)/%: $(TOP)/admin/assets/%
-	$P CP
-	mkdir -p $(dir $@)
-	cp $< $@
-
-$(WEBUI_DIST_DIR)/cluster.js: $(WEBUI_JS_SRC) $(JS_BUILD_DIR)/rethinkdb.js | $(NPM_BIN_DEP) $(WEBUI_DEPS)
-	$P COFFEE
-	$(WEBUI_NPM) run build js $(call SUPPORT_LOG_REDIRECT, $(WEBUI_DIST_DIR)_js.log)
-
-$(WEBUI_DIST_DIR)/cluster.css: $(WEBUI_CSS_SRC) | $(NPM_BIN_DEP) $(WEBUI_DEPS)
-	$P LESSC
-	$(WEBUI_NPM) run build css $(call SUPPORT_LOG_REDIRECT, $(WEBUI_DIST_DIR)_css.log)
-
-$(WEBUI_DIST_DIR)/rethinkdb.js: $(JS_BUILD_DIR)/rethinkdb.js
-	$P CP
-	mkdir -p $(WEBUI_DIST_DIR)
-	cp $< $@
-
-$(ALL_WEB_ASSETS): $(WEBUI_COPIED_ASSETS) $(WEBUI_DIST_DIR)/cluster.js $(WEBUI_DIST_DIR)/cluster.css $(WEBUI_DIST_DIR)/rethinkdb.js
+$(BUILD_ROOT_DIR)/web-assets: $(WEB_ASSETS_SRC_FILES) $(JS_BUILD_DIR)/rethinkdb.js | $(GULP_BIN_DEP)
+	$P GULP
+	$(GULP) build --cwd $(TOP)/admin $(if $(filter $(VERBOSE),0), --silent) --version $(RETHINKDB_VERSION) $(if $(filter $(UGLIFY),1), --uglify)
 	touch $@
+
+.PHONY: web-assets-watch
+web-assets-watch:
+	$(GULP) watch --cwd $(TOP)/admin --version $(RETHINKDB_VERSION)
 
 .PHONY: web-assets
 web-assets: $(ALL_WEB_ASSETS)

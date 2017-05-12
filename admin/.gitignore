@@ -1,2 +1,7 @@
+*.pyc
+static/.webassets-cache/
+static/gen
+simulation-data.db
+*.DS_Store
+*.swp
 node_modules
-dist
