@@ -49,7 +49,7 @@ pkg_install () {
     mkdir -p "$install_dir/node_modules"
     local pkg
     pkg=$(niceabspath "$src_dir")
-    in_dir "$install_dir" npm --no-registry install "$pkg"
+    in_dir "$install_dir" npm install "$pkg"
 
     local bin_dir="$install_dir/node_modules/$full_npm_package/node_modules/.bin/"
     mkdir -p "$install_dir/bin"
