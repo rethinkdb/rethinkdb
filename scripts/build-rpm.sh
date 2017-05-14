@@ -37,7 +37,7 @@ EOF
     ... -t rpm                  # Build an RPM package
     ... --package $RPM_PACKAGE
     ... --name rethinkdb
-    ... --license AGPL
+    ... --license 'ASL 2.0'
     ... --vendor RethinkDB
     ... --category Database
     ... --version "$VERSION"
