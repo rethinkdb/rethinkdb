@@ -1,34 +1,82 @@
 # RethinkDB web interface
 
-## Build
+## Stand-alone mode
 
-The MAKE file for the web interface is in `/mk/webui.mk`.
+To run the RethinkDB admin UI in stand-alone mode:
 
-The build dependencies are
-- `node.js` and `npm` are needed at the system level
-- `npm install` will install dependencies listed in `npm-shrinkwrap.json`
+First install the dependencies
+
+```
+npm install
+```
+
+Then build the assets into `./dist`
+
+```
+npm run build
+```
+
+Finally run the server
+
+```
+node serve.js
+```
+
+Which  is equivalent to
+
+```
+PORT=3000 node serve.js localhost:8080
+```
+
+Where `3000` is the port to listen on and `localhost:8080` is the URL
+of the upstream RethinkDB web UI.
+
+To rebuild the web UI when source files change:
+
+```
+npm run watch
+```
+
+## Bundled mode
+
+To build the web UI for inclusion into RethinkDB itself, use
+`make`. There is no need to call `npm install` or `npm run build`
+
+
+```
+rethinkdb/admin$ make
+```
+
+or the equivalent build from the top-level folder:
+
+```
+rethinkdb$ make web-assets
+```
+
+This will build the web UI into `../build/web_assets`
 
 ### Adding dependencies
-- Add the dependency to the `dependencies` object in `package.json`
-- Delete the file `npm-shrinkwrap.json`
-- Delete `node_modules` in this directory if it exists
-- `$ npm install` in this directory (admin)
-- `$ npm dedupe` this will flatten dependencies as much as possible
-- `$ npm shrinkwrap` this will generate a new `npm-shrinkwrap.json`
-- Bump the version in `mk/support/pkg/admin-deps.sh` (this ensures make will download new dependencies if necessary)
+
+- Run `npm install --save module@^version` where `module` is the
+  module name and `version` its version number
+
+- Bump the version in `mk/support/pkg/admin-deps.sh` (this ensures
+  make will download new dependencies if necessary)
+
 - Check in the changes to `npm-shrinkwrap.json`, `package.json` and `admin-deps.sh`
 
 ## Organization
-- `favicon.ico`: The favicon...
-- `Makefile`: To build from `/admin`
-- `/static`:
-    - `coffee`: all the CoffeeScript files
-    - `handlebars`: all the Handlebars templates
-    - `less`: all the Less files
-    - `images`: all the images
-    - `js`: all the pure JavaScript files (dependencies like `underscore` etc.)
-    - `fonts`: web fonts used by the interface
-- `/template`: the HTML files
+- `assets/`: static assets that are included as-is into the web UI
+    - `index.html`: The entry point to the web UI
+    - `favicon.ico`: the Favicon
+    - `images/`: all the images
+    - `js/`: all the pure JavaScript files (dependencies like `underscore` etc.)
+    - `fonts/`: web fonts used by the interface
+- `Makefile`: entry point of the build process
+- `src/`:
+    - `coffee/`: all the CoffeeScript files
+    - `handlebars/`: all the Handlebars templates
+    - `less/`: all the Less files
 
 
 ## CoffeeScript files
@@ -41,8 +89,6 @@ We do not use the method `Backbone.sync` but do rely on
 - `models`
 - `collections`
 - `router`
-
-
 
 ### Initialization
 
@@ -57,6 +103,7 @@ Every time the route is changed, we will create a new view and render it.
 ### Fetching data
 
 #### How to
+
 Since the ReQL api to manage your cluster, all the data is retrieved via
 ReQL queries via HTTP.
 

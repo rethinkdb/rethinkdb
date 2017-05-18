@@ -1,10 +1,11 @@
 {
   "name": "rethinkdb-webui",
-  "version": "2.0.0",
-  "description": "WebUI for RethinkDB.",
-  "main": "gulpfile.js",
+  "version": "2.5.0",
+  "description": "WebUI for RethinkDB",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: see ../test/rql_tests/README.md\" && exit 1",
+    "build": "./build.sh",
+    "watch": "./build.sh watch"
   },
   "repository": {
     "type": "git",
@@ -17,28 +18,22 @@
   },
   "homepage": "https://github.com/rethinkdb/rethinkdb",
   "dependencies": {
-    "bluebird": "^2.3.2",
     "browserify": "^13.1.0",
+    "browserify-handlebars": "^1.0.0",
     "coffeeify": "^2.0.0",
-    "del": "^1.1.1",
-    "gulp": "^3.8.11",
-    "gulp-changed": "^1.1.1",
-    "gulp-less": "^3.0.1",
-    "gulp-newer": "^0.5.0",
-    "gulp-rename": "^1.2.0",
-    "gulp-replace": "^0.5.3",
-    "gulp-sourcemaps": "^1.4.0",
-    "gulp-util": "^3.0.4",
     "handlebars": "^3.0.1",
-    "hbsfy": "^2.2.1",
+    "hbsfy": "^2.7.0",
     "less": "^2.4.0",
     "moment": "^2.10.3",
-    "uber-watchify": "^3.6.0",
-    "uglifyify": "^3.0.1",
-    "vinyl": "^0.4.6",
-    "vinyl-buffer": "^1.0.0",
-    "vinyl-source-stream": "^1.0.0",
-    "virtual-dom": "^2.0.1",
-    "yargs": "^3.4.5"
+    "virtual-dom": "^2.1.1"
+  },
+  "devDependencies": {
+    "cpx": "^1.5.0",
+    "express": "^4.15.2",
+    "http-route-proxy": "^0.2.2",
+    "onchange": "^3.2.1",
+    "rethinkdb": "^2.3.3",
+    "watch-run": "^1.2.5",
+    "watchify": "^3.9.0"
   }
 }

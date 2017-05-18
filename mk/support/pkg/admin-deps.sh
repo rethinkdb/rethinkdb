@@ -1,5 +1,5 @@
 full_npm_package=rethinkdb-webui
-version=2.0.4
+version=2.5.0
 
 npm_conf=$(niceabspath "$conf_dir/npm.conf")
 
