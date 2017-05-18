@@ -39,8 +39,8 @@ private:
         std::string re = args->arg(env, 1)->as_str().to_std();
         std::shared_ptr<re2::RE2> regexp;
         regex_cache_t &cache = env->env->regex_cache();
-        auto search = cache.regexes.find(re);
-        if (search == cache.regexes.end()) {
+        std::shared_ptr<re2::RE2> *found;
+        if (!cache.regexes.lookup(re, &found)) {
             regexp.reset(new re2::RE2(re, re2::RE2::Quiet));
             if (!regexp->ok()) {
                 rfail(base_exc_t::LOGIC,
@@ -49,9 +49,9 @@ private:
                       regexp->error_arg().c_str(),
                       regexp->error().c_str());
             }
-            cache.regexes[re] = regexp;
+            cache.regexes.insert(re, regexp);
         } else {
-            regexp = search->second;
+            regexp = *found;
         }
         r_sanity_check(static_cast<bool>(regexp));
         // We add 1 to account for $0.
