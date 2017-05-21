@@ -117,7 +117,7 @@ class TermBase
                 # letting the error bubble up.
                 wrappedCb(e)
 
-        ).nodeify callback
+        ).nodeify(util.bindToCurrentDomain callback)
 
     toString: -> err.printQuery(@)
 
