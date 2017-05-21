@@ -1022,7 +1022,7 @@ class TcpConnection extends Connection
 
             nullbyte = new Buffer('\0', "binary")
 
-            @rawSocket.write Buffer.concat([version, Buffer(message.toString()), nullbyte])
+            @rawSocket.write Buffer.concat([version, new Buffer(message.toString()), nullbyte])
 
             # Now we have to wait for a response from the server
             # acknowledging the new connection. The following callback
@@ -1173,7 +1173,7 @@ class TcpConnection extends Connection
 
                             nullbyte = new Buffer('\0', "binary")
 
-                            @rawSocket.write Buffer.concat([Buffer(message.toString()), nullbyte])
+                            @rawSocket.write Buffer.concat([new Buffer(message.toString()), nullbyte])
                         else if state is 3
                             if not server_reply.success
                                 handshake_error(server_reply.error_code, server_reply.error)
