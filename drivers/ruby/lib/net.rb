@@ -748,7 +748,7 @@ module RethinkDB
       @mon.synchronize {
         @opts.clear
         @data.clear
-        @waiters.each {|k,v|
+        @waiters.dup.each {|k,v|
           case v
           when QueryHandle
             v.handle_force_close
@@ -798,7 +798,7 @@ module RethinkDB
 
     def remove_em_waiters
       @mon.synchronize {
-        @waiters.each {|k,v|
+        @waiters.dup.each {|k,v|
           if v.is_a? QueryHandle
             v.handle_force_close
             @waiters.delete(k)
