@@ -23,6 +23,7 @@ Not sure what types of projects RethinkDB can help you build? Here are a few exa
 * Build an [IRC bot in Go](https://rethinkdb.com/blog/go-irc-bot/) with RethinkDB changefeeds
 * Look at [cats on Instagram in realtime](https://rethinkdb.com/blog/cats-of-instagram/)
 * Watch [how Platzi uses RethinkDB](https://www.youtube.com/watch?v=Nb_UzRYDB40) to educate
+* Classic CRUD web app with [Play 2.4.x, Scala and RethinkDB](https://github.com/rklick-solutions/play-rethinkdb)
 
 
 Quickstart
