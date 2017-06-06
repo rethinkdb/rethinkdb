@@ -48,6 +48,8 @@ last_tested_versions
 /**/run
 /test_results.*
 
+/vendored/
+
 /windows_deps/
 /x64/
 /RethinkDB.sdf
