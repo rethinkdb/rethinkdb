@@ -410,7 +410,7 @@ ql::datum_t convert_table_config_to_datum(
         convert_write_ack_config_to_datum(config.write_ack_config));
     builder.overwrite("durability",
         convert_durability_to_datum(config.durability));
-    builder.overwrite("user_value", config.user_value.datum);
+    builder.overwrite("data", config.user_data.datum);
     return std::move(builder).to_datum();
 }
 
@@ -481,7 +481,7 @@ bool convert_table_config_and_name_from_datum(
     }
 
     /* As a special case, we allow the user to omit `indexes`, `primary_key`, `shards`,
-    `write_acks`, `durability`, and/or `user_value` for newly-created tables. */
+    `write_acks`, `durability`, and/or `data` for newly-created tables. */
 
     if (converter.has("indexes")) {
         ql::datum_t indexes_datum;
@@ -627,14 +627,14 @@ bool convert_table_config_and_name_from_datum(
         }
     }
 
-    if (existed_before || converter.has("user_value")) {
-        ql::datum_t user_value_datum;
-        if (!converter.get("user_value", &user_value_datum, error_out)) {
+    if (existed_before || converter.has("data")) {
+        ql::datum_t user_data_datum;
+        if (!converter.get("data", &user_data_datum, error_out)) {
             return false;
         }
-        config_out->user_value = {std::move(user_value_datum)};
+        config_out->user_data = {std::move(user_data_datum)};
     } else {
-        config_out->user_value = default_user_value();
+        config_out->user_data = default_user_data();
     }
 
     if (!converter.check_no_extra_keys(error_out)) {

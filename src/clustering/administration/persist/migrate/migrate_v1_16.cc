@@ -301,7 +301,7 @@ void migrate_table(const server_id_t &this_server_id,
             metadata_v1_16::write_ack_config_t::mode_t::single ?
                 ::write_ack_config_t::SINGLE : ::write_ack_config_t::MAJORITY;
     config.config.durability = old_config.config.durability;
-    config.config.user_value = default_user_value();
+    config.config.user_data = default_user_data();
     config.shard_scheme.split_points = old_config.shard_scheme.split_points;
 
     // Scan the servers in the old shard config - need to remove deleted and nil servers
