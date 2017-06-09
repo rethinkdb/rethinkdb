@@ -1,5 +1,5 @@
 
-version=4.1.0
+version=4.5.0
 
 src_url=http://www.canonware.com/download/jemalloc/jemalloc-$version.tar.bz2
 src_url_sha1=450a2f0331cd4544140bb3be5d6e11cc82383cdf
