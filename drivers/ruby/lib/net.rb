@@ -592,11 +592,14 @@ module RethinkDB
       @mon.synchronize {
         written = 0
         while written < packet.length
-          # Supposedly slice will not copy the array if it goes all
-          # the way to the end We use IO::syswrite here rather than
-          # IO::write because of incompatibilities in JRuby regarding
-          # filling up the TCP send buffer.  Reference:
-          # https://github.com/rethinkdb/rethinkdb/issues/3795
+          # need to make sure the socket is ready for reading/writing
+          vals = IO.select(nil, [@socket], nil, @timeout)
+          raise Timeout::Error, "Sending failed" if vals.nil?
+         
+          # Supposedly slice will not copy the array if it goes all the way to the end
+          # We use IO::syswrite here rather than IO::write because of incompatibilities in
+          # JRuby regarding filling up the TCP send buffer.
+          # Reference: https://github.com/rethinkdb/rethinkdb/issues/3795
           written += @socket.syswrite(packet.slice(written, packet.length))
         end
       }
@@ -695,7 +698,6 @@ module RethinkDB
         context = create_context(@ssl_opts)
         @socket = OpenSSL::SSL::SSLSocket.new(@tcp_socket, context)
         @socket.sync_close = true
-        @socket.connect
         verify_cert!(@socket, context)
       else
         @socket = base_socket
@@ -703,9 +705,25 @@ module RethinkDB
     end
 
     def base_socket
-      socket = TCPSocket.open(@host, @port)
+      socket = Socket.new(Socket::AF_INET, Socket::SOCK_STREAM, 0)
+      sockaddr = Socket.sockaddr_in(@port, @host)
       socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
       socket.setsockopt(Socket::SOL_SOCKET, Socket::SO_KEEPALIVE, 1)
+
+      # Setup connection, with a timeout.
+      begin
+        socket.connect_nonblock(sockaddr) # setup initial connection
+      rescue IO::WaitWritable
+        vals = IO.select([socket], [socket], [socket], @timeout)
+        if vals.nil? # if we got a r or w  socket, we're all good.
+          raise Timeout::Error, "Connection timed out connecting to #{@host}/#{@port}"
+        end
+        begin
+          socket.connect_nonblock(sockaddr) # check connection failure
+        rescue Errno::EISCONN
+        end
+      end
+
       socket
     end
 
