@@ -14,7 +14,12 @@
 
 * Cygwin (https://cygwin.com/install.html)
 
-* Additional Cygwin packages: `setup.exe -q -P make curl patch git`
+* Additional Cygwin packages:
+
+      setup.exe -q -P make
+      setup.exe -q -P curl
+      setup.exe -q -P patch
+      setup.exe -q -P git
 
 * If git is not configured yet,
   `git config --global user.name "John Doe"` and

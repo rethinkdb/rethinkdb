@@ -11,11 +11,10 @@
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "extproc/extproc_job.hpp"
+#include "math.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/configured_limits.hpp"
 #include "utils.hpp"
-
-#include "debug.hpp"
 
 const js_id_t MIN_ID = 1;
 const js_id_t MAX_ID = std::numeric_limits<js_id_t>::max();

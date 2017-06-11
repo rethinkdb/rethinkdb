@@ -21,7 +21,7 @@
 #ifndef RAPIDJSON_PRETTYWRITER_H_
 #define RAPIDJSON_PRETTYWRITER_H_
 
-#include "writer.h"
+#include "rapidjson/writer.h"
 
 #ifdef __GNUC__
 RAPIDJSON_DIAG_PUSH

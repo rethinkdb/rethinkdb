@@ -7,9 +7,6 @@
 #include <string>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "btree/node.hpp"
 #include "btree/parallel_traversal.hpp"
 #include "btree/secondary_operations.hpp"
@@ -20,8 +17,10 @@
 #include "concurrency/new_semaphore.hpp"
 #include "concurrency/rwlock.hpp"
 #include "containers/map_sentries.hpp"
+#include "containers/optional.hpp"
 #include "containers/scoped.hpp"
 #include "perfmon/perfmon.hpp"
+#include "paths.hpp"
 #include "protocol_api.hpp"
 #include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -230,9 +229,9 @@ public:
             const std::vector<rdb_modification_report_t> &mod_reports,
             const new_mutex_in_line_t *acq);
 
-    // Returns the UUID of the created index, or boost::none if an index by `name`
+    // Returns the UUID of the created index, or r_nullopt if an index by `name`
     // already existed.
-    MUST_USE boost::optional<uuid_u> add_sindex_internal(
+    MUST_USE optional<uuid_u> add_sindex_internal(
         const sindex_name_t &name,
         const std::vector<char> &opaque_definition,
         buf_lock_t *sindex_block);
@@ -289,7 +288,7 @@ public:
         THROWS_ONLY(sindex_not_ready_exc_t);
 
     bool acquire_sindex_superblocks_for_write(
-            boost::optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
+            optional<std::set<uuid_u> > sindexes_to_acquire, //none means acquire all sindexes
             buf_lock_t *sindex_block,
             sindex_access_vector_t *sindex_sbs_out)
     THROWS_ONLY(sindex_not_ready_exc_t);

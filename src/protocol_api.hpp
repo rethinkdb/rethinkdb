@@ -8,9 +8,6 @@
 #include <utility>
 #include <vector>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "buffer_cache/types.hpp"
 #include "clustering/administration/auth/user_context.hpp"
 #include "clustering/administration/auth/permission_error.hpp"

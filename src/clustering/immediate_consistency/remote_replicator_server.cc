@@ -34,7 +34,7 @@ void remote_replicator_server_t::proxy_replica_t::do_read(
         read_response_t *response_out) {
     guarantee(is_ready);
     cond_t got_response;
-    mailbox_t<void(read_response_t)> response_mailbox(
+    mailbox_t<read_response_t> response_mailbox(
         parent->mailbox_manager,
         [&](signal_t *, const read_response_t &response) {
             *response_out = response;
@@ -54,7 +54,7 @@ void remote_replicator_server_t::proxy_replica_t::do_write_sync(
         write_response_t *response_out) {
     guarantee(is_ready);
     cond_t got_response;
-    mailbox_t<void(write_response_t)> response_mailbox(
+    mailbox_t<write_response_t> response_mailbox(
         parent->mailbox_manager,
         [&](signal_t *, const write_response_t &response) {
             *response_out = response;
@@ -70,7 +70,7 @@ void remote_replicator_server_t::proxy_replica_t::do_dummy_write(
         write_response_t *response_out) {
     guarantee(is_ready);
     cond_t got_response;
-    mailbox_t<void(write_response_t)> response_mailbox(
+    mailbox_t<write_response_t> response_mailbox(
         parent->mailbox_manager,
         [&](signal_t *, const write_response_t &response) {
             *response_out = response;
@@ -87,7 +87,7 @@ void remote_replicator_server_t::proxy_replica_t::do_write_async(
         order_token_t order_token,
         signal_t *interruptor) {
     cond_t got_ack;
-    mailbox_t<void()> ack_mailbox(
+    mailbox_t<> ack_mailbox(
         parent->mailbox_manager,
         [&](signal_t *) { got_ack.pulse(); });
     send(parent->mailbox_manager, client_bcard.write_async_mailbox,

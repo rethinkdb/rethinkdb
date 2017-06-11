@@ -53,11 +53,11 @@ geo_job_data_t::geo_job_data_t(
     store_key_t last_key,
     const ql::batchspec_t &batchspec,
     const std::vector<ql::transform_variant_t> &_transforms,
-    const boost::optional<ql::terminal_variant_t> &_terminal,
+    const optional<ql::terminal_variant_t> &_terminal,
     is_stamp_read_t is_stamp_read)
     : env(_env),
       batcher(make_scoped<ql::batcher_t>(batchspec.to_batcher())),
-      accumulator(_terminal
+      accumulator(_terminal.has_value()
                   ? ql::make_terminal(*_terminal)
                   : ql::make_append(std::move(region),
                                     std::move(last_key),
@@ -80,7 +80,7 @@ geo_intersecting_cb_t::geo_intersecting_cb_t(
         btree_slice_t *_slice,
         geo_sindex_data_t &&_sindex,
         ql::env_t *_env,
-        std::set<std::pair<store_key_t, boost::optional<uint64_t> > >
+        std::set<std::pair<store_key_t, optional<uint64_t> > >
             *_distinct_emitted_in_out)
     : geo_index_traversal_helper_t(
         ql::skey_version_from_reql_version(_sindex.func_reql_version),
@@ -122,8 +122,8 @@ continue_bool_t geo_intersecting_cb_t::on_candidate(
     }
 
     // Check if this document has already been processed (lower bound).
-    boost::optional<uint64_t> tag = ql::datum_t::extract_tag(store_key);
-    std::pair<store_key_t, boost::optional<uint64_t> > primary_and_tag(primary_key, tag);
+    optional<uint64_t> tag = ql::datum_t::extract_tag(store_key);
+    std::pair<store_key_t, optional<uint64_t> > primary_and_tag(primary_key, tag);
     if (already_processed.count(primary_and_tag) > 0) {
         return continue_bool_t::CONTINUE;
     }
@@ -160,8 +160,7 @@ continue_bool_t geo_intersecting_cb_t::on_candidate(
             sindex.func->call(&sindex_env, val)->as_datum();
         if (sindex.multi == sindex_multi_bool_t::MULTI
             && sindex_val.get_type() == ql::datum_t::R_ARRAY) {
-            guarantee(tag);
-            sindex_val = sindex_val.get(*tag, ql::NOTHROW);
+            sindex_val = sindex_val.get(tag.get(), ql::NOTHROW);
             guarantee(sindex_val.has());
         }
 
@@ -405,7 +404,7 @@ continue_bool_t nearest_traversal_cb_t::emit_result(
 void nearest_traversal_cb_t::emit_error(
         const ql::exc_t &_error)
         THROWS_ONLY(interrupted_exc_t) {
-    error = _error;
+    error.set(_error);
 }
 
 bool nearest_pairs_less(

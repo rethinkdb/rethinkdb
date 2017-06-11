@@ -5,6 +5,7 @@
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/watchable.hpp"
 #include "concurrency/watchable_map.hpp"
+#include "containers/optional.hpp"
 
 /* This file contains ways of converting between `watchable_t`s and `watchable_map_t`s of
 different types. These sorts of conversions may be slow, so view these types with
@@ -43,7 +44,7 @@ public:
     `get_key()` will also copy the value. `read_all()` and `read_key()` don't make any
     copies of values, although they still may copy keys. */
     std::map<key2_t, value2_t> get_all();
-    boost::optional<value2_t> get_key(const key2_t &key);
+    optional<value2_t> get_key(const key2_t &key);
     void read_all(const std::function<void(const key2_t &, const value2_t *)> &);
     void read_key(const key2_t &key, const std::function<void(const value2_t *)> &);
 
@@ -90,7 +91,7 @@ private:
 specific key of a `watchable_map_t`. It must copy the value every time it changes, so
 beware of performance issues. */
 template<class key_t, class value_t>
-clone_ptr_t<watchable_t<boost::optional<value_t> > > get_watchable_for_key(
+clone_ptr_t<watchable_t<optional<value_t> > > get_watchable_for_key(
     watchable_map_t<key_t, value_t> *,
     const key_t &key);
 
@@ -232,7 +233,7 @@ public:
     };
 
     std::map<std::pair<tag_t, key_t>, value_t> get_all();
-    boost::optional<value_t> get_key(const std::pair<tag_t, key_t> &key);
+    optional<value_t> get_key(const std::pair<tag_t, key_t> &key);
     void read_all(
         const std::function<void(
             const std::pair<tag_t, key_t> &, const value_t *)> &);

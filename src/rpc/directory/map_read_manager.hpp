@@ -33,7 +33,7 @@ private:
             auto_drainer_t::lock_t this_keepalive,
             uint64_t timestamp,
             const key_t &key,
-            const boost::optional<value_t> &value);
+            const optional<value_t> &value);
 
     watchable_map_var_t<std::pair<peer_id_t, key_t>, value_t> map_var;
     std::map<peer_id_t, std::map<key_t, uint64_t> > timestamps;

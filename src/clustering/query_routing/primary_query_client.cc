@@ -42,7 +42,7 @@ void primary_query_client_t::read(
 
     promise_t<boost::variant<read_response_t, cannot_perform_query_exc_t> >
         result_or_failure;
-    mailbox_t<void(boost::variant<read_response_t, cannot_perform_query_exc_t>)>
+    mailbox_t<boost::variant<read_response_t, cannot_perform_query_exc_t>>
         result_or_failure_mailbox(
             mailbox_manager,
             [&](signal_t *, const boost::variant<read_response_t, cannot_perform_query_exc_t> &res) {
@@ -90,7 +90,7 @@ void primary_query_client_t::write(
     otok.assert_write_mode();
 
     promise_t<boost::variant<write_response_t, cannot_perform_query_exc_t> > result_or_failure;
-    mailbox_t<void(boost::variant<write_response_t, cannot_perform_query_exc_t>)> result_or_failure_mailbox(
+    mailbox_t<boost::variant<write_response_t, cannot_perform_query_exc_t>> result_or_failure_mailbox(
         mailbox_manager,
         [&](signal_t *, const boost::variant<write_response_t, cannot_perform_query_exc_t> &res) {
             result_or_failure.pulse(res);

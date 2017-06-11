@@ -1,21 +1,17 @@
 package com.rethinkdb.net;
 
-import com.rethinkdb.gen.exc.ReqlDriverError;
+import com.rethinkdb.RethinkDB;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.beans.BeanInfo;
-import java.beans.IntrospectionException;
-import java.beans.Introspector;
-import java.beans.PropertyDescriptor;
 import java.io.ByteArrayInputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.stream.Stream;
 
 public class Util {
 
@@ -23,6 +19,7 @@ public class Util {
         return System.currentTimeMillis() + timeout;
     }
 
+    private static Logger log = LoggerFactory.getLogger(Util.class);
     public static ByteBuffer leByteBuffer(int capacity) {
         // Creating the ByteBuffer over an underlying array makes
         // it easier to turn into a string later.
@@ -77,94 +74,27 @@ public class Util {
      */
     @SuppressWarnings("unchecked")
     private static <T> T toPojo(Class<T> pojoClass, Map<String, Object> map) {
-        try {
-            if (map == null) {
-                return null;
+        // Jackson will throw an error if the POJO is not annotated with an ignore
+        // annotation and the server gives a value that is not a field within the POJO To
+        // prevent this, we get a list of all the field names from the class, and iterate
+        // through the map. If the map contains a key that the does not correlate to a
+        // field name, then that entry from the map is removed and we log an error.
+        List<String> nameFields = new ArrayList<>();
+        Arrays.asList(pojoClass.getDeclaredFields()).forEach(field -> nameFields.add(field.getName()));
+        List<String> toRemove = new ArrayList<>();
+
+        map.keySet().forEach(s -> {
+            if (!nameFields.contains(s))
+            {
+                log.error("Got JSON field [" + s + "] from server. POJO does not contain field, removing from map!");
+                toRemove.add(s);
             }
+        });
+        toRemove.forEach(map::remove);
 
-            if (!Modifier.isPublic(pojoClass.getModifiers())) {
-                throw new IllegalAccessException(String.format("%s should be public", pojoClass));
-            }
-
-            Constructor[] allConstructors = pojoClass.getDeclaredConstructors();
-
-            if (getPublicParameterlessConstructors(allConstructors).count() == 1) {
-                return (T) constructViaPublicParameterlessConstructor(pojoClass, map);
-            }
-
-            Constructor[] constructors = getSuitablePublicParametrizedConstructors(allConstructors, map);
-
-            if (constructors.length == 1) {
-                return (T) constructViaPublicParametrizedConstructor(constructors[0], map);
-            }
-
-            throw new IllegalAccessException(String.format(
-                    "%s should have a public parameterless constructor " +
-                            "or a public constructor with %d parameters", pojoClass, map.keySet().size()));
-        } catch (InstantiationException | IllegalAccessException | IntrospectionException | InvocationTargetException e) {
-            throw new ReqlDriverError("Can't convert %s to a POJO: %s", map, e.getMessage());
-        }
-    }
-
-    private static Stream<Constructor> getPublicParameterlessConstructors(Constructor[] constructors) {
-        return Arrays.stream(constructors).filter(constructor ->
-                Modifier.isPublic(constructor.getModifiers()) &&
-                        constructor.getParameterCount() == 0
-        );
-    }
-
-    @SuppressWarnings("unchecked")
-    private static Object constructViaPublicParameterlessConstructor(Class pojoClass, Map<String, Object> map)
-            throws IllegalAccessException, InstantiationException, IntrospectionException, InvocationTargetException {
-        Object pojo = pojoClass.newInstance();
-        BeanInfo info = Introspector.getBeanInfo(pojoClass);
-
-        for (PropertyDescriptor descriptor : info.getPropertyDescriptors()) {
-            String propertyName = descriptor.getName();
-
-            if (!map.containsKey(propertyName)) {
-                continue;
-            }
-
-            Method writer = descriptor.getWriteMethod();
-
-            if (writer != null && writer.getDeclaringClass() == pojoClass) {
-                Object value = map.get(propertyName);
-                Class valueClass = writer.getParameterTypes()[0];
-
-                writer.invoke(pojo, value instanceof Map
-                        ? toPojo(valueClass, (Map<String, Object>) value)
-                        : valueClass.cast(value));
-            }
-        }
-
-        return pojo;
-    }
-
-    private static Constructor[] getSuitablePublicParametrizedConstructors(Constructor[] allConstructors, Map<String, Object> map) {
-        return Arrays.stream(allConstructors).filter(constructor ->
-                Modifier.isPublic(constructor.getModifiers()) &&
-                        areParametersMatching(constructor.getParameters(), map)
-        ).toArray(Constructor[]::new);
-    }
-
-    private static boolean areParametersMatching(Parameter[] parameters, Map<String, Object> values) {
-        return Arrays.stream(parameters).allMatch(parameter ->
-                values.containsKey(parameter.getName()) &&
-                        values.get(parameter.getName()).getClass() == parameter.getType()
-        );
-    }
-
-    private static Object constructViaPublicParametrizedConstructor(Constructor constructor, Map<String, Object> map)
-            throws IllegalAccessException, InstantiationException, IntrospectionException, InvocationTargetException {
-        Object[] values = Arrays.stream(constructor.getParameters()).map(parameter -> {
-            Object value = map.get(parameter.getName());
-
-            return value instanceof Map
-                    ? toPojo(value.getClass(), (Map<String, Object>) value)
-                    : value;
-        }).toArray();
-
-        return constructor.newInstance(values);
+        return RethinkDB.getObjectMapper().convertValue(map, pojoClass);
     }
 }
+
+
+

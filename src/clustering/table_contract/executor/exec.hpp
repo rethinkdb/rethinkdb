@@ -6,6 +6,7 @@
 #include "clustering/immediate_consistency/remote_replicator_metadata.hpp"
 #include "clustering/table_contract/contract_metadata.hpp"
 #include "clustering/query_routing/metadata.hpp"
+#include "paths.hpp"
 #include "store_view.hpp"
 
 class backfill_progress_tracker_t;

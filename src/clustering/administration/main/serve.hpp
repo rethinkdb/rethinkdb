@@ -116,7 +116,7 @@ public:
                  std::string &&_web_assets,
                  update_check_t _do_version_checking,
                  service_address_ports_t _ports,
-                 boost::optional<std::string> _config_file,
+                 optional<std::string> _config_file,
                  std::vector<std::string> &&_argv,
                  const int _join_delay_secs,
                  const int _node_reconnect_timeout_secs,
@@ -144,7 +144,7 @@ public:
     std::string web_assets;
     update_check_t do_version_checking;
     service_address_ports_t ports;
-    boost::optional<std::string> config_file;
+    optional<std::string> config_file;
     /* The original arguments, so we can display them in `server_status`. All the
     argument parsing has already been completed at this point. */
     std::vector<std::string> argv;

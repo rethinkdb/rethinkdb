@@ -366,7 +366,7 @@ backfillee_t::backfillee_t(
 
     /* Set up a mailbox to receive the `intro_2_t` from the backfiller */
     cond_t got_intro;
-    mailbox_t<void(backfiller_bcard_t::intro_2_t)> intro_mailbox(
+    mailbox_t<backfiller_bcard_t::intro_2_t> intro_mailbox(
         mailbox_manager,
         [&](signal_t *, const backfiller_bcard_t::intro_2_t &i) {
             intro = i;

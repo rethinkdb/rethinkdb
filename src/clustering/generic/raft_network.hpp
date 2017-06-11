@@ -13,14 +13,11 @@ networking layer over `raft_core.hpp`. */
 template<class state_t>
 class raft_business_card_t {
 public:
-    typedef mailbox_t<void(
-        raft_rpc_request_t<state_t>,
-        mailbox_t<void(raft_rpc_reply_t)>::address_t
-        )> rpc_mailbox_t;
+    typedef mailbox_t<raft_rpc_request_t<state_t>, mailbox_addr_t<raft_rpc_reply_t>> rpc_mailbox_t;
 
     typename rpc_mailbox_t::address_t rpc;
 
-    boost::optional<raft_term_t> virtual_heartbeats;
+    optional<raft_term_t> virtual_heartbeats;
 
     RDB_MAKE_ME_SERIALIZABLE_2(raft_business_card_t, rpc, virtual_heartbeats);
     RDB_MAKE_ME_EQUALITY_COMPARABLE_2(raft_business_card_t, rpc, virtual_heartbeats);
@@ -55,15 +52,15 @@ private:
         signal_t *interruptor,
         raft_rpc_reply_t *reply_out);
     void send_virtual_heartbeats(
-        const boost::optional<raft_term_t> &term);
-    watchable_map_t<raft_member_id_t, boost::optional<raft_term_t> >
+        const optional<raft_term_t> &term);
+    watchable_map_t<raft_member_id_t, optional<raft_term_t> >
         *get_connected_members();
 
     /* The `on_rpc()` methods are mailbox callbacks. */
     void on_rpc(
         signal_t *interruptor,
         const raft_rpc_request_t<state_t> &rpc,
-        const mailbox_t<void(raft_rpc_reply_t)>::address_t &reply_addr);
+        const mailbox_t<raft_rpc_reply_t>::address_t &reply_addr);
 
     mailbox_manager_t *mailbox_manager;
     watchable_map_t<raft_member_id_t, raft_business_card_t<state_t> > *peers;
@@ -71,7 +68,7 @@ private:
     /* This transforms the `watchable_map_t` that we got through our constructor into a
     value suitable for returning from `get_connected_members()` */
     watchable_map_value_transform_t<raft_member_id_t,
-        raft_business_card_t<state_t>, boost::optional<raft_term_t> >
+        raft_business_card_t<state_t>, optional<raft_term_t> >
             peers_map_transformer;
 
     raft_member_t<state_t> member;

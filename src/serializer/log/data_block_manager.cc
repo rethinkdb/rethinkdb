@@ -232,7 +232,8 @@ public:
         return info.relative_offset < relative_offset;
     }
 
-    std::vector<block_info_t>::const_iterator find_lower_bound_iter(uint32_t _relative_offset) const {
+    std::vector<block_info_t>::const_iterator
+    find_lower_bound_iter(uint32_t _relative_offset) const {
         return std::lower_bound(block_infos.begin(),
                                 block_infos.end(),
                                 _relative_offset,
@@ -407,7 +408,7 @@ data_block_manager_t::~data_block_manager_t() {
     guarantee(state == state_unstarted || state == state_shut_down);
 }
 
-void data_block_manager_t::prepare_initial_metablock(data_block_manager::metablock_mixin_t *mb) {
+void data_block_manager_t::prepare_initial_metablock(dbm_metablock_mixin_t *mb) {
     mb->active_extent = NULL_OFFSET;
 }
 
@@ -437,8 +438,9 @@ void data_block_manager_t::end_reconstruct() {
     guarantee(state == state_unstarted);
 }
 
-void data_block_manager_t::start_existing(file_t *file,
-                                          data_block_manager::metablock_mixin_t *last_metablock) {
+void data_block_manager_t::start_existing(
+        file_t *file,
+        const dbm_metablock_mixin_t *last_metablock) {
     guarantee(state == state_unstarted);
     dbfile = file;
     gc_io_account_nice.init(new file_account_t(file, GC_IO_PRIORITY_NICE));
@@ -650,18 +652,16 @@ public:
                     continue;
                 }
 
-                const block_size_t block_size = block_size_t::unsafe_make(info.ser_block_size);
+                const block_size_t block_size
+                    = block_size_t::unsafe_make(info.ser_block_size);
                 buf_ptr_t buf = buf_ptr_t::alloc_uninitialized(block_size);
                 memcpy(buf.ser_buffer(), current_buf, info.ser_block_size);
                 buf.fill_padding_zero();
                 guarantee(info.ser_block_size <= *(lower_it + 1) - *lower_it);
 
-                counted_t<ls_block_token_pointee_t> ls_token
+                counted_t<block_token_t> token
                     = parent->serializer->generate_block_token(current_offset,
                                                                block_size);
-
-                counted_t<standard_block_token_t> token
-                    = to_standard_block_token(block_id, std::move(ls_token));
 
                 parent->serializer->offer_buf_to_read_ahead_callbacks(
                         block_id,
@@ -725,13 +725,13 @@ buf_ptr_t data_block_manager_t::read(int64_t off_in, block_size_t block_size,
     }
 }
 
-std::vector<counted_t<ls_block_token_pointee_t> >
+std::vector<counted_t<block_token_t>>
 data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
                                   file_account_t *io_account,
                                   iocallback_t *cb) {
     // These tokens are grouped by extent.  You can do a contiguous write in each
     // extent.
-    std::vector<std::vector<counted_t<ls_block_token_pointee_t> > > token_groups
+    std::vector<std::vector<counted_t<block_token_t>>> token_groups
         = gimme_some_new_offsets(writes);
 
     for (auto it = writes.begin(); it != writes.end(); ++it) {
@@ -804,7 +804,7 @@ data_block_manager_t::many_writes(const std::vector<buf_write_info_t> &writes,
     // earlier).
     intermediate_cb->on_io_complete();
 
-    std::vector<counted_t<ls_block_token_pointee_t> > ret;
+    std::vector<counted_t<block_token_t>> ret;
     ret.reserve(writes.size());
     for (auto it = token_groups.begin(); it != token_groups.end(); ++it) {
         for (auto jt = it->begin(); jt != it->end(); ++jt) {
@@ -974,7 +974,8 @@ void data_block_manager_t::mark_garbage_tokenwise_with_offset(int64_t offset) {
     // Add to old garbage count if necessary (works because of the
     // !entry->block_is_garbage(block_index) assertion above).
     if (entry->state == gc_entry_t::state_old && entry->block_is_garbage(block_index)) {
-        gc_stats.old_garbage_block_bytes += gc_entry_t::aligned_value(entry->block_size(block_index));
+        gc_stats.old_garbage_block_bytes
+            += gc_entry_t::aligned_value(entry->block_size(block_index));
     }
 
     check_and_handle_empty_extent(extent_id);
@@ -1223,13 +1224,13 @@ void data_block_manager_t::write_gcs(
     // We acquire block tokens for all the blocks before writing new
     // version.  The point of this is to make sure the _new_ block is
     // correctly "alive" when we write it.
-    std::vector<counted_t<ls_block_token_pointee_t> > old_block_tokens;
+    std::vector<counted_t<block_token_t>> old_block_tokens;
     old_block_tokens.reserve(writes.size());
 
     // New block tokens, to hold the return value of
     // data_block_manager_t::write() instead of immediately discarding the
     // created token and causing the extent or block to be collected.
-    std::vector<counted_t<ls_block_token_pointee_t> > new_block_tokens;
+    std::vector<counted_t<block_token_t>> new_block_tokens;
 
     {
         // Step 1: Write buffers to disk and assemble index operations
@@ -1238,8 +1239,9 @@ void data_block_manager_t::write_gcs(
         std::vector<buf_write_info_t> the_writes;
         the_writes.reserve(writes.size());
         for (size_t i = 0; i < writes.size(); ++i) {
-            old_block_tokens.push_back(serializer->generate_block_token(writes[i].old_offset,
-                                                                        writes[i].block_size));
+            old_block_tokens.push_back(
+                    serializer->generate_block_token(writes[i].old_offset,
+                                                     writes[i].block_size));
 
             the_writes.push_back(buf_write_info_t(writes[i].buf,
                                                   writes[i].block_size,
@@ -1313,9 +1315,7 @@ void data_block_manager_t::flush_gc_index_writes(signal_t *) {
 
                     index_write_ops.push_back(
                         index_write_op_t(block_id,
-                            to_standard_block_token(
-                                block_id,
-                                iw.new_block_tokens[i])));
+                            make_optional(iw.new_block_tokens[i])));
                 }
 
                 // (If we don't have an i_array entry, the block is referenced
@@ -1360,7 +1360,7 @@ void data_block_manager_t::flush_gc_index_writes(signal_t *) {
     serializer->index_write(&dummy_acq, [] {}, index_write_ops);
 }
 
-void data_block_manager_t::prepare_metablock(data_block_manager::metablock_mixin_t *metablock) {
+void data_block_manager_t::prepare_metablock(dbm_metablock_mixin_t *metablock) {
     guarantee(state == state_ready || state == state_shutting_down);
 
     if (active_extent != nullptr) {
@@ -1418,7 +1418,7 @@ void data_block_manager_t::actually_shutdown() {
     }
 }
 
-std::vector<std::vector<counted_t<ls_block_token_pointee_t> > >
+std::vector<std::vector<counted_t<block_token_t>>>
 data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t> &writes) {
     ASSERT_NO_CORO_WAITING;
 
@@ -1431,9 +1431,9 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
 
     guarantee(active_extent->state == gc_entry_t::state_active);
 
-    std::vector<std::vector<counted_t<ls_block_token_pointee_t> > > ret;
+    std::vector<std::vector<counted_t<block_token_t>>> ret;
 
-    std::vector<counted_t<ls_block_token_pointee_t> > tokens;
+    std::vector<counted_t<block_token_t>> tokens;
     for (auto it = writes.begin(); it != writes.end(); ++it) {
         uint32_t relative_offset = valgrind_undefined<uint32_t>(UINT32_MAX);
         unsigned int block_index = valgrind_undefined<unsigned int>(UINT_MAX);
@@ -1458,7 +1458,8 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
                                                              &block_index);
             guarantee(succeeded);
 
-            // Push the current group of tokens, if it's nonempty, onto the return vector.
+            // Push the current group of tokens, if it's nonempty, onto the return
+            // vector.
             if (!tokens.empty()) {
                 ret.push_back(std::move(tokens));
                 tokens.clear();

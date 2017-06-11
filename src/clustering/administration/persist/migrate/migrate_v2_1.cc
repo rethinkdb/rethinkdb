@@ -57,9 +57,9 @@ void migrate_auth_metadata_v2_1_to_v2_3(metadata_file_t::write_txn_t *txn,
         1 /* 1 iteration, since auth_key was already insecure. */);
     auto admin_pair = std::make_pair(
         auth::username_t("admin"),
-        versioned_t<boost::optional<auth::user_t>>::make_with_manual_timestamp(
+        versioned_t<optional<auth::user_t>>::make_with_manual_timestamp(
             auth_key_ts,
-            boost::make_optional(auth::user_t(std::move(admin_pw)))));
+            make_optional(auth::user_t(std::move(admin_pw)))));
     new_metadata.m_users.insert(std::move(admin_pair));
     txn->write(mdkey_auth_semilattices(), new_metadata, interruptor);
 }
@@ -76,10 +76,11 @@ void migrate_metadata_v2_1_to_v2_3(cluster_version_t serialization_version,
         migrate_metadata_v2_1_to_v2_3<cluster_version_t::v2_2>(txn, interruptor);
         break;
     case cluster_version_t::v2_3:
-        // This only really needs to migrate auth data, but this should be fine
-        migrate_metadata_v2_1_to_v2_3<cluster_version_t::v2_3>(txn, interruptor);
-        break;
-    case cluster_version_t::v2_4_is_latest:
+    case cluster_version_t::v2_4:
+        unreachable();
+    case cluster_version_t::v2_5_is_latest_disk:
+        migrate_metadata_v2_1_to_v2_3<cluster_version_t::v2_5_is_latest_disk>(
+            txn, interruptor);
         break;
     case cluster_version_t::v1_14:
     case cluster_version_t::v1_15:

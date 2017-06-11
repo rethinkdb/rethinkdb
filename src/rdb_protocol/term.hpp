@@ -9,6 +9,20 @@
 #include "rdb_protocol/val.hpp"
 #include "rdb_protocol/term_storage.hpp"
 
+/* Here is some basic info about ReQL code to be aware of:
+
+   - Compile time happens when a term_t is constructed, and runtime
+     happens when eval is called on it. So evaluating arguments in the
+     constructor goes poorly.
+
+   - If a term can push work to the shards it has to be in the first
+     group of term_forbids_writes.  Related code has some basic type
+     checking -- grep for all appearances of a term name so you can
+     see every switch statement it's used in.
+
+   - Calling arg(0) more than once can re-evaluate the argument.
+*/
+
 namespace ql {
 
 class datum_stream_t;

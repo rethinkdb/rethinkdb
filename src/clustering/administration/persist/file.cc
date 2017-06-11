@@ -8,9 +8,11 @@
 #include "buffer_cache/serialize_onto_blob.hpp"
 #include "clustering/administration/persist/migrate/migrate_v1_16.hpp"
 #include "clustering/administration/persist/migrate/migrate_v2_1.hpp"
+#include "clustering/administration/persist/migrate/migrate_v2_3.hpp"
 #include "clustering/administration/persist/migrate/rewrite.hpp"
 #include "config/args.hpp"
 #include "logger.hpp"
+#include "paths.hpp"
 #include "serializer/log/log_serializer.hpp"
 #include "serializer/merger.hpp"
 
@@ -25,7 +27,7 @@ ATTR_PACKED(struct metadata_disk_superblock_t {
 
 // Etymology: In version 1.13, the magic was 'RDmd', for "(R)ethink(D)B (m)eta(d)ata".
 // Every subsequent version, the last character has been incremented.
-static const block_magic_t metadata_sb_magic = { { 'R', 'D', 'm', 'l' } };
+static const block_magic_t metadata_sb_magic = { { 'R', 'D', 'm', 'm' } };
 
 void init_metadata_superblock(void *sb_void, size_t block_size) {
     memset(sb_void, 0, block_size);
@@ -56,13 +58,14 @@ cluster_version_t magic_to_version(block_magic_t magic) {
     case 'j': return cluster_version_t::v2_2;
     case 'k': return cluster_version_t::v2_3;
     case 'l': return cluster_version_t::v2_4;
+    case 'm': return cluster_version_t::v2_5_is_latest_disk;
     default:
         fail_due_to_user_error("You're trying to use an earlier version of RethinkDB "
             "to open a database created by a later version of RethinkDB.");
     }
     // This is here so you don't forget to add new versions above.
     // Please also update the value of metadata_sb_magic at the top of this file!
-    static_assert(cluster_version_t::LATEST_DISK == cluster_version_t::v2_4,
+    static_assert(cluster_version_t::LATEST_DISK == cluster_version_t::v2_5,
         "Please add new version to magic_to_version.");
 }
 
@@ -341,7 +344,7 @@ metadata_file_t::metadata_file_t(
 
             // The metadata is now serialized using the latest serialization version
             metadata_version = cluster_version_t::LATEST_DISK;
-        }                         // fallthrough intentional
+        } // fallthrough intentional
         case cluster_version_t::v2_1: // fallthrough intentional
         case cluster_version_t::v2_2: {
             if (sb_lock.has()) {
@@ -353,12 +356,28 @@ metadata_file_t::metadata_file_t(
             logNTC("Migrating cluster metadata to v2.3");
             migrate_metadata_v2_1_to_v2_3(
                 metadata_version, &write_txn, &non_interruptor);
-        } break;
-        case cluster_version_t::v2_3:
-            // TODO migration to 2.4
-            break;
-        case cluster_version_t::v2_4_is_latest:
-            break; // Up-to-date, do nothing
+
+            // The metadata is now serialized using the latest serialization version
+            metadata_version = cluster_version_t::LATEST_DISK;
+        } // fallthrough intentional
+        case cluster_version_t::v2_3: {
+            if (sb_lock.has()) {
+                update_metadata_superblock_version(sb_data);
+                sb_write.reset();
+                sb_lock.reset();
+            }
+
+            logNTC("Migrating cluster metadata to v2.4");
+            migrate_metadata_v2_3_to_v2_4(
+                metadata_version, &write_txn, &non_interruptor);
+
+            // The metadata is now serialized using the latest serialization version
+            metadata_version = cluster_version_t::LATEST_DISK;
+        } // fallthrough intentional
+        case cluster_version_t::v2_4: {
+        } // fallthrough intentional
+        case cluster_version_t::v2_5_is_latest_disk:
+            break;  // up-to-date, do nothing
         default: unreachable();
         }
     }

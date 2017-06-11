@@ -22,6 +22,7 @@
 #include "rapidjson/rapidjson.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
+#include "rdb_protocol/datum_stream/array.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/pseudo_binary.hpp"
@@ -1118,7 +1119,9 @@ std::string datum_t::mangle_secondary(
 std::string datum_t::encode_tag_num(uint64_t tag_num) {
     static_assert(sizeof(tag_num) == tag_size,
             "tag_size constant is assumed to be the size of a uint64_t.");
-#ifndef BOOST_LITTLE_ENDIAN
+#if defined(__s390x__)
+    tag_num = __builtin_bswap64(tag_num);
+#elif !defined(BOOST_LITTLE_ENDIAN)
     static_assert(false, "This piece of code will break on big-endian systems.");
 #endif
     return std::string(reinterpret_cast<const char *>(&tag_num), tag_size);
@@ -1128,7 +1131,7 @@ std::string datum_t::compose_secondary(
     skey_version_t skey_version,
     const std::string &secondary_key,
     const store_key_t &primary_key,
-    boost::optional<uint64_t> tag_num) {
+    optional<uint64_t> tag_num) {
 
     std::string primary_key_string = key_to_unescaped_str(primary_key);
     rcheck_toplevel(primary_key_string.length() <= rdb_protocol::MAX_PRIMARY_KEY_SIZE,
@@ -1137,7 +1140,7 @@ std::string datum_t::compose_secondary(
                                        key_to_debug_str(primary_key).c_str()));
 
     std::string tag_string;
-    if (tag_num) {
+    if (tag_num.has_value()) {
         tag_string = encode_tag_num(tag_num.get());
     }
 
@@ -1150,7 +1153,7 @@ std::string datum_t::compose_secondary(
 
 std::string datum_t::print_secondary(reql_version_t reql_version,
                                      const store_key_t &primary_key,
-                                     boost::optional<uint64_t> tag_num) const {
+                                     optional<uint64_t> tag_num) const {
     std::string secondary_key_string;
 
     // Reserve max key size to reduce reallocations
@@ -1242,12 +1245,15 @@ components_t parse_secondary(const std::string &key) THROWS_NOTHING {
         key.substr(start_of_primary, end_of_primary - start_of_primary);
 
     std::string tag_str = key.substr(start_of_tag, key.size() - (start_of_tag + 2));
-    boost::optional<uint64_t> tag_num;
+    optional<uint64_t> tag_num;
     if (tag_str.size() != 0) {
-#ifndef BOOST_LITTLE_ENDIAN
-        static_assert(false, "This piece of code will break on little endian systems.");
+        uint64_t t = *reinterpret_cast<const uint64_t *>(tag_str.data());
+#if defined(__s390x__)
+        t = __builtin_bswap64(t);
+#elif !defined(BOOST_LITTLE_ENDIAN)
+        static_assert(false, "This piece of code will break on big endian systems.");
 #endif
-        tag_num = *reinterpret_cast<const uint64_t *>(tag_str.data());
+        tag_num.set(t);
     }
     return components_t{
         skey_version,
@@ -1285,12 +1291,12 @@ std::string datum_t::extract_truncated_secondary(
     return skey;
 }
 
-boost::optional<uint64_t> datum_t::extract_tag(const std::string &secondary) {
+optional<uint64_t> datum_t::extract_tag(const std::string &secondary) {
     components_t components = parse_secondary(secondary);
     return components.tag_num;
 }
 
-boost::optional<uint64_t> datum_t::extract_tag(const store_key_t &key) {
+optional<uint64_t> datum_t::extract_tag(const store_key_t &key) {
     return extract_tag(key_to_unescaped_str(key));
 }
 
@@ -1964,7 +1970,7 @@ size_t datum_t::trunc_size(size_t primary_key_size) {
 
 bool datum_t::key_is_truncated(const store_key_t &key) {
     std::string key_str = key_to_unescaped_str(key);
-    if (extract_tag(key_str)) {
+    if (extract_tag(key_str).has_value()) {
         return key.size() == MAX_KEY_SIZE;
     } else {
         return key.size() == MAX_KEY_SIZE - tag_size;

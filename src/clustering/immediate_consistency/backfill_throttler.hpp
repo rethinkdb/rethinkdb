@@ -4,9 +4,6 @@
 
 #include <map>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "concurrency/interruptor.hpp"
 #include "concurrency/new_semaphore.hpp"
 #include "containers/scoped.hpp"

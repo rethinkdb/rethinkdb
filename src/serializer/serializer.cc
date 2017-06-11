@@ -2,7 +2,6 @@
 #include "serializer/serializer.hpp"
 
 #include "arch/arch.hpp"
-#include "boost_utils.hpp"
 #include "math.hpp"
 
 void debug_print(printf_buffer_t *buf, const index_write_op_t &write_op) {

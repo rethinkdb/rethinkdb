@@ -23,7 +23,7 @@ void mock_file_t::set_file_size(int64_t size) {
     data_->resize(size, 0);
 }
 
-void mock_file_t::set_file_size_at_least(int64_t size) {
+void mock_file_t::set_file_size_at_least(int64_t size, UNUSED int64_t extent_size) {
     guarantee(0 <= size && static_cast<uint64_t>(size) <= SIZE_MAX);
     if (data_->size() < static_cast<uint64_t>(size)) {
         data_->resize(size, 0);

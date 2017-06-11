@@ -1,9 +1,6 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/servers/auto_reconnect.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/timing.hpp"
 #include "clustering/administration/servers/config_client.hpp"
 #include "concurrency/exponential_backoff.hpp"
@@ -31,21 +28,21 @@ auto_reconnector_t::auto_reconnector_t(
     { }
 
 void auto_reconnector_t::on_connect_or_disconnect(const peer_id_t &peer_id) {
-    boost::optional<server_id_t> server_id =
+    optional<server_id_t> server_id =
         server_config_client->get_peer_to_server_map()->get_key(peer_id);
-    boost::optional<connectivity_cluster_t::connection_pair_t> conn =
+    optional<connectivity_cluster_t::connection_pair_t> conn =
         connectivity_cluster->get_connections()->get_key(peer_id);
     // The criterion for when we consider a peer connected must be consistent with
     // what we define in `initial_joiner_t::on_connection_change`, or else we might
     // never start the `try_reconnect` routine for an initial join peer.
-    if (static_cast<bool>(conn)) {
+    if (conn.has_value()) {
         // We never reconnect *to* proxies. If we are a full server, the proxy is going
         // to connect to us instead.
         if (!conn->first->get_server_id().is_proxy()) {
             addresses[conn->first->get_server_id()] = conn->first->get_peer_address();
             server_ids[peer_id] = conn->first->get_server_id();
         }
-    } else if (!static_cast<bool>(server_id) && !static_cast<bool>(conn)) {
+    } else if (!server_id.has_value() && !conn.has_value()) {
         auto it = server_ids.find(peer_id);
         if (it != server_ids.end()) {
             coro_t::spawn_sometime(std::bind(&auto_reconnector_t::try_reconnect, this,
@@ -110,7 +107,7 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
 
                 join_results_t results =
                     connectivity_cluster_run_local->join_blocking(
-                        last_known_address, boost::none, server,
+                        last_known_address, r_nullopt, make_optional(server),
                         join_delay_secs_local,
                         auto_drainer_t::lock_t(&connectivity_cluster_run_local->drainer));
 

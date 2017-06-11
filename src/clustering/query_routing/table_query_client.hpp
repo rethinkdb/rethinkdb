@@ -117,7 +117,7 @@ private:
             void (primary_query_client_t::*how_to_run_query)(const op_type &, op_response_type *, order_token_t, fifo_enforcer_token_type *, signal_t *) /* THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t) */,
             std::vector<scoped_ptr_t<immediate_op_info_t<op_type, fifo_enforcer_token_type> > > *masters_to_contact,
             std::vector<op_response_type> *results,
-            std::vector<boost::optional<cannot_perform_query_exc_t> > *failures,
+            std::vector<optional<cannot_perform_query_exc_t> > *failures,
             order_token_t order_token,
             size_t i,
             signal_t *interruptor)

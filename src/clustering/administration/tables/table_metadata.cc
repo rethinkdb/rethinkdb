@@ -29,7 +29,7 @@ void serialize(write_message_t *wm, const table_config_t &tc) {
     std::map<std::string, sindex_config_t> sindexes = tc.sindexes;
     serialize<W>(wm, sindexes);
 
-    boost::optional<write_hook_config_t> write_hook = tc.write_hook;
+    optional<write_hook_config_t> write_hook = tc.write_hook;
     serialize<W>(wm, write_hook);
 
     write_ack_config_t write_ack_config = tc.write_ack_config;
@@ -92,7 +92,7 @@ archive_result_t deserialize(
     res = deserialize<W>(s, &sindexes);
     if (bad(res)) { return res; }
 
-    boost::optional<write_hook_config_t> write_hook;
+    optional<write_hook_config_t> write_hook;
     res = deserialize<W>(s, &write_hook);
     if (bad(res)) { return res; }
 
@@ -129,10 +129,13 @@ archive_result_t deserialize<cluster_version_t::v2_2>(
 template <>
 archive_result_t deserialize<cluster_version_t::v2_3>(
     read_stream_t *s, table_config_t *tc) {
-    return deserialize_table_config_pre_v2_4<cluster_version_t::v2_4>(s, tc);
+    return deserialize_table_config_pre_v2_4<cluster_version_t::v2_3>(s, tc);
 }
 
-template archive_result_t deserialize<cluster_version_t::v2_4_is_latest>(
+template archive_result_t deserialize<cluster_version_t::v2_4>(
+    read_stream_t *, table_config_t *);
+
+template archive_result_t deserialize<cluster_version_t::v2_5_is_latest>(
     read_stream_t *, table_config_t *);
 
 RDB_IMPL_EQUALITY_COMPARABLE_6(table_config_t,

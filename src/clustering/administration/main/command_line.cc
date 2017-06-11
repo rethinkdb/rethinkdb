@@ -139,29 +139,29 @@ int write_pid_file(const std::string &pid_filepath) {
 
 // Extracts an option that appears either zero or once.  Multiple appearances are not allowed (or
 // expected).
-boost::optional<std::string> get_optional_option(const std::map<std::string, options::values_t> &opts,
+optional<std::string> get_optional_option(const std::map<std::string, options::values_t> &opts,
                                                  const std::string &name,
                                                  std::string *source_out) {
     auto it = opts.find(name);
     if (it == opts.end()) {
         *source_out = "nowhere";
-        return boost::optional<std::string>();
+        return optional<std::string>();
     }
 
     if (it->second.values.empty()) {
         *source_out = it->second.source;
-        return boost::optional<std::string>();
+        return optional<std::string>();
     }
 
     if (it->second.values.size() == 1) {
         *source_out = it->second.source;
-        return it->second.values[0];
+        return make_optional(it->second.values[0]);
     }
 
     throw std::logic_error("Option '%s' appears multiple times (when it should only appear once.)");
 }
 
-boost::optional<std::string> get_optional_option(const std::map<std::string, options::values_t> &opts,
+optional<std::string> get_optional_option(const std::map<std::string, options::values_t> &opts,
                                                  const std::string &name) {
     std::string source;
     return get_optional_option(opts, name, &source);
@@ -259,8 +259,8 @@ bool get_user_ids(const char *name, uid_t *user_id_out, gid_t *user_group_id_out
 void get_user_group(const std::map<std::string, options::values_t> &opts,
                     gid_t *group_id_out, std::string *group_name_out,
                     uid_t *user_id_out, std::string *user_name_out) {
-    boost::optional<std::string> rungroup = get_optional_option(opts, "--rungroup");
-    boost::optional<std::string> runuser = get_optional_option(opts, "--runuser");
+    optional<std::string> rungroup = get_optional_option(opts, "--rungroup");
+    optional<std::string> runuser = get_optional_option(opts, "--runuser");
     group_name_out->clear();
     user_name_out->clear();
 
@@ -335,7 +335,7 @@ void get_and_set_user_group_and_directory(
 #endif
 
 int check_pid_file(const std::map<std::string, options::values_t> &opts) {
-    boost::optional<std::string> pid_filepath = get_optional_option(opts, "--pid-file");
+    optional<std::string> pid_filepath = get_optional_option(opts, "--pid-file");
     if (!pid_filepath || pid_filepath->empty()) {
         return EXIT_SUCCESS;
     }
@@ -345,7 +345,7 @@ int check_pid_file(const std::map<std::string, options::values_t> &opts) {
 
 // Maybe writes a pid file, using the --pid-file option, if it's present.
 int write_pid_file(const std::map<std::string, options::values_t> &opts) {
-    boost::optional<std::string> pid_filepath = get_optional_option(opts, "--pid-file");
+    optional<std::string> pid_filepath = get_optional_option(opts, "--pid-file");
     if (!pid_filepath || pid_filepath->empty()) {
         return EXIT_SUCCESS;
     }
@@ -359,7 +359,7 @@ std::string get_single_option(const std::map<std::string, options::values_t> &op
                               const std::string &name,
                               std::string *source_out) {
     std::string source;
-    boost::optional<std::string> value = get_optional_option(opts, name, &source);
+    optional<std::string> value = get_optional_option(opts, name, &source);
 
     if (!value) {
         throw std::logic_error(strprintf("Missing option '%s'.  (It does not have a default value.)", name.c_str()));
@@ -409,7 +409,7 @@ void initialize_logfile(const std::map<std::string, options::values_t> &opts,
     install_fallback_log_writer(filename);
 }
 
-std::string get_web_path(boost::optional<std::string> web_static_directory) {
+std::string get_web_path(optional<std::string> web_static_directory) {
     path_t result;
 
     if (web_static_directory) {
@@ -432,13 +432,13 @@ std::string get_web_path(boost::optional<std::string> web_static_directory) {
 
 std::string get_web_path(const std::map<std::string, options::values_t> &opts) {
     if (!exists_option(opts, "--no-http-admin")) {
-        boost::optional<std::string> web_static_directory = get_optional_option(opts, "--web-static-directory");
+        optional<std::string> web_static_directory = get_optional_option(opts, "--web-static-directory");
         return get_web_path(web_static_directory);
     }
     return std::string();
 }
 
-boost::optional<int> parse_join_delay_secs_option(
+optional<int> parse_join_delay_secs_option(
         const std::map<std::string, options::values_t> &opts) {
     if (exists_option(opts, "--join-delay")) {
         const std::string delay_opt = get_single_option(opts, "--join-delay");
@@ -453,13 +453,13 @@ boost::optional<int> parse_join_delay_secs_option(
                     "ERROR: join-delay is too large. Must be at most %d",
                     std::numeric_limits<int>::max()));
         }
-        return boost::optional<int>(static_cast<int>(join_delay_secs));
+        return optional<int>(static_cast<int>(join_delay_secs));
     } else {
-        return boost::optional<int>();
+        return optional<int>();
     }
 }
 
-boost::optional<int> parse_node_reconnect_timeout_secs_option(
+optional<int> parse_node_reconnect_timeout_secs_option(
         const std::map<std::string, options::values_t> &opts) {
     if (exists_option(opts, "--cluster-reconnect-timeout")) {
         const std::string timeout_opt = get_single_option(opts, "--cluster-reconnect-timeout");
@@ -475,21 +475,21 @@ boost::optional<int> parse_node_reconnect_timeout_secs_option(
                 "ERROR: cluster-reconnect-timeout is too large. Must be at most %d",
                 std::numeric_limits<int>::max() / 1000));
         }
-        return boost::optional<int>(static_cast<int>(node_reconnect_timeout_secs));
+        return optional<int>(static_cast<int>(node_reconnect_timeout_secs));
     }
 
-    return boost::optional<int>();
+    return optional<int>();
 }
 
-/* An empty outer `boost::optional` means the `--cache-size` parameter is not present. An
-empty inner `boost::optional` means the cache size is set to `auto`. */
-boost::optional<boost::optional<uint64_t> > parse_total_cache_size_option(
+/* An empty outer `optional` means the `--cache-size` parameter is not present. An
+empty inner `optional` means the cache size is set to `auto`. */
+optional<optional<uint64_t> > parse_total_cache_size_option(
         const std::map<std::string, options::values_t> &opts) {
     if (exists_option(opts, "--cache-size")) {
         const std::string cache_size_opt = get_single_option(opts, "--cache-size");
         if (cache_size_opt == "auto") {
-            return boost::optional<boost::optional<uint64_t> >(
-                boost::optional<uint64_t>());
+            return optional<optional<uint64_t> >(
+                optional<uint64_t>());
         } else {
             uint64_t cache_size_megs;
             if (!strtou64_strict(cache_size_opt, 10, &cache_size_megs)) {
@@ -504,11 +504,11 @@ boost::optional<boost::optional<uint64_t> > parse_total_cache_size_option(
                     "maximum legal cache size for this platform (%" PRIu64 " MB)",
                     res, get_max_total_cache_size()));
             }
-            return boost::optional<boost::optional<uint64_t> >(
-                boost::optional<uint64_t>(res));
+            return optional<optional<uint64_t> >(
+                optional<uint64_t>(res));
         }
     } else {
-        return boost::optional<uint64_t>();
+        return make_optional(optional<uint64_t>());
     }
 }
 
@@ -757,8 +757,8 @@ bool load_tls_key_and_cert(
 
 bool configure_web_tls(
     const std::map<std::string, options::values_t> &opts, SSL_CTX *web_tls) {
-    boost::optional<std::string> key_file = get_optional_option(opts, "--http-tls-key");
-    boost::optional<std::string> cert_file = get_optional_option(opts, "--http-tls-cert");
+    optional<std::string> key_file = get_optional_option(opts, "--http-tls-key");
+    optional<std::string> cert_file = get_optional_option(opts, "--http-tls-cert");
 
     if (!(key_file && cert_file)) {
         logERR("--http-tls-key and --http-tls-cert must be specified together.");
@@ -770,11 +770,11 @@ bool configure_web_tls(
 
 bool configure_driver_tls(
     const std::map<std::string, options::values_t> &opts, SSL_CTX *driver_tls) {
-    boost::optional<std::string> key_file = get_optional_option(
+    optional<std::string> key_file = get_optional_option(
         opts, "--driver-tls-key");
-    boost::optional<std::string> cert_file = get_optional_option(
+    optional<std::string> cert_file = get_optional_option(
         opts, "--driver-tls-cert");
-    boost::optional<std::string> ca_file = get_optional_option(opts, "--driver-tls-ca");
+    optional<std::string> ca_file = get_optional_option(opts, "--driver-tls-ca");
 
     if (!(key_file && cert_file)) {
         if (key_file || cert_file) {
@@ -807,11 +807,11 @@ bool configure_driver_tls(
 
 bool configure_cluster_tls(
     const std::map<std::string, options::values_t> &opts, SSL_CTX *cluster_tls) {
-    boost::optional<std::string> key_file = get_optional_option(
+    optional<std::string> key_file = get_optional_option(
         opts, "--cluster-tls-key");
-    boost::optional<std::string> cert_file = get_optional_option(
+    optional<std::string> cert_file = get_optional_option(
         opts, "--cluster-tls-cert");
-    boost::optional<std::string> ca_file = get_optional_option(opts, "--cluster-tls-ca");
+    optional<std::string> ca_file = get_optional_option(opts, "--cluster-tls-ca");
 
     if (!(key_file && cert_file && ca_file)) {
         logERR("--cluster-tls-key, --cluster-tls-cert, and --cluster-tls-ca must be "
@@ -865,7 +865,7 @@ bool initialize_tls_ctx(
         return false;
     }
 
-    boost::optional<std::string> min_protocol_opt = get_optional_option(
+    optional<std::string> min_protocol_opt = get_optional_option(
         opts, "--tls-min-protocol");
     long protocol_flags = // NOLINT(runtime/int)
         SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1;
@@ -895,7 +895,7 @@ bool initialize_tls_ctx(
     efficient authenticated encryption. An option exists for system admins to
     configure their own ciphers list if their SSL/TLS lib doesn't support these
     options or if they want to use other cipher suites. */
-    boost::optional<std::string> ciphers_opt = get_optional_option(
+    optional<std::string> ciphers_opt = get_optional_option(
         opts, "--tls-ciphers");
     /* NOTE: I normally prefer the abreviation 'ECDHE', but older versions of
     OpenSSL do not seem to like 'ECDHE' even though the matching cipher suites
@@ -922,7 +922,7 @@ bool initialize_tls_ctx(
     good choices.
     NOTE: For compatibility reasons, we can only support a single elliptic
     curve since OpenSSL is ridiculous. */
-    boost::optional<std::string> curve_opt = get_optional_option(
+    optional<std::string> curve_opt = get_optional_option(
         opts, "--tls-ecdh-curve");
     std::string curve_name = curve_opt ? *curve_opt : "prime256v1";
 
@@ -961,7 +961,7 @@ bool initialize_tls_ctx(
 
     /* If the client and server do not support ECDHE but do support DHE, an
     admin must specify a file containing parameters for DHE. */
-    boost::optional<std::string> dhparams_filename = get_optional_option(
+    optional<std::string> dhparams_filename = get_optional_option(
         opts, "--tls-dhparams");
     if (dhparams_filename) {
         fp_wrapper_t dhparams_fp(dhparams_filename->c_str(), "r");
@@ -1042,7 +1042,7 @@ void run_rethinkdb_create(const base_path_t &base_path,
                           const name_string_t &server_name,
                           const std::set<name_string_t> &server_tags,
                           const std::string &initial_password,
-                          boost::optional<uint64_t> total_cache_size,
+                          optional<uint64_t> total_cache_size,
                           const file_direct_io_mode_t direct_io_mode,
                           const int max_concurrent_io_requests,
                           bool *const result_out) {
@@ -1139,7 +1139,7 @@ void run_rethinkdb_serve(const base_path_t &base_path,
                          const std::string &initial_password,
                          const file_direct_io_mode_t direct_io_mode,
                          const int max_concurrent_io_requests,
-                         const boost::optional<boost::optional<uint64_t> >
+                         const optional<optional<uint64_t> >
                             &total_cache_size,
                          const server_id_t *our_server_id,
                          const server_config_versioned_t *server_config,
@@ -1284,7 +1284,7 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
                              const std::string &initial_password,
                              const file_direct_io_mode_t direct_io_mode,
                              const int max_concurrent_io_requests,
-                             const boost::optional<boost::optional<uint64_t> >
+                             const optional<optional<uint64_t> >
                                 &total_cache_size,
                              const bool new_directory,
                              serve_info_t *serve_info,
@@ -1324,12 +1324,12 @@ void run_rethinkdb_porcelain(const base_path_t &base_path,
         server_config.config.tags = server_tag_names;
         server_config.config.cache_size_bytes = static_cast<bool>(total_cache_size)
             ? *total_cache_size
-            : boost::optional<uint64_t>();   /* default to 'auto' */
+            : optional<uint64_t>();   /* default to 'auto' */
         server_config.version = 1;
 
         run_rethinkdb_serve(base_path, serve_info, initial_password, direct_io_mode,
                             max_concurrent_io_requests,
-                            boost::optional<boost::optional<uint64_t> >(),
+                            optional<optional<uint64_t> >(),
                             &our_server_id, &server_config, &cluster_metadata,
                             data_directory_lock, result_out);
     }
@@ -1441,7 +1441,7 @@ std::vector<host_and_port_t> parse_join_options(const std::map<std::string, opti
 
 name_string_t parse_server_name_option(
         const std::map<std::string, options::values_t> &opts) {
-    boost::optional<std::string> server_name_str =
+    optional<std::string> server_name_str =
         get_optional_option(opts, "--server-name");
     if (static_cast<bool>(server_name_str)) {
         name_string_t server_name;
@@ -1473,7 +1473,7 @@ std::set<name_string_t> parse_server_tag_options(
 
 std::string parse_initial_password_option(
         const std::map<std::string, options::values_t> &opts) {
-    boost::optional<std::string> initial_password_str =
+    optional<std::string> initial_password_str =
         get_optional_option(opts, "--initial-password");
     if (static_cast<bool>(initial_password_str)) {
         if (*initial_password_str == "auto") {
@@ -1494,8 +1494,8 @@ std::string parse_initial_password_option(
 
 std::string get_reql_http_proxy_option(const std::map<std::string, options::values_t> &opts) {
     std::string source;
-    boost::optional<std::string> proxy = get_optional_option(opts, "--reql-http-proxy", &source);
-    if (!proxy.is_initialized()) {
+    optional<std::string> proxy = get_optional_option(opts, "--reql-http-proxy", &source);
+    if (!proxy.has_value()) {
         return std::string();
     }
 
@@ -1844,7 +1844,7 @@ std::map<std::string, options::values_t> parse_config_file_flat(const std::strin
 std::map<std::string, options::values_t> parse_commands_deep(int argc, char **argv,
                                                              std::vector<options::option_t> options) {
     std::map<std::string, options::values_t> opts = options::parse_command_line(argc, argv, options);
-    const boost::optional<std::string> config_file_name = get_optional_option(opts, "--config-file");
+    const optional<std::string> config_file_name = get_optional_option(opts, "--config-file");
     if (config_file_name) {
         opts = options::merge(opts, parse_config_file_flat(*config_file_name, options));
     }
@@ -1918,8 +1918,8 @@ int main_rethinkdb_create(int argc, char *argv[]) {
         name_string_t server_name = parse_server_name_option(opts);
         std::set<name_string_t> server_tag_names = parse_server_tag_options(opts);
         std::string initial_password = parse_initial_password_option(opts);
-        auto total_cache_size = boost::make_optional<uint64_t>(false, 0);
-        if (boost::optional<boost::optional<uint64_t> > x =
+        optional<uint64_t> total_cache_size;
+        if (optional<optional<uint64_t> > x =
                 parse_total_cache_size_option(opts)) {
             total_cache_size = *x;
         }
@@ -2059,11 +2059,11 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
 
         update_check_t do_update_checking = parse_update_checking_option(opts);
 
-        boost::optional<boost::optional<uint64_t> > total_cache_size =
+        optional<optional<uint64_t> > total_cache_size =
             parse_total_cache_size_option(opts);
 
-        boost::optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
-        boost::optional<int> node_reconnect_timeout_secs =
+        optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
+        optional<int> node_reconnect_timeout_secs =
             parse_node_reconnect_timeout_secs_option(opts);
 
         // Open and lock the directory, but do not create it
@@ -2105,10 +2105,8 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc),
-                                join_delay_secs ? join_delay_secs.get() : 0,
-                                node_reconnect_timeout_secs
-                                    ? node_reconnect_timeout_secs.get()
-                                    : cluster_defaults::reconnect_timeout,
+                                join_delay_secs.value_or(0),
+                                node_reconnect_timeout_secs.value_or(cluster_defaults::reconnect_timeout),
                                 tls_configs);
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
@@ -2166,8 +2164,8 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        boost::optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
-        boost::optional<int> node_reconnect_timeout_secs =
+        optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
+        optional<int> node_reconnect_timeout_secs =
             parse_node_reconnect_timeout_secs_option(opts);
 
 #ifndef _WIN32
@@ -2210,10 +2208,8 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc),
-                                join_delay_secs ? join_delay_secs.get() : 0,
-                                node_reconnect_timeout_secs
-                                    ? node_reconnect_timeout_secs.get()
-                                    : cluster_defaults::reconnect_timeout,
+                                join_delay_secs.value_or(0),
+                                node_reconnect_timeout_secs.value_or(cluster_defaults::reconnect_timeout),
                                 tls_configs);
 
         bool result;
@@ -2334,8 +2330,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
 
         update_check_t do_update_checking = parse_update_checking_option(opts);
 
-        boost::optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
-        boost::optional<int> node_reconnect_timeout_secs =
+        optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
+        optional<int> node_reconnect_timeout_secs =
             parse_node_reconnect_timeout_secs_option(opts);
 
         // Attempt to create the directory early so that the log file can use it.
@@ -2367,7 +2363,7 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             }
         }
 
-        boost::optional<boost::optional<uint64_t> > total_cache_size =
+        optional<optional<uint64_t> > total_cache_size =
             parse_total_cache_size_option(opts);
 
         if (check_pid_file(opts) != EXIT_SUCCESS) {
@@ -2402,10 +2398,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc),
-                                join_delay_secs ? join_delay_secs.get() : 0,
-                                node_reconnect_timeout_secs
-                                    ? node_reconnect_timeout_secs.get()
-                                    : cluster_defaults::reconnect_timeout,
+                                join_delay_secs.value_or(0),
+                                node_reconnect_timeout_secs.value_or(cluster_defaults::reconnect_timeout),
                                 tls_configs);
 
         const file_direct_io_mode_t direct_io_mode = parse_direct_io_mode_option(opts);
@@ -2742,7 +2736,7 @@ int main_rethinkdb_install_service(int argc, char *argv[]) {
 
         options::verify_option_counts(options, opts);
 
-        const boost::optional<std::string> config_file_name_arg =
+        const optional<std::string> config_file_name_arg =
             get_optional_option(opts, "--config-file");
         if (!config_file_name_arg) {
             fprintf(stderr, "rethinkdb install-service requires the `--config-file` option.\n");
@@ -2783,19 +2777,19 @@ int main_rethinkdb_install_service(int argc, char *argv[]) {
         }
 
         const char *runuser_ptr = nullptr;
-        const boost::optional<std::string> runuser = get_optional_option(opts, "--runuser");
+        const optional<std::string> runuser = get_optional_option(opts, "--runuser");
         if (runuser) {
             runuser_ptr = runuser->c_str();
         }
         const char *runuser_password_ptr = nullptr;
-        const boost::optional<std::string> runuser_password
+        const optional<std::string> runuser_password
             = get_optional_option(opts, "--runuser-password");
         if (runuser_password) {
             runuser_password_ptr = runuser_password->c_str();
         }
 
         std::string instance_name = "default";
-        const boost::optional<std::string> instance_name_arg =
+        const optional<std::string> instance_name_arg =
             get_optional_option(opts, "--instance-name");
         if (instance_name_arg) {
             instance_name = *instance_name_arg;
@@ -2862,7 +2856,7 @@ int main_rethinkdb_remove_service(int argc, char *argv[]) {
         options::verify_option_counts(options, opts);
 
         std::string instance_name = "default";
-        const boost::optional<std::string> instance_name_arg =
+        const optional<std::string> instance_name_arg =
             get_optional_option(opts, "--instance-name");
         if (instance_name_arg) {
             instance_name = *instance_name_arg;

@@ -29,7 +29,7 @@ configured_limits_t from_optargs(
                 interruptor,
                 serializable_env_t{
                     global_optargs_t(),
-                    auth::user_context_t(auth::permissions_t(false, false, false, false)),
+                    auth::user_context_t(auth::permissions_t(tribool::False, tribool::False, tribool::False, tribool::False)),
                     datum_t()},
                 nullptr);
             if (has_changefeed_queue_size) {

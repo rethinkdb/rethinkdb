@@ -1,14 +1,6 @@
-# See http://omahaproxy.appspot.com/ for the current stable/beta/dev versions of v8
-if [[ "$OS" != Windows ]]; then
-
+if [[ "$OS" = Windows ]]; then
     # V8 3.30 doesn't play well with Visual Studio 2015
     # But 4.7 has no source distribution, making it harder to build on Linux
-
-    version=3.30.33.16-patched
-
-    src_url=http://commondatastorage.googleapis.com/chromium-browser-official/v8-${version/-patched/}.tar.bz2
-    src_url_sha1=e753b6671eecf565d96c1e5a83563535ee2fe24b
-else
     version=4.7.80.23
 
     pkg_fetch () {
@@ -33,6 +25,31 @@ else
 
         pkg_remove_tmp_fetch_dir
     }
+
+elif [[ "$(uname -m)" = s390x ]]; then
+    # V8 3.30.33 does not support s390x.
+    # This s390x-specific code can be removed once V8 is updated to 5.1+.
+    version=3.28-s390
+
+    pkg_fetch () {
+        pkg_make_tmp_fetch_dir
+        git clone --depth 1 https://chromium.googlesource.com/chromium/tools/depot_tools.git "$tmp_dir/depot_tools"
+        PATH="$tmp_dir/depot_tools:$PATH"
+        in_dir "$tmp_dir" gclient config --unmanaged https://github.com/ibmruntimes/v8z.git
+        in_dir "$tmp_dir" git clone https://github.com/ibmruntimes/v8z.git
+        cd "$tmp_dir/v8z"
+        git checkout 3.28-s390
+        rm -rf "$src_dir"
+        mv "$tmp_dir/v8z" "$src_dir"
+        mv "$tmp_dir/depot_tools" "$src_dir"
+
+        pkg_remove_tmp_fetch_dir
+    }
+else
+    version=3.30.33.16-patched
+
+    src_url=http://commondatastorage.googleapis.com/chromium-browser-official/v8-${version/-patched/}.tar.bz2
+    src_url_sha1=e753b6671eecf565d96c1e5a83563535ee2fe24b
 fi
 
 pkg_install-include () {
@@ -40,17 +57,33 @@ pkg_install-include () {
 
     rm -rf "$install_dir/include"
     mkdir -p "$install_dir/include"
-    cp -RL "$src_dir/include/." "$install_dir/include"
-    sed -i.bak 's/include\///' "$install_dir/include/libplatform/libplatform.h"
 
-    # -- assemble the icu headers
-    if [[ "$CROSS_COMPILING" = 1 ]]; then
-        ( cross_build_env; in_dir "$build_dir/third_party/icu" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static "$@" )
+    if [[ "$($CXX -dumpmachine)" = "s390x-linux-gnu" ]]; then
+        # for s390x we need to generate correct header files
+       cd $build_dir
+       export PATH=$(pwd)/depot_tools:$PATH
+       #cd v8z
+       make dependencies
+       make s390x -j4 library=static
+
+       #s390x cp -RL "$src_dir/include/." "$install_dir/include"
+       cp -RL "$build_dir/include/." "$install_dir/include"
+       cp -RL "$build_dir/third_party/icu/source/common/." "$install_dir/include"
+       sed -i.bak 's/include\///' "$install_dir/include/libplatform/libplatform.h"
     else
-        in_dir "$build_dir/third_party/icu/source" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static --disable-layout "$@"
-    fi
+       cp -RL "$src_dir/include/." "$install_dir/include"
+       sed -i.bak 's/include\///' "$install_dir/include/libplatform/libplatform.h"
 
-    in_dir "$build_dir/third_party/icu/source" make install-headers-recursive
+       # -- assemble the icu headers
+       if [[ "$CROSS_COMPILING" = 1 ]]; then
+           ( cross_build_env; in_dir "$build_dir/third_party/icu" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static "$@" )
+       else
+           in_dir "$build_dir/third_party/icu/source" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static --disable-layout "$@"
+       fi
+
+       in_dir "$build_dir/third_party/icu/source" make install-headers-recursive
+
+    fi
 }
 
 pkg_install-include-windows () {
@@ -99,15 +132,23 @@ pkg_install () {
         i?86)   arch=ia32 ;;
         x86_64) arch=x64 ;;
         arm*)   arch=arm; arch_gypflags=$raspberry_pi_gypflags ;;
+        s390x)  arch=s390x ;;
         *)      arch=native ;;
     esac
     mode=release
-    pkg_make $arch.$mode CXX=$CXX LINK=$CXX LINK.target=$CXX GYPFLAGS="-Dwerror= $arch_gypflags" V=1
-    for lib in `find "$build_dir/out/$arch.$mode" -maxdepth 1 -name \*.a` `find "$build_dir/out/$arch.$mode/obj.target" -name \*.a`; do
-        name=`basename $lib`
-        cp $lib "$install_dir/lib/${name/.$arch/}"
-    done
-    touch "$install_dir/lib/libv8.a" # Create a dummy libv8.a because the makefile looks for it
+    if [[ "$arch" = "s390x" ]]; then
+       for lib in `find "$build_dir/out/$arch.$mode" -maxdepth 1 -name \*.a` `find "$build_dir/out/$arch.$mode/obj.target" -name \*.a` `find "$build_dir/out/$arch.$mode/obj.target/third_party/icu" -name \*.a` `find "$build_dir/out/$arch.$mode/obj.target/tools/gyp" -name \*.a` ; do
+           name=`basename $lib`
+           cp $lib "$install_dir/lib/${name/.$arch/}"
+       done
+    else
+       pkg_make $arch.$mode CXX=$CXX LINK=$CXX LINK.target=$CXX GYPFLAGS="-Dwerror= $arch_gypflags" V=1
+       for lib in `find "$build_dir/out/$arch.$mode" -maxdepth 1 -name \*.a` `find "$build_dir/out/$arch.$mode/obj.target" -name \*.a`; do
+           name=`basename $lib`
+           cp $lib "$install_dir/lib/${name/.$arch/}"
+       done
+       touch "$install_dir/lib/libv8.a" # Create a dummy libv8.a because the makefile looks for it
+    fi
 }
 
 pkg_link-flags () {

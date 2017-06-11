@@ -2,12 +2,10 @@
 #ifndef UNITTEST_RDB_PROTOCOL_HPP_
 #define UNITTEST_RDB_PROTOCOL_HPP_
 
+#include <functional>
 #include <set>
 #include <string>
 #include <vector>
-
-#include "errors.hpp"
-#include <boost/function.hpp>
 
 #include "containers/scoped.hpp"
 
@@ -20,7 +18,7 @@ namespace unittest {
 /* A few functions that might be of use for other unit tests as well. */
 
 void run_with_namespace_interface(
-        boost::function<void(
+        std::function<void(
             namespace_interface_t *,
             order_source_t *,
             const std::vector<scoped_ptr_t<store_t> > *)> fun,

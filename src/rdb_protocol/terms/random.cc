@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "math.hpp"
+#include "rdb_protocol/datum_stream/array.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/math_utils.hpp"
@@ -22,7 +23,12 @@ public:
                base_exc_t::LOGIC,
                strprintf("Number of items to sample must be non-negative, got `%"
                          PRId64 "`.", num_int));
+
         const size_t num = num_int;
+        rcheck(num <= env->env->limits().array_size_limit(),
+               base_exc_t::RESOURCE,
+               format_array_size_error(env->env->limits().array_size_limit()).c_str());
+
         counted_t<table_t> t;
         counted_t<datum_stream_t> seq;
         scoped_ptr_t<val_t> v = args->arg(env, 0);

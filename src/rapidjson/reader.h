@@ -26,11 +26,11 @@
 // RethinkDB modification: For `call_with_enough_stack`
 #include "arch/runtime/coroutines.hpp"
 
-#include "rapidjson.h"
-#include "encodings.h"
-#include "internal/meta.h"
-#include "internal/stack.h"
-#include "internal/strtod.h"
+#include "rapidjson/rapidjson.h"
+#include "rapidjson/encodings.h"
+#include "rapidjson/internal/meta.h"
+#include "rapidjson/internal/stack.h"
+#include "rapidjson/internal/strtod.h"
 
 // RethinkDB: Disable -Wswitch-enum in this header file
 #ifdef __GNUC__
@@ -132,7 +132,7 @@ RAPIDJSON_DIAG_OFF(effc++)
     RAPIDJSON_MULTILINEMACRO_END
 #endif
 
-#include "error/error.h" // ParseErrorCode, ParseResult
+#include "rapidjson/error/error.h" // ParseErrorCode, ParseResult
 
 RAPIDJSON_NAMESPACE_BEGIN
 

@@ -137,21 +137,21 @@ raw_term_t raw_term_t::arg(size_t index) const {
     return res;
 }
 
-boost::optional<raw_term_t> raw_term_t::optarg(const std::string &name) const {
-    boost::optional<raw_term_t> res;
+optional<raw_term_t> raw_term_t::optarg(const std::string &name) const {
+    optional<raw_term_t> res;
     visit_source(
         [&](const json_data_t &source) {
             if (source.optargs != nullptr) {
                 auto it = source.optargs->FindMember(name.c_str());
                 if (it != source.optargs->MemberEnd()) {
-                    res = raw_term_t(&it->value);
+                    res.set(raw_term_t(&it->value));
                 }
             }
         },
         [&](const counted_t<generated_term_t> &source) {
             auto it = source->optargs.find(name);
             if (it != source->optargs.end()) {
-                res = raw_term_t(it->second);
+                res.set(raw_term_t(it->second));
             }
         });
     return res;
@@ -546,7 +546,13 @@ MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_3>(
 }
 
 template <>
-MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_4_is_latest>(
+MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_4>(
+        read_stream_t *s, scoped_ptr_t<term_storage_t> *term_storage_out) {
+    return deserialize_term_tree<cluster_version_t::v2_2>(s, term_storage_out);
+}
+
+template <>
+MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_5_is_latest>(
         read_stream_t *s, scoped_ptr_t<term_storage_t> *term_storage_out) {
     return deserialize_term_tree<cluster_version_t::v2_2>(s, term_storage_out);
 }
@@ -610,5 +616,9 @@ void serialize_term_tree(write_message_t *wm, const raw_term_t &root_term) {
 
 template void serialize_term_tree<cluster_version_t::LATEST_OVERALL>(
         write_message_t *, const raw_term_t &);
+#ifndef CLUSTER_AND_DISK_VERSIONS_ARE_SAME
+template void serialize_term_tree<cluster_version_t::LATEST_DISK>(
+        write_message_t *, const raw_term_t &);
+#endif
 
 } // namespace ql

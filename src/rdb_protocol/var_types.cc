@@ -195,5 +195,7 @@ deserialize<cluster_version_t::v2_2>(read_stream_t *s, var_scope_t *);
 template archive_result_t
 deserialize<cluster_version_t::v2_3>(read_stream_t *s, var_scope_t *);
 template archive_result_t
-deserialize<cluster_version_t::v2_4_is_latest>(read_stream_t *s, var_scope_t *);
+deserialize<cluster_version_t::v2_4>(read_stream_t *s, var_scope_t *);
+template archive_result_t
+deserialize<cluster_version_t::v2_5_is_latest>(read_stream_t *s, var_scope_t *);
 }  // namespace ql

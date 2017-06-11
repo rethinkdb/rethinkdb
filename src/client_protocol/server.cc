@@ -280,6 +280,9 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
         int32_t client_magic_number;
         conn->read_buffered(
             &client_magic_number, sizeof(client_magic_number), &ct_keepalive);
+#ifdef __s390x__
+        client_magic_number = __builtin_bswap32(client_magic_number);
+#endif
 
         switch (client_magic_number) {
             case VersionDummy::V0_1:
@@ -315,6 +318,9 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 
             uint32_t auth_key_size;
             conn->read_buffered(&auth_key_size, sizeof(uint32_t), &ct_keepalive);
+#ifdef __s390x__
+            auth_key_size = __builtin_bswap32(auth_key_size);
+#endif
             if (auth_key_size > 2048) {
                 throw client_protocol::client_server_error_t(
                     -1, "Client provided an authorization key that is too long.");
@@ -334,6 +340,9 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 
             int32_t wire_protocol;
             conn->read_buffered(&wire_protocol, sizeof(wire_protocol), &ct_keepalive);
+#ifdef __s390x__
+            wire_protocol = __builtin_bswap32(wire_protocol);
+#endif
             switch (wire_protocol) {
                 case VersionDummy::JSON:
                     break;
@@ -633,7 +642,7 @@ void query_server_t::handle(const http_req_t &req,
         return;
     }
 
-    boost::optional<std::string> optional_conn_id = req.find_query_param("conn_id");
+    optional<std::string> optional_conn_id = req.find_query_param("conn_id");
     if (!optional_conn_id) {
         *result = http_res_t(http_status_code_t::BAD_REQUEST, "application/text",
                              "Required parameter \"conn_id\" missing\n");
@@ -664,6 +673,9 @@ void query_server_t::handle(const http_req_t &req,
     // Parse the token out from the start of the request
     char *data = body_buf.data();
     token = *reinterpret_cast<const int64_t *>(data);
+#ifdef __s390x__
+    token = __builtin_bswap64(token);
+#endif
     data += sizeof(token);
 
     ql::response_t response;
@@ -740,6 +752,10 @@ void query_server_t::handle(const http_req_t &req,
     json_protocol_t::write_response_to_buffer(&response, &buffer);
 
     uint32_t size = static_cast<uint32_t>(buffer.GetSize());
+#ifdef __s390x__
+    size = __builtin_bswap32(size);
+    token = __builtin_bswap64(token);
+#endif
     char header_buffer[sizeof(token) + sizeof(size)];
     memcpy(&header_buffer[0], &token, sizeof(token));
     memcpy(&header_buffer[sizeof(token)], &size, sizeof(size));

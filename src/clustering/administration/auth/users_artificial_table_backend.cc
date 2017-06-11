@@ -92,11 +92,11 @@ bool users_artificial_table_backend_t::write_row(
             auto user = auth_metadata.m_users.find(username);
             if (user != auth_metadata.m_users.end() &&
                     static_cast<bool>(user->second.get_ref())) {
-                user->second.apply_write([&](boost::optional<auth::user_t> *inner_user) {
+                user->second.apply_write([&](optional<auth::user_t> *inner_user) {
                     inner_user->get().merge(*new_value_inout);
                 });
             } else {
-                auth_metadata.m_users[username].set(user_t(*new_value_inout));
+                auth_metadata.m_users[username].set(make_optional(user_t(*new_value_inout)));
             }
             m_auth_semilattice_view->join(auth_metadata);
         } catch(admin_op_exc_t const &admin_op_exc) {
@@ -115,7 +115,7 @@ bool users_artificial_table_backend_t::write_row(
         auto user = auth_metadata.m_users.find(username);
         if (user != auth_metadata.m_users.end() &&
                 static_cast<bool>(user->second.get_ref())) {
-            user->second.set(boost::none);
+            user->second.set(r_nullopt);
         } else {
             *error_out = admin_err_t{
                 "User `" + username.to_string() + "` not found.",

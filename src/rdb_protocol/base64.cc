@@ -2,7 +2,7 @@
 #include "rdb_protocol/base64.hpp"
 
 #include "rdb_protocol/error.hpp"
-#include "errors.hpp"
+#include "utils.hpp"
 
 const char base64_map[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 

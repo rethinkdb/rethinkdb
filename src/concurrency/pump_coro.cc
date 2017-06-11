@@ -1,9 +1,11 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "concurrency/pump_coro.hpp"
 
+#include "assignment_sentry.hpp"
 #include "arch/runtime/coroutines.hpp"
 #include "concurrency/interruptor.hpp"
 #include "containers/map_sentries.hpp"
+#include "utils.hpp"
 
 pump_coro_t::pump_coro_t(
         const std::function<void(signal_t *)> &_callback,
@@ -105,7 +107,7 @@ void pump_coro_t::run(auto_drainer_t::lock_t keepalive) {
             break;
         }
     }
-    
+
     --running;
 }
 

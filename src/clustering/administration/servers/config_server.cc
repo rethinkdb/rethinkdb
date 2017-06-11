@@ -32,7 +32,7 @@ server_config_business_card_t server_config_server_t::get_business_card() {
 void server_config_server_t::on_set_config(
         signal_t *interruptor,
         const server_config_t &new_config,
-        const mailbox_t<void(uint64_t, std::string)>::address_t &ack_addr) {
+        const mailbox_t<uint64_t, std::string>::address_t &ack_addr) {
     if (interruptor->is_pulsed()) {
         throw interrupted_exc_t();
     }
@@ -68,7 +68,7 @@ void server_config_server_t::on_set_config(
 }
 
 void server_config_server_t::update_actual_cache_size(
-        const boost::optional<uint64_t> &setting) {
+        const optional<uint64_t> &setting) {
     uint64_t actual_size;
     if (!static_cast<bool>(setting)) {
         actual_size = get_default_total_cache_size();

@@ -288,8 +288,17 @@ class DatabaseView extends Backbone.View
 class TableView extends Backbone.View
     className: 'table_container'
     template: require('../../handlebars/table.hbs')
+
+    events:
+       'click button.explore-table': 'explore_table'
+
     initialize: =>
         @listenTo @model, 'change', @render
+
+
+    explore_table: =>
+        window.localStorage.current_query = JSON.stringify "r.db('#{@model.get('db')}').table('#{@model.get('name')}')"
+        app.main.router.navigate("#dataexplorer", trigger: true)
 
     render: =>
         @$el.html @template
@@ -302,6 +311,7 @@ class TableView extends Backbone.View
             replicas: @model.get 'replicas'
             replicas_ready: @model.get 'replicas_ready'
             status: @model.get 'status'
+            displayExploreButton: window.hasOwnProperty('localStorage')
         @
 
     remove: =>

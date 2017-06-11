@@ -8,9 +8,6 @@
 #include <algorithm>
 #include <functional>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "arch/io/network.hpp"
 #include "arch/timing.hpp"
 #include "clustering/administration/metadata.hpp"
@@ -32,11 +29,11 @@
 #define MESSAGE_HANDLER_MAX_BATCH_SIZE           16
 
 // The cluster communication protocol version.
-static_assert(cluster_version_t::CLUSTER == cluster_version_t::v2_4_is_latest,
+static_assert(cluster_version_t::CLUSTER == cluster_version_t::v2_5_is_latest,
               "We need to update CLUSTER_VERSION_STRING when we add a new cluster "
               "version.");
 
-#define CLUSTER_VERSION_STRING "2.4.0"
+#define CLUSTER_VERSION_STRING "2.5.0"
 
 const std::string connectivity_cluster_t::cluster_proto_header("RethinkDB cluster\n");
 const std::string connectivity_cluster_t::cluster_version_string(CLUSTER_VERSION_STRING);
@@ -103,7 +100,7 @@ static bool resolve_protocol_version(const std::string &remote_version_string,
     return false;
 }
 
-#if defined (__x86_64__) || defined (_WIN64)
+#if defined (__x86_64__) || defined (_WIN64) || defined (__s390x__)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("64bit");
 #elif defined (__i386__) || defined(__arm__) || defined(_WIN32)
 const std::string connectivity_cluster_t::cluster_arch_bitsize("32bit");
@@ -296,8 +293,8 @@ void connectivity_cluster_t::run_t::join(
         this,
         address,
         /* We don't know what `peer_id_t` the peer has until we connect to it */
-        boost::none,
-        boost::none,
+        r_nullopt,
+        r_nullopt,
         join_delay_secs,
         auto_drainer_t::lock_t(&drainer)));
 }
@@ -324,15 +321,15 @@ void connectivity_cluster_t::run_t::on_new_connection(
 
     keepalive_tcp_conn_stream_t conn_stream(conn);
 
-    handle(&conn_stream, boost::none, boost::none, boost::none, lock, nullptr, join_delay_secs);
+    handle(&conn_stream, r_nullopt, r_nullopt, r_nullopt, lock, nullptr, join_delay_secs);
 }
 
 join_result_t connectivity_cluster_t::run_t::connect_to_peer(
         const peer_address_t *address,
         ip_and_port_t selected_addr,
         int index,
-        boost::optional<peer_id_t> expected_id,
-        boost::optional<server_id_t> expected_server_id,
+        optional<peer_id_t> expected_id,
+        optional<server_id_t> expected_server_id,
         auto_drainer_t::lock_t drainer_lock,
         bool *successful_join_inout,
         const int join_delay_secs,
@@ -361,7 +358,7 @@ join_result_t connectivity_cluster_t::run_t::connect_to_peer(
                 drainer_lock.get_drain_signal(), cluster_client_port);
 
             join_result = handle(
-                &conn, expected_id, boost::optional<peer_address_t>(*address),
+                &conn, expected_id, optional<peer_address_t>(*address),
                 expected_server_id, drainer_lock, successful_join_inout, join_delay_secs);
         } catch (const tcp_conn_t::connect_failed_exc_t &) {
             /* Ignore */
@@ -379,8 +376,8 @@ join_result_t connectivity_cluster_t::run_t::connect_to_peer(
 
 join_results_t connectivity_cluster_t::run_t::join_blocking(
         const peer_address_t &peer,
-        boost::optional<peer_id_t> expected_id,
-        boost::optional<server_id_t> expected_server_id,
+        optional<peer_id_t> expected_id,
+        optional<server_id_t> expected_server_id,
         const int join_delay_secs,
         auto_drainer_t::lock_t drainer_lock) THROWS_NOTHING {
     drainer_lock.assert_is_holding(&parent->current_run->drainer);
@@ -864,9 +861,9 @@ join_result_t connectivity_cluster_t::run_t::handle(
         /* `conn` should remain valid until `handle()` returns.
          * `handle()` does not take ownership of `conn`. */
         keepalive_tcp_conn_stream_t *conn,
-        boost::optional<peer_id_t> expected_id,
-        boost::optional<peer_address_t> expected_address,
-        boost::optional<server_id_t> expected_server_id,
+        optional<peer_id_t> expected_id,
+        optional<peer_address_t> expected_address,
+        optional<server_id_t> expected_server_id,
         auto_drainer_t::lock_t drainer_lock,
         bool *successful_join_inout,
         const int join_delay_secs) THROWS_NOTHING
@@ -986,7 +983,7 @@ join_result_t connectivity_cluster_t::run_t::handle(
             return join_result_t::TEMPORARY_ERROR;
         }
 
-        if (expected_server_id && expected_server_id != remote_server_id) {
+        if (expected_server_id && *expected_server_id != remote_server_id) {
             if (peer_addr.ip().is_loopback()) {
                 return join_result_t::TEMPORARY_ERROR;
             }
@@ -1257,8 +1254,8 @@ join_result_t connectivity_cluster_t::run_t::handle(
                     coro_t::spawn_now_dangerously(std::bind(
                         &connectivity_cluster_t::run_t::join_blocking, this,
                         next_peer_addr,
-                        boost::optional<peer_id_t>(it->first),
-                        boost::none,
+                        optional<peer_id_t>(it->first),
+                        r_nullopt,
                         join_delay_secs,
                         drainer_lock));
                 } catch (const host_lookup_exc_t &ex) {

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include <algorithm>
 #include <functional>
 
 #include "arch/runtime/coroutines.hpp"

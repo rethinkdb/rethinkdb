@@ -52,7 +52,7 @@ public:
     // cache account / priority thing is just one ghetto hack amidst a dozen other
     // throttling systems.  TODO: Come up with a consistent priority scheme,
     // i.e. define a "default" priority etc.  TODO: As soon as we can support it, we
-    // might consider supporting a mem_cap paremeter.
+    // might consider supporting a mem_cap parameter.
     cache_account_t create_cache_account(int priority);
 
 private:

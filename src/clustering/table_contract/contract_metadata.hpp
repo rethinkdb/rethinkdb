@@ -6,12 +6,10 @@
 #include <set>
 #include <utility>
 
-#include "errors.hpp"
-#include <boost/optional.hpp>
-
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/immediate_consistency/history.hpp"
+#include "containers/optional.hpp"
 #include "region/region_map.hpp"
 #include "rpc/semilattice/joins/macros.hpp"   /* for EQUALITY_COMPARABLE macros */
 
@@ -60,7 +58,7 @@ public:
         server_id_t server;
         /* If we're switching to another primary, then `hand_over` is the server ID of
         the server we're switching to. */
-        boost::optional<server_id_t> hand_over;
+        optional<server_id_t> hand_over;
     };
 
     contract_t() : after_emergency_repair(false) { }
@@ -80,11 +78,11 @@ public:
     `temp_voters` will contain the new set. */
     std::set<server_id_t> replicas;
     std::set<server_id_t> voters;
-    boost::optional<std::set<server_id_t> > temp_voters;
+    optional<std::set<server_id_t> > temp_voters;
 
     /* `primary` contains the server that's supposed to be primary. If we're in the
     middle of a transition between two primaries, then `primary` will be empty. */
-    boost::optional<primary_t> primary;
+    optional<primary_t> primary;
 
     /* `after_emergency_repair` is set to `true` when we conduct an emergency repair.
     When it's `true` we'll use a different algorithm for choosing primary replicas. Once
@@ -160,14 +158,14 @@ public:
     state_t state;
 
     /* This is non-empty if `state` is `secondary_need_primary`. */
-    boost::optional<region_map_t<version_t> > version;
+    optional<region_map_t<version_t> > version;
 
     /* This is non-empty if `state` is `primary_need_branch`.
     When a new primary is first instantiated in response to a new contract_t, it
     generates a new branch ID and sends it to the coordinator through this field.
     The coordinator will then registers the branch and update the `current_branches`
     field of the Raft state. */
-    boost::optional<branch_id_t> branch;
+    optional<branch_id_t> branch;
 
     /* This contains information about all branches mentioned in `version` or `branch` */
     branch_history_t branch_history;

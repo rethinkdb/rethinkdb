@@ -5,29 +5,32 @@
 #include <boost/algorithm/string/join.hpp>
 
 #include "clustering/administration/admin_op_exc.hpp"
-#include "containers/archive/boost_types.hpp"
+#include "containers/archive/optional.hpp"
 #include "containers/archive/versioned.hpp"
 
 namespace auth {
 
-permissions_t::permissions_t() {
-}
+permissions_t::permissions_t()
+    : m_read(tribool::Indeterminate),
+      m_write(tribool::Indeterminate),
+      m_config(tribool::Indeterminate),
+      m_connect(r_nullopt) { }
 
 permissions_t::permissions_t(
-        boost::tribool read,
-        boost::tribool write,
-        boost::tribool config)
+        tribool read,
+        tribool write,
+        tribool config)
     : m_read(read),
       m_write(write),
       m_config(config),
-      m_connect(boost::none) {
+      m_connect(r_nullopt) {
 }
 
 permissions_t::permissions_t(
-        boost::tribool read,
-        boost::tribool write,
-        boost::tribool config,
-        boost::tribool connect)
+        tribool read,
+        tribool write,
+        tribool config,
+        tribool connect)
     : m_read(read),
       m_write(write),
       m_config(config),
@@ -35,21 +38,21 @@ permissions_t::permissions_t(
 }
 
 permissions_t::permissions_t(ql::datum_t const &datum, bool global)
-    : m_read(boost::indeterminate),
-      m_write(boost::indeterminate),
-      m_config(boost::indeterminate),
+    : m_read(tribool::Indeterminate),
+      m_write(tribool::Indeterminate),
+      m_config(tribool::Indeterminate),
       m_connect(
         global
-            ? boost::make_optional(boost::tribool(boost::indeterminate))
-            : boost::none) {
+            ? make_optional(tribool::Indeterminate)
+            : r_nullopt) {
     merge(datum);
 }
 
-boost::tribool datum_to_tribool(ql::datum_t const &datum, std::string const &field) {
+tribool datum_to_tribool(ql::datum_t const &datum, std::string const &field) {
     if (datum.get_type() == ql::datum_t::R_BOOL) {
-        return datum.as_bool();
+        return datum.as_bool() ? tribool::True : tribool::False;
     } else if (datum.get_type() == ql::datum_t::R_NULL) {
-        return boost::indeterminate;
+        return tribool::Indeterminate;
     } else {
         throw admin_op_exc_t(
             "Expected a boolean or null for `" + field + "`, got " + datum.print() + ".",
@@ -88,7 +91,7 @@ void permissions_t::merge(ql::datum_t const &datum) {
 
     ql::datum_t connect = datum.get_field("connect", ql::NOTHROW);
     if (connect.has()) {
-        if (static_cast<bool>(m_connect)) {
+        if (m_connect.has_value()) {
             keys.erase("connect");
             set_connect(datum_to_tribool(connect, "connect"));
         } else {
@@ -105,69 +108,68 @@ void permissions_t::merge(ql::datum_t const &datum) {
     }
 }
 
-boost::tribool permissions_t::get_read() const {
+tribool permissions_t::get_read() const {
     return m_read;
 }
 
-boost::tribool permissions_t::get_write() const {
+tribool permissions_t::get_write() const {
     return m_write;
 }
 
-boost::tribool permissions_t::get_config() const {
+tribool permissions_t::get_config() const {
     return m_config;
 }
 
-boost::tribool permissions_t::get_connect() const {
-    // `get_value_or` is deprecated, but we're using an ancient version of boost
-    return m_connect.get_value_or(boost::indeterminate);
+tribool permissions_t::get_connect() const {
+    return m_connect.value_or(tribool::Indeterminate);
 }
 
 bool permissions_t::is_indeterminate() const {
     return
-        boost::indeterminate(m_read) &&
-        boost::indeterminate(m_write) &&
-        boost::indeterminate(m_config) && (
-            !static_cast<bool>(m_connect) || boost::indeterminate(*m_connect));
+        m_read == tribool::Indeterminate &&
+        m_write == tribool::Indeterminate &&
+        m_config == tribool::Indeterminate && (
+            !m_connect.has_value() || *m_connect == tribool::Indeterminate);
 }
 
-void permissions_t::set_read(boost::tribool read) {
+void permissions_t::set_read(tribool read) {
     m_read = read;
 }
 
-void permissions_t::set_write(boost::tribool write) {
+void permissions_t::set_write(tribool write) {
     m_write = write;
 }
 
-void permissions_t::set_config(boost::tribool config) {
+void permissions_t::set_config(tribool config) {
     m_config = config;
 }
 
-void permissions_t::set_connect(boost::tribool connect) {
-    guarantee(static_cast<bool>(m_connect));
-    m_connect = connect;
+void permissions_t::set_connect(tribool connect) {
+    guarantee(m_connect == make_optional(tribool::True));
+    m_connect.set(connect);
 }
 
 ql::datum_t permissions_t::to_datum() const {
     ql::datum_object_builder_t datum_object_builder;
 
-    if (!indeterminate(m_read)) {
+    if (m_read != tribool::Indeterminate) {
         datum_object_builder.overwrite(
-            "read", ql::datum_t::boolean(m_read));
+            "read", ql::datum_t::boolean(m_read == tribool::True));
     }
 
-    if (!indeterminate(m_write)) {
+    if (m_write != tribool::Indeterminate) {
         datum_object_builder.overwrite(
-            "write", ql::datum_t::boolean(m_write));
+            "write", ql::datum_t::boolean(m_write == tribool::True));
     }
 
-    if (!indeterminate(m_config)) {
+    if (m_config != tribool::Indeterminate) {
         datum_object_builder.overwrite(
-            "config", ql::datum_t::boolean(m_config));
+            "config", ql::datum_t::boolean(m_config == tribool::True));
     }
 
-    if (static_cast<bool>(m_connect) && !(indeterminate(m_connect.get()))) {
+    if (m_connect.has_value() && m_connect.get() != tribool::Indeterminate) {
         datum_object_builder.overwrite(
-            "connect", ql::datum_t::boolean(m_connect.get()));
+            "connect", ql::datum_t::boolean(m_connect.get() == tribool::True));
     }
 
     if (datum_object_builder.empty()) {
@@ -177,25 +179,15 @@ ql::datum_t permissions_t::to_datum() const {
     }
 }
 
-int8_t tribool_to_int8(boost::tribool const &tribool) {
-    if (!tribool) {
-        return 0;
-    } else if (tribool) {
-        return 1;
-    } else {
-        return 2;
-    }
-}
-
-std::tuple<int8_t, int8_t, int8_t, boost::optional<int8_t>>
+std::tuple<int8_t, int8_t, int8_t, optional<int8_t>>
 permissions_t::to_tuple() const {
     return std::make_tuple(
-        tribool_to_int8(m_read),
-        tribool_to_int8(m_write),
-        tribool_to_int8(m_config),
-        static_cast<bool>(m_connect)
-            ? boost::make_optional(tribool_to_int8(m_connect.get()))
-            : boost::none);
+        static_cast<int8_t>(m_read),
+        static_cast<int8_t>(m_write),
+        static_cast<int8_t>(m_config),
+        m_connect.has_value()
+            ? make_optional(static_cast<int8_t>(m_connect.get()))
+            : r_nullopt);
 }
 
 bool permissions_t::operator<(permissions_t const &rhs) const {
@@ -203,22 +195,6 @@ bool permissions_t::operator<(permissions_t const &rhs) const {
 }
 
 bool permissions_t::operator==(permissions_t const &rhs) const {
-    // boost::tribool::operator== returns a boost::tribool and behaves as following.
-    //
-    //                 false           true            indeterminate
-    // --------------+----------------------------------------------
-    //         false | true            false           indeterminate
-    //          true | false           true            indeterminate
-    // indeterminate | indeterminate   indeterminate   indeterminate
-    //
-    // The conversion to an int8_t in `to_tuple` allows it to behave as following.
-    //
-    //                 false           true            indeterminate
-    // --------------+----------------------------------------------
-    //         false | true            false           false
-    //          true | false           true            false
-    // indeterminate | false           false           true
-
     return to_tuple() == rhs.to_tuple();
 }
 

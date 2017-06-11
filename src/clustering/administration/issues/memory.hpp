@@ -58,7 +58,7 @@ public:
 private:
     void do_update();
 
-    boost::optional<std::string> error_message;
+    optional<std::string> error_message;
 
     DISABLE_COPYING(memory_issue_tracker_t);
 };

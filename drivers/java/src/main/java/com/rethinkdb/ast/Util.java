@@ -1,5 +1,6 @@
 package com.rethinkdb.ast;
 
+import com.rethinkdb.RethinkDB;
 import com.rethinkdb.gen.ast.*;
 import com.rethinkdb.gen.exc.ReqlDriverCompileError;
 import com.rethinkdb.gen.exc.ReqlDriverError;
@@ -115,8 +116,11 @@ public class Util {
         if (val == null) {
             return new Datum(null);
         }
+        if (val.getClass().isEnum()) {
+            return new Datum(((Enum)val).toString());
+        }
 
-        // val is a non-null POJO, let's introspect its public properties
+        // val is a non-null POJO, let's use jackson
         return toReqlAst(toMap(val));
     }
 
@@ -128,35 +132,7 @@ public class Util {
      * @return Map of POJO's public properties
      */
     private static Map<String, Object> toMap(Object pojo) {
-        try {
-            Map<String, Object> map = new HashMap<String, Object>();
-            Class pojoClass = pojo.getClass();
-
-            if (!Modifier.isPublic(pojoClass.getModifiers())) {
-                throw new IllegalAccessException(String.format("%s's class should be public", pojo));
-            }
-
-            BeanInfo info = Introspector.getBeanInfo(pojoClass);
-
-            for (PropertyDescriptor descriptor : info.getPropertyDescriptors()) {
-                Method reader = descriptor.getReadMethod();
-
-                if (reader != null && reader.getDeclaringClass() == pojoClass) {
-                    Object value = reader.invoke(pojo);
-
-                    if (value instanceof Integer) {
-                        throw new IllegalAccessException(String.format(
-                                "Make %s of %s Long instead of Integer", reader.getName(), pojo));
-                    }
-
-                    map.put(descriptor.getName(), value);
-                }
-            }
-
-            return map;
-        }
-        catch (IntrospectionException | IllegalAccessException | InvocationTargetException e) {
-            throw new ReqlDriverError("Can't convert %s to a ReqlAst: %s", pojo, e.getMessage());
-        }
+        Map<String, Object> map = RethinkDB.getObjectMapper().convertValue(pojo, Map.class);
+        return map;
     }
 }

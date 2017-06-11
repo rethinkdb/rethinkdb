@@ -138,7 +138,7 @@ public:
         : op_term_t(env, term, argspec_t(1, 3)) { }
 private:
     std::vector<datum_t> utf8_aware_split(const std::string &s,
-                                          const boost::optional<std::string> &delim,
+                                          const optional<std::string> &delim,
                                           size_t maxnum) const {
         const bool is_delim_empty = (delim && delim->size() == 0);
         std::vector<datum_t> res;
@@ -197,7 +197,7 @@ private:
         return res;
     }
     std::vector<datum_t> old_split(const std::string &s,
-                                    const boost::optional<std::string> &delim,
+                                    const optional<std::string> &delim,
                                     size_t maxnum) const {
         const char *const splitchars = " \t\n\r\x0B\x0C";
         // This logic is extremely finicky so as to mimick the behavior of
@@ -230,11 +230,11 @@ private:
         scope_env_t *env, args_t *args, eval_flags_t) const {
         std::string s = args->arg(env, 0)->as_str().to_std();
 
-        boost::optional<std::string> delim;
+        optional<std::string> delim;
         if (args->num_args() > 1) {
             datum_t d = args->arg(env, 1)->as_datum();
             if (d.get_type() != datum_t::R_NULL) {
-                delim = d.as_str().to_std();
+                delim.set(d.as_str().to_std());
             }
         }
 

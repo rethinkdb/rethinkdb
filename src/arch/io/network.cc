@@ -20,9 +20,6 @@
 #include <sys/socket.h>
 #endif
 
-#include "utils.hpp"
-#include <boost/bind.hpp>
-
 #include "arch/runtime/runtime.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"

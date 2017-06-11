@@ -76,7 +76,8 @@ public:
         return held_extents_;
     }
 
-    extent_zone_t(file_t *_dbfile, uint64_t _extent_size, log_serializer_stats_t *_stats)
+    extent_zone_t(file_t *_dbfile, uint64_t _extent_size,
+                  log_serializer_stats_t *_stats)
         : extent_size(_extent_size), dbfile(_dbfile), stats(_stats), held_extents_(0) {
         // (Avoid a bunch of reallocations by resize calls (avoiding O(n log n)
         // work on average).)
@@ -143,7 +144,7 @@ public:
             // the way it handles multi-threading.
             // So we calculate the *change* in file size and update it accordingly.
             const int64_t old_file_size = dbfile->get_file_size();
-            dbfile->set_file_size_at_least(extent + extent_size);
+            dbfile->set_file_size_at_least(extent + extent_size, extent_size);
             stats->pm_file_size_bytes += dbfile->get_file_size() - old_file_size;
         }
 
@@ -195,7 +196,8 @@ public:
                 // entries to tmp.  The remaining entries must therefore point off the
                 // end of the file.  Check that no remaining entries point within the
                 // file.
-                guarantee(free_queue.top() >= extents.size(), "Tried to discard valid held extents.");
+                guarantee(free_queue.top() >= extents.size(),
+                          "Tried to discard valid held extents.");
                 free_queue = std::move(tmp);
             }
         }
@@ -237,11 +239,11 @@ extent_reference_t extent_manager_t::reserve_extent(int64_t extent) {
     return zone->reserve_extent(extent);
 }
 
-void extent_manager_t::prepare_initial_metablock(metablock_mixin_t *mb) {
+void extent_manager_t::prepare_initial_metablock(extent_manager_metablock_mixin_t *mb) {
     mb->padding = 0;
 }
 
-void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) {
+void extent_manager_t::start_existing() {
     assert_thread();
     rassert(state == state_reserving_extents);
     current_transaction = nullptr;
@@ -250,7 +252,7 @@ void extent_manager_t::start_existing(UNUSED metablock_mixin_t *last_metablock) 
 
 }
 
-void extent_manager_t::prepare_metablock(metablock_mixin_t *metablock) {
+void extent_manager_t::prepare_metablock(extent_manager_metablock_mixin_t *metablock) {
     assert_thread();
     rassert(state == state_running);
     metablock->padding = 0;
@@ -284,7 +286,8 @@ extent_manager_t::copy_extent_reference(const extent_reference_t &extent_ref) {
     return zone->make_extent_reference(offset);
 }
 
-void extent_manager_t::release_extent_into_transaction(extent_reference_t &&extent_ref, extent_transaction_t *txn) {
+void extent_manager_t::release_extent_into_transaction(extent_reference_t &&extent_ref,
+                                                       extent_transaction_t *txn) {
     release_extent_preliminaries();
     rassert(current_transaction);
     txn->push_extent(std::move(extent_ref));

@@ -24,7 +24,7 @@ ql::datum_t convert_table_config_to_datum(
         const server_name_map_t &server_names);
 
 ql::datum_t convert_write_hook_to_datum(
-    const boost::optional<write_hook_config_t> &write_hook);
+    const optional<write_hook_config_t> &write_hook);
 
 class table_config_artificial_table_backend_t :
     public common_table_artificial_table_backend_t

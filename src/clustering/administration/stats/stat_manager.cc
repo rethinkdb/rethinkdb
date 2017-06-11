@@ -44,7 +44,7 @@ bool fetch_stats_from_server(
         ql::datum_t *stats_out,
         admin_err_t *error_out) {
     cond_t done;
-    mailbox_t<void(ql::datum_t)> return_mailbox(mailbox_manager,
+    mailbox_t<ql::datum_t> return_mailbox(mailbox_manager,
         [&](signal_t *, ql::datum_t s) {
             *stats_out = s;
             done.pulse();

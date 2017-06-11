@@ -6,7 +6,7 @@
 #include "btree/depth_first_traversal.hpp"
 #include "btree/leaf_node.hpp"
 #include "concurrency/pmap.hpp"
-#include "containers/archive/boost_types.hpp"
+#include "containers/archive/optional.hpp"
 #include "containers/archive/stl_types.hpp"
 
 /* `MAX_CONCURRENT_VALUE_LOADS` is the maximum number of coroutines we'll use for loading
@@ -412,9 +412,9 @@ private:
                         /* Store `value_or_null` in the `value` field as a sequence of
                         8 (or 4 or whatever) `char`s describing its actual pointer value.
                         */
-                        item.pairs[i].value = std::vector<char>(
+                        item.pairs[i].value.set(std::vector<char>(
                             reinterpret_cast<const char *>(&value_or_null),
-                            reinterpret_cast<const char *>(1 + &value_or_null));
+                            reinterpret_cast<const char *>(1 + &value_or_null)));
                     }
                     return continue_bool_t::CONTINUE;
                 });
@@ -520,9 +520,9 @@ private:
                         /* Store `value_or_null` in the `value` field as a sequence of
                         8 (or 4 or whatever) `char`s describing its actual pointer value.
                         */
-                        item->pairs[i].value = std::vector<char>(
+                        item->pairs[i].value.set(std::vector<char>(
                             reinterpret_cast<const char *>(&value_or_null),
-                            reinterpret_cast<const char *>(1 + &value_or_null));
+                            reinterpret_cast<const char *>(1 + &value_or_null)));
                     }
                     return continue_bool_t::CONTINUE;
                 });
@@ -710,7 +710,7 @@ public:
         buf_write_t buf_write(&buf->lock);
         leaf_node_t *lnode = static_cast<leaf_node_t *>(buf_write.get_data_write());
         leaf::erase_deletions(sizer, lnode,
-                              boost::make_optional(min_deletion_timestamp));
+                              make_optional(min_deletion_timestamp));
         buf->lock.set_recency(superceding_recency(
             min_deletion_timestamp, buf->lock.get_recency()));
         return continue_bool_t::CONTINUE;

@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "errors.hpp"
-#include <boost/optional.hpp>
 #include <boost/variant/static_visitor.hpp>
 
 #include "containers/counted.hpp"
@@ -36,7 +35,7 @@ public:
         const std::vector<datum_t> &args,
         eval_flags_t eval_flags = NO_FLAGS) const = 0;
 
-    virtual boost::optional<size_t> arity() const = 0;
+    virtual optional<size_t> arity() const = 0;
 
     virtual deterministic_t is_deterministic() const = 0;
 
@@ -99,7 +98,7 @@ public:
         const std::vector<datum_t> &args,
         eval_flags_t eval_flags) const;
 
-    boost::optional<size_t> arity() const;
+    optional<size_t> arity() const;
 
     deterministic_t is_deterministic() const;
 
@@ -143,7 +142,7 @@ public:
                              const std::vector<datum_t> &args,
                              eval_flags_t eval_flags) const;
 
-    boost::optional<size_t> arity() const;
+    optional<size_t> arity() const;
 
     deterministic_t is_deterministic() const;
 

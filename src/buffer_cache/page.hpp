@@ -32,7 +32,7 @@ public:
 
     page_t(block_id_t block_id, buf_ptr_t buf, page_cache_t *page_cache);
     page_t(block_id_t block_id, buf_ptr_t buf,
-           const counted_t<standard_block_token_t> &token,
+           const counted_t<block_token_t> &token,
            page_cache_t *page_cache);
     page_t(page_t *copyee, page_cache_t *page_cache, cache_account_t *account);
     ~page_t();
@@ -72,12 +72,12 @@ public:
 
     bool page_ptr_count() const { return snapshot_refcount_; }
 
-    const counted_t<standard_block_token_t> &block_token() const {
+    const counted_t<block_token_t> &block_token() const {
         return block_token_;
     }
 
     ser_buffer_t *get_loaded_ser_buffer();
-    void init_block_token(counted_t<standard_block_token_t> token,
+    void init_block_token(counted_t<block_token_t> token,
                           page_cache_t *page_cache);
 
 private:
@@ -93,7 +93,7 @@ private:
 
 
     static void finish_load_with_block_id(page_t *page, page_cache_t *page_cache,
-                                          counted_t<standard_block_token_t> block_token,
+                                          counted_t<block_token_t> block_token,
                                           buf_ptr_t buf);
 
     static void catch_up_with_deferred_load(
@@ -128,7 +128,7 @@ private:
     page_loader_t *loader_;
 
     buf_ptr_t buf_;
-    counted_t<standard_block_token_t> block_token_;
+    counted_t<block_token_t> block_token_;
 
     uint64_t access_time_;
 
@@ -143,16 +143,16 @@ private:
     // This page_t's index into its eviction bag (managed by the page_cache_t -- one
     // of unevictable_pages_, etc).  Which bag we should be in:
     //
-    // if loader_ is non-null:  unevictable_pages_
-    // else if waiters_ is non-empty: unevictable_pages_
-    // else if buf_ is null: evicted_pages_ (and block_token_ is non-null)
-    // else if block_token_ is non-null: evictable_disk_backed_pages_
-    // else: evictable_unbacked_pages_ (buf_ is non-null, block_token_ is null)
+    // if loader_ is non-null:  unevictable_
+    // else if waiters_ is non-empty: unevictable_
+    // else if buf_ is null: evicted_ (and block_token_ is non-null)
+    // else if block_token_ is non-null: evictable_disk_backed_
+    // else: evictable_unbacked_ (buf_ is non-null, block_token_ is null)
     //
     // So, when loader_, waiters_, buf_, or block_token_ is touched, we might
     // need to change this page's eviction bag.
     //
-    // The logic above is implemented in page_cache_t::correct_eviction_category.
+    // The logic above is implemented in evicter_t::correct_eviction_category.
     backindex_bag_index_t eviction_index_;
 
     DISABLE_COPYING(page_t);
@@ -182,6 +182,7 @@ public:
     void init(page_t *page);
 
     page_t *get_page_for_read() const;
+    // Constructs a new page if there might be snapshot references.
     page_t *get_page_for_write(page_cache_t *page_cache,
                                cache_account_t *account);
 

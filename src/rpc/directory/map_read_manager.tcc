@@ -4,11 +4,8 @@
 
 #include "rpc/directory/map_read_manager.hpp"
 
-#include "errors.hpp"
-#include <boost/bind.hpp>
-
 #include "concurrency/wait_any.hpp"
-#include "containers/archive/boost_types.hpp"
+#include "containers/archive/optional.hpp"
 
 template<class key_t, class value_t>
 directory_map_read_manager_t<key_t, value_t>::directory_map_read_manager_t(
@@ -41,13 +38,13 @@ void directory_map_read_manager_t<key_t, value_t>::on_message(
     if (res != archive_result_t::SUCCESS) {
         throw fake_archive_exc_t();
     }
-    boost::optional<value_t> value;
+    optional<value_t> value;
     res = deserialize<cluster_version_t::CLUSTER>(s, &value);
     if (res != archive_result_t::SUCCESS) {
         throw fake_archive_exc_t();
     }
     auto_drainer_t::lock_t this_keepalive(per_thread_drainers.get());
-    coro_t::spawn_sometime(boost::bind(
+    coro_t::spawn_sometime(std::bind(
         &directory_map_read_manager_t::do_update, this,
         connection->get_peer_id(), connection_keepalive, this_keepalive,
         timestamp, key, value));
@@ -60,7 +57,7 @@ void directory_map_read_manager_t<key_t, value_t>::do_update(
         auto_drainer_t::lock_t this_keepalive,
         uint64_t timestamp,
         const key_t &key,
-        const boost::optional<value_t> &value) {
+        const optional<value_t> &value) {
     /* If we're the first call to `do_update()` for this connection, then we create the
     entry in `timestamps` for this peer, and then the coroutine stays alive and waits for
     the connection to end so it can clean up. If we're not the first call to
