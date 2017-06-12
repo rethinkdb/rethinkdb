@@ -42,3 +42,5 @@ Here's a rough overview of the files in `lib`:
 
 You can find the tests for this and the other two official drivers at
 `rethinkdb/test/rql_test/` .
+
+There are some unit specs provided for this driver. You can run them by `bundle exec rspec`. The coverage is pretty low, though, and it needs some more work. Unit spec do not require RethinkDB server to be running.
