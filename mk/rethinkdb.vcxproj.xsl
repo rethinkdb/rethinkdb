@@ -85,7 +85,6 @@
               COMPILER_MSVC;
               RAPIDJSON_HAS_STDSTRING;
               RAPIDJSON_PARSE_DEFAULT_FLAGS=kParseFullPrecisionFlag;
-              V8_NEEDS_BUFFER_ALLOCATOR;
               BOOST_DATE_TIME_NO_LIB;
               <xsl:if test="@configuration = 'Release'">
                 NDEBUG;
@@ -153,9 +152,6 @@
               re2.lib;
               zlib.lib;
               ssleay32.lib; libeay32.lib;
-              v8_base_0.lib; v8_base_1.lib; v8_base_2.lib; v8_base_3.lib;
-              v8_snapshot.lib; v8_libbase.lib; v8_libplatform.lib;
-              icui18n.lib; icuuc.lib;
               <xsl:if test="@configuration = 'Debug'">
                 gtest.lib;
               </xsl:if>
