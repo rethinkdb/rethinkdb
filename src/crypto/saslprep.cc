@@ -1,8 +1,10 @@
 // Copyright 2010-2016 RethinkDB, all rights reserved.
 #include "crypto/saslprep.hpp"
 
-#include <unicode/unistr.h>
-#include <unicode/usprep.h>
+/* Commented out by srh while removing ICU dependency.  All the code using it in this
+   file is commented out at this time. */
+// #include <unicode/unistr.h>
+// #include <unicode/usprep.h>
 
 #include <string>
 
