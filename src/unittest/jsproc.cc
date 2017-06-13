@@ -20,10 +20,12 @@ SPAWNER_TEST(JSProc, EvalTimeout) {
     js_runner_t::req_config_t config;
     config.timeout_ms = 10;
 
-    js_result_t result = js_runner.eval(loop_source, config);
-    std::string value = boost::get<std::string>(result);
-    ASSERT_EQ(strprintf("JavaScript query `%s` timed out after 0.010 seconds.", loop_source.c_str()), value);
-    ASSERT_FALSE(js_runner.connected());
+    ASSERT_NO_THROW({
+        js_result_t result = js_runner.eval(loop_source, config);
+        std::string value = boost::get<std::string>(result);
+        ASSERT_EQ(strprintf("JavaScript query `%s` timed out after 0.010 seconds.", loop_source.c_str()), value);
+        ASSERT_FALSE(js_runner.connected());
+    });
 }
 
 SPAWNER_TEST(JSProc, CallTimeout) {
@@ -45,10 +47,12 @@ SPAWNER_TEST(JSProc, CallTimeout) {
 
     config.timeout_ms = 10;
 
-    result = js_runner.call(loop_source, std::vector<ql::datum_t>(), config);
-    std::string value = boost::get<std::string>(result);
-    ASSERT_EQ(strprintf("JavaScript query `%s` timed out after 0.010 seconds.", loop_source.c_str()), value);
-    ASSERT_FALSE(js_runner.connected());
+    ASSERT_NO_THROW({
+        result = js_runner.call(loop_source, std::vector<ql::datum_t>(), config);
+        std::string value = boost::get<std::string>(result);
+        ASSERT_EQ(strprintf("JavaScript query `%s` timed out after 0.010 seconds.", loop_source.c_str()), value);
+        ASSERT_FALSE(js_runner.connected());
+    });
 }
 
 void run_datum_test(const std::string &source_code, ql::datum_t *res_out) {
@@ -60,13 +64,15 @@ void run_datum_test(const std::string &source_code, ql::datum_t *res_out) {
 
     js_runner_t::req_config_t config;
     config.timeout_ms = 10000;
-    js_result_t result = js_runner.eval(source_code, config);
-    ASSERT_TRUE(js_runner.connected());
+    ASSERT_NO_THROW({
+        js_result_t result = js_runner.eval(source_code, config);
+        ASSERT_TRUE(js_runner.connected());
 
-    ql::datum_t *res_datum =
-        boost::get<ql::datum_t>(&result);
-    ASSERT_TRUE(res_datum != nullptr);
-    *res_out = *res_datum;
+        ql::datum_t *res_datum =
+            boost::get<ql::datum_t>(&result);
+        ASSERT_TRUE(res_datum != nullptr);
+        *res_out = *res_datum;
+    });
 }
 
 SPAWNER_TEST(JSProc, LiteralNumber) {
@@ -104,17 +110,19 @@ SPAWNER_TEST(JSProc, EvalAndCall) {
     ASSERT_TRUE(js_id != nullptr);
 
     // Call the function
-    result = js_runner.call(source_code,
-                            std::vector<ql::datum_t>(),
-                            config);
-    ASSERT_TRUE(js_runner.connected());
+    ASSERT_NO_THROW({
+        result = js_runner.call(source_code,
+                                std::vector<ql::datum_t>(),
+                                config);
+        ASSERT_TRUE(js_runner.connected());
 
-    // Check results
-    ql::datum_t *res_datum = boost::get<ql::datum_t>(&result);
-    ASSERT_TRUE(res_datum != nullptr);
-    ASSERT_TRUE(res_datum->has());
-    ASSERT_TRUE(res_datum->get_type() == ql::datum_t::R_NUM);
-    ASSERT_EQ(res_datum->as_int(), 10337);
+        // Check results
+        ql::datum_t *res_datum = boost::get<ql::datum_t>(&result);
+        ASSERT_TRUE(res_datum != nullptr);
+        ASSERT_TRUE(res_datum->has());
+        ASSERT_TRUE(res_datum->get_type() == ql::datum_t::R_NUM);
+        ASSERT_EQ(res_datum->as_int(), 10337);
+    });
 }
 
 SPAWNER_TEST(JSProc, BrokenFunction) {
@@ -136,14 +144,16 @@ SPAWNER_TEST(JSProc, BrokenFunction) {
     ASSERT_TRUE(js_id != nullptr);
 
     // Call the function
-    result = js_runner.call(source_code,
-                            std::vector<ql::datum_t>(),
-                            config);
-    ASSERT_TRUE(js_runner.connected());
+    ASSERT_NO_THROW({
+        result = js_runner.call(source_code,
+                                std::vector<ql::datum_t>(),
+                                config);
+        ASSERT_TRUE(js_runner.connected());
 
-    // Get the error message
-    std::string *error = boost::get<std::string>(&result);
-    ASSERT_TRUE(error != nullptr);
+        // Get the error message
+        std::string *error = boost::get<std::string>(&result);
+        ASSERT_TRUE(error != nullptr);
+    });
 }
 
 SPAWNER_TEST(JSProc, InvalidFunction) {
@@ -157,12 +167,14 @@ SPAWNER_TEST(JSProc, InvalidFunction) {
 
     js_runner_t::req_config_t config;
     config.timeout_ms = 10000;
-    js_result_t result = js_runner.eval(source_code, config);
-    ASSERT_TRUE(js_runner.connected());
+    ASSERT_NO_THROW({
+        js_result_t result = js_runner.eval(source_code, config);
+        ASSERT_TRUE(js_runner.connected());
 
-    // Get the error message
-    std::string *error = boost::get<std::string>(&result);
-    ASSERT_TRUE(error != nullptr);
+        // Get the error message
+        std::string *error = boost::get<std::string>(&result);
+        ASSERT_TRUE(error != nullptr);
+    });
 }
 
 SPAWNER_TEST(JSProc, InfiniteRecursionFunction) {
@@ -186,11 +198,13 @@ SPAWNER_TEST(JSProc, InfiniteRecursionFunction) {
     // Call the function
     std::vector<ql::datum_t> args;
     args.push_back(ql::datum_t(1.0));
-    result = js_runner.call(source_code, args, config);
+    ASSERT_NO_THROW({
+        result = js_runner.call(source_code, args, config);
 
-    std::string *err_msg = boost::get<std::string>(&result);
+        std::string *err_msg = boost::get<std::string>(&result);
 
-    ASSERT_EQ(*err_msg, std::string("RangeError: Maximum call stack size exceeded"));
+        ASSERT_EQ(*err_msg, std::string("RangeError: Maximum call stack size exceeded"));
+    });
 }
 
 void run_overalloc_function_test() {
@@ -251,14 +265,16 @@ void passthrough_test_internal(extproc_pool_t *pool, const ql::datum_t &arg) {
     ASSERT_TRUE(js_id != nullptr);
 
     // Call the function
-    js_result_t res = js_runner.call(source_code,
-                                     std::vector<ql::datum_t>(1, arg),
-                                     config);
+    ASSERT_NO_THROW({
+        js_result_t res = js_runner.call(source_code,
+                                         std::vector<ql::datum_t>(1, arg),
+                                         config);
 
-    ql::datum_t *res_datum = boost::get<ql::datum_t>(&res);
-    ASSERT_TRUE(res_datum != nullptr);
-    ASSERT_TRUE(res_datum->has());
-    ASSERT_EQ(*res_datum, arg);
+        ql::datum_t *res_datum = boost::get<ql::datum_t>(&res);
+        ASSERT_TRUE(res_datum != nullptr);
+        ASSERT_TRUE(res_datum->has());
+        ASSERT_EQ(*res_datum, arg);
+    });
 }
 
 // This test will make sure that conversion of datum_t to and from v8 types works
