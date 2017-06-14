@@ -8,7 +8,6 @@ from . import errors, net, utils_common
 def startInterpreter(argv=None, prog=None):
     import code, optparse
     
-    connectOptions = {}
     replVariables = {'r':net.Connection._r, 'rethinkdb':net.Connection._r}
     banner = 'The RethinkDB driver has been imported as `r`.'
     

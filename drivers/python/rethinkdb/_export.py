@@ -178,7 +178,7 @@ def export_table(db, table, directory, options, error_queue, progress_info, sind
         table_info['indexes'] = options.retryQuery(
             'table index data %s.%s' % (db, table),
             query.db(db).table(table).index_status(),
-            runOptions={'binary_format':'raw'}
+            run_options={'binary_format':'raw'}
         )
         
         sindex_counter.value += len(table_info["indexes"])
@@ -186,7 +186,7 @@ def export_table(db, table, directory, options, error_queue, progress_info, sind
         table_info['write_hook'] = options.retryQuery(
             'table write hook data %s.%s' % (db, table),
             query.db(db).table(table).get_write_hook(),
-            runOptions={'binary_format':'raw'})
+            run_options={'binary_format':'raw'})
 
         if table_info['write_hook'] != None:
             hook_counter.value += 1
@@ -217,16 +217,16 @@ def export_table(db, table, directory, options, error_queue, progress_info, sind
         
         lastPrimaryKey = None
         read_rows      = 0
-        runOptions     = {
+        run_options     = {
             "time_format":"raw",
             "binary_format":"raw"
         }
         if options.outdated:
-            runOptions["read_mode"] = "outdated"
+            run_options["read_mode"] = "outdated"
         cursor = options.retryQuery(
             'inital cursor for %s.%s' % (db, table),
             query.db(db).table(table).order_by(index=table_info["primary_key"]),
-            runOptions=runOptions
+            run_options=run_options
         )
         while not exit_event.is_set():
             try:
@@ -258,7 +258,7 @@ def export_table(db, table, directory, options, error_queue, progress_info, sind
                 cursor = options.retryQuery(
                     'backup cursor for %s.%s' % (db, table),
                     query.db(db).table(table).between(lastPrimaryKey, None, left_bound="open").order_by(index=table_info["primary_key"]),
-                    runOptions=runOptions
+                    run_options=run_options
                 )
     
     except (errors.ReqlError, errors.ReqlDriverError) as ex:

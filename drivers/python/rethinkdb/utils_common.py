@@ -63,7 +63,7 @@ class RetryQuery(object):
             raise ValueError('times must be a positive integer, got: %s' % times)
         if run_options is None:
             run_options = {}
-        assert isinstance(run_options, dict), 'runOptions must be a dict, got: %s' % run_options
+        assert isinstance(run_options, dict), 'run_options must be a dict, got: %s' % run_options
         
         last_error = None
         test_connection = False
