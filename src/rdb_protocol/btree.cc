@@ -341,9 +341,14 @@ ql::datum_t btree_batched_replacer_t::apply_write_hook(
                                      ql::return_empty_normal_batches_t::NO,
                                      write_timestamp,
                                      reql_version_t::LATEST);
+
+            ql::datum_object_builder_t builder;
+            builder.overwrite("primary_key", std::move(primary_key));
+            builder.overwrite("timestamp", write_timestamp);
+
             modified = write_hook->call(&write_hook_env,
                                         std::vector<ql::datum_t>{
-                                            primary_key,
+                                            std::move(builder).to_datum(),
                                                 d,
                                                 res})->as_datum();
         } catch (ql::exc_t &e) {
