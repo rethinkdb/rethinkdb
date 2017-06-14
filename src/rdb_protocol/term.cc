@@ -124,7 +124,6 @@ counted_t<const term_t> compile_on_current_stack(
     case Term::GRANT:              return make_grant_term(env, t);
     case Term::SET_WRITE_HOOK:     return make_set_write_hook_term(env, t);
     case Term::GET_WRITE_HOOK:     return make_get_write_hook_term(env, t);
-    case Term::WRITE_TIMESTAMP:    return make_write_timestamp_term(env, t);
     case Term::INDEX_CREATE:       return make_sindex_create_term(env, t);
     case Term::INDEX_DROP:         return make_sindex_drop_term(env, t);
     case Term::INDEX_LIST:         return make_sindex_list_term(env, t);

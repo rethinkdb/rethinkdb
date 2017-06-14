@@ -151,7 +151,6 @@ ql::grouped_t<ql::stream_t> read_row_via_sindex(
      * prevents to profiling code from crashing. */
     ql::env_t dummy_env(&dummy_interruptor,
                         ql::return_empty_normal_batches_t::NO,
-                        ql::datum_t(),
                         reql_version_t::LATEST);
 
     rdb_rget_secondary_slice(

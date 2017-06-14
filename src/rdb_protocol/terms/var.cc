@@ -78,27 +78,6 @@ private:
     virtual const char *name() const { return "implicit_var"; }
 };
 
-class write_timestamp_term_t : public op_term_t {
-public:
-    write_timestamp_term_t(compile_env_t *env, const raw_term_t &term)
-        : op_term_t(env, term, argspec_t(0)) { }
-
-private:
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *, eval_flags_t) const {
-        const datum_t &d = env->env->get_write_timestamp();
-        rcheck(d.has(), base_exc_t::LOGIC,
-               "A write timestamp term is used without a write in context.");
-
-        return new_val(d);
-    }
-
-    virtual deterministic_t is_deterministic() const {
-        return deterministic_t::always();
-    }
-
-    virtual const char *name() const { return "write_timestamp"; }
-};
-
 counted_t<term_t> make_var_term(
         compile_env_t *env, const raw_term_t &term) {
     return make_counted<var_term_t>(env, term);
@@ -106,11 +85,6 @@ counted_t<term_t> make_var_term(
 counted_t<term_t> make_implicit_var_term(
         compile_env_t *env, const raw_term_t &term) {
     return make_counted<implicit_var_term_t>(env, term);
-}
-
-counted_t<term_t> make_write_timestamp_term(
-        compile_env_t *env, const raw_term_t &term) {
-    return make_counted<write_timestamp_term_t>(env, term);
 }
 
 } // namespace ql

@@ -155,7 +155,6 @@ continue_bool_t geo_intersecting_cb_t::on_candidate(
         // query_geometry.
         ql::env_t sindex_env(env->interruptor,
                              ql::return_empty_normal_batches_t::NO,
-                             ql::datum_t(),
                              sindex.func_reql_version);
         ql::datum_t sindex_val =
             sindex.func->call(&sindex_env, val)->as_datum();

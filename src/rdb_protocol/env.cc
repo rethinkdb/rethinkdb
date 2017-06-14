@@ -102,13 +102,11 @@ env_t::env_t(rdb_context_t *ctx,
 // Used in constructing the env for rdb_update_single_sindex and many unit tests.
 env_t::env_t(signal_t *_interruptor,
              return_empty_normal_batches_t _return_empty_normal_batches,
-             ql::datum_t write_timestamp_or_uninitialized,
              reql_version_t _reql_version)
     : serializable_{
         global_optargs_t(),
         auth::user_context_t(auth::permissions_t(tribool::False, tribool::False, tribool::False, tribool::False)),
         datum_t()},
-      write_timestamp_(write_timestamp_or_uninitialized),
       reql_version_(_reql_version),
       regex_cache_(LRU_CACHE_SIZE),
       return_empty_normal_batches(_return_empty_normal_batches),

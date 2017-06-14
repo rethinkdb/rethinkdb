@@ -1530,10 +1530,6 @@ class GrantTL(RqlTopLevelQuery):
     tt = pTerm.GRANT
     st = 'grant'
 
-class WriteTimestamp(RqlTopLevelQuery):
-    tt = pTerm.WRITE_TIMESTAMP
-    st = 'write_timestamp'
-
 
 class Branch(RqlTopLevelQuery):
     tt = pTerm.BRANCH

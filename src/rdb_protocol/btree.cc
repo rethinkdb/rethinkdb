@@ -339,7 +339,6 @@ ql::datum_t btree_batched_replacer_t::apply_write_hook(
             cond_t non_interruptor;
             ql::env_t write_hook_env(&non_interruptor,
                                      ql::return_empty_normal_batches_t::NO,
-                                     write_timestamp,
                                      reql_version_t::LATEST);
 
             ql::datum_object_builder_t builder;
@@ -750,7 +749,6 @@ rget_cb_t::rget_cb_t(rget_io_data_t &&_io,
         // optargs).
         sindex_env.init(new ql::env_t(job.env->interruptor,
                                       ql::return_empty_normal_batches_t::NO,
-                                      ql::datum_t(),
                                       sindex->func_reql_version));
     }
 
@@ -1533,7 +1531,6 @@ void compute_keys(const store_key_t &primary_key,
     cond_t non_interruptor;
     ql::env_t sindex_env(&non_interruptor,
                          ql::return_empty_normal_batches_t::NO,
-                         ql::datum_t(),
                          reql_version);
 
     ql::datum_t index =

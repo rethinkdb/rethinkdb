@@ -62,7 +62,6 @@ public:
     // should be a dummy cond.)
     env_t(signal_t *interruptor,
           return_empty_normal_batches_t return_empty_normal_batches,
-          ql::datum_t write_timestamp_or_uninitialized,
           reql_version_t reql_version);
 
     ~env_t();
@@ -111,11 +110,6 @@ public:
         return serializable_;
     }
 
-    // This might return an uninitialized datum.
-    const datum_t &get_write_timestamp() {
-        return write_timestamp_;
-    }
-
     configured_limits_t limits() const {
         return limits_;
     }
@@ -138,10 +132,6 @@ public:
 
 private:
     serializable_env_t serializable_;
-
-    // This might be an uninitialized datum.  That means r.write_timestamp() should
-    // throw a logic error.
-    ql::datum_t write_timestamp_;
 
     // User specified configuration limits; e.g. array size limits
     const configured_limits_t limits_;

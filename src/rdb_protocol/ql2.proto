@@ -582,9 +582,6 @@ message Term {
         // Gets an existing write hook function on a table
         GET_WRITE_HOOK = 190; // Table
 
-        // The time of the write query.  (Its NOW value outside the
-        // write hook.)  Used in write hooks.
-        WRITE_TIMESTAMP = 191; // -> PSEUDOTYPE(TIME)
 
 
         // * Control Operators

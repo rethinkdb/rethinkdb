@@ -955,10 +955,6 @@ class GetWriteHook extends RDBOp
     tt: protoTermType.GET_WRITE_HOOK
     mt: 'getWriteHook'
 
-class WriteTimestamp extends RDBOp
-    tt: protoTermType.WRITE_TIMESTAMP
-    st: 'writeTimestamp'
-
 class IndexCreate extends RDBOp
     tt: protoTermType.INDEX_CREATE
     mt: 'indexCreate'
