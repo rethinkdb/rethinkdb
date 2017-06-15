@@ -140,6 +140,7 @@ counted_t<const term_t> compile_on_current_stack(
     case Term::DESC:               return make_desc_term(env, t);
     case Term::INFO:               return make_info_term(env, t);
     case Term::MATCH:              return make_match_term(env, t);
+    case Term::MATCH_ALL:          return make_match_all_term(env, t);
     case Term::SPLIT:              return make_split_term(env, t);
     case Term::UPCASE:             return make_upcase_term(env, t);
     case Term::DOWNCASE:           return make_downcase_term(env, t);

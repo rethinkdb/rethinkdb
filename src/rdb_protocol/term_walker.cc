@@ -68,7 +68,6 @@ private:
 
         void walk(rapidjson::Value *src, backtrace_id_t bt) {
             r_sanity_check(src != nullptr);
-
             if (src->IsArray()) {
                 size_t size = src->Size();
                 rcheck_src(bt, size >= 1 && size <= 3, base_exc_t::LOGIC,
@@ -318,6 +317,7 @@ bool term_type_is_valid(Term::TermType type) {
     case Term::DESC:
     case Term::INFO:
     case Term::MATCH:
+    case Term::MATCH_ALL:
     case Term::SPLIT:
     case Term::UPCASE:
     case Term::DOWNCASE:
@@ -509,6 +509,7 @@ bool term_is_write_or_meta(Term::TermType type) {
     case Term::DESC:
     case Term::INFO:
     case Term::MATCH:
+    case Term::MATCH_ALL:
     case Term::SPLIT:
     case Term::UPCASE:
     case Term::DOWNCASE:
@@ -704,6 +705,7 @@ bool term_forbids_writes(Term::TermType type) {
     case Term::DESC:
     case Term::INFO:
     case Term::MATCH:
+    case Term::MATCH_ALL:
     case Term::SPLIT:
     case Term::UPCASE:
     case Term::DOWNCASE:

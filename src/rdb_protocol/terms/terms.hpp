@@ -183,6 +183,8 @@ counted_t<term_t> make_match_term(
     compile_env_t *env, const raw_term_t &term);
 counted_t<term_t> make_split_term(
     compile_env_t *env, const raw_term_t &term);
+counted_t<term_t> make_match_all_term(
+    compile_env_t *env, const raw_term_t &term);
 
 // case.cc
 counted_t<term_t> make_upcase_term(
