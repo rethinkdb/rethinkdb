@@ -6,7 +6,6 @@
 #include <vector>
 #include <memory>
 
-#include "pprint/generic_term_walker.hpp"
 #include "rdb_protocol/base64.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
@@ -14,15 +13,14 @@
 
 namespace pprint {
 
-class js_pretty_printer_t
-    : public generic_term_walker_t<counted_t<const document_t> > {
+class js_pretty_printer_t {
     unsigned int depth;
     bool prepend_ok, in_r_expr;
     typedef std::vector<counted_t<const document_t> > v;
 public:
     js_pretty_printer_t() : depth(0), prepend_ok(true), in_r_expr(false) {}
-protected:
-    counted_t<const document_t> visit_generic(const ql::raw_term_t &t) override {
+
+    counted_t<const document_t> walk(const ql::raw_term_t &t) {
         bool old_r_expr = in_r_expr;
         ++depth;
         if (depth > MAX_DEPTH) return dotdotdot; // Crude attempt to avoid blowing stack
@@ -114,7 +112,7 @@ private:
         std::vector<counted_t<const document_t> > term;
         for (size_t i = 0; i < t.num_args(); ++i) {
             if (!term.empty()) { term.push_back(comma_linebreak); }
-            term.push_back(visit_generic(t.arg(i)));
+            term.push_back(walk(t.arg(i)));
         }
         in_r_expr = old_r_expr;
         return make_c(lbrack, make_nest(make_concat(std::move(term))), rbrack);
@@ -132,7 +130,7 @@ private:
                 term.push_back(make_nc(
                     make_text(strprintf("\"%s\":", name.c_str())),
                     cond_linebreak,
-                    visit_generic(item)));
+                    walk(item)));
             });
         return make_c(lbrace, make_nest(make_concat(std::move(term))), rbrace);
     }
@@ -144,7 +142,7 @@ private:
                 term.push_back(make_text(
                     strprintf("\"%s\"", name.c_str())));
                 term.push_back(comma_linebreak);
-                term.push_back(visit_generic(item));
+                term.push_back(walk(item));
             });
         return prepend_r_obj(make_nest(make_concat(std::move(term))));
     }
@@ -210,7 +208,7 @@ private:
                 counted_t<const document_t> inner = make_c(make_text(
                         strprintf("\"%s\":", to_js_name(name).c_str())),
                     cond_linebreak,
-                    visit_generic(item));
+                    walk(item));
                 optargs.push_back(make_nest(std::move(inner)));
             });
         return make_c(lbrace, make_nest(make_concat(std::move(optargs))), rbrace);
@@ -233,7 +231,7 @@ private:
                 stack->push_back(cond_linebreak);
                 stack->push_back(comma);
             }
-            stack->push_back(visit_generic(var.arg(1)));
+            stack->push_back(walk(var.arg(1)));
             in_r_expr = old_r_expr;
             stack->push_back(lparen);
             *last_is_dot = false;
@@ -245,7 +243,7 @@ private:
             r_sanity_check(var.num_optargs() == 0);
             stack->push_back(rparen);
             in_r_expr = true;
-            stack->push_back(make_nest(visit_generic(var.arg(0))));
+            stack->push_back(make_nest(walk(var.arg(0))));
             in_r_expr = old_r_expr;
             stack->push_back(lparen);
             stack->push_back(do_st);
@@ -309,7 +307,7 @@ private:
                 std::vector<counted_t<const document_t> > args;
                 for (size_t i = var.num_args() - 1; i > 0; --i) {
                     if (!args.empty()) { args.push_back(comma_linebreak); }
-                    args.push_back(visit_generic(var.arg(i)));
+                    args.push_back(walk(var.arg(i)));
                 }
                 if (insert_trailing_comma) { stack->push_back(comma_linebreak); }
                 stack->push_back(make_nest(reverse(std::move(args), false)));
@@ -343,11 +341,11 @@ private:
         } else if (should_use_rdot(*var)) {
             bool old = prepend_ok;
             prepend_ok = false;
-            counted_t<const document_t> subdoc = visit_generic(*var);
+            counted_t<const document_t> subdoc = walk(*var);
             prepend_ok = old;
             return prepend_r_dot(make_c(subdoc, reverse(std::move(stack), false)));
         } else {
-            return make_nc(visit_generic(*var), reverse(std::move(stack), last_is_dot));
+            return make_nc(walk(*var), reverse(std::move(stack), last_is_dot));
         }
     }
 
@@ -373,11 +371,11 @@ private:
         std::vector<counted_t<const document_t> > args;
         for (size_t i = 1; i < t.num_args(); ++i) {
             if (!args.empty()) { args.push_back(comma_linebreak); }
-            args.push_back(visit_generic(t.arg(i)));
+            args.push_back(walk(t.arg(i)));
         }
         if (!args.empty()) { args.push_back(comma_linebreak); }
         in_r_expr = old_r_expr;
-        term.push_back(visit_generic(arg0));
+        term.push_back(walk(arg0));
         term.push_back(make_nest(make_concat(std::move(args))));
         term.push_back(rparen);
         return prepend_r_dot(make_concat(std::move(term)));
@@ -391,7 +389,7 @@ private:
         std::vector<counted_t<const document_t> > args;
         for (size_t i = 0; i < t.num_args(); ++i) {
             if (!args.empty()) { args.push_back(comma_linebreak); }
-            args.push_back(visit_generic(t.arg(i)));
+            args.push_back(walk(t.arg(i)));
         }
         if (t.num_optargs() > 0) {
             if (!args.empty()) { args.push_back(comma_linebreak); }
@@ -601,14 +599,14 @@ private:
             }
             arglist = make_c(lparen, make_nest(make_concat(std::move(args))), rparen);
         } else {
-            arglist = visit_generic(arg0);
+            arglist = walk(arg0);
         }
         bool old_r_expr = in_r_expr;
         in_r_expr = false;
         counted_t<const document_t> body =
             make_c(return_st,
                    sp,
-                   make_nest(visit_generic(t.arg(1))),
+                   make_nest(walk(t.arg(1))),
                    semicolon);
         in_r_expr = old_r_expr;
         return make_nc(lambda_1,
@@ -696,7 +694,7 @@ counted_t<const document_t> render_as_javascript(const ql::raw_term_t &t) {
 //   exotic handling when in a dotted list.  This should be extremely
 //   rare; things like `Term::BRACKET` which turn into `x(4)` are
 //   where it usually shows up.
-// - `visit_generic` should have the new Term added if it requires
+// - `walk` should have the new Term added if it requires
 //   exotic handling when not in dotted list context.  These should
 //   also be rare, and largely similar to the cases where
 //   `visit_stringing` has to have a new Term added.
