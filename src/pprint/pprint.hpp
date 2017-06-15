@@ -6,23 +6,15 @@
 #include <vector>
 #include <utility>
 
-#include "containers/counted.hpp"
+#include "errors.hpp"
+#include <boost/variant.hpp>
+
+namespace unittest { class grouped; }
 
 namespace pprint {
 
-class document_visitor_t;
-// Pretty printer document.  Has to be `slow_atomic_countable_t`
-// because of reuse of things like `br` and `dot`.
-class document_t : public slow_atomic_countable_t<document_t> {
-public:
-    virtual ~document_t() {}
-    virtual size_t width() const = 0;
-    virtual void visit(const document_visitor_t &v) const = 0;
-    virtual std::string str() const = 0;
-};
-
-// Primitive textual element.
-counted_t<const document_t> make_text(std::string text);
+struct text_elem { std::string payload; };
+struct crlf_elem { size_t hpos; };
 
 // Primitive for conditional linebreaks.
 //
@@ -30,92 +22,108 @@ counted_t<const document_t> make_text(std::string text);
 // is a linebreak, `tail` will be printed on the previous line (think
 // Python's need to backslash escape newlines) and `cont` will be
 // printed at the start of the new line.
-//
-// You probably shouldn't use this; use `br` or `dot` when they work.
-counted_t<const document_t> make_cond(const std::string small, const std::string cont,
-                       const std::string tail);
+struct cond_elem { std::string small, cont, tail; size_t hpos; };
 
-// A concatenation of documents.
-counted_t<const document_t> make_concat(std::vector<counted_t<const document_t> > args);
-counted_t<const document_t>
-make_concat(std::initializer_list<counted_t<const document_t> > args);
-
-template <typename It>
-counted_t<const document_t> make_concat(It &&begin, It &&end) {
-    std::vector<counted_t<const document_t> > v(std::forward<It>(begin),
-                                                std::forward<It>(end));
-    return make_concat(std::move(v));
-}
-
-// A document enclosure where all linebreaks are interpreted consistently.
-counted_t<const document_t> make_group(counted_t<const document_t> doc);
-
+// A nest:
 // A document enclosure where all linebreaks are indented to the start of the nest.
+struct nbeg_elem { };
+struct nend_elem { };
+
+// A group:
+// A document enclosure where all linebreaks are interpreted consistently.
+struct gbeg_elem { size_t end_hpos; };
+struct gend_elem { };
+
+struct stream_elem {
+    boost::variant<text_elem, crlf_elem, cond_elem, nbeg_elem, nend_elem, gbeg_elem, gend_elem> v;
+};
+
+// Specifies a cond_elem.  Doesn't include hpos, because that gets added dynamically.
+struct cond_elem_spec {
+    std::string small, cont, tail;
+};
+
+
+// Printing an AST generally involves constructing one of these and calling add..() its
+// methods as you traverse the AST.
 //
-// This implicitly wraps `doc` in a group.
-counted_t<const document_t> make_nest(counted_t<const document_t> doc);
+// Its general job is to keep track of how many characters you've printed, and to
+// annotate crlf_elem, cond_elem, and gbeg_elem with that information.
+class pprint_streamer {
+public:
+    pprint_streamer() : position_(0) { }
 
-extern const counted_t<const document_t> empty;
-extern const counted_t<const document_t> cond_linebreak;
-// unconditional line break
-extern const counted_t<const document_t> uncond_linebreak;
-extern const counted_t<const document_t> dot_linebreak;
+    std::vector<stream_elem> elems() RVALUE_THIS { return std::move(elems_); }
+
+    void add(text_elem e) {
+        position_ += e.payload.size();
+        elems_.push_back(stream_elem{std::move(e)});
+    }
+
+    void add_text(std::string &&s) {
+        add(text_elem{std::move(s)});
+    }
+
+    void add_crlf() {
+        elems_.push_back(stream_elem{crlf_elem{position_}});
+    }
+
+    void add(cond_elem_spec e) {
+        position_ += e.small.size();
+        elems_.push_back(stream_elem{
+                cond_elem{std::move(e.small), std::move(e.cont), std::move(e.tail), position_}});
+    }
+
+private:
+    size_t add_gbeg() {
+        size_t ret = elems_.size();
+        elems_.push_back(stream_elem{gbeg_elem{SIZE_MAX}});
+        return ret;
+    }
+
+    void add_gend() {
+        elems_.push_back(stream_elem{gend_elem{}});
+    }
+
+    void add_nbeg() {
+        elems_.push_back(stream_elem{nbeg_elem{}});
+    }
+
+    void add_nend() {
+        elems_.push_back(stream_elem{nend_elem{}});
+    }
+
+    void update_gbeg(size_t index) {
+        gbeg_elem &elem = boost::get<gbeg_elem>(elems_.at(index).v);
+        rassert(elem.end_hpos == SIZE_MAX);
+        elem.end_hpos = position_;
+    }
+
+    friend class nested;
+    friend class unittest::grouped;
+
+    std::vector<stream_elem> elems_;
+    size_t position_;
+};
+
+class nested {
+    pprint_streamer *pp_;
+    size_t gbeg_index_;
+    DISABLE_COPYING(nested);
+public:
+    explicit nested(pprint_streamer *pp) : pp_(pp) {
+        pp->add_nbeg();
+        gbeg_index_ = pp->add_gbeg();
+    }
+    ~nested() {
+        pp_->update_gbeg(gbeg_index_);
+        pp_->add_gend();
+        pp_->add_nend();
+    }
+};
 
 
-// Documents separated by commas and then a `br`.
-//
-// Think `1, 2, 3`.
-counted_t<const document_t>
-comma_separated(std::initializer_list<counted_t<const document_t> > init);
-
-template <typename... Ts>
-inline counted_t<const document_t> comma_separated(Ts &&... docs) {
-    return comma_separated({std::forward<Ts>(docs)...});
-}
-
-// Argument list; comma separated arguments wrapped in parens with a nest.
-//
-// Think `(1, 2, 3)`.
-counted_t<const document_t>
-arglist(std::initializer_list<counted_t<const document_t> >);
-
-template <typename... Ts>
-inline counted_t<const document_t> arglist(Ts &&... docs) {
-    return arglist({std::forward<Ts>(docs)...});
-}
-
-// Documents separated by `dot`.
-//
-// Think `r.foo().bar().baz()`.
-counted_t<const document_t>
-dotted_list(std::initializer_list<counted_t<const document_t> >);
-
-template <typename... Ts>
-inline counted_t<const document_t> dotted_list(Ts &&... docs) {
-    return dotted_list({std::forward<Ts>(docs)...});
-}
-
-// Function call document, where `name` is the call and `init` are the args.
-//
-// Think `foo(1, 2, 3)`.
-counted_t<const document_t>
-funcall(const std::string &, std::initializer_list<counted_t<const document_t> >);
-
-template <typename... Ts>
-inline counted_t<const document_t> funcall(const std::string &name, Ts &&... docs) {
-    return funcall(name, {std::forward<Ts>(docs)...});
-}
-
-// Helper for r.foo.bar.baz expressions.
-counted_t<const document_t> r_dot(std::initializer_list<counted_t<const document_t> >);
-
-template <typename... Ts>
-inline counted_t<const document_t> r_dot(Ts &&... docs) {
-    return r_dot({std::forward<Ts>(docs)...});
-}
-
-// Render document at the given width.
-std::string pretty_print(size_t width, counted_t<const document_t> doc);
+std::string pretty_print(size_t width, std::vector<stream_elem> &&elems);
 
 // Prints a variable name from a variable number for use inside of lambda functions.
 std::string print_var(int64_t var_num);

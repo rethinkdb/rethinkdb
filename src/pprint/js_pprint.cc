@@ -1,11 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "pprint/js_pprint.hpp"
 
-#include <math.h>
-
 #include <vector>
-#include <memory>
 
+#include "containers/object_buffer.hpp"
 #include "rdb_protocol/base64.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
@@ -13,74 +11,83 @@
 
 namespace pprint {
 
+
 class js_pretty_printer_t {
     unsigned int depth;
-    bool prepend_ok, in_r_expr;
-    typedef std::vector<counted_t<const document_t> > v;
+    bool prepend_ok;
+    bool in_r_expr;
+
+    pprint_streamer stream;
+
 public:
+    std::vector<stream_elem> elems() RVALUE_THIS { return std::move(stream).elems(); }
+
     js_pretty_printer_t() : depth(0), prepend_ok(true), in_r_expr(false) {}
 
-    counted_t<const document_t> walk(const ql::raw_term_t &t) {
-        bool old_r_expr = in_r_expr;
-        ++depth;
-        if (depth > MAX_DEPTH) return dotdotdot; // Crude attempt to avoid blowing stack
-        counted_t<const document_t> doc;
+
+    void walk(const ql::raw_term_t &t) {
+        with_dynamic<decltype(depth)> wd_depth(&depth, depth + 1);
+        if (depth > MAX_DEPTH) {
+            // Crude attempt to avoid blowing stack
+            stream.add(dotdotdot);
+            return;
+        }
         switch (static_cast<int>(t.type())) {
-        case Term::DATUM:
-            doc = to_js_datum(t.datum());
+        case Term::DATUM: {
+            object_buffer_t<prepend_r_expr_t> prep;
             if (!in_r_expr) {
-                doc = prepend_r_expr(doc);
+                prep.create(this);
             }
-            break;
-        case Term::FUNCALL:
+            to_js_datum(t.datum());
+        } break;
+        case Term::FUNCALL: {
             // Hack here: JS users expect .do in suffix position if
             // there's only one argument.
             if (t.num_args() == 2) {
-                doc = string_dots_together(t);
+                string_dots_together(t);
             } else {
-                doc = toplevel_funcall(t);
+                toplevel_funcall(t);
             }
-            break;
-        case Term::MAKE_ARRAY:
-            in_r_expr = true;
-            doc = to_js_array(t);
-            if (!old_r_expr) {
-                doc = prepend_r_expr(doc);
+        } break;
+        case Term::MAKE_ARRAY: {
+            with_dynamic<bool> wd(&in_r_expr, true);
+            object_buffer_t<prepend_r_expr_t> prep;
+            if (!wd.old()) {
+                prep.create(this);
             }
-            break;
-        case Term::MAKE_OBJ:
-            in_r_expr = true;
-            if (old_r_expr) {
-                doc = to_js_natural_object(t);
+            to_js_array(t);
+        } break;
+        case Term::MAKE_OBJ: {
+            with_dynamic<bool> wd(&in_r_expr, true);
+            if (wd.old()) {
+                to_js_natural_object(t);
             } else {
-                doc = to_js_wrapped_object(t);
+                to_js_wrapped_object(t);
             }
-            break;
+        } break;
         case Term::FUNC:
-            doc = to_js_func(t);
+            to_js_func(t);
             break;
         case Term::VAR: {
             r_sanity_check(t.num_args() == 1);
             ql::raw_term_t arg0 = t.arg(0);
             r_sanity_check(arg0.type() == Term::DATUM);
-            doc = var_name(arg0.datum());
+            var_name(arg0.datum());
         } break;
-        case Term::IMPLICIT_VAR:
-            doc = prepend_r_dot(row);
-            break;
+        case Term::IMPLICIT_VAR: {
+            prepend_r_dot prep(this);
+            stream.add(row);
+        } break;
         default:
             if (should_continue_string(t)) {
-                doc = string_dots_together(t);
+                string_dots_together(t);
             } else if (should_use_parens(t)) {
-                doc = standard_funcall(t);
+                standard_funcall(t);
             } else {
-                doc = standard_literal(t);
+                standard_literal(t);
             }
             break;
         }
-        in_r_expr = old_r_expr;
-        --depth;
-        return doc;
     }
 
 private:
@@ -105,95 +112,121 @@ private:
         return result;
     }
 
-    counted_t<const document_t> to_js_array(const ql::raw_term_t &t) {
+    void to_js_array(const ql::raw_term_t &t) {
         r_sanity_check(t.num_optargs() == 0);
-        bool old_r_expr = in_r_expr;
-        in_r_expr = true;
-        std::vector<counted_t<const document_t> > term;
+
+        wrap<brackets> brack(this);
+        nested nest(&stream);
+
+        with_dynamic<bool> wd(&in_r_expr, true);
+
         for (size_t i = 0; i < t.num_args(); ++i) {
-            if (!term.empty()) { term.push_back(comma_linebreak); }
-            term.push_back(walk(t.arg(i)));
+            if (i != 0) {
+                comma_linebreak();
+            }
+            walk(t.arg(i));
         }
-        in_r_expr = old_r_expr;
-        return make_c(lbrack, make_nest(make_concat(std::move(term))), rbrack);
     }
 
-    counted_t<const document_t> to_js_object(const ql::raw_term_t &t) {
-        r_sanity_check(t.num_args() == 0);
-        return in_r_expr ? to_js_natural_object(t) : to_js_wrapped_object(t);
-    }
+    void to_js_natural_object(const ql::raw_term_t &t) {
+        wrap<braces> brace(this);
+        nested nest(&stream);
 
-    counted_t<const document_t> to_js_natural_object(const ql::raw_term_t &t) {
-        std::vector<counted_t<const document_t> > term;
+        bool first = true;
         t.each_optarg([&](const ql::raw_term_t &item, const std::string &name) {
-                if (!term.empty()) { term.push_back(comma_linebreak); }
-                term.push_back(make_nc(
-                    make_text(strprintf("\"%s\":", name.c_str())),
-                    cond_linebreak,
-                    walk(item)));
+                if (!first) {
+                    comma_linebreak();
+                }
+                first = false;
+                nested nest2(&stream);
+                push_text(strprintf("\"%s\":", name.c_str()));
+                add_cond_linebreak();
+                walk(item);
             });
-        return make_c(lbrace, make_nest(make_concat(std::move(term))), rbrace);
     }
 
-    counted_t<const document_t> to_js_wrapped_object(const ql::raw_term_t &t) {
-        std::vector<counted_t<const document_t> > term;
+    void to_js_wrapped_object(const ql::raw_term_t &t) {
+        prepend_r_dot prep(this);
+        stream.add(object);
+        nested nest(&stream);
+
+        bool first = true;
         t.each_optarg([&](const ql::raw_term_t &item, const std::string &name) {
-                if (!term.empty()) { term.push_back(comma_linebreak); }
-                term.push_back(make_text(
-                    strprintf("\"%s\"", name.c_str())));
-                term.push_back(comma_linebreak);
-                term.push_back(walk(item));
+                if (!first) {
+                    comma_linebreak();
+                }
+                first = false;
+                push_text(strprintf("\"%s\"", name.c_str()));
+                comma_linebreak();
+                walk(item);
             });
-        return prepend_r_obj(make_nest(make_concat(std::move(term))));
     }
 
-    counted_t<const document_t> to_js_datum(const ql::datum_t &d) {
+    void to_js_datum(const ql::datum_t &d) {
         switch (d.get_type()) {
-        case ql::datum_t::type_t::MINVAL:
-            return prepend_r_dot(minval);
-        case ql::datum_t::type_t::MAXVAL:
-            return prepend_r_dot(maxval);
+        case ql::datum_t::type_t::MINVAL: {
+            prepend_r_dot prep(this);
+            stream.add(minval);
+            return;
+        }
+        case ql::datum_t::type_t::MAXVAL: {
+            prepend_r_dot prep(this);
+            stream.add(maxval);
+        } return;
         case ql::datum_t::type_t::R_NULL:
-            return nil;
+            stream.add(nil);
+            return;
         case ql::datum_t::type_t::R_BOOL:
-            return d.as_bool() ? true_v : false_v;
+            stream.add(d.as_bool() ? true_v : false_v);
+            return;
         case ql::datum_t::type_t::R_NUM:
-            return make_text(trunc(d.as_num()) == d.as_num()
+            push_text(trunc(d.as_num()) == d.as_num()
                              ? std::to_string(lrint(d.as_num()))
                              : std::to_string(d.as_num()));
+            return;
         case ql::datum_t::type_t::R_BINARY: {
-            std::vector<counted_t<const document_t> > args;
-            args.push_back(make_text(encode_base64(d.as_binary().data(),
-                                                   d.as_binary().size())));
-            args.push_back(comma_linebreak);
-            args.push_back(base64_str);
-            return make_c(node_buffer, lparen, make_nc(std::move(args)), rparen);
+            stream.add(node_buffer);
+            wrap<parens> paren(this);
+            nested nest(&stream);
+            push_text(encode_base64(d.as_binary().data(),
+                                           d.as_binary().size()));
+            comma_linebreak();
+            stream.add(base64_str);
+            return;
         }
         case ql::datum_t::type_t::R_STR:
-            return make_text(strprintf("\"%s\"", d.as_str().to_std().c_str()));
-        case ql::datum_t::type_t::R_ARRAY:
-        {
-            std::vector<counted_t<const document_t> > term;
+            push_text(strprintf("\"%s\"", d.as_str().to_std().c_str()));
+            return;
+        case ql::datum_t::type_t::R_ARRAY: {
+            wrap<brackets> brack(this);
+            nested nest(&stream);
+
             for (size_t i = 0; i < d.arr_size(); ++i) {
-                if (!term.empty()) { term.push_back(comma_linebreak); }
-                term.push_back(to_js_datum(d.get(i)));
+                if (i != 0) {
+                    comma_linebreak();
+                }
+                to_js_datum(d.get(i));
             }
-            return make_c(lbrack, make_nc(std::move(term)), rbrack);
+            return;
         }
-        case ql::datum_t::type_t::R_OBJECT:
-        {
-            std::vector<counted_t<const document_t> > term;
-            term.push_back(lbrace);
+        case ql::datum_t::type_t::R_OBJECT: {
+            nested nest(&stream);
+            wrap<braces> brace(this);
+
             for (size_t i = 0; i < d.obj_size(); ++i) {
-                if (i != 0) { term.push_back(comma_linebreak); }
+                if (i != 0) {
+                    comma_linebreak();
+                }
                 auto pair = d.get_pair(i);
-                term.push_back(make_nc(
-                    make_text(strprintf("\"%s\":", pair.first.to_std().c_str())),
-                    cond_linebreak,
-                    to_js_datum(pair.second)));
+                {
+                    nested nest2(&stream);
+                    push_text(strprintf("\"%s\":", pair.first.to_std().c_str()));
+                    add_cond_linebreak();
+                    to_js_datum(pair.second);
+                }
             }
-            term.push_back(rbrace);
-            return make_nest(make_concat(std::move(term)));
+
+            return;
         }
         case ql::datum_t::type_t::UNINITIALIZED: // fallthrough intentional
         default:
@@ -201,39 +234,44 @@ private:
         }
     }
 
-    counted_t<const document_t> render_optargs(const ql::raw_term_t &t) {
-        std::vector<counted_t<const document_t> > optargs;
+    void render_optargs(const ql::raw_term_t &t) {
+        wrap<braces> brace(this);
+        nested nest(&stream);
+
+        bool first = true;
         t.each_optarg([&](const ql::raw_term_t &item, const std::string &name) {
-                if (!optargs.empty()) { optargs.push_back(comma_linebreak); }
-                counted_t<const document_t> inner = make_c(make_text(
-                        strprintf("\"%s\":", to_js_name(name).c_str())),
-                    cond_linebreak,
-                    walk(item));
-                optargs.push_back(make_nest(std::move(inner)));
+                if (!first) {
+                    comma_linebreak();
+                }
+                first = false;
+
+                nested nest2(&stream);
+                push_text(strprintf("\"%s\":", to_js_name(name).c_str()));
+                add_cond_linebreak();
+                walk(item);
             });
-        return make_c(lbrace, make_nest(make_concat(std::move(optargs))), rbrace);
     }
 
     optional<ql::raw_term_t>
         visit_stringing(const ql::raw_term_t &var,
-                        std::vector<counted_t<const document_t> > *stack,
+                        std::vector<std::function<void()>> *stack,
                         bool *last_is_dot,
                         bool *last_should_r_wrap) {
-        bool insert_trailing_comma = false;
-        bool old_r_expr = in_r_expr;
         switch (static_cast<int>(var.type())) {
         case Term::BRACKET: {
             r_sanity_check(var.num_args() == 2);
-            stack->push_back(rparen);
-            in_r_expr = true;
-            if (var.num_optargs() > 0) {
-                stack->push_back(render_optargs(var));
-                stack->push_back(cond_linebreak);
-                stack->push_back(comma);
-            }
-            stack->push_back(walk(var.arg(1)));
-            in_r_expr = old_r_expr;
-            stack->push_back(lparen);
+            stack->push_back([this, var]() {
+                wrap<parens> paren(this);
+
+                with_dynamic<bool> wd(&in_r_expr, true);
+                walk(var.arg(1));
+                if (var.num_optargs() > 0) {
+                    stream.add(comma);
+                    add_cond_linebreak();
+                    render_optargs(var);
+                }
+            });
+
             *last_is_dot = false;
             *last_should_r_wrap = false;
             return make_optional(var.arg(0));
@@ -241,213 +279,319 @@ private:
         case Term::FUNCALL: {
             r_sanity_check(var.num_args() == 2);
             r_sanity_check(var.num_optargs() == 0);
-            stack->push_back(rparen);
-            in_r_expr = true;
-            stack->push_back(make_nest(walk(var.arg(0))));
-            in_r_expr = old_r_expr;
-            stack->push_back(lparen);
-            stack->push_back(do_st);
-            stack->push_back(dot_linebreak);
+
+            stack->push_back([this, var]() {
+                stream.add(do_st);
+                wrap<parens> paren(this);
+                with_dynamic<bool> wd(&in_r_expr, true);
+
+                nested nest(&stream);
+                walk(var.arg(0));
+            });
+
             *last_is_dot = true;
             *last_should_r_wrap = true;
             return make_optional(var.arg(1));
         }
-        case Term::DATUM:
-            in_r_expr = true;
-            stack->push_back(prepend_r_expr(to_js_datum(var.datum())));
-            in_r_expr = old_r_expr;
+        case Term::DATUM: {
+            stack->push_back([this, var]() {
+                with_dynamic<bool> wd(&in_r_expr, true);
+
+                prepend_r_expr_t prep(this);
+                to_js_datum(var.datum());
+            });
+
             *last_is_dot = false;
             *last_should_r_wrap = false;
             return optional<ql::raw_term_t>();
-        case Term::MAKE_OBJ:
-            in_r_expr = true;
-            stack->push_back(to_js_wrapped_object(var));
-            in_r_expr = old_r_expr;
+        }
+        case Term::MAKE_OBJ: {
+            stack->push_back([this, var]() {
+                with_dynamic<bool> wd(&in_r_expr, true);
+                to_js_wrapped_object(var);
+            });
             *last_is_dot = false;
             *last_should_r_wrap = false;
             return optional<ql::raw_term_t>();
+        }
         case Term::VAR: {
             r_sanity_check(var.num_args() == 1);
             ql::raw_term_t arg = var.arg(0);
             r_sanity_check(arg.type() == Term::DATUM);
-            stack->push_back(var_name(arg.datum()));
+
+            stack->push_back([this, arg]() {
+                var_name(arg.datum());
+            });
+
             *last_is_dot = false;
             *last_should_r_wrap = false;
             return optional<ql::raw_term_t>();
         }
-        case Term::IMPLICIT_VAR:
-            stack->push_back(row);
+        case Term::IMPLICIT_VAR: {
+            stack->push_back([this]() {
+                stream.add(row);
+            });
             *last_is_dot = false;
             *last_should_r_wrap = true;
             return optional<ql::raw_term_t>();
-        default:
-            stack->push_back(rparen);
-            in_r_expr = true;
-            if (var.num_optargs() > 0) {
-                stack->push_back(render_optargs(var));
-                insert_trailing_comma = true;
-            }
+        }
+        default: {
+            stack->push_back([this, var]() {
+                push_text(to_js_name(var));
+                wrap<parens> paren(this);
+
+                with_dynamic<bool> wd(&in_r_expr, true);
+
+                bool first = true;
+                switch (var.num_args()) {
+                case 0:
+                    break;
+                case 1:
+                    break;
+                default: {
+                    nested nest(&stream);
+
+                    for (size_t i = 1, e = var.num_args(); i < e; ++i) {
+                        if (!first) {
+                            comma_linebreak();
+                        }
+                        first = false;
+                        walk(var.arg(i));
+                    }
+                } break;
+                }
+
+                if (var.num_optargs() > 0) {
+                    if (!first) {
+                        comma_linebreak();
+                    }
+                    first = false;
+                    render_optargs(var);
+                }
+            });
+            *last_should_r_wrap = should_use_rdot(var);
             switch (var.num_args()) {
-            case 0:
-                in_r_expr = old_r_expr;
-                stack->push_back(lparen);
-                stack->push_back(make_text(to_js_name(var)));
-                *last_should_r_wrap = should_use_rdot(var);
+            case 0: {
                 *last_is_dot = false;
                 return optional<ql::raw_term_t>();
-            case 1:
-                in_r_expr = old_r_expr;
-                stack->push_back(lparen);
-                stack->push_back(make_text(to_js_name(var)));
-                stack->push_back(dot_linebreak);
+            }
+            default: {
                 *last_is_dot = true;
-                *last_should_r_wrap = should_use_rdot(var);
-                return make_optional(var.arg(0));
-            default:
-                std::vector<counted_t<const document_t> > args;
-                for (size_t i = var.num_args() - 1; i > 0; --i) {
-                    if (!args.empty()) { args.push_back(comma_linebreak); }
-                    args.push_back(walk(var.arg(i)));
-                }
-                if (insert_trailing_comma) { stack->push_back(comma_linebreak); }
-                stack->push_back(make_nest(reverse(std::move(args), false)));
-
-                in_r_expr = old_r_expr;
-                stack->push_back(lparen);
-                stack->push_back(make_text(to_js_name(var)));
-                stack->push_back(dot_linebreak);
-                *last_is_dot = true;
-                *last_should_r_wrap = should_use_rdot(var);
                 return make_optional(var.arg(0));
             }
+            }
+        }
         }
     }
 
-    counted_t<const document_t> string_dots_together(const ql::raw_term_t &t) {
-        std::vector<counted_t<const document_t> > stack;
+    void string_dots_together(const ql::raw_term_t &t) {
+        std::vector<std::function<void()>> stack;
         bool last_is_dot = false;
         bool last_should_r_wrap = false;
         optional<ql::raw_term_t> var(t);
         while (var && should_continue_string(*var)) {
+            if (last_is_dot) {
+                stack.push_back([this]() {
+                    add_dot_linebreak();
+                });
+            }
             var = visit_stringing(*var, &stack, &last_is_dot, &last_should_r_wrap);
         }
 
         if (!var) {
             if (last_should_r_wrap) {
-                return prepend_r_dot(reverse(std::move(stack), false));
+                prepend_r_dot prep(this);
+                if (last_is_dot) {
+                    add_dot_linebreak();
+                }
+                reverse(std::move(stack));
             } else {
-                return reverse(std::move(stack), false);
+                if (last_is_dot) {
+                    add_dot_linebreak();
+                }
+                reverse(std::move(stack));
             }
         } else if (should_use_rdot(*var)) {
-            bool old = prepend_ok;
-            prepend_ok = false;
-            counted_t<const document_t> subdoc = walk(*var);
-            prepend_ok = old;
-            return prepend_r_dot(make_c(subdoc, reverse(std::move(stack), false)));
+            prepend_r_dot prep(this);
+
+            {
+                with_dynamic<bool> wd(&prepend_ok, false);
+                walk(*var);
+            }
+
+            if (last_is_dot) {
+                add_dot_linebreak();
+            }
+            reverse(std::move(stack));
         } else {
-            return make_nc(walk(*var), reverse(std::move(stack), last_is_dot));
+            nested nest(&stream);
+            walk(*var);
+            if (last_is_dot) {
+                stream.add(justdot);
+            }
+            reverse(std::move(stack));
         }
     }
 
-    counted_t<const document_t>
-    reverse(std::vector<counted_t<const document_t> > stack, bool last_is_dot) {
-        // this song & dance ensures the nest starts after the punctuation.
-        if (last_is_dot) {
-            stack.pop_back();
-            stack.push_back(justdot);
+    void reverse(std::vector<std::function<void()>> &&stack) {
+        for (auto it = stack.end(), end = stack.begin(); it != end; ) {
+            --it;
+            (*it)();
         }
-        return make_concat(stack.rbegin(), stack.rend());
     }
 
-    counted_t<const document_t> toplevel_funcall(const ql::raw_term_t &t) {
+    void toplevel_funcall(const ql::raw_term_t &t) {
         r_sanity_check(t.num_args() >= 1);
         r_sanity_check(t.num_optargs() == 0);
-        std::vector<counted_t<const document_t> > term;
-        term.push_back(do_st);
-        term.push_back(lparen);
-        bool old_r_expr = in_r_expr;
-        in_r_expr = true;
-        ql::raw_term_t arg0 = t.arg(0);
-        std::vector<counted_t<const document_t> > args;
-        for (size_t i = 1; i < t.num_args(); ++i) {
-            if (!args.empty()) { args.push_back(comma_linebreak); }
-            args.push_back(walk(t.arg(i)));
+        prepend_r_dot prep(this);
+
+        stream.add(do_st);
+        stream.add(lparen);
+
+        walk(t.arg(0));
+
+        {
+            with_dynamic<bool> wd(&in_r_expr, true);
+            nested nest(&stream);
+
+            bool first = true;
+            for (size_t i = 1; i < t.num_args(); ++i) {
+                if (!first) {
+                    comma_linebreak();
+                }
+                first = false;
+                walk(t.arg(i));
+            }
+            if (!first) {
+                comma_linebreak();
+            }
+            first = false;
         }
-        if (!args.empty()) { args.push_back(comma_linebreak); }
-        in_r_expr = old_r_expr;
-        term.push_back(walk(arg0));
-        term.push_back(make_nest(make_concat(std::move(args))));
-        term.push_back(rparen);
-        return prepend_r_dot(make_concat(std::move(term)));
+
+        stream.add(rparen);
     }
 
-    counted_t<const document_t> standard_funcall(const ql::raw_term_t &t) {
-        std::vector<counted_t<const document_t> > term;
-        term.push_back(term_name(t));
-        bool old_r_expr = in_r_expr;
-        in_r_expr = true;
-        std::vector<counted_t<const document_t> > args;
+    void standard_funcall(const ql::raw_term_t &t) {
+        // One or the other.
+        object_buffer_t<prepend_r_dot> prep;
+        object_buffer_t<nested> nest;
+
+        if (should_use_rdot(t)) {
+            prep.create(this);
+        } else {
+            nest.create(&stream);
+        }
+
+        term_name(t);
+
+        with_dynamic<bool> wd(&in_r_expr, true);
+        wrap<parens> parens(this);
+
+        bool firstarg = true;
         for (size_t i = 0; i < t.num_args(); ++i) {
-            if (!args.empty()) { args.push_back(comma_linebreak); }
-            args.push_back(walk(t.arg(i)));
+            if (!firstarg) {
+                comma_linebreak();
+            }
+            firstarg = false;
+            walk(t.arg(i));
         }
         if (t.num_optargs() > 0) {
-            if (!args.empty()) { args.push_back(comma_linebreak); }
-            args.push_back(render_optargs(t));
-        }
-        term.push_back(wrap_parens(make_concat(std::move(args))));
-        in_r_expr = old_r_expr;
-        if (should_use_rdot(t)) {
-            return prepend_r_dot(make_concat(std::move(term)));
-        } else {
-            return make_nest(make_concat(std::move(term)));
+            if (!firstarg) {
+                comma_linebreak();
+            }
+            firstarg = false;
+            render_optargs(t);
         }
     }
 
-    counted_t<const document_t> standard_literal(const ql::raw_term_t &t) {
+    void standard_literal(const ql::raw_term_t &t) {
         r_sanity_check(t.num_args() == 0);
-        return prepend_r_dot(term_name(t));
+        prepend_r_dot prep(this);
+        term_name(t);
     }
 
-    counted_t<const document_t> prepend_r_dot(counted_t<const document_t> doc) {
-        if (!prepend_ok) return doc;
-        return make_c(r_st, make_nc(justdot, doc));
+    void push_text(std::string &&payload) {
+        stream.add(text_elem{std::move(payload)});
     }
 
-    counted_t<const document_t> wrap_with(counted_t<const document_t> left,
-                                          counted_t<const document_t> doc,
-                                          counted_t<const document_t> right) {
-        return make_c(left, make_nest(doc), right);
-    }
+    // Set and unset a "dynamically scoped" (sort of) variable.
+    template <class T>
+    class with_dynamic {
+        T *var_;
+        T old_;
+        DISABLE_COPYING(with_dynamic);
+    public:
+        explicit with_dynamic(T *var, T value) : var_(var), old_(*var) {
+            *var = value;
+        }
+        ~with_dynamic() {
+            *var_ = old_;
+        }
+        T old() const {
+            return old_;
+        }
+    };
 
-    counted_t<const document_t> wrap_parens(counted_t<const document_t> doc) {
-        return wrap_with(lparen, doc, rparen);
-    }
+    template <class T>
+    class wrap {
+        js_pretty_printer_t *pp_;
+        DISABLE_COPYING(wrap);
+    public:
+        explicit wrap(js_pretty_printer_t *pp) : pp_(pp) {
+            T::enter(pp);
+        }
+        ~wrap() {
+            T::exit(pp_);
+        }
+    };
 
-    counted_t<const document_t> prepend_r_expr(counted_t<const document_t> doc) {
-        return prepend_r_dot(make_c(expr, wrap_parens(doc)));
-    }
+    class prepend_r_dot {
+        object_buffer_t<nested> nested_;
+        DISABLE_COPYING(prepend_r_dot);
+    public:
+        explicit prepend_r_dot(js_pretty_printer_t *pp) {
+            if (pp->prepend_ok) {
+                pp->stream.add(r_st);
+                nested_.create(&pp->stream);
+                pp->stream.add(justdot);
+            }
+        }
+    };
 
-    counted_t<const document_t> prepend_r_obj(counted_t<const document_t> doc) {
-        return prepend_r_dot(make_c(object, wrap_parens(doc)));
-    }
+    struct parens {
+        static void enter(js_pretty_printer_t *pp) { pp->stream.add(lparen); }
+        static void exit(js_pretty_printer_t *pp) { pp->stream.add(rparen); }
+    };
 
-    template <typename... Ts>
-    counted_t<const document_t> make_nc(Ts &&... docs) {
-        return make_nest(make_concat({std::forward<Ts>(docs)...}));
-    }
+    struct brackets {
+        static void enter(js_pretty_printer_t *pp) { pp->stream.add(lbracket); }
+        static void exit(js_pretty_printer_t *pp) { pp->stream.add(rbracket); }
+    };
 
-    template <typename... Ts>
-    counted_t<const document_t> make_c(Ts &&... docs) {
-        return make_concat({std::forward<Ts>(docs)...});
-    }
+    struct braces {
+        static void enter(js_pretty_printer_t *pp) { pp->stream.add(lbrace); }
+        static void exit(js_pretty_printer_t *pp) { pp->stream.add(rbrace); }
+    };
 
-    counted_t<const document_t> term_name(const ql::raw_term_t &t) {
+    class prepend_r_expr_t {
+        prepend_r_dot r_dot_;
+        object_buffer_t<wrap<parens>> parens_;
+    public:
+        explicit prepend_r_expr_t(js_pretty_printer_t *pp)
+            : r_dot_(pp) {
+            pp->stream.add(expr);
+            parens_.create(pp);
+        }
+    };
+
+    void term_name(const ql::raw_term_t &t) {
         switch (static_cast<int>(t.type())) {
         case Term::JAVASCRIPT:
-            return js;
+            stream.add(js);
+            break;
         default:
-            return make_text(to_js_name(t));
+            push_text(to_js_name(t));
+            break;
         }
     }
 
@@ -569,107 +713,131 @@ private:
         }
     }
 
-    counted_t<const document_t> var_name(const ql::datum_t &d) {
-        return make_text(print_var(lrint(d.as_num())));
+    void var_name(const ql::datum_t &d) {
+        push_text(print_var(lrint(d.as_num())));
     }
 
-    counted_t<const document_t> to_js_func(const ql::raw_term_t &t) {
+    void to_js_func(const ql::raw_term_t &t) {
         r_sanity_check(t.type() == Term::FUNC);
         r_sanity_check(t.num_args() == 2);
-        counted_t<const document_t> arglist;
-        ql::raw_term_t arg0 = t.arg(0);
-        if (arg0.type() == Term::MAKE_ARRAY) {
-            std::vector<counted_t<const document_t> > args;
-            for (size_t i = 0; i < arg0.num_args(); ++i) {
-                ql::raw_term_t item = arg0.arg(i);
-                if (!args.empty()) { args.push_back(comma_linebreak); }
-                r_sanity_check(item.type() == Term::DATUM);
-                ql::datum_t d = item.datum();
-                r_sanity_check(d.get_type() == ql::datum_t::type_t::R_NUM);
-                args.push_back(var_name(d));
+
+        nested nest(&stream);
+        stream.add(lambda_1);
+        {
+            nested nest2(&stream);
+            stream.add(lambda_2);
+            stream.add(sp);
+
+            ql::raw_term_t arg0 = t.arg(0);
+            if (arg0.type() == Term::MAKE_ARRAY) {
+                wrap<parens> paren(this);
+                nested nest_args(&stream);
+                for (size_t i = 0; i < arg0.num_args(); ++i) {
+                    ql::raw_term_t item = arg0.arg(i);
+                    if (i != 0) {
+                        comma_linebreak();
+                    }
+                    r_sanity_check(item.type() == Term::DATUM);
+                    ql::datum_t d = item.datum();
+                    r_sanity_check(d.get_type() == ql::datum_t::type_t::R_NUM);
+                    var_name(d);
+                }
+
+            } else if (arg0.type() == Term::DATUM &&
+                       arg0.datum().get_type() == ql::datum_t::type_t::R_ARRAY) {
+                wrap<parens> paren(this);
+                nested nest_args(&stream);
+                ql::datum_t d = arg0.datum();
+                for (size_t i = 0; i < d.arr_size(); ++i) {
+                    if (i != 0) {
+                        comma_linebreak();
+                    }
+                    var_name(d.get(i));
+                }
+
+            } else {
+                walk(arg0);
             }
-            arglist = make_c(lparen, make_nest(make_concat(std::move(args))), rparen);
-        } else if (arg0.type() == Term::DATUM &&
-                   arg0.datum().get_type() == ql::datum_t::type_t::R_ARRAY) {
-            ql::datum_t d = arg0.datum();
-            std::vector<counted_t<const document_t> > args;
-            for (size_t i = 0; i < d.arr_size(); ++i) {
-                if (!args.empty()) { args.push_back(comma_linebreak); }
-                args.push_back(var_name(d.get(i)));
+            stream.add(sp);
+            stream.add(lbrace);
+            stream.add_crlf();
+
+            with_dynamic<bool> wd(&in_r_expr, true);
+
+            stream.add(return_st);
+            stream.add(sp);
+            {
+                nested nest_body(&stream);
+                walk(t.arg(1));
             }
-            arglist = make_c(lparen, make_nest(make_concat(std::move(args))), rparen);
-        } else {
-            arglist = walk(arg0);
+            stream.add(semicolon);
         }
-        bool old_r_expr = in_r_expr;
-        in_r_expr = false;
-        counted_t<const document_t> body =
-            make_c(return_st,
-                   sp,
-                   make_nest(walk(t.arg(1))),
-                   semicolon);
-        in_r_expr = old_r_expr;
-        return make_nc(lambda_1,
-                       make_nc(lambda_2,
-                               sp,
-                               std::move(arglist),
-                               sp,
-                               lbrace,
-                               uncond_linebreak,
-                               std::move(body)),
-                       uncond_linebreak,
-                       rbrace);
+        stream.add_crlf();
+        stream.add(rbrace);
     }
 
-    static counted_t<const document_t> lparen, rparen, lbrack, rbrack, lbrace, rbrace;
-    static counted_t<const document_t> colon, quote, sp, justdot, dotdotdot, comma;
-    static counted_t<const document_t> nil, minval, maxval, true_v, false_v, r_st, json;
-    static counted_t<const document_t> row, do_st, return_st, lambda_1, lambda_2, expr;
-    static counted_t<const document_t> object, js, node_buffer, base64_str, semicolon;
-    static counted_t<const document_t> comma_linebreak;
+    void comma_linebreak() {
+        stream.add(comma);
+        add_cond_linebreak();
+    }
+
+    void add_cond_linebreak() {
+        stream.add(cond_elem_spec{" ", "", ""});
+    }
+
+    void add_dot_linebreak() {
+        stream.add(cond_elem_spec{".", ".", ""});
+    }
+
+
+
+    static text_elem lparen, rparen, lbracket, rbracket, lbrace, rbrace;
+    static text_elem colon, quote, sp, justdot, dotdotdot, comma;
+    static text_elem nil, minval, maxval, true_v, false_v, r_st, json;
+    static text_elem row, do_st, return_st, lambda_1, lambda_2, expr;
+    static text_elem object, js, node_buffer, base64_str, semicolon;
 
     static const unsigned int MAX_DEPTH = 15;
 };
 
-counted_t<const document_t> js_pretty_printer_t::lparen = make_text("(");
-counted_t<const document_t> js_pretty_printer_t::rparen = make_text(")");
-counted_t<const document_t> js_pretty_printer_t::lbrack = make_text("[");
-counted_t<const document_t> js_pretty_printer_t::rbrack = make_text("]");
-counted_t<const document_t> js_pretty_printer_t::lbrace = make_text("{");
-counted_t<const document_t> js_pretty_printer_t::rbrace = make_text("}");
-counted_t<const document_t> js_pretty_printer_t::colon = make_text(":");
-counted_t<const document_t> js_pretty_printer_t::semicolon = make_text(";");
-counted_t<const document_t> js_pretty_printer_t::comma = make_text(",");
-counted_t<const document_t> js_pretty_printer_t::justdot = make_text(".");
-counted_t<const document_t> js_pretty_printer_t::dotdotdot = make_text("...");
-counted_t<const document_t> js_pretty_printer_t::nil = make_text("null");
-counted_t<const document_t> js_pretty_printer_t::minval = make_text("minval");
-counted_t<const document_t> js_pretty_printer_t::maxval = make_text("maxval");
-counted_t<const document_t> js_pretty_printer_t::true_v = make_text("true");
-counted_t<const document_t> js_pretty_printer_t::false_v = make_text("false");
-counted_t<const document_t> js_pretty_printer_t::sp = make_text(" ");
-counted_t<const document_t> js_pretty_printer_t::quote = make_text("\"");
-counted_t<const document_t> js_pretty_printer_t::r_st = make_text("r");
-counted_t<const document_t> js_pretty_printer_t::json = make_text("json");
-counted_t<const document_t> js_pretty_printer_t::row = make_text("row");
-counted_t<const document_t> js_pretty_printer_t::return_st = make_text("return");
-counted_t<const document_t> js_pretty_printer_t::do_st = make_text("do");
-counted_t<const document_t> js_pretty_printer_t::lambda_1 = make_text("func");
-counted_t<const document_t> js_pretty_printer_t::lambda_2 = make_text("tion");
-counted_t<const document_t> js_pretty_printer_t::expr = make_text("expr");
-counted_t<const document_t> js_pretty_printer_t::object = make_text("object");
-counted_t<const document_t> js_pretty_printer_t::js = make_text("js");
-counted_t<const document_t> js_pretty_printer_t::node_buffer = make_text("Buffer");
-counted_t<const document_t> js_pretty_printer_t::base64_str = make_text("'base64'");
-counted_t<const document_t> js_pretty_printer_t::comma_linebreak =
-    make_concat({js_pretty_printer_t::comma, make_cond(" ", "", "")});
+text_elem js_pretty_printer_t::lparen{"("};
+text_elem js_pretty_printer_t::rparen{")"};
+text_elem js_pretty_printer_t::lbracket{"["};
+text_elem js_pretty_printer_t::rbracket{"]"};
+text_elem js_pretty_printer_t::lbrace{"{"};
+text_elem js_pretty_printer_t::rbrace{"}"};
+text_elem js_pretty_printer_t::colon{":"};
+text_elem js_pretty_printer_t::semicolon{";"};
+text_elem js_pretty_printer_t::comma{","};
+text_elem js_pretty_printer_t::justdot{"."};
+text_elem js_pretty_printer_t::dotdotdot{"..."};
+text_elem js_pretty_printer_t::nil{"nil"};
+text_elem js_pretty_printer_t::minval{"minval"};
+text_elem js_pretty_printer_t::maxval{"maxval"};
+text_elem js_pretty_printer_t::true_v{"true"};
+text_elem js_pretty_printer_t::false_v{"false"};
+text_elem js_pretty_printer_t::sp{" "};
+text_elem js_pretty_printer_t::quote{"\""};
+text_elem js_pretty_printer_t::r_st{"r"};
+text_elem js_pretty_printer_t::json{"json"};
+text_elem js_pretty_printer_t::row{"row"};
+text_elem js_pretty_printer_t::return_st{"return"};
+text_elem js_pretty_printer_t::do_st{"do"};
+text_elem js_pretty_printer_t::lambda_1{"func"};
+text_elem js_pretty_printer_t::lambda_2{"tion"};
+text_elem js_pretty_printer_t::expr{"expr"};
+text_elem js_pretty_printer_t::object{"object"};
+text_elem js_pretty_printer_t::js{"js"};
+text_elem js_pretty_printer_t::node_buffer{"Buffer"};
+text_elem js_pretty_printer_t::base64_str{"'base64'"};
 
-counted_t<const document_t> render_as_javascript(const ql::raw_term_t &t) {
-    return js_pretty_printer_t().walk(t);
+std::string pretty_print_as_js(size_t width, const ql::raw_term_t &t) {
+    js_pretty_printer_t pp;
+    pp.walk(t);
+    return pretty_print(width, std::move(pp).elems());
 }
 
-} // namespace pprint
-
+#ifndef NDEBUG
 
 // This function is not called by anything nor should it ever be
 // exported from this file.  Its sole reason for existence is to
@@ -904,3 +1072,8 @@ static void pprint_update_reminder() {
         break;
     }
 }
+
+#endif  // NDEBUG
+
+} // namespace pprint
+

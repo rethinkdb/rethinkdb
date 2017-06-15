@@ -87,7 +87,8 @@ void jobs_manager_t::on_get_job_reports(
                         continue;
                     }
 
-                    auto render = pprint::render_as_javascript(
+                    std::string render = pprint::pretty_print_as_js(
+                        printed_query_columns,
                         pair.second->term_storage->root_term());
 
                     query_job_reports_inner.emplace_back(
@@ -95,7 +96,7 @@ void jobs_manager_t::on_get_job_reports(
                         time - std::min(pair.second->start_time, time),
                         server_id,
                         query_cache->get_client_addr_port(),
-                        pretty_print(printed_query_columns, render),
+                        std::move(render),
                         query_cache->get_user_context());
                 }
             }

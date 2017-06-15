@@ -280,7 +280,7 @@ std::string reql_func_t::print_source() const {
         ret += pprint::print_var(arg_names[i].value);
     }
     ret += "]) ";
-    ret += pprint::pretty_print(80, pprint::render_as_javascript(body->get_src()));
+    ret += pprint::pretty_print_as_js(80, body->get_src());
     return ret;
 }
 
@@ -297,7 +297,7 @@ std::string reql_func_t::print_js_function() const {
         ret += pprint::print_var(arg_names[i].value);
     }
     ret += ") { return ";
-    ret += pprint::pretty_print(80, pprint::render_as_javascript(body->get_src()));
+    ret += pprint::pretty_print_as_js(80, body->get_src());
     ret += "; }";
     return ret;
 }
