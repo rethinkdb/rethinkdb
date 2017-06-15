@@ -1083,13 +1083,13 @@ private:
     void make_empty(const scoped_ptr_t<current_test_acq_t> &acq) {
         test_acq_t page_acq;
         page_acq.init(acq->current_page_for_write(), c);
-        const uint32_t n = page_acq.get_buf_size().value();
+        const uint16_t n = page_acq.get_buf_size().value();
         ASSERT_EQ(4088u, n);
         memset(page_acq.get_buf_write(), 0, n);
     }
 
     void check_page_acq(page_acq_t *page_acq, const std::string &expected) {
-        const uint32_t n = page_acq->get_buf_size().value();
+        const uint16_t n = page_acq->get_buf_size().value();
         ASSERT_EQ(4088u, n);
         const char *const p = static_cast<const char *>(page_acq->get_buf_read());
 

@@ -61,25 +61,25 @@ public:
     // things could call value() instead of ser_value() or vice versa.
 
     // The "block size" (in bytes) used by things above the serializer.
-    uint32_t value() const {
+    uint16_t value() const {
         rassert(ser_bs_ != 0);
         return ser_bs_ - sizeof(ls_buf_data_t);
     }
 
     // The "block size" (in bytes) used by things in the serializer.
-    uint32_t ser_value() const {
+    uint16_t ser_value() const {
         rassert(ser_bs_ != 0);
         return ser_bs_;
     }
 
-    static block_size_t make_from_cache(uint32_t cache_block_size) {
+    static block_size_t make_from_cache(uint16_t cache_block_size) {
         return block_size_t(cache_block_size + sizeof(ls_buf_data_t));
     }
 
     // Avoid using this function.  We want there to be a small
     // number of uses so that we can be sure it's impossible to pass
     // the wrong value as a block_size_t.
-    static block_size_t unsafe_make(uint32_t ser_bs) {
+    static block_size_t unsafe_make(uint16_t ser_bs) {
         return block_size_t(ser_bs);
     }
 
@@ -89,18 +89,18 @@ public:
     }
 
 protected:
-    explicit block_size_t(uint32_t ser_bs) : ser_bs_(ser_bs) { }
+    explicit block_size_t(uint16_t ser_bs) : ser_bs_(ser_bs) { }
 
 private:
-    uint32_t ser_bs_;
+    uint16_t ser_bs_;
 };
 
 // For use in compile-time constants
-template<uint32_t ser_size> struct from_ser_block_size_t {
-    static const uint32_t cache_size = ser_size - sizeof(ls_buf_data_t);
+template<uint16_t ser_size> struct from_ser_block_size_t {
+    static const uint16_t cache_size = ser_size - sizeof(ls_buf_data_t);
 };
-template<uint32_t cache_size> struct from_cache_block_size_t {
-    static const uint32_t ser_size = cache_size + sizeof(ls_buf_data_t);
+template<uint16_t cache_size> struct from_cache_block_size_t {
+    static const uint16_t ser_size = cache_size + sizeof(ls_buf_data_t);
 };
 
 inline bool operator==(block_size_t x, block_size_t y) {
@@ -116,7 +116,7 @@ public:
     using block_size_t::value;
     using block_size_t::ser_value;
 
-    static max_block_size_t unsafe_make(uint32_t ser_bs) {
+    static max_block_size_t unsafe_make(uint16_t ser_bs) {
         CT_ASSERT(sizeof(block_size_t) == sizeof(max_block_size_t));
         return max_block_size_t(ser_bs);
     }

@@ -58,10 +58,12 @@ const microtime_t GC_YOUNG_EXTENT_TIMELIMIT_MICROS = 50000;
 class gc_entry_t : public intrusive_list_node_t<gc_entry_t> {
 private:
     struct block_info_t {
-        uint32_t relative_offset;
+        // 512 * 2^14 = 2^23 = 8MB. Assumes extent size < 8 MB.  Right now extent size
+        // is 2.  ("dblocks" = "device blocks").
+        uint16_t relative_offset_in_dblocks : 14;
+        uint16_t token_referenced : 1;
+        uint16_t index_referenced : 1;
         block_size_t block_size;
-        bool token_referenced;
-        bool index_referenced;
     };
 
 public:
@@ -75,6 +77,7 @@ public:
           garbage_bytes_stat(_parent->static_config->extent_size()),
           num_live_blocks_stat(0),
           extent_offset(extent_ref.offset()) {
+        static_assert(sizeof(block_info_t) == 4, "block_info_t not 4 bytes");
         add_self_to_parent_entries();
     }
 
@@ -112,7 +115,7 @@ public:
 
         std::vector<uint32_t> ret;
         for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
-            ret.push_back(it->relative_offset);
+            ret.push_back(it->relative_offset_in_dblocks * DEVICE_BLOCK_SIZE);
         }
 
         ret.push_back(back_relative_offset());
@@ -124,7 +127,7 @@ public:
     uint32_t back_relative_offset() const {
         return block_infos.empty()
             ? 0
-            : block_infos.back().relative_offset
+            : (block_infos.back().relative_offset_in_dblocks * DEVICE_BLOCK_SIZE)
             + aligned_value(block_infos.back().block_size);
     }
 
@@ -140,7 +143,7 @@ public:
     uint32_t relative_offset(unsigned int _block_index) const {
         guarantee(state != state_reconstructing);
         guarantee(_block_index < block_infos.size());
-        return block_infos[_block_index].relative_offset;
+        return block_infos[_block_index].relative_offset_in_dblocks * DEVICE_BLOCK_SIZE;
     }
 
     unsigned int block_index(int64_t offset) const {
@@ -170,13 +173,13 @@ public:
         } else {
             *relative_offset_out = offset;
             *block_index_out = block_infos.size();
-            block_infos.push_back(block_info_t{offset, _block_size, false, false});
+            block_infos.push_back(block_info_t{static_cast<uint16_t>(offset / DEVICE_BLOCK_SIZE), false, false, _block_size});
             update_stats(nullptr, &block_infos.back());
             return true;
         }
     }
 
-    static uint32_t aligned_value(block_size_t bs) {
+    static uint16_t aligned_value(block_size_t bs) {
         return ceil_aligned(bs.ser_value(), DEVICE_BLOCK_SIZE);
     }
 
@@ -228,15 +231,16 @@ public:
         return b;
     }
 
-    static bool info_less(const block_info_t &info, uint32_t relative_offset) {
-        return info.relative_offset < relative_offset;
+    static bool info_less(const block_info_t &info, uint32_t relative_offset_in_dblocks) {
+        return info.relative_offset_in_dblocks < relative_offset_in_dblocks;
     }
 
     std::vector<block_info_t>::const_iterator
     find_lower_bound_iter(uint32_t _relative_offset) const {
+        rassert(divides(DEVICE_BLOCK_SIZE, _relative_offset));
         return std::lower_bound(block_infos.begin(),
                                 block_infos.end(),
-                                _relative_offset,
+                                _relative_offset / DEVICE_BLOCK_SIZE,
                                 &gc_entry_t::info_less);
     }
 
@@ -247,14 +251,14 @@ public:
 
         auto it = find_lower_bound_iter(_relative_offset);
         if (it == block_infos.end()) {
-            block_infos.push_back(block_info_t{_relative_offset, _block_size, false, true});
+            block_infos.push_back(block_info_t{static_cast<uint16_t>(_relative_offset / DEVICE_BLOCK_SIZE), false, true, _block_size});
             update_stats(nullptr, &block_infos.back());
-        } else if (it->relative_offset > _relative_offset) {
-            guarantee(it->relative_offset >= _relative_offset + aligned_value(_block_size));
-            auto new_block = block_infos.insert(it, block_info_t{_relative_offset, _block_size, false, true});
+        } else if (it->relative_offset_in_dblocks * DEVICE_BLOCK_SIZE > _relative_offset) {
+            guarantee(it->relative_offset_in_dblocks * DEVICE_BLOCK_SIZE >= _relative_offset + aligned_value(_block_size));
+            auto new_block = block_infos.insert(it, block_info_t{static_cast<uint16_t>(_relative_offset / DEVICE_BLOCK_SIZE), false, true, _block_size});
             update_stats(nullptr, &*new_block);
         } else {
-            guarantee(it->relative_offset == _relative_offset);
+            guarantee(it->relative_offset_in_dblocks * DEVICE_BLOCK_SIZE == _relative_offset);
             guarantee(it->block_size == _block_size);
             const block_info_t old_info = *it;
             it->index_referenced = true;
@@ -294,22 +298,28 @@ public:
         const int64_t offset = extent_ref.offset();
         std::string ret;
         for (auto it = block_infos.begin(); it != block_infos.end(); ++it) {
-            ret += strprintf("%s[%" PRIi64 "..+%" PRIu32 ") %c%c",
+            ret += strprintf("%s[%" PRIi64 "..+%" PRIu16 ") %c%c",
                              it == block_infos.begin() ? "" : separator,
-                             offset + it->relative_offset, it->block_size.ser_value(),
+                             offset + it->relative_offset_in_dblocks * DEVICE_BLOCK_SIZE,
+                             it->block_size.ser_value(),
                              it->token_referenced ? 'T' : ' ',
                              it->index_referenced ? 'I' : ' ');
         }
         return ret;
     }
 
+    void shrink_to_fit() {
+        block_infos.shrink_to_fit();
+    }
+
 private:
     // Private because we cannot guarantee that our stats remain consistent if somebody
     // gets a non-const iterator.
     std::vector<block_info_t>::iterator find_lower_bound_iter(uint32_t _relative_offset) {
+        rassert(divides(DEVICE_BLOCK_SIZE, _relative_offset));
         return std::lower_bound(block_infos.begin(),
                                 block_infos.end(),
-                                _relative_offset,
+                                _relative_offset / DEVICE_BLOCK_SIZE,
                                 &gc_entry_t::info_less);
     }
 
@@ -477,6 +487,7 @@ void data_block_manager_t::start_existing(
 
         guarantee(entry->state == gc_entry_t::state_reconstructing);
         entry->state = gc_entry_t::state_old;
+        entry->shrink_to_fit();
 
         entry->our_pq_entry = gc_pq.push(entry);
 
@@ -493,7 +504,7 @@ void data_block_manager_t::start_existing(
 // block_boundaries() value.  Outputs an interval that is _NOT_ fit to device block
 // size boundaries.  This is used by read_ahead_offset_and_size.
 void unaligned_read_ahead_interval(const int64_t block_offset,
-                                   const uint32_t ser_block_size,
+                                   const uint16_t ser_block_size,
                                    const int64_t extent_size,
                                    const int64_t read_ahead_size,
                                    const std::vector<uint32_t> &boundaries,
@@ -540,7 +551,7 @@ void unaligned_read_ahead_interval(const int64_t block_offset,
 // ser_block_size_in) interval.  boundaries is the extent's gc_entry_t's
 // block_boundaries() value.
 void read_ahead_interval(const int64_t block_offset,
-                         const uint32_t ser_block_size,
+                         const uint16_t ser_block_size,
                          const int64_t extent_size,
                          const int64_t read_ahead_size,
                          const int64_t device_block_size,
@@ -558,7 +569,7 @@ void read_ahead_interval(const int64_t block_offset,
 }
 
 void read_ahead_offset_and_size(int64_t off_in,
-                                int64_t ser_block_size_in,
+                                uint16_t ser_block_size_in,
                                 int64_t extent_size,
                                 const std::vector<uint32_t> &boundaries,
                                 int64_t *offset_out, int64_t *size_out) {
@@ -588,7 +599,7 @@ public:
 
     static void perform_read_ahead(data_block_manager_t *const parent,
                                    const int64_t off_in,
-                                   const uint32_t ser_block_size_in,
+                                   const uint16_t ser_block_size_in,
                                    void *const buf_out,
                                    file_account_t *const io_account,
                                    log_serializer_stats_t *const stats) {
@@ -1447,6 +1458,7 @@ data_block_manager_t::gimme_some_new_offsets(const std::vector<buf_write_info_t>
                 destroy_entry(old_active_extent);
             } else {
                 active_extent->state = gc_entry_t::state_young;
+                active_extent->shrink_to_fit();
                 young_extent_queue.push_back(active_extent);
                 mark_unyoung_entries();
                 active_extent = new gc_entry_t(this);

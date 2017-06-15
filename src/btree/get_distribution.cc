@@ -17,7 +17,7 @@ public:
     void read_stat_block(buf_lock_t *stat_block) {
         guarantee (stat_block != nullptr);
         buf_read_t read(stat_block);
-        uint32_t sb_size;
+        uint16_t sb_size;
         const btree_statblock_t *sb_data =
             static_cast<const btree_statblock_t *>(read.get_data_read(&sb_size));
         guarantee(sb_size == BTREE_STATBLOCK_SIZE);

@@ -43,7 +43,7 @@ public:
 
     // These return individual fields of get_block_info.
     flagged_off64_t get_block_offset(block_id_t block);
-    uint32_t get_ser_block_size(block_id_t block);
+    uint16_t get_ser_block_size(block_id_t block);
     block_size_t get_block_size(block_id_t block);
     repli_timestamp_t get_block_recency(block_id_t block);
     segmented_vector_t<repli_timestamp_t> get_block_recencies(block_id_t first,
@@ -61,7 +61,7 @@ public:
 #endif
 
     void set_block_info(block_id_t block, repli_timestamp_t recency,
-                        flagged_off64_t offset, uint32_t ser_block_size,
+                        flagged_off64_t offset, uint16_t ser_block_size,
                         file_account_t *io_account,
                         extent_transaction_t *txn);
 

@@ -22,6 +22,6 @@ ser_buffer_t *convert_buffer_cache_buf_to_ser_buffer(const void *buf) {
 }
 
 void debug_print(printf_buffer_t *buf, const buf_write_info_t &info) {
-    buf->appendf("bwi{buf=%p, size=%" PRIu32 ", id=%" PRIu64 "}",
+    buf->appendf("bwi{buf=%p, size=%" PRIu16 ", id=%" PRIu64 "}",
                  info.buf, info.block_size.ser_value(), info.block_id);
 }
