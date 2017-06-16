@@ -1,21 +1,16 @@
 
-version=7.40.0
+version=7.54.1
 
 src_url=http://curl.haxx.se/download/curl-$version.tar.bz2
-src_url_sha1=1446603f4df89b6d1cafc4d6a8617c892651b3ff
+src_url_sha1=f5193316e4b5ff23505cb09bc946763d35d02cd6
 
 pkg_configure () {
     local prefix
     prefix="$(niceabspath "$install_dir")"
-    local ssl_command
-    ssl_command="--with-ssl"
-    if [[ "$OS" = "Darwin" ]]; then
-        ssl_command="--with-darwinssl --without-ssl"
-    fi
     if [[ "$CROSS_COMPILING" = 1 ]]; then
         configure_flags="--host=$($CXX -dumpmachine)"
     fi
-    in_dir "$build_dir" ./configure --prefix="$prefix" --without-gnutls $ssl_command --without-librtmp --disable-ldap --disable-shared ${configure_flags:-}
+    in_dir "$build_dir" ./configure --prefix="$prefix" --without-gnutls --with-ssl --without-nghttp2 --without-librtmp --disable-ldap --disable-shared ${configure_flags:-}
 }
 
 pkg_install-include () {
