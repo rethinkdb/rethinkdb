@@ -1,8 +1,8 @@
 
-version=7.40.0
+version=7.54.1
 
 src_url=http://curl.haxx.se/download/curl-$version.tar.bz2
-src_url_sha1=1446603f4df89b6d1cafc4d6a8617c892651b3ff
+src_url_sha1=f5193316e4b5ff23505cb09bc946763d35d02cd6
 
 pkg_configure () {
     local prefix
@@ -10,7 +10,7 @@ pkg_configure () {
     local ssl_command
     ssl_command="--with-ssl"
     if [[ "$OS" = "Darwin" ]]; then
-        ssl_command="--with-darwinssl --without-ssl"
+        ssl_command="--with-darwinssl --without-ssl --without-nghttp2"
     fi
     if [[ "$CROSS_COMPILING" = 1 ]]; then
         configure_flags="--host=$($CXX -dumpmachine)"
