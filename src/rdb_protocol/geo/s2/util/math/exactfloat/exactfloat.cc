@@ -74,34 +74,34 @@ inline static void BN_ext_set_uint64(BIGNUM* bn, uint64 v) {
 // Return the absolute value of a BIGNUM as a 64-bit unsigned integer.
 // Requires that BIGNUM fits into 64 bits.
 inline static uint64 BN_ext_get_uint64(const BIGNUM* bn) {
-  DCHECK_LE(BN_num_bytes(bn), static_cast<int>(sizeof(uint64)));
-#if BN_BITS2 == 64
-  return BN_get_word(bn);
-#else
-  COMPILE_ASSERT(BN_BITS2 == 32, at_least_32_bit_openssl_build_needed);
-  if (bn->top == 0) return 0;
-  if (bn->top == 1) return BN_get_word(bn);
-  DCHECK_EQ(bn->top, 2);
-  return (static_cast<uint64>(bn->d[1]) << 32) + bn->d[0];
-#endif
+  int num_bytes = BN_num_bytes(bn);
+  DCHECK_LE(num_bytes, 8);
+
+  std::unique_ptr<unsigned char[]> buf(new unsigned char[num_bytes]);
+  int res = BN_bn2bin(bn, buf.get());
+  DCHECK_EQ(num_bytes, res);
+
+  uint64_t ret = 0;
+  for (int i = 0; i < res; ++i) {
+      ret = ret * 256;
+      ret += buf[i];
+  }
+
+  return ret;
 }
 
 // Count the number of low-order zero bits in the given BIGNUM (ignoring its
 // sign).  Returns 0 if the argument is zero.
 static int BN_ext_count_low_zero_bits(const BIGNUM* bn) {
-  int count = 0;
-  for (int i = 0; i < bn->top; ++i) {
-    BN_ULONG w = bn->d[i];
-    if (w == 0) {
-      count += 8 * sizeof(BN_ULONG);
-    } else {
-      for (; (w & 1) == 0; w >>= 1) {
-        ++count;
+  int num_bytes = BN_num_bytes(bn);
+  for (int i = 0; i < num_bytes * 8; ++i) {
+      if (BN_is_bit_set(bn, i)) {
+          return i;
       }
-      break;
-    }
   }
-  return count;
+  // They're all zero.  What now?  Just going to treat this as if BN_num_bytes had been
+  // zero in any case.
+  return 0;
 }
 
 ExactFloat::ExactFloat(double v) : bn_(make_BN_new()) {
