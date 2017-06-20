@@ -96,8 +96,9 @@
 
 #include <math.h>
 #include <limits.h>
-#include <iostream>
 
+#include <iostream>
+#include <memory>
 #include <string>
 
 #include <openssl/bn.h>
@@ -106,6 +107,10 @@
 #include "rdb_protocol/geo/s2/base/integral_types.h"
 
 namespace geo {
+
+struct BIGNUM_deleter {
+  void operator()(BIGNUM *b) { BN_free(b); }
+};
 
 class ExactFloat {
  public:
@@ -499,7 +504,7 @@ class ExactFloat {
   //  - bn_exp_ is the base-2 exponent applied to bn_.
   int32 sign_;
   int32 bn_exp_;
-  BIGNUM bn_;
+  std::unique_ptr<BIGNUM, BIGNUM_deleter> bn_;
 
   // A standard IEEE "double" has a 53-bit mantissa consisting of a 52-bit
   // fraction plus an implicit leading "1" bit.
@@ -555,16 +560,18 @@ class ExactFloat {
   static ExactFloat Unimplemented();
 };
 
+inline std::unique_ptr<BIGNUM, BIGNUM_deleter> make_BN_new() {
+  std::unique_ptr<BIGNUM, BIGNUM_deleter> ret(BN_new(), BIGNUM_deleter{});
+  guarantee(ret.get() != nullptr);
+  return ret;
+}
+
 /////////////////////////////////////////////////////////////////////////
 // Implementation details follow:
 
-inline ExactFloat::ExactFloat() : sign_(1), bn_exp_(kExpZero) {
-  BN_init(&bn_);
-}
+inline ExactFloat::ExactFloat() : sign_(1), bn_exp_(kExpZero), bn_(make_BN_new()) {}
 
-inline ExactFloat::~ExactFloat() {
-  BN_free(&bn_);
-}
+inline ExactFloat::~ExactFloat() {}
 
 inline bool ExactFloat::is_zero() const { return bn_exp_ == kExpZero; }
 inline bool ExactFloat::is_inf() const { return bn_exp_ == kExpInfinity; }
@@ -600,6 +607,10 @@ inline ExactFloat ExactFloat::CopyWithSign(int sign) const {
   r.sign_ = sign;
   return r;
 }
+
+void BN_ext_set_uint64(BIGNUM *bn, uint64 v);
+uint64 BN_ext_get_uint64(const BIGNUM *bn);
+int BN_ext_count_low_zero_bits(const BIGNUM *bn);
 
 }  // namespace geo
 
