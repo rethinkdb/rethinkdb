@@ -96,8 +96,9 @@
 
 #include <math.h>
 #include <limits.h>
-#include <iostream>
 
+#include <iostream>
+#include <memory>
 #include <string>
 
 #include <openssl/bn.h>
