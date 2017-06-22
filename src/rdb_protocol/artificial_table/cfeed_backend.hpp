@@ -38,7 +38,7 @@ protected:
                 auth::user_context_t const &user_context)
             : ql::changefeed::artificial_t(table_id, name_resolver),
               m_user_context(user_context),
-              last_subscriber_time(current_microtime()) {
+              last_subscriber_time(get_kiloticks()) {
         }
         virtual ~machinery_t() { }
 
@@ -71,7 +71,7 @@ protected:
         void maybe_remove();
         /* If we don't have any subscribers, this is the time the last one disconnected.
         */
-        microtime_t last_subscriber_time;
+        kiloticks_t last_subscriber_time;
     };
 
     cfeed_artificial_table_backend_t(
