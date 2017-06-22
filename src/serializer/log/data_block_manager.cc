@@ -49,7 +49,7 @@ constexpr double GC_HIGH_RATIO = 0.3;
 // What's the maximum number of "young" extents we can have?
 const size_t GC_YOUNG_EXTENT_MAX_SIZE = 50;
 // What's the definition of a "young" extent in microseconds?
-const microtime_t GC_YOUNG_EXTENT_TIMELIMIT_MICROS = 50000;
+const kiloticks_t GC_YOUNG_EXTENT_TIMELIMIT = { 50000 };
 
 
 // Identifies an extent, the time we started writing to the
@@ -71,7 +71,7 @@ public:
     explicit gc_entry_t(data_block_manager_t *_parent)
         : parent(_parent),
           extent_ref(parent->extent_manager->gen_extent()),
-          timestamp(current_microtime()),
+          timestamp(get_kiloticks()),
           was_written(false),
           state(state_active),
           garbage_bytes_stat(_parent->static_config->extent_size()),
@@ -86,7 +86,7 @@ public:
     gc_entry_t(data_block_manager_t *_parent, int64_t _offset)
         : parent(_parent),
           extent_ref(parent->extent_manager->reserve_extent(_offset)),
-          timestamp(current_microtime()),
+          timestamp(get_kiloticks()),
           was_written(false),
           state(state_reconstructing),
           garbage_bytes_stat(_parent->static_config->extent_size()),
@@ -358,7 +358,7 @@ public:
     extent_reference_t extent_ref;
 
     // When we started writing to the extent (this time).
-    const microtime_t timestamp;
+    const kiloticks_t timestamp;
 
     // The PQ entry pointing to us.
     priority_queue_t<gc_entry_t *, gc_entry_less_t>::entry_t *our_pq_entry;
@@ -1504,10 +1504,10 @@ void data_block_manager_t::mark_unyoung_entries() {
         remove_last_unyoung_entry();
     }
 
-    uint64_t current_time = current_microtime();
+    kiloticks_t current_time = get_kiloticks();
 
     while (young_extent_queue.head()
-           && current_time - young_extent_queue.head()->timestamp > GC_YOUNG_EXTENT_TIMELIMIT_MICROS) {
+           && current_time.micros - young_extent_queue.head()->timestamp.micros > GC_YOUNG_EXTENT_TIMELIMIT.micros) {
         remove_last_unyoung_entry();
     }
 }
