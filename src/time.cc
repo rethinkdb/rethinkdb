@@ -184,6 +184,10 @@ ticks_t get_ticks() {
     return ticks;
 }
 
+kiloticks_t get_kiloticks() {
+    return kiloticks_t{get_ticks().nanos / 1000};
+}
+
 time_t get_realtime_secs() {
     timespec tv = clock_realtime();
     return tv.tv_sec;

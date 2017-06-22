@@ -14,6 +14,13 @@ struct ticks_t {
 };
 ticks_t get_ticks();
 
+// get_kiloticks() is get_ticks() / 1000.  Used in migrating from legacy wall-clock
+// current_microtime().
+struct kiloticks_t {
+    int64_t micros;
+};
+kiloticks_t get_kiloticks();
+
 // Real-time wallclock timer.  Non-monotonic, could step backwards or forwards.  Don't
 // use this, unless you want to use this.
 timespec clock_realtime();
