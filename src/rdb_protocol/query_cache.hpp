@@ -123,7 +123,7 @@ private:
         // time, but we can't compute one from the other because pseudo::time_now() uses
         // boost::posix_time.
         const ql::datum_t deterministic_time;
-        const microtime_t start_time;
+        const kiloticks_t start_time;
 
         cond_t persistent_interruptor;
 
