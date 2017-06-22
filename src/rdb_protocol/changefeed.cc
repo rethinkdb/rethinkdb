@@ -3267,7 +3267,7 @@ subscription_t::get_els(batcher_t *batcher,
         if (batcher->get_batch_type() == batch_type_t::NORMAL_FIRST) {
             batch_timer = make_scoped<signal_timer_t>(0);
         } else if (return_empty_normal_batches == return_empty_normal_batches_t::YES) {
-            batch_timer = make_scoped<signal_timer_t>(batcher->microtime_left() / 1000);
+            batch_timer = make_scoped<signal_timer_t>(batcher->kiloticks_left().micros / 1000);
         }
         // If we have to wait, wait.
         if (min_interval > 0.0
