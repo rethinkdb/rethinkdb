@@ -38,7 +38,7 @@ double ticks_to_secs(ticks_t ticks);
 // Wall-clock time in seconds.
 time_t get_realtime_secs();
 
-// Old legacy crap.  Wall-clock, non-monotonic time.
+// Wall-clock time in microseconds.
 typedef uint64_t microtime_t;
 microtime_t current_microtime();
 
