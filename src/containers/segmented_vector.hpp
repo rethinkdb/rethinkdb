@@ -100,13 +100,16 @@ private:
 
 
     struct segment_deleter {
-      segment_deleter(boost::object_pool<segment_t> &segments_pool) : segments_pool(segments_pool) {}
+      segment_deleter(boost::object_pool<segment_t> *segments_pool) : segments_pool(segments_pool) {}
+      segment_deleter() : segments_pool(nullptr) {}
 
       void operator()(segment_t *ptr) {
-        segments_pool.destroy(ptr);
+        if (segments_pool != nullptr && ptr != nullptr) {
+          segments_pool->destroy(ptr);
+        }
       }
 
-      boost::object_pool<segment_t> &segments_pool;
+      boost::object_pool<segment_t> *segments_pool;
     };
 
     typedef std::unique_ptr<segment_t, segment_deleter> segment_ptr_t;
@@ -122,7 +125,7 @@ private:
         segment_t *seg = segments_[segment_index].get();
         if (seg == nullptr) {
             seg = segments_pool.construct();
-            segments_[segment_index] = std::move(segment_ptr_t(seg, segment_deleter(segments_pool)));
+            segments_[segment_index] = std::move(segment_ptr_t(seg, segment_deleter(&segments_pool)));
         }
         return seg->elements[index % ELEMENTS_PER_SEGMENT];
     }
