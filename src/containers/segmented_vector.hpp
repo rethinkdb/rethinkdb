@@ -7,6 +7,9 @@
 #include <memory>
 #include <utility>
 #include <vector>
+#include <functional>
+
+#include <boost/pool/object_pool.hpp>
 
 #include "errors.hpp"
 
@@ -90,6 +93,14 @@ public:
     }
 
 private:
+    struct segment_t {
+        segment_t() : elements() { }  // Zero-initialize array.
+        element_t elements[ELEMENTS_PER_SEGMENT];
+    };
+
+    typedef std::unique_ptr<segment_t, std::function<void(segment_t*)>> segment_ptr_t;
+
+    boost::object_pool<segment_t> segments_pool;
     // Gets a non-const element with a const function... which breaks the guarantees
     // but compiles and lets this be called by both the const and non-const versions
     // of operator[].
@@ -98,7 +109,7 @@ private:
         const size_t segment_index = index / ELEMENTS_PER_SEGMENT;
         segment_t *seg = segments_[segment_index].get();
         if (seg == nullptr) {
-            seg = new segment_t();
+            seg = segments_pool.construct();
             segments_[segment_index].reset(seg);
         }
         return seg->elements[index % ELEMENTS_PER_SEGMENT];
@@ -119,25 +130,24 @@ private:
             // deallocation+allocation when doing push/pop/push/pop on
             // zero-length segmented_vector.
             if (new_num_segs != 0) {
-                segments_.resize(new_num_segs);
+                segments_.resize(new_num_segs, segment_ptr_t(nullptr, [this](segment_t* ptr) {
+                  segments_pool.destroy(ptr);
+                }));
             }
         } else {
             // Force 2x growth.
             if (new_num_segs < cap * 2) {
                 segments_.reserve(cap * 2);
             }
-            segments_.resize(new_num_segs);
+            segments_.resize(new_num_segs, segment_ptr_t(nullptr, [this](segment_t* ptr) {
+              segments_pool.destroy(ptr);
+            }));
         }
 
         size_ = new_size;
     }
 
-    struct segment_t {
-        segment_t() : elements() { }  // Zero-initialize array.
-        element_t elements[ELEMENTS_PER_SEGMENT];
-    };
-
-    mutable std::vector<std::unique_ptr<segment_t>> segments_;
+    mutable std::vector<segment_ptr_t> segments_;
     size_t size_;
 
     DISABLE_COPYING(segmented_vector_t);
