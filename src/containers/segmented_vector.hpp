@@ -98,9 +98,21 @@ private:
         element_t elements[ELEMENTS_PER_SEGMENT];
     };
 
-    typedef std::unique_ptr<segment_t, std::function<void(segment_t*)>> segment_ptr_t;
 
-    boost::object_pool<segment_t> segments_pool;
+    struct segment_deleter {
+      segment_deleter(boost::object_pool<segment_t> &segments_pool) : segments_pool(segments_pool) {}
+
+      void operator()(segment_t *ptr) {
+        segments_pool.destroy(ptr);
+      }
+
+      boost::object_pool<segment_t> &segments_pool;
+    };
+
+    typedef std::unique_ptr<segment_t, segment_deleter> segment_ptr_t;
+
+    mutable boost::object_pool<segment_t> segments_pool;
+
     // Gets a non-const element with a const function... which breaks the guarantees
     // but compiles and lets this be called by both the const and non-const versions
     // of operator[].
@@ -110,7 +122,7 @@ private:
         segment_t *seg = segments_[segment_index].get();
         if (seg == nullptr) {
             seg = segments_pool.construct();
-            segments_[segment_index].reset(seg);
+            segments_[segment_index] = std::move(segment_ptr_t(seg, segment_deleter(segments_pool)));
         }
         return seg->elements[index % ELEMENTS_PER_SEGMENT];
     }
@@ -130,18 +142,14 @@ private:
             // deallocation+allocation when doing push/pop/push/pop on
             // zero-length segmented_vector.
             if (new_num_segs != 0) {
-                segments_.resize(new_num_segs, segment_ptr_t(nullptr, [this](segment_t* ptr) {
-                  segments_pool.destroy(ptr);
-                }));
+                segments_.resize(new_num_segs);
             }
         } else {
             // Force 2x growth.
             if (new_num_segs < cap * 2) {
                 segments_.reserve(cap * 2);
             }
-            segments_.resize(new_num_segs, segment_ptr_t(nullptr, [this](segment_t* ptr) {
-              segments_pool.destroy(ptr);
-            }));
+            segments_.resize(new_num_segs);
         }
 
         size_ = new_size;
