@@ -8,6 +8,8 @@
 #include <utility>
 #include <vector>
 
+#include <boost/pool/object_pool.hpp>
+
 #include "errors.hpp"
 
 template <class element_t, size_t ELEMENTS_PER_SEGMENT = (1 << 14)>
@@ -90,6 +92,29 @@ public:
     }
 
 private:
+    struct segment_t {
+        segment_t() : elements() { }  // Zero-initialize array.
+        element_t elements[ELEMENTS_PER_SEGMENT];
+    };
+
+
+    struct segment_deleter {
+      segment_deleter(boost::object_pool<segment_t> *segments_pool) : segments_pool(segments_pool) {}
+      segment_deleter() : segments_pool(nullptr) {}
+
+      void operator()(segment_t *ptr) {
+        if (segments_pool != nullptr && ptr != nullptr) {
+          segments_pool->destroy(ptr);
+        }
+      }
+
+      boost::object_pool<segment_t> *segments_pool;
+    };
+
+    typedef std::unique_ptr<segment_t, segment_deleter> segment_ptr_t;
+
+    mutable boost::object_pool<segment_t> segments_pool;
+
     // Gets a non-const element with a const function... which breaks the guarantees
     // but compiles and lets this be called by both the const and non-const versions
     // of operator[].
@@ -98,8 +123,8 @@ private:
         const size_t segment_index = index / ELEMENTS_PER_SEGMENT;
         segment_t *seg = segments_[segment_index].get();
         if (seg == nullptr) {
-            seg = new segment_t();
-            segments_[segment_index].reset(seg);
+            seg = segments_pool.construct();
+            segments_[segment_index] = std::move(segment_ptr_t(seg, segment_deleter(&segments_pool)));
         }
         return seg->elements[index % ELEMENTS_PER_SEGMENT];
     }
@@ -132,12 +157,7 @@ private:
         size_ = new_size;
     }
 
-    struct segment_t {
-        segment_t() : elements() { }  // Zero-initialize array.
-        element_t elements[ELEMENTS_PER_SEGMENT];
-    };
-
-    mutable std::vector<std::unique_ptr<segment_t>> segments_;
+    mutable std::vector<segment_ptr_t> segments_;
     size_t size_;
 
     DISABLE_COPYING(segmented_vector_t);
