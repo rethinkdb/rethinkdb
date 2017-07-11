@@ -96,6 +96,11 @@ Contributing
 
 RethinkDB was built by a dedicated team, but it wouldn't have been possible without the support and contributions of hundreds of people from all over the world. We could use your help too! Check out our [contributing guidelines](CONTRIBUTING.md) to get started.
 
+Donors
+------
+
+* [DNSimple](https://dnsimple.com) provides DNS services for the RethinkDB project.
+
 Where's the changelog?
 ----------------------
 We keep [a list of changes and feature explanations here](NOTES.md).
