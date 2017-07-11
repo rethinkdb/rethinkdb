@@ -1,0 +1,16 @@
+language: cpp
+dist: trusty
+
+addons:
+  apt:
+    packages:
+    - protobuf-compiler
+    - libprotobuf-dev
+    - libcurl4-openssl-dev
+    - libboost-all-dev
+    - libjemalloc-dev
+    - ccache
+
+script:
+  - CC=ccache ./configure --allow-fetch
+  - CC=ccache make -j4
