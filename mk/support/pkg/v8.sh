@@ -6,6 +6,7 @@ src_url=http://commondatastorage.googleapis.com/chromium-browser-official/v8-${v
 
 pkg_install-include () {
     pkg_copy_src_to_build
+    in_dir "$build_dir" patch -fp1 < "$pkg_dir"/patch/v8_2-HandleScope-protected.patch
     
     rm -rf "$install_dir/include"
     mkdir -p "$install_dir/include"
