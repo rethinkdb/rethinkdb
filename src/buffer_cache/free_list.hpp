@@ -1,7 +1,9 @@
 #ifndef BUFFER_CACHE_FREE_LIST_HPP_
 #define BUFFER_CACHE_FREE_LIST_HPP_
 
-#include "containers/segmented_vector.hpp"
+#include <forward_list>
+#include <boost/pool/pool_alloc.hpp>
+
 #include "serializer/types.hpp"
 
 namespace alt {
@@ -22,10 +24,12 @@ public:
     void acquire_chosen_block_id(block_id_t block_id);
 
 private:
+    typedef std::forward_list<block_id_t, boost::pool_allocator<block_id_t>> block_ids_container;
+
     block_id_t next_new_block_id_;
-    segmented_vector_t<block_id_t> free_ids_;
+    block_ids_container free_ids_;
     block_id_t next_new_aux_block_id_;
-    segmented_vector_t<block_id_t> free_aux_ids_;
+    block_ids_container free_aux_ids_;
     DISABLE_COPYING(free_list_t);
 };
 
