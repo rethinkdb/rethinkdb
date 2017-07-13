@@ -10,7 +10,7 @@ pkg_install-include () {
     
     rm -rf "$install_dir/include"
     mkdir -p "$install_dir/include"
-    cp -RL "$src_dir/include/." "$install_dir/include"
+    cp -RL "$build_dir/include/." "$install_dir/include"
     sed -i.bak 's/include\///' "$install_dir/include/libplatform/libplatform.h"
     
     # -- assemble the icu headers
