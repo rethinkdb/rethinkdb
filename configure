@@ -102,7 +102,7 @@ configure_unixlike () {
     case "${MACHINE%%-*}" in
         x86_64|i?86)
             true ;;
-        arm*)
+        arm*|arm64*|aarch64*)
             var_append LDFLAGS -ldl
             final_warning="ARM support is still experimental" ;;
         s390x)

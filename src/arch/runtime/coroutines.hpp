@@ -17,7 +17,7 @@
 // Enable cross-coroutine backtraces in debug mode, or when coro profiling is enabled.
 // We don't enable it on ARM, because taking backtraces currently isn't working
 // reliably and sometimes causes crashes.
-#if (!defined(NDEBUG) && !defined(__MACH__) && !defined(__arm__)) \
+#if (!defined(NDEBUG) && !defined(__MACH__) && !defined(__arm__) && !defined(__arm64__) && !defined(__aarch64__))  \
     || defined(ENABLE_CORO_PROFILER)
 #define CROSS_CORO_BACKTRACES            1
 #endif

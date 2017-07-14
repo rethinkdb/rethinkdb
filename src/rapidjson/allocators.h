@@ -107,7 +107,7 @@ public:
 // RethinkDB patch: The MemoryPoolAllocator doesn't currently work properly on
 // ARM. See https://github.com/rethinkdb/rethinkdb/issues/4839
 // and https://github.com/miloyip/rapidjson/issues/388 .
-#if defined(__arm__)
+#if defined(__arm__) || defined(__arm64__) || defined(__aarch64__)
 #define MAYBE_POOL_ALLOCATOR RAllocator
 #else
 #define MAYBE_POOL_ALLOCATOR MemoryPoolAllocator<>
