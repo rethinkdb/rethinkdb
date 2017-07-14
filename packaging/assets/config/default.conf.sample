@@ -101,3 +101,15 @@
 ## The name for this server (as will appear in the metadata).
 ## If not specified, it will be randomly chosen from a short list of names.
 # server-name=server1
+
+## tls
+
+## Path to tls key/cert for http interface
+## Default: disabled
+# http-tls-key=key.pem
+# http-tls-cert=cert.pem
+
+## Path to tls key/cert for driver interface (Default: disabled)
+## Default: disabled
+# driver-tls-cert=cert.pem
+# driver-tls-key=key.pem
