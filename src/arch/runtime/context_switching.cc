@@ -288,7 +288,7 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     // Note: r12 is also stored, in the 'caller frame' slot above the return
     // address.
     sp -= 8; // r4-r11.
-#elif defined(__arm64__)
+#elif defined(__arm64__) || defined(__aarch64__)
     sp -= 20; // d8-d15 + x19-x30 + x30
 #elif defined(__s390x__)
     sp -= 16; // r6-r13 and f8-f15.
