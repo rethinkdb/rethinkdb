@@ -125,14 +125,16 @@ pkg_install () {
         export GYP_DEFINES='mac_deployment_target=10.7'
     fi
     arch_gypflags=
-    raspberry_pi_gypflags='-Darm_version=6 -Darm_fpu=vfpv2'
+    arm_gypflags='-Darm_version=6 -Darm_fpu=vfpv2'
     host=$($CXX -dumpmachine)
     case ${host%%-*} in
-        i?86)   arch=ia32 ;;
-        x86_64) arch=x64 ;;
-        arm*)   arch=arm; arch_gypflags=$raspberry_pi_gypflags ;;
-        s390x)  arch=s390x ;;
-        *)      arch=native ;;
+        i?86)    arch=ia32 ;;
+        x86_64)  arch=x64 ;;
+        arm64)   arch=arm64; arch_gypflags=$arm_gypflags ;;
+        aarch64) arch=aarch64; arch_gypflags=$arm_gypflags ;;
+        arm*)    arch=arm; arch_gypflags=$arm_gypflags ;;
+        s390x)   arch=s390x ;;
+        *)       arch=native ;;
     esac
     mode=release
     if [[ "$arch" = "s390x" ]]; then
