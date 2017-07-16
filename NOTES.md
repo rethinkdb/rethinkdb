@@ -1,6 +1,6 @@
 # Release 2.3.6 (Fantasia)
 
-Released on 2016-07-??
+Released on 2017-07-17
 
 Bug fix release
 
