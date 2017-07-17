@@ -1,22 +1,19 @@
 # Release 2.3.6 (Fantasia)
 
-Released on 2016-02-??
+Released on 2017-07-17
 
 Bug fix release
 
 ### Notes ###
 
-This is the first release of RethinkDB since October. This release
-is brought to you by volunteers from the Open RethinkDB team. We're
-committed to building a bright future for RethinkDB. To get involved
-in the transition and to see how it might affect you, read our [blog
-post][blog-new-rethinkdb]. RethinkDB source code is now licensed under
-[ASLv2 license][ASLv2-license] thanks to [The Linux Foundation]
-[the-linux-foundation].
+This is the first release of RethinkDB since October 2016. The
+RethinkDB project has [joined the Linux
+Foundation][blog-new-rethinkdb]. This release is brought to you by
+volunteers from the Open RethinkDB team. The RethinkDB source code is
+now licensed under an [ASLv2 license][ASLv2-license].
 
 [blog-new-rethinkdb]: https://rethinkdb.com/blog/rethinkdb-joins-linux-foundation/
 [ASLv2-license]: https://www.apache.org/licenses/LICENSE-2.0
-[the-linux-foundation]: https://www.linuxfoundation.org/
 
 ### Compatibility ###
 
@@ -43,8 +40,10 @@ older version.
  * Fixed a crash caused by `eqJoin` of system tables when using the `uuid` `identifierFormat` (#6108) -- @nighelles
  * Fixed a bug that caused `r.match('')` to return wrong results (#6241) -- @AtnNn
  * Miscellaneous regression fixes and code improvements by @srh and @VeXocide
+ * Fixed argument order in pretty-printed queries in the jobs table (#6240) -- @AtnNn
 * Packaging
  * Fix glibc version detection in RPM packaging script (#6229) -- @gamename
+ * Add packages for Ubuntu Yakkety and Zesty (#6364) -- @AtnNn
 
 --
 

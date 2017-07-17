@@ -4,9 +4,9 @@ if [[ "$OS" != Windows ]]; then
     # V8 3.30 doesn't play well with Visual Studio 2015
     # But 4.7 has no source distribution, making it harder to build on Linux
 
-    version=3.30.33.16-patched
+    version=3.30.33.16-patched2
 
-    src_url=http://commondatastorage.googleapis.com/chromium-browser-official/v8-${version/-patched/}.tar.bz2
+    src_url=http://commondatastorage.googleapis.com/chromium-browser-official/v8-${version/-patched2/}.tar.bz2
     src_url_sha1=e753b6671eecf565d96c1e5a83563535ee2fe24b
 else
     version=4.7.80.23
@@ -37,10 +37,11 @@ fi
 
 pkg_install-include () {
     pkg_copy_src_to_build
-
+    in_dir "$build_dir" patch -fp1 < "$pkg_dir"/patch/v8_2-HandleScope-protected.patch
+    
     rm -rf "$install_dir/include"
     mkdir -p "$install_dir/include"
-    cp -RL "$src_dir/include/." "$install_dir/include"
+    cp -RL "$build_dir/include/." "$install_dir/include"
     sed -i.bak 's/include\///' "$install_dir/include/libplatform/libplatform.h"
 
     # -- assemble the icu headers
@@ -83,7 +84,8 @@ pkg_install-windows () {
 
 pkg_install () {
     pkg_copy_src_to_build
-
+    in_dir "$build_dir" patch -fp1 < "$pkg_dir"/patch/v8_2-HandleScope-protected.patch
+    sed -i.bak '/unittests/d;/cctest/d' "$build_dir/build/all.gyp" # don't build the tests
     mkdir -p "$install_dir/lib"
     if [[ "$OS" = Darwin ]]; then
         export CXXFLAGS="-stdlib=libc++ ${CXXFLAGS:-}"
