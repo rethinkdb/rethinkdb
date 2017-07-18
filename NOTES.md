@@ -1,3 +1,238 @@
+# Release 2.3.6 (Fantasia)
+
+Released on 2017-07-17
+
+Bug fix release
+
+### Notes ###
+
+This is the first release of RethinkDB since October 2016. The
+RethinkDB project has [joined the Linux
+Foundation][blog-new-rethinkdb]. This release is brought to you by
+volunteers from the Open RethinkDB team. The RethinkDB source code is
+now licensed under an [ASLv2 license][ASLv2-license].
+
+[blog-new-rethinkdb]: https://rethinkdb.com/blog/rethinkdb-joins-linux-foundation/
+[ASLv2-license]: https://www.apache.org/licenses/LICENSE-2.0
+
+### Compatibility ###
+
+On 32-bit platforms and on Windows (64 and 32 bit), RethinkDB 2.3.6 servers should not
+be mixed with servers running RethinkDB 2.3.3 or older in the same cluster. Doing so can lead to
+server crashes when using the web UI or when accessing the `logs` system table.
+
+On 64-bit platforms, RethinkDB 2.3.6 servers can be mixed with older RethinkDB 2.3.x
+servers in the same cluster. We recommend that you run a mixed-version cluster only
+temporarily for upgrading purposes.
+
+No migration is required when upgrading from RethinkDB 2.3.x. Please read the
+[RethinkDB 2.3.0 release notes][release-notes-2.3.0] if you're upgrading from an
+older version.
+
+### Changes ###
+
+* Server
+  * Improved the compatibility of the web UI with Chrome 49 and Edge (#5878, #5426, #5300) -- @danielmewes
+  * Fixed a crash caused by unwanted connections (#6084) -- @danielmewes
+  * Fixed a crash caused by recreating indexes with active changefeeds (#6093) -- @danielmewes
+  * Sizes passed to `sample` are now bound by the array size limit (#6148) -- @AtnNn
+  * Fixed a crashing bug in the implementation of the `interleave` argument to `union` (#6139) -- @AtnNn
+  * Fixed a crash caused by `eqJoin` of system tables when using the `uuid` `identifierFormat` (#6108) -- @nighelles
+  * Fixed a bug that caused `r.match('')` to return wrong results (#6241) -- @AtnNn
+  * Miscellaneous regression fixes and code improvements by @srh and @VeXocide
+  * Fixed argument order in pretty-printed queries in the jobs table (#6240) -- @AtnNn
+* Packaging
+  * Fix glibc version detection in RPM packaging script (#6229) -- @gamename
+  * Add packages for Ubuntu Yakkety and Zesty (#6364) -- @AtnNn
+
+--
+
+# Release 2.3.5 (Fantasia)
+
+Released on 2016-08-26
+
+Bug fix release
+
+### Compatibility ###
+
+On 32-bit platforms and on Windows (64 and 32 bit), RethinkDB 2.3.5 servers should not
+be mixed with servers running RethinkDB 2.3.3 or older in the same cluster. Doing so can lead to
+server crashes when using the web UI or when accessing the `logs` system table.
+
+On 64-bit platforms, RethinkDB 2.3.5 servers can be mixed with older RethinkDB 2.3.x
+servers in the same cluster. We recommend that you run a mixed-version cluster only
+temporarily for upgrading purposes.
+
+No migration is required when upgrading from RethinkDB 2.3.x. Please read the
+[RethinkDB 2.3.0 release notes][release-notes-2.3.0] if you're upgrading from an
+older version.
+
+[release-notes-2.3.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.3.0
+
+### Bug fixes ###
+
+* Server
+  * Improved the efficiency of the on-disk garbage collector to reduce the risk of
+    excessive file growth (#5923)
+  * Improved the latency of read queries under heavy write loads (#6072)
+  * Fixed a bug that could cause the server to crash with a deserialization error
+    or to stop completing any table reads (#6033)
+  * Fixed a bug in the implementation of the `interleave` option of the `union` command,
+    which could potentially lead to results being generated in the wrong order (#6041)
+  * Fixed a bug in the batch handling of the `fold` and multi-stream `map` commands,
+    that would stop results from being generated correctly if these commands were
+   applied to a changefeed (#6007)
+  * Fixed an issue that could cause proxies to remain listed in the `connected_to`
+    field of the `server_status` table, even after they had disconnected (#5871)
+  * Fixed the detection of non-deterministic conflict functions in the `insert` command
+    (#5842)
+  * Improved the Raft election timeout logic to avoid infinite Raft election loops (#6038)
+  * Improved the response time when reading from the `table_status` system table (#4589)
+  * The server no longer logs the message
+    `Rejected a connection from server X since one is already open` when trying to connect
+    to itself (#5456)
+  * Fixed a bug that could cause an `Uncaught exception` server crash if a TLS-encrypted
+    connection was closed during a certain connection stage (#5904)
+  * Fixed a bug in `merge` that could cause `r.literal` objects to remain after the `merge`
+   and be stored in a table (#5977)
+  * On Windows: Fixed a bug in the `r.http` command that resulted in decoding issues (#5924)
+  * On Windows: RethinkDB now binds TCP ports exclusively (#6008)
+  * On Windows: No longer print an error to the log whenever a connection attempt fails
+    (no issue #)
+  * Fixed a build issue that caused system libraries to not be found during `make` on
+    OpenSUSE (#2363)
+* JavaScript driver
+  * Fixed the server nonce validation in the connection handshake (#5916)
+  * The `host` argument to `connect` is now optional (#5846)
+* Java driver
+  * Cursors now implement the `Closeable` interface (#5468)
+  * Fixed no-reply queries as run through `runNoReply` (#5938)
+  * Fixed a bug in the `reconnect` method (#5841)
+  * Fixed a memory leak in the `Connection` object that was caused by the driver not
+    properly cleaning up closed cursors (#5980)
+* Python driver
+  * The `asyncio` loop type is now available when using the driver from a Python .egg
+    file (#6043)
+* Ruby driver
+  * Fixed a rounding issue with time objects (#5825)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.3.5.
+
+* Arve Seljebu (@arve0)
+* Ben Sharpe (@bsharpe)
+* Brian Chavez (@bchavez)
+* Dan Wiechert (@DWiechert)
+* mbains (@mbains)
+* QianJin2013 (@QianJin2013)
+* Raman Gupta (@rocketraman)
+
+--
+
+# Release 2.3.4 (Fantasia)
+
+Released on 2016-06-03
+
+Bug fix release
+
+### Compatibility ###
+
+On 32-bit platforms and on Windows (64 and 32 bit), RethinkDB 2.3.4 servers should not
+be mixed with older RethinkDB 2.3.x servers in the same cluster. Doing so can lead to
+server crashes when using the web UI or when accessing the `logs` system table.
+
+On 64-bit platforms, RethinkDB 2.3.4 servers can be mixed with older RethinkDB 2.3.x
+servers in the same cluster. We recommend that you run a mixed-version cluster only
+temporarily for upgrading purposes.
+
+No migration is required when upgrading from RethinkDB 2.3.x. Please read the
+[RethinkDB 2.3.0 release notes][release-notes-2.3.0] if you're upgrading from an
+older version.
+
+[release-notes-2.3.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.3.0
+
+### Bug fixes ###
+
+* Server
+  * Fixed a segmentation fault in the `orderBy.limit` changefeed implementation (#5824)
+  * Fixed an incompatibility in the cluster protocol between Windows and Linux / OS X
+    servers (#5819)
+* Python driver
+  * Fixed various bugs in the connection class for the asyncio event loop (#5795, #5816, #5820)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.3.4.
+
+* Ultrabug (@ultrabug)
+
+--
+
+# Release 2.3.3 (Fantasia)
+
+Released on 2016-06-01
+
+Bug fix release
+
+### Compatibility ###
+
+RethinkDB 2.3.3 servers can be mixed with older RethinkDB 2.3.x servers in the same
+cluster. We recommend that you run a mixed-version cluster only temporarily for upgrading
+purposes.
+
+No migration is required when upgrading from RethinkDB 2.3.x. Please read the
+[RethinkDB 2.3.0 release notes][release-notes-2.3.0] if you're upgrading from an
+older version.
+
+[release-notes-2.3.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.3.0
+
+### Windows support ###
+
+RethinkDB 2.3.0 was the first version to include native Windows compatibility. In
+RethinkDB 2.3.3, the Windows port is ready to emerge from "beta" testing. We now
+officially support RethinkDB on the Windows platform alongside our existing support for
+Linux and Mac OS X. We're also extending our [commercial support][comm-support] services
+to include RethinkDB on Windows.
+
+Although RethinkDB is now stable on Windows, there are still a few [remaining limitations][windows-tag]
+that we are actively working to address. We also haven't yet carried out as much
+performance tuning on the Windows port as we have on the Linux and OS X releases.
+
+[comm-support]: https://rethinkdb.com/services/
+[windows-tag]: https://github.com/rethinkdb/rethinkdb/issues?q=is%3Aopen+is%3Aissue+label%3Awindows
+
+### Bug fixes ###
+
+* Server
+  * Fixed a bug in `orderBy.limit` changefeeds that caused the server to crash with
+    `Guarantee failed: [sub_it != real_added.end()]` (#5561)
+  * Improved the performance of the `table_status` system table when the cluster is under
+    high load (#5586)
+  * Fixed a race condition in the cluster connection logic that could cause occasional
+    crashes with a `Guarantee failed: [refcount == 0]` error (#5783)
+  * Fixed a stack overflow when executing queries with a very high number of chained
+    commands (#5792)
+  * Made the `fold` command work on a changefeed stream (#5800)
+  * Fixed the server uptime calculation on Windows (#5388)
+  * Fixed source code incompatibilities with GCC 6.0 (#5757)
+* JavaScript driver
+  * The `Connection` class is now exported from the RethinkDB JavaScript module (#5758)
+* Java driver
+  * Added the `clientPort` and `clientAddress` methods to the `Connection` class in the
+    Java driver (#5571)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.3.3.
+
+* Gergely Nemeth (@gergelyke)
+
+--
+
 # Release 2.3.2 (Fantasia)
 
 Released on 2016-05-06
@@ -19,56 +254,56 @@ older version.
 ### Bug fixes ###
 
 * Server
- * Fixed a data corruption issue in the secondary index construction logic. The issue
-   could be triggered by creating a secondary index while the table is under write load
-   and could result in a `Guarantee failed: [token.has()]` error when accessing
-   the index (#5715)
- * Fixed an issue in the Windows beta release that caused data corruption whenever
-   growing a table to more than 4 GB (#5719)
- * Fixed a crash with the message `Guarantee failed: [num_subs == 0]` that could occur
-   when shutting down a server while trying to start new changefeeds at the same time
-   (#5708)
- * Fixed a crash with the message
-   `Guarantee failed: [!pair.first.inner.overlaps(region.inner)]` that could occur when
-   using changefeeds while resharding (#5745)
- * Added a `--tls-min-protocol` server option for reducing the minimum required TLS
-   protocol version. Drivers using an old OpenSSL version (e.g. on OS X) might require
-   this option in order to connect to a TLS-enabled RethinkDB server (#5734)
- * Added a check to disallow using `order_by` with a non-deterministic predicate function
-   (#5548)
- * Fixed a segmentation fault at address 0x18 that could occur in low-memory conditions
-   on Linux (#5348)
- * Fixed a stack overflow issue when parsing very deeply nested objects (#5601)
- * Improved the stack protection logic in order to avoid exceeding the system's memory
-   map limit. This issue affected Linux servers when having a very high number of
-   concurrently running queries (#5591)
- * The server is now built with jemalloc version 4.1 on Linux (#5712)
- * Fixed the message that is displayed when a query times out in the Data Explorer
-   (#5113)
- * Improved the handling and reporting of OpenSSL-related errors (#5551)
- * Added a new server option `--cluster-reconnect-timeout` to control how quickly
-   RethinkDB gives up trying to reconnect to a previously connected server (#5701)
- * Fixed a race condition when writing to system tables that could lead to incorrect
-   update results (#5711)
- * A custom conflict resolution function for the `insert` command can now return `null`
-   in order to delete a conflicting document (#5713)
- * Improved the error message emitted when opening a changefeed on an `orderBy.limit`
-   query that has additional transformations (#5721)
- * Fixed an incompatibility with Safari that could cause undesired page reloads in the
-   web UI (#3983)
+  * Fixed a data corruption issue in the secondary index construction logic. The issue
+    could be triggered by creating a secondary index while the table is under write load
+    and could result in a `Guarantee failed: [token.has()]` error when accessing
+    the index (#5715)
+  * Fixed an issue in the Windows beta release that caused data corruption whenever
+    growing a table to more than 4 GB (#5719)
+  * Fixed a crash with the message `Guarantee failed: [num_subs == 0]` that could occur
+    when shutting down a server while trying to start new changefeeds at the same time
+    (#5708)
+  * Fixed a crash with the message
+    `Guarantee failed: [!pair.first.inner.overlaps(region.inner)]` that could occur when
+    using changefeeds while resharding (#5745)
+  * Added a `--tls-min-protocol` server option for reducing the minimum required TLS
+    protocol version. Drivers using an old OpenSSL version (e.g. on OS X) might require
+    this option in order to connect to a TLS-enabled RethinkDB server (#5734)
+  * Added a check to disallow using `order_by` with a non-deterministic predicate function
+    (#5548)
+  * Fixed a segmentation fault at address 0x18 that could occur in low-memory conditions
+    on Linux (#5348)
+  * Fixed a stack overflow issue when parsing very deeply nested objects (#5601)
+  * Improved the stack protection logic in order to avoid exceeding the system's memory
+    map limit. This issue affected Linux servers when having a very high number of
+    concurrently running queries (#5591)
+  * The server is now built with jemalloc version 4.1 on Linux (#5712)
+  * Fixed the message that is displayed when a query times out in the Data Explorer
+    (#5113)
+  * Improved the handling and reporting of OpenSSL-related errors (#5551)
+  * Added a new server option `--cluster-reconnect-timeout` to control how quickly
+    RethinkDB gives up trying to reconnect to a previously connected server (#5701)
+  * Fixed a race condition when writing to system tables that could lead to incorrect
+    update results (#5711)
+  * A custom conflict resolution function for the `insert` command can now return `null`
+    in order to delete a conflicting document (#5713)
+  * Improved the error message emitted when opening a changefeed on an `orderBy.limit`
+    query that has additional transformations (#5721)
+  * Fixed an incompatibility with Safari that could cause undesired page reloads in the
+    web UI (#3983)
 * Python driver
- * The Python driver's `ssl` option now supports older Python versions from 2.7 up
-   (#4815)
- * Added a REPL mode that can be launched through the new `python -m rethinkdb` command
-   (#5147)
- * Added a cache for PBKDF2 authentication tokens to reduce the costs of repeatedly
-   opening connections (#5614)
- * Refactored how the RethinkDB import and export scripts load the driver (#4970)
- * Improved the error message reported when attempting to connect to a pre-2.3.0 server
-   (#5678)
- * Fixed an incompatibility with Python 3 in the `rethinkdb dump` script that caused
-   `name 'file' is not defined` errors (#5694)
- * Fixed an incompatibility with Python 3.3 in the protocol handshake code (#5742)
+  * The Python driver's `ssl` option now supports older Python versions from 2.7 up
+    (#4815)
+  * Added a REPL mode that can be launched through the new `python -m rethinkdb` command
+    (#5147)
+  * Added a cache for PBKDF2 authentication tokens to reduce the costs of repeatedly
+    opening connections (#5614)
+  * Refactored how the RethinkDB import and export scripts load the driver (#4970)
+  * Improved the error message reported when attempting to connect to a pre-2.3.0 server
+    (#5678)
+  * Fixed an incompatibility with Python 3 in the `rethinkdb dump` script that caused
+    `name 'file' is not defined` errors (#5694)
+  * Fixed an incompatibility with Python 3.3 in the protocol handshake code (#5742)
 
 ## Contributors ##
 
@@ -108,44 +343,44 @@ OS X 10.7 and 10.8 (#5681). Newer releases of OS X are not affected.
 ### Bug fixes ###
 
 * Server
- * Fixed a segmentation fault triggered by performing a batched `insert` with multiple
-   occurrences of the same primary key (#5683)
- * Fixed an uncaught exception bug in the `hostname_to_ips` function that could be
-   triggered by connecting a server with an unresolvable address (#5629)
- * Fixed a query failure when opening a changefeed with the `squash: true` option on a
-   system table (#5644)
- * Fixed a crash that was triggered when joining servers with identical server names
-   (#5643)
- * Fixed an issue with the random number generator that stopped initial server names from
-   getting randomized correctly (#5655)
- * Fixed a bug that caused memory to not be released properly after dropping a table or
-   removing its replicas from a server (#5666)
- * Fixed a bug causing `eqJoin` to freeze the server when chained after a `changes`
-   command (#5696)
- * Fixed an issue that caused the `returnChanges: "always"` option of the `insert`
-   command to miss certain types of errors in the `changes` result (#5366)
- * Fixed a crash on OS X 10.7 when using the .dmg uninstaller (#5671)
- * The OS X .dmg uninstaller is now signed (#5615)
- * Fixed an edge case in the error handling for auto-generated primary keys when
-   inserting into a system table (#5691)
- * RethinkDB can now be compiled with GCC 5.3 (#5635)
+  * Fixed a segmentation fault triggered by performing a batched `insert` with multiple
+    occurrences of the same primary key (#5683)
+  * Fixed an uncaught exception bug in the `hostname_to_ips` function that could be
+    triggered by connecting a server with an unresolvable address (#5629)
+  * Fixed a query failure when opening a changefeed with the `squash: true` option on a
+    system table (#5644)
+  * Fixed a crash that was triggered when joining servers with identical server names
+    (#5643)
+  * Fixed an issue with the random number generator that stopped initial server names from
+    getting randomized correctly (#5655)
+  * Fixed a bug that caused memory to not be released properly after dropping a table or
+    removing its replicas from a server (#5666)
+  * Fixed a bug causing `eqJoin` to freeze the server when chained after a `changes`
+    command (#5696)
+  * Fixed an issue that caused the `returnChanges: "always"` option of the `insert`
+    command to miss certain types of errors in the `changes` result (#5366)
+  * Fixed a crash on OS X 10.7 when using the .dmg uninstaller (#5671)
+  * The OS X .dmg uninstaller is now signed (#5615)
+  * Fixed an edge case in the error handling for auto-generated primary keys when
+    inserting into a system table (#5691)
+  * RethinkDB can now be compiled with GCC 5.3 (#5635)
 * JavaScript driver
- * Renamed the `username` option of the `r.connect` command to `user`. The `username`
-   option is still supported for backwards-compatibility with existing code (#5659)
- * Improved the error message shown when connecting with the 2.3 driver to an older
-   server (#5667)
+  * Renamed the `username` option of the `r.connect` command to `user`. The `username`
+    option is still supported for backwards-compatibility with existing code (#5659)
+  * Improved the error message shown when connecting with the 2.3 driver to an older
+    server (#5667)
 * Python driver
- * Improved the error message that is emitted when trying to connect to a server with a
-   wrong password (#5624)
- * Fixed the "global name 'options' is not defined" bug in the `rethinkdb import` script
-   (#5637)
- * Fixed a Python 3 incompatibility in the `rethinkdb restore` script (#5647)
+  * Improved the error message that is emitted when trying to connect to a server with a
+    wrong password (#5624)
+  * Fixed the "global name 'options' is not defined" bug in the `rethinkdb import` script
+    (#5637)
+  * Fixed a Python 3 incompatibility in the `rethinkdb restore` script (#5647)
 * Java driver
- * Implemented the timeout option for `getNext` (#5603)
- * Losing the server connection while having a changefeed open now correctly results in
-   an error (#5660)
- * The driver now caches authentication nonces in order to speed up connection setup
-   (#5614)
+  * Implemented the timeout option for `getNext` (#5603)
+  * Losing the server connection while having a changefeed open now correctly results in
+    an error (#5660)
+  * The driver now caches authentication nonces in order to speed up connection setup
+    (#5614)
 
 ## Contributors ##
 
@@ -257,121 +492,121 @@ When compiling from source, the minimum required GCC version is now 4.7.4.
 ## Improvements ##
 
 * Server
- * The `--bind` option can now be specified separately for the web UI (`--bind-http`),
-   client driver port (`--bind-driver`) and cluster port (`--bind-cluster`). (#5467)
- * RethinkDB servers now detect non-transitive connectivity in the cluster and raise a
-   `"non_transitive_error"` issue in the `"current_issues"` system table when detecting
-   an issue. Additionally, the `"server_status"` system table now contains information on
-   each server's connectivity in the new `connected_to` field. (#4936)
- * Added a new `"memory_error"` issue type for the `"current_issues"` system table that
-   is displayed when the RethinkDB process starts using swap space. (Linux only) (#1023)
- * Reduced the number of scenarios that require index migration after a RethinkDB
-   upgrade. Indexes no longer need to be migrated unless they use a custom index
-   function. (#5175)
- * Added support for compiling RethinkDB on Alpine Linux. (#4437)
- * Proxy servers now print their server ID on startup. (#5515)
- * Raised the maximum query size from 64 MB to 128 MB. (#4529)
- * Increased the maximum number of shards for a table from 32 to 64. (#5311)
- * Implemented a `--join-delay` option to better tolerate unstable network conditions
-   (#5319)
- * Added an `--initial-password` command line option to secure the process of adding new
-   servers to a password-protected cluster. (#5490)
- * Implemented a new client protocol handshake to support user authentication. (#5406)
+  * The `--bind` option can now be specified separately for the web UI (`--bind-http`),
+    client driver port (`--bind-driver`) and cluster port (`--bind-cluster`). (#5467)
+  * RethinkDB servers now detect non-transitive connectivity in the cluster and raise a
+    `"non_transitive_error"` issue in the `"current_issues"` system table when detecting
+    an issue. Additionally, the `"server_status"` system table now contains information on
+    each server's connectivity in the new `connected_to` field. (#4936)
+  * Added a new `"memory_error"` issue type for the `"current_issues"` system table that
+    is displayed when the RethinkDB process starts using swap space. (Linux only) (#1023)
+  * Reduced the number of scenarios that require index migration after a RethinkDB
+    upgrade. Indexes no longer need to be migrated unless they use a custom index
+    function. (#5175)
+  * Added support for compiling RethinkDB on Alpine Linux. (#4437)
+  * Proxy servers now print their server ID on startup. (#5515)
+  * Raised the maximum query size from 64 MB to 128 MB. (#4529)
+  * Increased the maximum number of shards for a table from 32 to 64. (#5311)
+  * Implemented a `--join-delay` option to better tolerate unstable network conditions
+    (#5319)
+  * Added an `--initial-password` command line option to secure the process of adding new
+    servers to a password-protected cluster. (#5490)
+  * Implemented a new client protocol handshake to support user authentication. (#5406)
 * ReQL
- * Added an `interleave` option to the `union` command to allow merging streams in a
-   particular order. (#5090)
- * Added support for custom conflict-resolution functions to the `insert` command.
-   (#3753)
- * The `insert` command now returns changes in the same order in which they were passed
-   in when the `returnChanges` option is used. (#5041)
- * Added an `includeOffsets` option to the `changes` command to obtain the positions
-   of changed elements in an `orderBy.limit` changefeeds. (#5334)
- * Added an `includeTypes` option to the `changes` command that adds a `type` field to
-   every changefeed result. (#5188)
- * Made geospatial multi-indexes behave consistently with non-geospatial multi-indexes
-   if a document is indexed under multiple matching keys. `getIntersecting` and
-   `getNearest` now return duplicates if multiple index keys match. (#3351)
- * The `and`, `or` and `getAll` commands can now be called with zero arguments.
-   (#4696, #2588)
- * Disallowed calling `r.wait`, `r.rebalance` and `r.reconfigure` on the global scope to
-   avoid confusing semantics. (#4382)
- * The `count` and `slice` commands can now be applied to strings. (#4227, #4228)
- * Improved the error message from `reconfigure` if too many servers are unreachable.
-   (#5267)
- * Improved the error message for invalid timezone specifications. (#1280)
+  * Added an `interleave` option to the `union` command to allow merging streams in a
+    particular order. (#5090)
+  * Added support for custom conflict-resolution functions to the `insert` command.
+    (#3753)
+  * The `insert` command now returns changes in the same order in which they were passed
+    in when the `returnChanges` option is used. (#5041)
+  * Added an `includeOffsets` option to the `changes` command to obtain the positions
+    of changed elements in an `orderBy.limit` changefeeds. (#5334)
+  * Added an `includeTypes` option to the `changes` command that adds a `type` field to
+    every changefeed result. (#5188)
+  * Made geospatial multi-indexes behave consistently with non-geospatial multi-indexes
+    if a document is indexed under multiple matching keys. `getIntersecting` and
+    `getNearest` now return duplicates if multiple index keys match. (#3351)
+  * The `and`, `or` and `getAll` commands can now be called with zero arguments.
+    (#4696, #2588)
+  * Disallowed calling `r.wait`, `r.rebalance` and `r.reconfigure` on the global scope to
+    avoid confusing semantics. (#4382)
+  * The `count` and `slice` commands can now be applied to strings. (#4227, #4228)
+  * Improved the error message from `reconfigure` if too many servers are unreachable.
+    (#5267)
+  * Improved the error message for invalid timezone specifications. (#1280)
 * Performance
- * Implemented efficient batching for distributed joins using the `eqJoin` command.
-   (#5115)
- * Optimized `tableCreate` to complete more quickly. (#4746)
- * Reduced the CPU overhead of ReQL function calls and term evaluation. (no issue number)
+  * Implemented efficient batching for distributed joins using the `eqJoin` command.
+    (#5115)
+  * Optimized `tableCreate` to complete more quickly. (#4746)
+  * Reduced the CPU overhead of ReQL function calls and term evaluation. (no issue number)
 * Web UI
- * The web UI now uses the `conn.server()` command for getting information about the
-   connected server. (#5059)
+  * The web UI now uses the `conn.server()` command for getting information about the
+    connected server. (#5059)
 * All drivers
- * Implemented a new protocol handshake and added `user` and `password` options to the
-   `connect` method to enable user authentication. (#5458, #5459, #5460, #5461)
- * Added `clientPort` and `clientAddress` functions to the connection objects in the
-   JavaScript, Python and Ruby drivers. (#4796)
+  * Implemented a new protocol handshake and added `user` and `password` options to the
+    `connect` method to enable user authentication. (#5458, #5459, #5460, #5461)
+  * Added `clientPort` and `clientAddress` functions to the connection objects in the
+    JavaScript, Python and Ruby drivers. (#4796)
 * JavaScript driver
- * Added new variants of the `cursor.eachAsync` function. (#5056)
- * Added a `concurrency` option for `cursor.eachAsync`. (#5529)
- * `r.min`, `r.max`, `r.sum`, `r.avg` and `r.distinct` now accept an array argument
-   (#4594)
+  * Added new variants of the `cursor.eachAsync` function. (#5056)
+  * Added a `concurrency` option for `cursor.eachAsync`. (#5529)
+  * `r.min`, `r.max`, `r.sum`, `r.avg` and `r.distinct` now accept an array argument
+    (#4594)
 * Python driver
- * Added a `"gevent"` loop type to the Python driver. (#4433)
- * Printing a cursor object now displays the first few results. (#5331)
- * Removed the dependency on `tar` for the `rethinkdb restore` and `rethinkdb dump`
-   commands. (#5399)
- * Added a `--tls-cert` option to the `rethinkdb import`, `rethinkdb export`,
-   `rethinkdb dump`, `rethinkdb restore` and `rethinkdb index-rebuild` commands to enable
-   TLS connections. (#5330)
- * Added `--password` and `--password-file` options to the `rethinkdb import`,
-   `rethinkdb export`, `rethinkdb dump`, `rethinkdb restore` and
-   `rethinkdb index-rebuild` commands to connect to password-protected servers. (#5464)
- * Added a `--format ndjson` option to `rethinkdb export` that allows exporting tables
-   in a newline-separated JSON format. (#5101)
- * Made `rethinkdb dump` `rethinkdb restore` and `rethinkdb import` able to write to
-   stdout and load data from stdin respectively. (#5525, #3838)
- * `r.min`, `r.max`, `r.sum`, `r.avg` and `r.distinct` now accept an array argument
-   (#5494)
+  * Added a `"gevent"` loop type to the Python driver. (#4433)
+  * Printing a cursor object now displays the first few results. (#5331)
+  * Removed the dependency on `tar` for the `rethinkdb restore` and `rethinkdb dump`
+    commands. (#5399)
+  * Added a `--tls-cert` option to the `rethinkdb import`, `rethinkdb export`,
+    `rethinkdb dump`, `rethinkdb restore` and `rethinkdb index-rebuild` commands to enable
+    TLS connections. (#5330)
+  * Added `--password` and `--password-file` options to the `rethinkdb import`,
+    `rethinkdb export`, `rethinkdb dump`, `rethinkdb restore` and
+    `rethinkdb index-rebuild` commands to connect to password-protected servers. (#5464)
+  * Added a `--format ndjson` option to `rethinkdb export` that allows exporting tables
+    in a newline-separated JSON format. (#5101)
+  * Made `rethinkdb dump` `rethinkdb restore` and `rethinkdb import` able to write to
+    stdout and load data from stdin respectively. (#5525, #3838)
+  * `r.min`, `r.max`, `r.sum`, `r.avg` and `r.distinct` now accept an array argument
+    (#5494)
 * Java driver:
- * Made it easier to publish the driver on local Ivy and Maven repositories. (#5054)
+  * Made it easier to publish the driver on local Ivy and Maven repositories. (#5054)
 
 ## Bug fixes ##
 
 * Server
- * Fixed a crash with the message `[cmp != 0]` when querying with `r.minval` or
-   `r.maxval` values inside of an array. (#5542)
- * Fixed in issue that caused orphaned tables to be left behind when deleting a database
-   through the `"db_config"` system table. (#4465)
- * Fixed a crash when trying to restore a backup from a version of RethinkDB that is too
-   new. (#5104)
- * Fixed a bug in data migration from RethinkDB 2.0.x and earlier. (#5570)
- * Fixed a race condition causing server crashes with the message
-   `Guarantee failed: [!pair.first.inner.overlaps(region.inner)]` when rebalancing a
-   table while simultaneously opening new changefeeds. (#5576)
- * Fixed an issue causing backfill jobs to remain in the `jobs` system table even after
-   finishing. (#5223)
+  * Fixed a crash with the message `[cmp != 0]` when querying with `r.minval` or
+    `r.maxval` values inside of an array. (#5542)
+  * Fixed in issue that caused orphaned tables to be left behind when deleting a database
+    through the `"db_config"` system table. (#4465)
+  * Fixed a crash when trying to restore a backup from a version of RethinkDB that is too
+    new. (#5104)
+  * Fixed a bug in data migration from RethinkDB 2.0.x and earlier. (#5570)
+  * Fixed a race condition causing server crashes with the message
+    `Guarantee failed: [!pair.first.inner.overlaps(region.inner)]` when rebalancing a
+    table while simultaneously opening new changefeeds. (#5576)
+  * Fixed an issue causing backfill jobs to remain in the `jobs` system table even after
+    finishing. (#5223)
 * ReQL
- * Disallowed changefeeds on queries of the form `orderBy(...).limit(...).filter(...)`,
-   since they do not provide the correct semantics. (#5325)
- * Coercing a binary value to a string value now properly checks for illegal characters
-   in the string. (#5536)
+  * Disallowed changefeeds on queries of the form `orderBy(...).limit(...).filter(...)`,
+    since they do not provide the correct semantics. (#5325)
+  * Coercing a binary value to a string value now properly checks for illegal characters
+    in the string. (#5536)
 * Web UI
- * Fixed the "The request to retrieve data failed" error when having an orphaned table
-   whose database has been deleted. (#4985)
- * Fixed the maximum number of shards display for clusters with more than 32 servers.
-   (#5311)
- * Fixed an empty "Connected to" field when accessing the web UI through a RethinkDB
-   proxy server. (#3182)
+  * Fixed the "The request to retrieve data failed" error when having an orphaned table
+    whose database has been deleted. (#4985)
+  * Fixed the maximum number of shards display for clusters with more than 32 servers.
+    (#5311)
+  * Fixed an empty "Connected to" field when accessing the web UI through a RethinkDB
+    proxy server. (#3182)
 * JavaScript driver
- * Fixed the behavior of `cursor.close` when there are remaining items in the buffer.
-   (#5432)
+  * Fixed the behavior of `cursor.close` when there are remaining items in the buffer.
+    (#5432)
 * Python driver
- * Fixed a bug in the `__str__` function of cursor objects. (#5567)
- * Fixed the handling of the error generated for over-sized queries. (#4771)
+  * Fixed a bug in the `__str__` function of cursor objects. (#5567)
+  * Fixed the handling of the error generated for over-sized queries. (#4771)
 * Ruby driver
- * Fixed the handling of the error generated for over-sized queries. (#4771)
+  * Fixed the handling of the error generated for over-sized queries. (#4771)
 
 ## Contributors ##
 
@@ -621,28 +856,28 @@ older version.
 ### Bug fixes ###
 
 * Server
- * Fixed an issue causing `include_initial` changefeeds to miss changes (#5216)
- * Fixed an issue causing `include_initial` changefeeds to stall and never reach the
-   `"ready"` state (#5157)
- * Fixed an issue causing `include_initial` changefeeds to emit unexpected initial
-   results with a `null` value (#5153)
- * Improved the efficiency of `skip` in combination with `limit` (#5155)
- * Fixed an issue with determinism checking in geospatial commands (#5130)
- * Fixed an invalid memory access that caused segmentation faults on ARM (#5093)
- * Fixed a crash with "Unreachable code" when migrating from versions of RethinkDB older
-   than 1.16 (#5158)
- * Fixed an issue where the server would send an extra response to the client after
-   a cursor completed (#5159)
- * Fixed a build dependency issue with OpenSSL on OS X 10.11 (#4963)
- * Fixed compiler warnings on ARM (#4541)
- * Made the APT repository compatible with APT 1.1 (#5174)
+  * Fixed an issue causing `include_initial` changefeeds to miss changes (#5216)
+  * Fixed an issue causing `include_initial` changefeeds to stall and never reach the
+    `"ready"` state (#5157)
+  * Fixed an issue causing `include_initial` changefeeds to emit unexpected initial
+    results with a `null` value (#5153)
+  * Improved the efficiency of `skip` in combination with `limit` (#5155)
+  * Fixed an issue with determinism checking in geospatial commands (#5130)
+  * Fixed an invalid memory access that caused segmentation faults on ARM (#5093)
+  * Fixed a crash with "Unreachable code" when migrating from versions of RethinkDB older
+    than 1.16 (#5158)
+  * Fixed an issue where the server would send an extra response to the client after
+    a cursor completed (#5159)
+  * Fixed a build dependency issue with OpenSSL on OS X 10.11 (#4963)
+  * Fixed compiler warnings on ARM (#4541)
+  * Made the APT repository compatible with APT 1.1 (#5174)
 * Drivers
- * Fixed missing backtraces on `ReQLCompileError` in the JavaScript driver (#4803)
- * Upgraded the version of CoffeeScript used to compile the JavaScript driver in order
-   to avoid errors in strict mode (#5198)
- * Fixed a syntax error warning in the Python driver during installation on older Python
-  versions (#4702)
- * `rethinkdb restore` now waits for tables to be available (#5154)
+  * Fixed missing backtraces on `ReQLCompileError` in the JavaScript driver (#4803)
+  * Upgraded the version of CoffeeScript used to compile the JavaScript driver in order
+    to avoid errors in strict mode (#5198)
+  * Fixed a syntax error warning in the Python driver during installation on older Python
+   versions (#4702)
+  * `rethinkdb restore` now waits for tables to be available (#5154)
 
 --
 
@@ -748,67 +983,67 @@ life.
 ## Improvements ##
 
 * Server
- * Improved the scalability of range queries on sharded tables (#4343)
- * Improved the performance of `between` queries on secondary indexes (#4862)
- * Reduced the memory overhead for large data sets (#1951)
- * Redesigned the internal representation of queries to improve efficiency (#4601)
- * Removed the deprecated protocol buffer driver protocol (#4601)
- * Improved the construction of secondary indexes to make them resumable and to reduce
-   their impact on any production workload (#4959)
- * Improved the performance when using `getAll` with a secondary index in some edge cases
-   (#4948)
- * Removed the limit of 1024 concurrent changefeeds on a single connection (#4732)
- * Implemented automatically growing coroutine stacks to avoid stack overflows (#4462)
- * Optimized the deserialization of network messages to avoid an extra copy (#3734)
- * Added a `raft_leader` field to a table's status to expose its current Raft leader
-   (#4902)
- * Made the handling of invalid lines in the `'logs'` system table more robust (#4929)
+  * Improved the scalability of range queries on sharded tables (#4343)
+  * Improved the performance of `between` queries on secondary indexes (#4862)
+  * Reduced the memory overhead for large data sets (#1951)
+  * Redesigned the internal representation of queries to improve efficiency (#4601)
+  * Removed the deprecated protocol buffer driver protocol (#4601)
+  * Improved the construction of secondary indexes to make them resumable and to reduce
+    their impact on any production workload (#4959)
+  * Improved the performance when using `getAll` with a secondary index in some edge cases
+    (#4948)
+  * Removed the limit of 1024 concurrent changefeeds on a single connection (#4732)
+  * Implemented automatically growing coroutine stacks to avoid stack overflows (#4462)
+  * Optimized the deserialization of network messages to avoid an extra copy (#3734)
+  * Added a `raft_leader` field to a table's status to expose its current Raft leader
+    (#4902)
+  * Made the handling of invalid lines in the `'logs'` system table more robust (#4929)
 * ReQL
- * `indexStatus` now exposes the secondary index function (#3231)
- * Added an optarg called `changefeed_queue_size` to specify how many changes the server
-   should buffer on a changefeed before generating an error (#3607)
- * Extended `branch` to accept an arbitrary number of conditions and values (#3199)
- * Strings can now contain null characters (except in primary keys) (#3163)
- * Streams can now be coerced directly to an object (#2802)
- * Made `coerceTo('BOOL')` consistent with `branch` (#3133)
- * Changefeeds on `filter` and `map` queries involving geospatial terms are now allowed
-   (#4063)
- * Extended `or` and `and` to accept zero arguments (#4132)
+  * `indexStatus` now exposes the secondary index function (#3231)
+  * Added an optarg called `changefeed_queue_size` to specify how many changes the server
+    should buffer on a changefeed before generating an error (#3607)
+  * Extended `branch` to accept an arbitrary number of conditions and values (#3199)
+  * Strings can now contain null characters (except in primary keys) (#3163)
+  * Streams can now be coerced directly to an object (#2802)
+  * Made `coerceTo('BOOL')` consistent with `branch` (#3133)
+  * Changefeeds on `filter` and `map` queries involving geospatial terms are now allowed
+    (#4063)
+  * Extended `or` and `and` to accept zero arguments (#4132)
 * Web UI
- * The Data Explorer now allows executing only parts of a query be selecting them (#4814)
+  * The Data Explorer now allows executing only parts of a query be selecting them (#4814)
 * All drivers
- * Improved the consistency of ReQL error types by throwing `ReqlCompileError` rather
-   than `ReqlDriverError` for certain errors (#4669)
+  * Improved the consistency of ReQL error types by throwing `ReqlCompileError` rather
+    than `ReqlDriverError` for certain errors (#4669)
 * JavaScript driver
- * Added an `eachAsync` method on cursors that behaves like `each` but also returns a
-   promise (#4784)
+  * Added an `eachAsync` method on cursors that behaves like `each` but also returns a
+    promise (#4784)
 * Python driver
- * Implemented an API to override the default JSON encoder and decoder (#4825, #4818)
+  * Implemented an API to override the default JSON encoder and decoder (#4825, #4818)
 
 ## Bug fixes ##
 
 * Server
- * Fixed a segmentation fault that could happen when disconnecting a server while
-   having open changefeeds (#4972)
- * Updated the description of the `--server-name` parameter in `rethinkdb --help` (#4739)
- * Fixed a crash with the message "Guarantee failed: [ts->tv_nsec >= 0 &&
-   ts->tv_nsec < (1000LL * (1000LL * 1000LL))] " (#4931)
- * Fixed a problem where backfill jobs didn't get removed from the `'jobs'` table (#4923)
- * Fixed a memory corruption that could trigger a segmentation fault during
-   `getIntersecting` queries (#4937)
- * Fixed an issue that could stop data files from RethinkDB 1.13 from migrating properly
-   (#4991) 
- * Fixed a "Guarantee failed: [pair.second] key for entry_t already exists" crash when
-   rapidly reconnecting servers (#4968)
- * Fixed an "Uncaught exception of type interrupted_exc_t" crash (#4977)
- * Added a check to catch `r.minval` and `r.maxval` values when writing to the
-   `'_debug_scratch'` system table (#4032)
+  * Fixed a segmentation fault that could happen when disconnecting a server while
+    having open changefeeds (#4972)
+  * Updated the description of the `--server-name` parameter in `rethinkdb --help` (#4739)
+  * Fixed a crash with the message "Guarantee failed: [ts->tv_nsec >= 0 &&
+    ts->tv_nsec < (1000LL * (1000LL * 1000LL))] " (#4931)
+  * Fixed a problem where backfill jobs didn't get removed from the `'jobs'` table (#4923)
+  * Fixed a memory corruption that could trigger a segmentation fault during
+    `getIntersecting` queries (#4937)
+  * Fixed an issue that could stop data files from RethinkDB 1.13 from migrating properly
+    (#4991)
+  * Fixed a "Guarantee failed: [pair.second] key for entry_t already exists" crash when
+    rapidly reconnecting servers (#4968)
+  * Fixed an "Uncaught exception of type interrupted_exc_t" crash (#4977)
+  * Added a check to catch `r.minval` and `r.maxval` values when writing to the
+    `'_debug_scratch'` system table (#4032)
 * ReQL
- * Fixed the error message that's generated when passing in a function with the wrong
-   arity (#4189)
- * Fixed a regression that caused `r.asc("test")` to not fail as it should (#4951)
+  * Fixed the error message that's generated when passing in a function with the wrong
+    arity (#4189)
+  * Fixed a regression that caused `r.asc("test")` to not fail as it should (#4951)
 * JavaScript driver
- * Object keys in `toString` are now properly quoted (#4997)
+  * Object keys in `toString` are now properly quoted (#4997)
 
 ## Contributors ##
 
@@ -1148,71 +1383,71 @@ with RethinkDB 2.2.
 ## New features ##
 
 * Server
- * Added automatic failover and semi-lossless rebalance based on Raft (#223)
- * Backfills are now interuptible and reversible (#3886, #3885)
- * `table.reconfigure` now works even if some servers are disconnected (#3913)
- * Replicas can now be marked as voting or non-voting (#3891)
- * Added an emergency repair feature to restore table availability if consensus is lost
-   (#3893)
- * Reads can now be made against a majority of replicas (#3895)
- * Added an emergency read mode that extracts data directly from a given replica for data
-   recovery purposes (#4388)
- * Servers with no responsibilities can now be removed from clusters without raising an
-   issue (#1790)
- * Made the intracluster heartbeat timeout configurable (#4449)
+  * Added automatic failover and semi-lossless rebalance based on Raft (#223)
+  * Backfills are now interuptible and reversible (#3886, #3885)
+  * `table.reconfigure` now works even if some servers are disconnected (#3913)
+  * Replicas can now be marked as voting or non-voting (#3891)
+  * Added an emergency repair feature to restore table availability if consensus is lost
+    (#3893)
+  * Reads can now be made against a majority of replicas (#3895)
+  * Added an emergency read mode that extracts data directly from a given replica for data
+    recovery purposes (#4388)
+  * Servers with no responsibilities can now be removed from clusters without raising an
+    issue (#1790)
+  * Made the intracluster heartbeat timeout configurable (#4449)
 * ReQL
- * Added `ceil`, `floor` and `round` (#866)
- * Extended the ReQL error type hierarchy to be more fine-grained (#4544)
+  * Added `ceil`, `floor` and `round` (#866)
+  * Extended the ReQL error type hierarchy to be more fine-grained (#4544)
 * All drivers
- * Added driver-side support for SSL connections and CA verification (#4075, #4076,
-   #4080)
+  * Added driver-side support for SSL connections and CA verification (#4075, #4076,
+    #4080)
 * Python driver
- * Added Python 3 asyncio support (#4071)
- * Added Twisted support (#4096)
- * `rethinkdb export` now supports the `--delimiter` option for CSV files (#3916)
+  * Added Python 3 asyncio support (#4071)
+  * Added Twisted support (#4096)
+  * `rethinkdb export` now supports the `--delimiter` option for CSV files (#3916)
 
 ## Improvements ##
 
 * Server
- * Improved the handling of cluster membership and removal of servers (#3262, #3897,
-   #1790)
- * Changed the formatting of the `table_status` system table (#3882, #4196)
- * Added an `indexes` field to the `table_config` system table (#4525)
- * Improved efficiency by making `datum_t` movable (#4056)
- * ReQL backtraces are now faster and smaller (#2900)
- * Replaced cJSON with rapidjson (#3844)
- * Failed meta operations are now transparently retried (#4199)
- * Added more detailed logging of cluster events (#3878)
- * Improved unsaved data limit throttling to increase write performance (#4441)
- * Improved the performance of the `is_empty` term (#4592)
- * Small backfills are now prioritized to make tables available more quickly after a
-   server restart (#4383)
- * Reduced the memory requirements when backfilling large documents (#4474)
- * Changefeeds using the `squash` option now send batches early if the changefeed queue
-   gets too full (#3942)
+  * Improved the handling of cluster membership and removal of servers (#3262, #3897,
+    #1790)
+  * Changed the formatting of the `table_status` system table (#3882, #4196)
+  * Added an `indexes` field to the `table_config` system table (#4525)
+  * Improved efficiency by making `datum_t` movable (#4056)
+  * ReQL backtraces are now faster and smaller (#2900)
+  * Replaced cJSON with rapidjson (#3844)
+  * Failed meta operations are now transparently retried (#4199)
+  * Added more detailed logging of cluster events (#3878)
+  * Improved unsaved data limit throttling to increase write performance (#4441)
+  * Improved the performance of the `is_empty` term (#4592)
+  * Small backfills are now prioritized to make tables available more quickly after a
+    server restart (#4383)
+  * Reduced the memory requirements when backfilling large documents (#4474)
+  * Changefeeds using the `squash` option now send batches early if the changefeed queue
+    gets too full (#3942)
 * ReQL
- * `.split('')` is now UTF-8 aware (#2518)
- * Improved the behaviour of compound index values containing `null` (#4146)
- * Errors now distinguish failed writes from indeterminate writes (#4296)
- * `r.union` is now a top-level term (#4030)
- * `condition.branch(...)` now works just like `r.branch(condition, ...)` (#4438)
- * Improved the detection of non-atomic `update` and `replace` arguments (#4582)
+  * `.split('')` is now UTF-8 aware (#2518)
+  * Improved the behaviour of compound index values containing `null` (#4146)
+  * Errors now distinguish failed writes from indeterminate writes (#4296)
+  * `r.union` is now a top-level term (#4030)
+  * `condition.branch(...)` now works just like `r.branch(condition, ...)` (#4438)
+  * Improved the detection of non-atomic `update` and `replace` arguments (#4582)
 * Web UI
- * Added new dependency and namespace management system to the web UI (#3465, #3660)
- * Improved the information visible on the dashboard (#4461)
- * Improved layout of server and replica assignment lists (#4372)
- * Updated to reflect the new clustering features and changes (#4283, #4330, #4288, ...)
+  * Added new dependency and namespace management system to the web UI (#3465, #3660)
+  * Improved the information visible on the dashboard (#4461)
+  * Improved layout of server and replica assignment lists (#4372)
+  * Updated to reflect the new clustering features and changes (#4283, #4330, #4288, ...)
 * JavaScript driver
- * The version of bluebird was updated to 2.9.32 (#4178, #4475)
- * Improved compatibility with Internet Explorer 10 (#4534)
- * TCP keepalive is now enabled for all connections (#4572)
+  * The version of bluebird was updated to 2.9.32 (#4178, #4475)
+  * Improved compatibility with Internet Explorer 10 (#4534)
+  * TCP keepalive is now enabled for all connections (#4572)
 * Python driver
- * Added a new `--max-document-size` option to the `rethinkdb import` script to handle
-   very large JSON documents (#4452)
- * Added an `r.__version__` property (#3100)
- * TCP keepalive is now enabled for all connections (#4572)
+  * Added a new `--max-document-size` option to the `rethinkdb import` script to handle
+    very large JSON documents (#4452)
+  * Added an `r.__version__` property (#3100)
+  * TCP keepalive is now enabled for all connections (#4572)
 * Ruby driver
- * TCP keepalive is now enabled for all connections (#4572)
+  * TCP keepalive is now enabled for all connections (#4572)
 
 ## Bug fixes ##
 
@@ -1228,14 +1463,14 @@ with RethinkDB 2.2.
     "Loading tables..." if no database existed (#4464)
   * Fixed the tick marks in the shard distribution graph (#4294)
 * Python driver
- * Fixed a missing argument error (#4402)
+  * Fixed a missing argument error (#4402)
 * JavaScript driver
- * Made the handling of the `db` optional argument to `run` consistent with the Ruby and
-   Python drivers (#4347)
- * Fixed a problem that could cause connections to not be closed correctly (#4526)
+  * Made the handling of the `db` optional argument to `run` consistent with the Ruby and
+    Python drivers (#4347)
+  * Fixed a problem that could cause connections to not be closed correctly (#4526)
 * Ruby driver
- * Made the EventMachine API raise an error when a connection is closed while handlers
-   are active (#4626)
+  * Made the EventMachine API raise an error when a connection is closed while handlers
+    are active (#4626)
 
 ## Contributors ##
 
@@ -3466,5 +3701,3 @@ pressure. They will be resolved in subsequent releases.
 * The clustering system has a bottleneck in cluster metadata
   propagation. Cluster management slows down significantly when more
   than sixteen shards are used.
-
-
