@@ -6,7 +6,7 @@ Build-Depends: DEB_BUILD_DEPENDS
 Homepage: http://www.rethinkdb.com
 
 Package: VERSIONED_QUALIFIED_PACKAGE_NAME
-Architecture: i386 amd64
+Architecture: any
 Pre-Depends: adduser (>= 3.40), procps (>= 3.2)
 Depends: ${shlibs:Depends}, ${misc:Depends}
 Breaks: PACKAGE_NAME (<< PACKAGE_VERSION)
@@ -19,7 +19,7 @@ Description:
   and is easy to setup and learn.
 
 Package: VERSIONED_QUALIFIED_PACKAGE_NAME-dbg
-Architecture: i386 amd64
+Architecture: any
 Depends: VERSIONED_QUALIFIED_PACKAGE_NAME (= PACKAGE_VERSION)
 Breaks: PACKAGE_NAME (<< PACKAGE_VERSION)
 Conflicts: PACKAGE_NAME (<< PACKAGE_VERSION)
