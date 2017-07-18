@@ -29,7 +29,7 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 
     deterministic_t is_deterministic() const final {
-        return deterministic_t::no;
+        return deterministic_t::no();
     }
 
     virtual scoped_ptr_t<val_t> eval_impl(
@@ -87,7 +87,8 @@ public:
 
                 config.set(conf);
                 config->func.compile_wire_func()->assert_deterministic(
-                    "Write hook functions must be deterministic.");
+                        constant_now_t::yes,
+                        "Write hook functions must be deterministic.");
 
                 optional<size_t> arity = config->func.compile_wire_func()->arity();
 
@@ -113,7 +114,8 @@ public:
 
             config.set(conf);
             config->func.compile_wire_func()->assert_deterministic(
-                "Write hook functions must be deterministic.");
+                    constant_now_t::yes,
+                    "Write hook functions must be deterministic.");
 
             optional<size_t> arity = config->func.compile_wire_func()->arity();
 
@@ -155,7 +157,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 
     deterministic_t is_deterministic() const final {
-        return deterministic_t::no;
+        return deterministic_t::no();
     }
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {

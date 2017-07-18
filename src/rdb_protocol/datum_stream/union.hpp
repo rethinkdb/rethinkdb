@@ -16,8 +16,7 @@ public:
                          backtrace_id_t bt,
                          size_t expected_states = 0);
 
-    virtual void add_transformation(transform_variant_t &&tv,
-                                    backtrace_id_t bt);
+    virtual void help_add_transformation(transform_variant_t &&tv, backtrace_id_t bt);
     virtual void accumulate(env_t *env, eager_acc_t *acc, const terminal_variant_t &tv);
     virtual void accumulate_all(env_t *env, eager_acc_t *acc);
 

@@ -465,22 +465,14 @@ private:
 
 struct rcheck_transform_visitor_t : public bt_rcheckable_t,
                                     public boost::static_visitor<void> {
-    template<class... Args>
-    explicit rcheck_transform_visitor_t(Args &&... args)
-        : bt_rcheckable_t(std::forward<Args...>(args)...) { }
+    explicit rcheck_transform_visitor_t(backtrace_id_t bt)
+        : bt_rcheckable_t(bt) { }
     void check_f(const wire_func_t &f) const {
-        switch (f.compile_wire_func()->is_deterministic()) {
-            case deterministic_t::always:
-            case deterministic_t::single_server:
-                // ok
-                break;
-
-            case deterministic_t::no:
-                rfail_src(f.get_bt(),
-                          base_exc_t::LOGIC,
-                          "Cannot call `changes` after a non-deterministic function.");
-
-            default: unreachable();
+        if (!f.compile_wire_func()->is_deterministic().test(single_server_t::yes,
+                                                            constant_now_t::yes)) {
+            rfail_src(f.get_bt(),
+                      base_exc_t::LOGIC,
+                      "Cannot call `changes` after a non-deterministic function.");
         }
     }
     void operator()(const map_wire_func_t &f) const {
@@ -517,9 +509,8 @@ struct rcheck_transform_visitor_t : public bt_rcheckable_t,
 
 struct rcheck_spec_visitor_t : public bt_rcheckable_t,
                                public boost::static_visitor<void> {
-    template<class... Args>
-    explicit rcheck_spec_visitor_t(env_t *_env, Args &&... args)
-        : bt_rcheckable_t(std::forward<Args...>(args)...), env(_env) { }
+    explicit rcheck_spec_visitor_t(env_t *_env, backtrace_id_t bt)
+        : bt_rcheckable_t(bt), env(_env) { }
     void operator()(const changefeed::keyspec_t::range_t &spec) const {
         for (const auto &t : spec.transforms) {
             boost::apply_visitor(rcheck_transform_visitor_t(backtrace()), t);

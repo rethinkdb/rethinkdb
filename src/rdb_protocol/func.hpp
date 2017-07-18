@@ -49,7 +49,7 @@ public:
 
     virtual void visit(func_visitor_t *visitor) const = 0;
 
-    void assert_deterministic(const char *extra_msg) const;
+    void assert_deterministic(constant_now_t cn, const char *extra_msg) const;
 
     bool filter_call(env_t *env,
                      datum_t arg,

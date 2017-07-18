@@ -76,7 +76,7 @@ public:
     }
 
     virtual deterministic_t is_deterministic() const {
-        return deterministic_t::no;
+        return deterministic_t::no();
     }
 
     virtual const char *name() const { return "sample"; }
@@ -88,7 +88,7 @@ public:
         : op_term_t(env, term, argspec_t(0, 2), optargspec_t({"float"})) { }
 private:
     virtual deterministic_t is_deterministic() const {
-        return deterministic_t::no;
+        return deterministic_t::no();
     }
 
     enum class bound_type_t {
