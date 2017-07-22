@@ -1,0 +1,12 @@
+diff -ruN --label original original ./src/compiler/instruction.h
+--- original
++++ ./src/compiler/instruction.h
+@@ -865,7 +865,7 @@ class InstructionBlock FINAL : public ZoneObject {
+ 
+ typedef ZoneDeque<Constant> ConstantDeque;
+ typedef std::map<int, Constant, std::less<int>,
+-                 zone_allocator<std::pair<int, Constant> > > ConstantMap;
++                 zone_allocator<std::pair<int const, Constant> > > ConstantMap;
+ 
+ typedef ZoneDeque<Instruction*> InstructionDeque;
+ typedef ZoneDeque<PointerMap*> PointerMapDeque;
