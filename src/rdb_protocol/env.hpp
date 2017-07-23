@@ -157,6 +157,9 @@ public:
 
     rdb_context_t *get_rdb_ctx() { return rdb_ctx_; }
 
+    // This is set when inside a default term
+    bool eval_in_default = false;
+
 private:
     static const uint32_t EVALS_BEFORE_YIELD = 256;
     uint32_t evals_since_yield_;
