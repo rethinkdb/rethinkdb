@@ -20,7 +20,7 @@ init () {
     min_browserify_version=13.0.0
     max_browserify_version=13.1.0
     min_python_version=2.6.0
-    
+
     osx_min_version=10.9
 
     min_msbuild_version=14.0
@@ -30,7 +30,7 @@ init () {
     must_fetch_list='bluebird v8'
     please_fetch_list="handlebars gtest re2 $must_fetch_list"
 
-    optional_libs="gtest termcap boost_system"
+    optional_libs="gtest termcap boost_system benchmark"
     required_libs="protobuf v8 re2 z crypto ssl curl"
     other_libs="tcmalloc jemalloc"
     all_libs="$required_libs $optional_libs $other_libs"
@@ -373,7 +373,8 @@ browserify:Browserify
 v8:V8 JavaScript Engine
 re2:RE2
 z:zlib
-gtest:Google Test'
+gtest:Google Test
+benchmark:Google Benchmark'
 
 # Output of --help
 show_help () {
