@@ -285,7 +285,16 @@ private:
     virtual scoped_ptr_t<val_t> obj_eval(
         scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t d = v0->as_datum();
-        return new_val(d.get_field(args->arg(env, 1)->as_str()));
+        datum_t r;
+        if (env->env->eval_in_default) {
+            r = d.get_field(args->arg(env, 1)->as_str(), NOTHROW);
+            if (r.get_type() == datum_t::UNINITIALIZED) {
+                r = datum_t::null();
+            }
+        } else {
+            r = d.get_field(args->arg(env, 1)->as_str(), THROW);
+        }
+        return new_val(r);
     }
     virtual const char *name() const { return "get_field"; }
 };

@@ -32,7 +32,9 @@ private:
         scoped_ptr_t<exc_t> err;
         scoped_ptr_t<val_t> v;
         try {
+            env->env->eval_in_default = true;
             v = args->arg(env, 0);
+            env->env->eval_in_default = false;
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
                 func_arg = v->as_datum();
                 if (func_arg.get_type() != datum_t::R_NULL) {
@@ -42,6 +44,7 @@ private:
                 return v;
             }
         } catch (const exc_t &e) {
+            env->env->eval_in_default = false;
             if (e.get_type() == base_exc_t::NON_EXISTENCE) {
                 err.init(new exc_t(e));
                 func_arg = datum_t(e.what());
@@ -49,16 +52,20 @@ private:
                 throw;
             }
         } catch (const datum_exc_t &e) {
+            env->env->eval_in_default = false;
             if (e.get_type() == base_exc_t::NON_EXISTENCE) {
                 err.init(new exc_t(e.get_type(), e.what(), backtrace()));
                 func_arg = datum_t(e.what());
             } else {
                 throw;
             }
+        } catch (...) {
+            env->env->eval_in_default = false;
+            throw;
         }
+
         r_sanity_check(func_arg.has());
-        r_sanity_check(func_arg.get_type() == datum_t::R_NULL
-                       || func_arg.get_type() == datum_t::R_STR);
+        r_sanity_check(func_arg.get_type() == datum_t::R_NULL || func_arg.get_type() == datum_t::R_STR);
         try {
             scoped_ptr_t<val_t> def = args->arg(env, 1);
             if (def->get_type().is_convertible(val_t::type_t::FUNC)) {
