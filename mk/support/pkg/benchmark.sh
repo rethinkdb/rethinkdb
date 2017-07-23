@@ -4,9 +4,10 @@ src_url_sha1=8c539bbe2a212618fa87b6c38fba087100b6e4ae
 
 pkg_install () {
     pkg_copy_src_to_build
-    make -C "$build_dir/make" benchmark.a
+    cd $build_dir && cmake $build_dir -DCMAKE_BUILD_TYPE=Release
+    cd $build_dir && make benchmark
     mkdir -p "$install_dir/lib"
-    cp "$build_dir/make/benchmark.a" "$install_dir/lib/benchmark.a"
+    cp "$build_dir/src/libbenchmark.a" "$install_dir/lib/libbenchmark.a"
 }
 
 pkg_install-windows () {

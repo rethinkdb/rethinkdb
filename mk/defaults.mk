@@ -49,6 +49,8 @@ DEBUG ?= 0
 # Build unit tests
 UNIT_TESTS ?= $(DEBUG)
 
+BENCHMARKS ?= $(DEBUG)
+
 # Set to 1 to enable valgrind awareness
 VALGRIND ?= 0
 
@@ -148,3 +150,4 @@ NO_EPOLL ?= 0
 UNIT_TEST_FILTER ?= *
 PACKAGE_FOR_SUSE_10 ?= 0
 NO_COMPILE_JS ?= 0
+BENCHMARK_FILTER ?= *
