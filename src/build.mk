@@ -244,8 +244,6 @@ RT_CXXFLAGS += -I$(PROTO_DIR)
 
 SOURCES := $(shell find $(SOURCE_DIR) -name '*.cc' -not -name '\.*')
 
-SERVER_EXEC_SOURCES := $(filter-out $(SOURCE_DIR)/benchmarks/%, $(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES)))
-
 QL2_PROTO_NAMES := rdb_protocol/ql2
 QL2_PROTO_SOURCES := $(foreach _,$(QL2_PROTO_NAMES),$(SOURCE_DIR)/$_.proto)
 QL2_PROTO_HEADERS := $(foreach _,$(QL2_PROTO_NAMES),$(PROTO_DIR)/$_.pb.h)
@@ -264,15 +262,20 @@ endif
 
 NAMES := $(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS := $(patsubst %,$(DEP_DIR)/%$(DEPS_POSTFIX).d,$(NAMES))
-OBJS := $(QL2_PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
+OBJS := $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
-SERVER_EXEC_OBJS := $(OBJ_DIR)/web_assets/web_assets.o $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(SERVER_EXEC_SOURCES))
+SERVER_EXTRA_OBJS := $(OBJ_DIR)/web_assets/web_assets.o $(QL2_PROTO_OBJS)
+SERVER_COMMON_OBJS := $(SERVER_EXTRA_OBJS) $(filter-out $(OBJ_DIR)/main.o $(OBJ_DIR)/benchmarks/% $(OBJ_DIR)/unittest/%,$(OBJS))
 
-SERVER_NOMAIN_OBJS := $(OBJ_DIR)/web_assets/web_assets.o $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(filter-out %/main.cc,$(SOURCES)))
+SERVER_EXEC_OBJS := $(SERVER_COMMON_OBJS) $(OBJ_DIR)/main.o
 
-SERVER_UNIT_TEST_OBJS := $(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
+SERVER_UNIT_TEST_ONLY_OBJS := $(filter $(OBJ_DIR)/unittest/%,$(OBJS))
 
-SERVER_BENCHMARKS_OBJS := $(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/benchmarks/main.o
+SERVER_BENCHMARK_ONLY_OBJS := $(filter $(OBJ_DIR)/benchmarks/%,$(OBJS))
+
+SERVER_UNIT_TEST_OBJS := $(SERVER_COMMON_OBJS) $(SERVER_UNIT_TEST_ONLY_OBJS)
+
+SERVER_BENCHMARK_OBJS := $(SERVER_COMMON_OBJS) $(SERVER_BENCHMARK_ONLY_OBJS)
 
 ##### Version number handling
 
@@ -364,21 +367,20 @@ endif
 
 # The unittests use gtest, which uses macros that expand into switch statements which don't contain
 # default cases. So we have to remove the -Wswitch-default argument for them.
-$(SERVER_UNIT_TEST_OBJS): RT_CXXFLAGS := $(filter-out -Wswitch-default,$(RT_CXXFLAGS)) $(GTEST_INCLUDE)
+$(SERVER_UNIT_TEST_ONLY_OBJS): RT_CXXFLAGS := $(filter-out -Wswitch-default,$(RT_CXXFLAGS)) $(GTEST_INCLUDE) 
 
-$(SERVER_UNIT_TEST_OBJS): | $(GTEST_INCLUDE_DEP)
+$(SERVER_UNIT_TEST_ONLY_OBJS): | $(GTEST_INCLUDE_DEP)
 
 $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(SERVER_UNIT_TEST_OBJS) $(GTEST_LIBS_DEP) | $(BUILD_DIR)/. $(RETHINKDB_DEPENDENCIES_LIBS)
 	$P LD $@
 	$(RT_CXX) $(SERVER_UNIT_TEST_OBJS) $(RT_LDFLAGS) $(GTEST_LIBS) -o $@ $(LD_OUTPUT_FILTER)
 
-$(SERVER_BENCHMARKS_OBJS): RT_CXXFLAGS := $(filter-out -Wswitch-default,$(RT_CXXFLAGS)) $(BENCHMARK_INCLUDE)
+$(SERVER_BENCHMARK_ONLY_OBJS): RT_CXXFLAGS := $(RT_CXXFLAGS) $(BENCHMARK_INCLUDE)
+$(SERVER_BENCHMARK_ONLY_OBJS): | $(BENCHMARK_INCLUDE_DEP)
 
-$(SERVER_BENCHMARKS_OBJS): | $(BENCHMARK_INCLUDE_DEP)
-
-$(BUILD_DIR)/$(SERVER_BENCHMARK_NAME): $(SERVER_BENCHMARKS_OBJS) $(BENCHMARK_INCLUDE_DEP) | $(BUILD_DIR)/. $(RETHINKDB_DEPENDENCIES_LIBS)
+$(BUILD_DIR)/$(SERVER_BENCHMARK_NAME): $(SERVER_BENCHMARK_OBJS) $(BENCHMARK_INCLUDE_DEP) | $(BUILD_DIR)/. $(RETHINKDB_DEPENDENCIES_LIBS)
 	$P LD $@
-	$(RT_CXX) $(SERVER_BENCHMARKS_OBJS) $(RT_LDFLAGS) $(BENCHMARK_LIBS) -o $@ $(LD_OUTPUT_FILTER)
+	$(RT_CXX) $(SERVER_BENCHMARK_OBJS) $(RT_LDFLAGS) $(BENCHMARK_LIBS) -o $@ $(LD_OUTPUT_FILTER)
 
 $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME): | $(BUILD_DIR)/.
 	$P CP $@
