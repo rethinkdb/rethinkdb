@@ -367,7 +367,7 @@ endif
 
 # The unittests use gtest, which uses macros that expand into switch statements which don't contain
 # default cases. So we have to remove the -Wswitch-default argument for them.
-$(SERVER_UNIT_TEST_ONLY_OBJS): RT_CXXFLAGS := $(filter-out -Wswitch-default,$(RT_CXXFLAGS)) $(GTEST_INCLUDE) 
+$(SERVER_UNIT_TEST_ONLY_OBJS): RT_CXXFLAGS := $(filter-out -Wswitch-default,$(RT_CXXFLAGS)) $(GTEST_INCLUDE)
 
 $(SERVER_UNIT_TEST_ONLY_OBJS): | $(GTEST_INCLUDE_DEP)
 
