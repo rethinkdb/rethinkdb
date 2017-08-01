@@ -131,11 +131,12 @@ private:
     const bool should_exist;
 };
 
-TEST(RDBInterrupt, DISABLED_InsertOp) {
+TEST(RDBInterrupt, InsertOp) {
     ql::minidriver_t r(ql::backtrace_id_t::empty());
     ql::raw_term_t insert_term =
         r.db("db").table("table").insert(
-            r.object(r.optarg("id", "key"), r.optarg("value", "stuff"))).root_term();
+            r.object(r.optarg("id", "key"), r.optarg("value", "stuff")),
+            r.optarg("ignore_write_hook", r.boolean(true))).root_term();
 
     uint32_t eval_count;
     {
@@ -209,7 +210,7 @@ TEST(RDBInterrupt, GetOp) {
     }
 }
 
-TEST(RDBInterrupt, DISABLED_DeleteOp) {
+TEST(RDBInterrupt, DeleteOp) {
     uint32_t eval_count;
     std::set<ql::datum_t, optional_datum_less_t> initial_data;
 
@@ -220,7 +221,8 @@ TEST(RDBInterrupt, DISABLED_DeleteOp) {
 
     ql::minidriver_t r(ql::backtrace_id_t::empty());
     ql::raw_term_t delete_term =
-        r.db("db").table("table").get_("key").delete_().root_term();
+        r.db("db").table("table").get_("key").delete_(
+            r.optarg("ignore_write_hook", r.boolean(true))).root_term();
 
     {
         test_rdb_env_t test_env;
