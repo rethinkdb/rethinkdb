@@ -427,8 +427,7 @@ void server_t::add_limit_client(
         const std::string &table,
         const optional<uuid_u> &sindex_id,
         rdb_context_t *ctx,
-        global_optargs_t optargs,
-        auth::user_context_t user_context,
+        const serializable_env_t &s_env,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
@@ -450,8 +449,7 @@ void server_t::add_limit_client(
             table,
             sindex_id,
             ctx,
-            std::move(optargs),
-            std::move(user_context),
+            s_env,
             client_uuid,
             this,
             it->first,
@@ -858,8 +856,7 @@ limit_manager_t::limit_manager_t(
     std::string _table,
     optional<uuid_u> _sindex_id,
     rdb_context_t *ctx,
-    global_optargs_t optargs,
-    auth::user_context_t user_context,
+    const serializable_env_t &s_env,
     uuid_u _uuid,
     server_t *_parent,
     client_t::addr_t _parent_client,
@@ -883,9 +880,7 @@ limit_manager_t::limit_manager_t(
         ctx,
         return_empty_normal_batches_t::NO,
         drainer.get_drain_signal(),
-        std::move(optargs),
-        std::move(user_context),
-        datum_t(),
+        s_env,
         nullptr);
 
     guarantee(ops.size() == 0);
@@ -2397,10 +2392,7 @@ private:
                 outer_env->get_rdb_ctx(),
                 outer_env->return_empty_normal_batches,
                 drainer.get_drain_signal(),
-                serializable_env_t{
-                    outer_env->get_all_optargs(),
-                    outer_env->get_user_context(),
-                    outer_env->get_deterministic_time()},
+                outer_env->get_serializable_env(),
                 nullptr/*don't profile*/);
     }
 

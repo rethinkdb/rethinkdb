@@ -68,8 +68,9 @@ env_t::env_t(rdb_context_t *ctx,
              signal_t *_interruptor,
              serializable_env_t s_env,
              profile::trace_t *_trace)
-    : serializable(std::move(s_env)),
-      limits_(from_optargs(ctx, _interruptor, &serializable.global_optargs)),
+    : serializable_(std::move(s_env)),
+      limits_(from_optargs(ctx, _interruptor, &serializable_.global_optargs,
+                           serializable_.deterministic_time)),
       reql_version_(reql_version_t::LATEST),
       regex_cache_(LRU_CACHE_SIZE),
       return_empty_normal_batches(_return_empty_normal_batches),
@@ -102,7 +103,7 @@ env_t::env_t(rdb_context_t *ctx,
 env_t::env_t(signal_t *_interruptor,
              return_empty_normal_batches_t _return_empty_normal_batches,
              reql_version_t _reql_version)
-    : serializable{
+    : serializable_{
         global_optargs_t(),
         auth::user_context_t(auth::permissions_t(tribool::False, tribool::False, tribool::False, tribool::False)),
         datum_t()},

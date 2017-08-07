@@ -381,8 +381,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
             s.table,
             sindex_id,
             ctx,
-            s.serializable_env.global_optargs,
-            s.serializable_env.user_context,
+            s.serializable_env,
             s.uuid,
             s.spec,
             ql::changefeed::limit_order_t(s.spec.range.sorting),
@@ -740,7 +739,9 @@ public:
         const ql::datum_t &d, size_t) const {
         ql::datum_t res = f->call(env, d, ql::LITERAL_OK)->as_datum();
 
-        return apply_write_hook(env, pkey, d, res, write_hook);
+        const ql::datum_t &write_timestamp = env->get_deterministic_time();
+        r_sanity_check(write_timestamp.has());
+        return apply_write_hook(pkey, d, res, write_timestamp, write_hook);
     }
     return_changes_t should_return_changes() const { return return_changes; }
 private:
@@ -777,7 +778,10 @@ public:
                                              newd,
                                              conflict_behavior,
                                              conflict_func);
-        res = apply_write_hook(env, datum_string_t(pkey), d, res, write_hook);
+        const ql::datum_t &write_timestamp = env->get_deterministic_time();
+        r_sanity_check(write_timestamp.has());
+        res = apply_write_hook(datum_string_t(pkey), d, res, write_timestamp,
+                               write_hook);
         return res;
     }
     return_changes_t should_return_changes() const { return return_changes; }

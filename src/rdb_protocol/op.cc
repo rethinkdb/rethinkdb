@@ -283,21 +283,17 @@ const std::vector<counted_t<const term_t> > &op_term_t::get_original_args() cons
     return arg_terms->get_original_args();
 }
 
-deterministic_t worst_determinism(const deterministic_t a, const deterministic_t b) {
-    return a < b ? a : b;
-}
-
 deterministic_t op_term_t::is_deterministic() const {
     const std::vector<counted_t<const term_t> > &original_args
         = arg_terms->get_original_args();
-    deterministic_t worst_so_far = deterministic_t::always;
+    deterministic_t det = deterministic_t::always();
     for (const auto &arg : original_args) {
-        worst_so_far = worst_determinism(worst_so_far, arg->is_deterministic());
+        det = det.join(arg->is_deterministic());
     }
     for (const auto &arg : optargs) {
-        worst_so_far = worst_determinism(worst_so_far, arg.second->is_deterministic());
+        det = det.join(arg.second->is_deterministic());
     }
-    return worst_so_far;
+    return det;
 }
 
 void op_term_t::maybe_grouped_data(scope_env_t *env,
@@ -355,6 +351,5 @@ bool bounded_op_term_t::open_bool(
               key.c_str(), v->trunc_print().c_str());
     }
 }
-
 
 } // namespace ql

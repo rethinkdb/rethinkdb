@@ -170,13 +170,6 @@ private:
             return parent->bt_reg->new_frame(prev, d);
         }
 
-        datum_t get_time_now() {
-            if (!parent->time_now.has()) {
-                parent->time_now = pseudo::time_now();
-            }
-            return parent->time_now;
-        }
-
         // True if writes are still legal at this node.  Basically:
         // * Once writes become illegal, they are never legal again.
         // * Writes are legal at the root.
@@ -192,7 +185,6 @@ private:
     backtrace_registry_t *bt_reg;
     intrusive_list_t<walker_frame_t> frames;
     rapidjson::Value::AllocatorType *allocator;
-    datum_t time_now;
 };
 
 void preprocess_term_tree(rapidjson::Value *term_tree,

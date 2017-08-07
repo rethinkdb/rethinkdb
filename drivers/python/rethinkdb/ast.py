@@ -1526,7 +1526,6 @@ class Grant(RqlMethodQuery):
     tt = pTerm.GRANT
     st = 'grant'
 
-
 class GrantTL(RqlTopLevelQuery):
     tt = pTerm.GRANT
     st = 'grant'

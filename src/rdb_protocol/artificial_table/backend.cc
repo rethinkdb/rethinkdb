@@ -25,14 +25,14 @@ uuid_u const &artificial_table_backend_t::get_table_id() const {
     return m_table_id;
 }
 
-bool artificial_table_backend_t::read_all_rows_as_stream(
+bool artificial_table_backend_t::read_all_rows_filtered(
         auth::user_context_t const &user_context,
-        ql::backtrace_id_t bt,
         const ql::datumspec_t &datumspec,
         sorting_t sorting,
         signal_t *interruptor,
-        counted_t<ql::datum_stream_t> *rows_out,
+        std::vector<ql::datum_t> *rows_out,
         admin_err_t *error_out) {
+
     /* Fetch the rows from the backend */
     std::vector<ql::datum_t> rows;
     if (!read_all_rows_as_vector(user_context, interruptor, &rows, error_out)) {
@@ -74,9 +74,31 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
             });
     }
 
-    ql::changefeed::keyspec_t::range_t range_keyspec;
-    range_keyspec.sorting = sorting;
-    range_keyspec.datumspec = datumspec;
+    *rows_out = std::move(rows);
+    return true;
+}
+
+bool artificial_table_backend_t::read_all_rows_filtered_as_stream(
+        auth::user_context_t const &user_context,
+        ql::backtrace_id_t bt,
+        const ql::datumspec_t &datumspec,
+        sorting_t sorting,
+        signal_t *interruptor,
+        counted_t<ql::datum_stream_t> *rows_out,
+        admin_err_t *error_out) {
+    std::vector<ql::datum_t> rows;
+    if (!read_all_rows_filtered(user_context, datumspec, sorting, interruptor,
+                                &rows, error_out)) {
+        return false;
+    }
+
+    ql::changefeed::keyspec_t::range_t range_keyspec = {
+        std::vector<ql::transform_variant_t>(),
+        r_nullopt,
+        sorting,
+        datumspec,
+        r_nullopt
+    };
     optional<ql::changefeed::keyspec_t> keyspec(ql::changefeed::keyspec_t(
         std::move(range_keyspec),
         counted_t<base_table_t>(
@@ -90,14 +112,3 @@ bool artificial_table_backend_t::read_all_rows_as_stream(
     return true;
 }
 
-bool artificial_table_backend_t::read_all_rows_as_vector(
-        UNUSED auth::user_context_t const &user_context,
-        UNUSED signal_t *interruptor,
-        UNUSED std::vector<ql::datum_t> *rows_out,
-        UNUSED admin_err_t *error_out) {
-    crash("Oops, the default implementation of `artificial_table_backend_t::"
-          "read_all_rows_as_vector()` was called. The `artificial_table_backend_t` "
-          "subclass must override at least one of `read_all_rows_as_stream()` or "
-          "`read_all_rows_as_vector()`. Also, the `artificial_table_backend_t` user "
-          "shouldn't ever call `read_all_rows_as_vector()` directly.");
-}

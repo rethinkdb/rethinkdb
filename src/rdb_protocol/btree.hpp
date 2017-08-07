@@ -98,10 +98,10 @@ struct btree_batched_replacer_t {
     virtual return_changes_t should_return_changes() const = 0;
 
     ql::datum_t apply_write_hook(
-        ql::env_t *env,
         const datum_string_t &pkey,
         const ql::datum_t &d,
         const ql::datum_t &res_,
+        const ql::datum_t &write_timestamp,
         const counted_t<const ql::func_t> &write_hook) const;
 };
 struct btree_point_replacer_t {
