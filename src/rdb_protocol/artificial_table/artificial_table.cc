@@ -101,7 +101,7 @@ counted_t<ql::datum_stream_t> artificial_table_t::read_all(
         }
 
         admin_err_t error;
-        if (!m_backend->read_all_rows_as_stream(
+        if (!m_backend->read_all_rows_filtered_as_stream(
                 env->get_user_context(),
                 bt,
                 datumspec,

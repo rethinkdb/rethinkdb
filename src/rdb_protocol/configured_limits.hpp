@@ -10,8 +10,9 @@ class signal_t;
 
 namespace ql {
 
-class wire_func_t;
+class datum_t;
 class global_optargs_t;
+class wire_func_t;
 
 class configured_limits_t {
 public:
@@ -35,7 +36,8 @@ private:
 };
 
 configured_limits_t from_optargs(rdb_context_t *ctx, signal_t *interruptor,
-                                 global_optargs_t *optargs);
+                                 global_optargs_t *optargs,
+                                 ql::datum_t deterministic_time);
 size_t check_limit(const char *name, int64_t limit);
 
 } // namespace ql

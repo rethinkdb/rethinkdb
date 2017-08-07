@@ -37,10 +37,10 @@ public:
         durability_requirement_t dur_req,
         return_changes_t return_changes,
         ignore_write_hook_t ignore_write_hook) {
-        std::vector<datum_t > keys{key};
+        std::vector<datum_t> keys = {key};
         // We don't need to fetch the value for deterministic replacements.
-        std::vector<datum_t > vals{
-            f->is_deterministic() == deterministic_t::always ? datum_t() : get()};
+        std::vector<datum_t> vals = {
+            f->is_deterministic().test(single_server_t::no, constant_now_t::yes) ? datum_t() : get()};
         return tbl->batched_replace(
             env, vals, keys, f, nondet_ok, dur_req, return_changes, ignore_write_hook);
     }
@@ -258,7 +258,8 @@ datum_t table_t::batched_replace(
         return ql::datum_t::empty_object();
     }
 
-    if (replacement_generator->is_deterministic() != deterministic_t::always) {
+    if (!replacement_generator->is_deterministic().test(single_server_t::no,
+                                                        constant_now_t::yes)) {
         r_sanity_check(nondeterministic_replacements_ok);
         datum_object_builder_t stats;
         std::vector<datum_t> replacement_values;

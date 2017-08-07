@@ -2,6 +2,7 @@
 #include "rdb_protocol/query_server.hpp"
 
 #include "perfmon/perfmon.hpp"
+#include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/rdb_backtrace.hpp"
 #include "rdb_protocol/ql2.pb.h"
 #include "rdb_protocol/query_cache.hpp"
@@ -41,7 +42,8 @@ void rdb_query_server_t::run_query(ql::query_params_t *query_params,
         switch (query_params->type) {
         case Query::START: {
             scoped_ptr_t<ql::query_cache_t::ref_t> query_ref =
-                query_params->query_cache->create(query_params, interruptor);
+                query_params->query_cache->create(query_params, ql::pseudo::time_now(),
+                                                  interruptor);
             query_ref->fill_response(response_out);
         } break;
         case Query::CONTINUE: {

@@ -2,31 +2,33 @@ desc: Tests insertion with a write hook function
 table_variable_name: tbl
 tests:
 
-  - js: tbl.setWriteHook(function(a, b, c) { return c.merge({'num':1})})
-    py: tbl.set_write_hook(lambda a,b,c: c.merge({'num':1}))
-    rb: tbl.set_write_hook{ |a,b,c| c.merge({'num':1})}
+  - js: tbl.setWriteHook(function(ctx, o, n) { return n.merge({'num':1, 't': ctx('timestamp'), 'e': n('id').eq(ctx('primary_key'))})})
+    py: tbl.set_write_hook(lambda ctx,o,n: n.merge({'num':1, 't': ctx['timestamp'], 'e': n['id'] == ctx['primary_key']}))
+    rb: tbl.set_write_hook{ |ctx,o,n| n.merge({'num':1, 't': ctx[:timestamp], 'e': n[:id].eq(ctx[:primary_key])})}
     ot: partial({'created': 1 })
 
   - cd: tbl.insert({'id': 1})
     ot: partial({'inserted':1, 'errors':0})
 
-  - cd: tbl
-    ot: [{"id": 1, "num": 1}]
+  - js: tbl.merge(function(row) {return {t:row('t').typeOf()}})
+    py: tbl.merge(lambda row:{'t':row['t'].type_of()})
+    rb: tbl.merge{|row| {:t => row[:t].type_of()}}
+    ot: [{"id": 1, "num": 1, "t": "PTYPE<TIME>", "e": true}]
 
   - cd: tbl.set_write_hook(null)
     ot: partial({'deleted': 1 })
 
-  - js: tbl.setWriteHook(function(a, b, c) { return c.merge({'num':1})})
-    py: tbl.set_write_hook(lambda a,b,c: c.merge({'num':2}))
-    rb: tbl.set_write_hook(lambda { |a,b,c| c.merge({'num':2})})
+  - js: tbl.setWriteHook(function(ctx, o, n) { return n.merge({'num':1})})
+    py: tbl.set_write_hook(lambda ctx,o,n: n.merge({'num':2}))
+    rb: tbl.set_write_hook(lambda { |ctx,o,n| n.merge({'num':2})})
     ot: partial({'created': 1 })
 
-  - js: tbl.setWriteHook(function(a, b, c) { return c.merge({'num':2})})
-    py: tbl.set_write_hook(lambda a,b,c: c.merge({'num':2}))
-    rb: tbl.set_write_hook(lambda { |a,b,c| c.merge({'num':2})})
+  - js: tbl.setWriteHook(function(ctx, o, n) { return n.merge({'num':2})})
+    py: tbl.set_write_hook(lambda ctx,o,n: n.merge({'num':2}))
+    rb: tbl.set_write_hook(lambda { |ctx,o,n| n.merge({'num':2})})
     ot: partial({'replaced': 1 })
 
-  - cd: tbl.update({"blah":2})
+  - cd: tbl.get(1).replace({"id": 1, "blah":2})
     ot: partial({'replaced':1, 'errors':0})
 
   - cd: tbl
@@ -35,27 +37,27 @@ tests:
   - cd: tbl.set_write_hook(null)
     ot: partial({'deleted': 1 })
 
-  - js: tbl.setWriteHook(function(b) { return 1;})
-    py: tbl.set_write_hook(lambda a: 1)
-    rb: tbl.set_write_hook(lambda { |b| 1})
+  - js: tbl.setWriteHook(function(ctx) { return 1;})
+    py: tbl.set_write_hook(lambda ctx: 1)
+    rb: tbl.set_write_hook(lambda { |ctx| 1})
     ot: err('ReqlQueryLogicError', 'Write hook functions must expect 3 arguments.')
 
-  - js: tbl.setWriteHook(function(a, b, c) { return r.js(1);})
-    py: tbl.set_write_hook(lambda a, b, c: r.js(1))
-    rb: tbl.set_write_hook(lambda { |a, b, c| r.js(1)})
+  - js: tbl.setWriteHook(function(ctx, o, n) { return r.js(1);})
+    py: tbl.set_write_hook(lambda ctx, o, n: r.js(1))
+    rb: tbl.set_write_hook(lambda { |ctx, o, n| r.js(1)})
     ot: err('ReqlQueryLogicError', 'Could not prove function deterministic.  Write hook functions must be deterministic.')
 
-  - js: tbl.setWriteHook(function(a, b, c) { return null;})
-    py: tbl.set_write_hook(lambda a,b,c: null)
-    rb: tbl.set_write_hook(lambda { |a,b,c| null})
+  - js: tbl.setWriteHook(function(ctx, o, n) { return null;})
+    py: tbl.set_write_hook(lambda ctx,o,n: null)
+    rb: tbl.set_write_hook(lambda { |ctx,o,n| null})
     ot: partial({'created': 1 })
 
   - cd: tbl.insert({})
     ot: partial({'first_error': 'A write hook function must not turn a replace/insert into a deletion.'})
 
-  - js: tbl.setWriteHook(function(a, b, c) { return {};})
-    py: tbl.set_write_hook(lambda a,b,c: {})
-    rb: tbl.set_write_hook(lambda { |a,b,c| {}})
+  - js: tbl.setWriteHook(function(ctx, o, n) { return {};})
+    py: tbl.set_write_hook(lambda ctx,o,n: {})
+    rb: tbl.set_write_hook(lambda { |ctx,o,n| {}})
     ot: partial({'replaced': 1 })
 
   - cd: tbl.delete()
@@ -64,9 +66,9 @@ tests:
   - cd: tbl.set_write_hook(null)
     ot: partial({'deleted': 1 })
 
-  - js: tbl.setWriteHook(function(a, b, c) { return r.error("OH NOES!")})
-    py: tbl.set_write_hook(lambda a,b,c: r.error("OH NOES!"))
-    rb: tbl.set_write_hook(lambda { |a,b,c| r.error("OH NOES!")})
+  - js: tbl.setWriteHook(function(ctx, o, n) { return r.error("OH NOES!")})
+    py: tbl.set_write_hook(lambda ctx,o,n: r.error("OH NOES!"))
+    rb: tbl.set_write_hook(lambda { |ctx,o,n| r.error("OH NOES!")})
     ot: partial({'created': 1 })
 
   - cd: tbl.insert({})
@@ -74,4 +76,3 @@ tests:
 
   - cd: tbl.delete()
     ot: partial({'first_error':'Error in write hook: OH NOES!'})
-

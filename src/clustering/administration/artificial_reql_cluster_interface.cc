@@ -207,30 +207,20 @@ bool artificial_reql_cluster_interface_t::table_estimate_doc_counts(
     if (db->name == artificial_reql_cluster_interface_t::database_name) {
         auto it = m_table_backends.find(name);
         if (it != m_table_backends.end()) {
-            counted_t<ql::datum_stream_t> docs;
             /* We arbitrarily choose to read from the UUID version of the system table
             rather than the name version. */
-            if (!it->second.second->read_all_rows_as_stream(
+            std::vector<ql::datum_t> datums;
+            if (!it->second.second->read_all_rows_filtered(
                     user_context,
-                    ql::backtrace_id_t::empty(),
                     ql::datumspec_t(ql::datum_range_t::universe()),
                     sorting_t::UNORDERED,
                     env->interruptor,
-                    &docs,
+                    &datums,
                     error_out)) {
                 error_out->msg = "When estimating doc count: " + error_out->msg;
                 return false;
             }
-            try {
-                scoped_ptr_t<ql::val_t> count =
-                    docs->run_terminal(env, ql::count_wire_func_t());
-                *doc_counts_out = std::vector<int64_t>({ count->as_int<int64_t>() });
-            } catch (const ql::base_exc_t &msg) {
-                *error_out = admin_err_t{
-                    "When estimating doc count: " + std::string(msg.what()),
-                    query_state_t::FAILED};
-                return false;
-            }
+            *doc_counts_out = std::vector<int64_t>({ static_cast<int64_t>(datums.size()) });
             return true;
         } else {
             *error_out = admin_err_t{

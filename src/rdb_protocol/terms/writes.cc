@@ -158,7 +158,8 @@ private:
             conflict_func.set(conflict_optarg->as_func());
 
             // Check that insert function is atomic.
-            rcheck((*conflict_func)->is_deterministic() == deterministic_t::always,
+            rcheck((*conflict_func)->is_deterministic().test(single_server_t::no,
+                                                              constant_now_t::yes),
                    base_exc_t::LOGIC,
                    strprintf("The conflict function passed to `insert` must "
                              "be deterministic."));
@@ -304,7 +305,8 @@ private:
         }
 
         if (!nondet_ok) {
-            rcheck(args->arg_is_deterministic(1) == deterministic_t::always,
+            rcheck(args->arg_is_deterministic(1).test(single_server_t::no,
+                                                      constant_now_t::yes),
                    base_exc_t::LOGIC,
                    "Could not prove argument deterministic.  "
                    "Maybe you want to use the non_atomic flag?");
@@ -313,7 +315,7 @@ private:
             args->arg(env, 1)->as_func(CONSTANT_SHORTCUT);
         if (!nondet_ok) {
             // If this isn't true we should have caught it in the `rcheck` above.
-            rassert(f->is_deterministic() == deterministic_t::always);
+            rassert(f->is_deterministic().test(single_server_t::no, constant_now_t::yes));
         }
 
         scoped_ptr_t<val_t> v0 = args->arg(env, 0);
@@ -347,7 +349,7 @@ private:
                     tbl->db->id,
                     tbl->get_id());
             }
-            if (f->is_deterministic() == deterministic_t::always) {
+            if (f->is_deterministic().test(single_server_t::no, constant_now_t::yes)) {
                 // Attach a transformation to `ds` to pull out the primary key.
                 minidriver_t r(backtrace());
                 auto x = minidriver_t::dummy_var_t::REPLACE_HELPER_ROW;
@@ -367,7 +369,7 @@ private:
                 }
 
                 scoped_ptr_t<std::vector<datum_t> > keys;
-                if (f->is_deterministic() != deterministic_t::always) {
+                if (!f->is_deterministic().test(single_server_t::no, constant_now_t::yes)) {
                     keys = make_scoped<std::vector<datum_t> >();
                     keys->reserve(vals.size());
                     for (const auto &val : vals) {

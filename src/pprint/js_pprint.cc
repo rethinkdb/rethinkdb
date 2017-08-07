@@ -684,6 +684,7 @@ counted_t<const document_t> render_as_javascript(const ql::raw_term_t &t) {
 // - `should_continue_string` should add the new Term to the list if
 //   it should be used in a string-of-dotted-expressions context.  So
 //   like `r.foo(1).bar(2).baz(4)` instead of `r.eq(1, 2)`.
+//   ^^ What does this mean??
 // - `should_use_rdot` should add the new Term to the list if it
 //   represents some sort of specialized language feature--for example
 //   literals like 4, or strings, or variable names.  These are very

@@ -151,8 +151,8 @@ continue_bool_t geo_intersecting_cb_t::on_candidate(
     }
 
     try {
-        // Post-filter the geometry based on an actual intersection test
-        // with query_geometry
+        // Post-filter the geometry based on an actual intersection test with
+        // query_geometry.
         ql::env_t sindex_env(env->interruptor,
                              ql::return_empty_normal_batches_t::NO,
                              sindex.func_reql_version);

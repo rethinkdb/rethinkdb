@@ -36,28 +36,26 @@ public:
     change. This must not block. */
     virtual std::string get_primary_key_name() = 0;
 
-    /* `read_all_rows_as_*()` returns the full dataset either as a stream or as a vector
-       depending on the version being called. Subclasses should override one or the
-       other, but not both. The `artificial_table_t` will only ever call
-       `read_all_rows_as_stream()`; the default implementation of
-       `read_all_rows_as_stream()` calls `read_all_rows_as_vector()`, while the default
-       implementation of `read_all_row_as_vector()` crashes. So it will work correctly
-       no matter which one the subclass overrides. The default implemention of
-       `read_all_rows_as_stream()` will also take care of the filtering and sorting,
-       which you must handle yourself when overriding it. */
-    virtual bool read_all_rows_as_stream(
+    // Returns the full dataset in a vector (in `rows_out`) after applying the filtering
+    // and sorting specified by `datumspec` and `sorting`.
+    bool read_all_rows_filtered(
+        auth::user_context_t const &user_context,
+        const ql::datumspec_t &datumspec,
+        sorting_t sorting,
+        signal_t *interruptor,
+        std::vector<ql::datum_t> *rows_out,
+        admin_err_t *error_out);
+
+    /* `read_all_rows_filtered_as_stream()` returns the full dataset as a stream (using
+       read_all_rows_as_vector) and applies the applicable filtering and sorting (as
+       specified in `datumspec` and `sorting`). */
+    bool read_all_rows_filtered_as_stream(
         auth::user_context_t const &user_context,
         ql::backtrace_id_t bt,
         const ql::datumspec_t &datumspec,
         sorting_t sorting,
         signal_t *interruptor,
         counted_t<ql::datum_stream_t> *rows_out,
-        admin_err_t *error_out);
-
-    virtual bool read_all_rows_as_vector(
-        auth::user_context_t const &user_context,
-        signal_t *interruptor,
-        std::vector<ql::datum_t> *rows_out,
         admin_err_t *error_out);
 
     /* Sets `*row_out` to the current value of the row, or an empty `datum_t` if no such
@@ -100,6 +98,12 @@ public:
     static const uuid_u base_table_id;
 
 private:
+    virtual bool read_all_rows_as_vector(
+        auth::user_context_t const &user_context,
+        signal_t *interruptor,
+        std::vector<ql::datum_t> *rows_out,
+        admin_err_t *error_out) = 0;
+
     name_string_t m_table_name;
     uuid_u m_table_id;
     rdb_context_t *m_rdb_context;

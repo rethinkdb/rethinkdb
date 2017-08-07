@@ -29,7 +29,7 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 
     deterministic_t is_deterministic() const final {
-        return deterministic_t::no;
+        return deterministic_t::no();
     }
 
     virtual scoped_ptr_t<val_t> eval_impl(
@@ -55,14 +55,15 @@ public:
         optional<write_hook_config_t> config;
         datum_string_t message("deleted");
         scoped_ptr_t<val_t> v = args->arg(env, 1);
+        // RSI: Old reql versions hanging around, being unused, is pretty bad.
+        // RSI: Something about write hooks not being specified vs. being specified as "null" in certain API's was weird.
+
         // We ignore the write_hook's old `reql_version` and make the new version
         // just be `reql_version_t::LATEST`; but in the future we may have
         // to do some conversions for compatibility.
-        bool got_func = false;
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
             datum_t d = v->as_datum();
             if (d.get_type() == datum_t::R_BINARY) {
-                got_func = true;
                 ql::wire_func_t func;
 
                 datum_string_t str = d.as_binary();
@@ -81,51 +82,38 @@ public:
                 string_read_stream_t rs(str.to_std(), prefix_sz);
                 deserialize<cluster_version_t::LATEST_DISK>(&rs, &func);
 
-                const write_hook_config_t conf =
-                    write_hook_config_t(func,
-                                        reql_version_t::LATEST);
-
-                config.set(conf);
-                config->func.compile_wire_func()->assert_deterministic(
-                    "Write hook functions must be deterministic.");
-
-                optional<size_t> arity = config->func.compile_wire_func()->arity();
-
-                rcheck(static_cast<bool>(arity) && arity.get() == 3,
-                       base_exc_t::LOGIC,
-                       strprintf("Write hook functions must expect 3 arguments."));
-
-                message =
-                    existed ?
-                    datum_string_t("replaced") :
-                    datum_string_t("created");
-
+                config.set(write_hook_config_t(func, reql_version_t::LATEST));
+                goto config_specified_with_value;
             } else if (d.get_type() == datum_t::R_NULL) {
-                got_func = true;
+                goto config_specified_without_value;
             }
         }
-        if (!got_func) {
-            // This way it will complain about it not being a function.
 
-            const write_hook_config_t conf =
-                write_hook_config_t(ql::wire_func_t(v->as_func()),
-                                    reql_version_t::LATEST);
+        // This way it will complain about it not being a function.
+        config.set(write_hook_config_t(ql::wire_func_t(v->as_func()),
+                                       reql_version_t::LATEST));
 
-            config.set(conf);
-            config->func.compile_wire_func()->assert_deterministic(
+    config_specified_with_value:
+
+        config->func.compile_wire_func()->assert_deterministic(
+                constant_now_t::no,
                 "Write hook functions must be deterministic.");
 
+        {
             optional<size_t> arity = config->func.compile_wire_func()->arity();
 
             rcheck(static_cast<bool>(arity) && arity.get() == 3,
                    base_exc_t::LOGIC,
                    strprintf("Write hook functions must expect 3 arguments."));
-
-            message =
-                existed ?
-                datum_string_t("replaced") :
-                datum_string_t("created");
         }
+
+        message =
+            existed ?
+            datum_string_t("replaced") :
+            datum_string_t("created");
+
+    config_specified_without_value:
+
         try {
             admin_err_t err;
             if (!env->env->reql_cluster_interface()->set_write_hook(
@@ -155,7 +143,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 
     deterministic_t is_deterministic() const final {
-        return deterministic_t::no;
+        return deterministic_t::no();
     }
 
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {

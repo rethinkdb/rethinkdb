@@ -7,7 +7,7 @@
 namespace ql {
 
 class backtrace_registry_t;
- 
+
 // `preprocess_term_tree(...)` walks the raw term tree provided, edits it to add
 // backtraces, and checks the validity of the terms and their placement.
 // Most notably:

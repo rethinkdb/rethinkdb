@@ -58,11 +58,11 @@ public:
           profile::trace_t *_trace);
 
     // Used in unittest and for some secondary index environments (hence the
-    // reql_version parameter).  (For secondary indexes, the interruptor definitely
+    // reql_version parameter).  (For secondary index writes, the interruptor definitely
     // should be a dummy cond.)
-    explicit env_t(signal_t *interruptor,
-                   return_empty_normal_batches_t return_empty_normal_batches,
-                   reql_version_t reql_version);
+    env_t(signal_t *interruptor,
+          return_empty_normal_batches_t return_empty_normal_batches,
+          reql_version_t reql_version);
 
     ~env_t();
 
@@ -91,23 +91,23 @@ public:
 
 
     const global_optargs_t &get_all_optargs() const {
-        return serializable.global_optargs;
+        return serializable_.global_optargs;
     }
 
     scoped_ptr_t<val_t> get_optarg(env_t *env, const std::string &key) {
-        return serializable.global_optargs.get_optarg(env, key);
+        return serializable_.global_optargs.get_optarg(env, key);
     }
 
-    auth::user_context_t const &get_user_context() const {
-        return serializable.user_context;
+    const auth::user_context_t &get_user_context() const {
+        return serializable_.user_context;
     }
 
-    datum_t const &get_deterministic_time() {
-        return serializable.deterministic_time;
+    const datum_t &get_deterministic_time() {
+        return serializable_.deterministic_time;
     }
 
-    serializable_env_t const &get_serializable_env() {
-        return serializable;
+    const serializable_env_t &get_serializable_env() {
+        return serializable_;
     }
 
     configured_limits_t limits() const {
@@ -131,7 +131,7 @@ public:
     reql_version_t reql_version() const { return reql_version_; }
 
 private:
-    serializable_env_t serializable;
+    serializable_env_t serializable_;
 
     // User specified configuration limits; e.g. array size limits
     const configured_limits_t limits_;

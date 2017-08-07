@@ -43,6 +43,7 @@ class name_resolver_t;
 class real_superblock_t;
 class sindex_superblock_t;
 struct rdb_modification_report_t;
+struct serializable_env_t;
 struct sindex_disk_info_t;
 
 // The string is the btree index key
@@ -402,8 +403,7 @@ public:
         std::string _table,
         optional<uuid_u> _sindex_id,
         rdb_context_t *ctx,
-        global_optargs_t optargs,
-        auth::user_context_t user_context,
+        const serializable_env_t &s_env,
         uuid_u _uuid,
         server_t *_parent,
         client_t::addr_t _parent_client,
@@ -477,8 +477,7 @@ public:
         const std::string &table,
         const optional<uuid_u> &sindex_id,
         rdb_context_t *ctx,
-        global_optargs_t optargs,
-        auth::user_context_t user_context,
+        const serializable_env_t &s_env,
         const uuid_u &client_uuid,
         const keyspec_t::limit_t &spec,
         limit_order_t lt,
