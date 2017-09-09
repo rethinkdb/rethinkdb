@@ -145,7 +145,7 @@ void permissions_t::set_config(tribool config) {
 }
 
 void permissions_t::set_connect(tribool connect) {
-    guarantee(m_connect == make_optional(tribool::True));
+    guarantee(m_connect.has_value());
     m_connect.set(connect);
 }
 
