@@ -93,6 +93,7 @@ varar = util.varar
 aropt = util.aropt
 mkAtom = util.mkAtom
 mkErr = util.mkErr
+asCallback = util.asCallback
 
 # These are the default hostname and port used by RethinkDB
 DEFAULT_HOST = 'localhost'
@@ -546,7 +547,7 @@ class Connection extends events.EventEmitter
         # If we're currently in the process of closing, just add the
         # callback to the current promise
         if @_closePromise?
-            return @_closePromise.nodeify(cb)
+            return asCallback(@_closePromise, cb)
 
         # Next we set `@closing` to true. It will be set false once
         # the promise that `.close` returns resolves (see below). The
@@ -583,7 +584,7 @@ class Connection extends events.EventEmitter
         # We save the promise here in case others attempt to call
         # `close` before we've gotten a response from the server (when
         # the @closing flag is true).
-        @_closePromise = new Promise( (resolve, reject) =>
+        @_closePromise = asCallback(new Promise( (resolve, reject) =>
         # Now we create the Promise that `.close` returns. If we
         # aren't waiting for `noreply` queries, then we set the flags
         # and cancel feeds/cursors immediately. If we are waiting,
@@ -591,8 +592,7 @@ class Connection extends events.EventEmitter
         # cancel cursors when that query receives a response.
         #
         # In addition, we chain the callback passed to `.close` on the
-        # end, using bluebird's convenience method
-        # [nodeify](https://github.com/petkaantonov/bluebird/blob/master/API.md#nodeifyfunction-callback--object-options---promise)
+        # end, using our `asCallback` util
         #
             wrappedCb = (err, result) =>
                 @open = false
@@ -607,7 +607,7 @@ class Connection extends events.EventEmitter
                 @noreplyWait(wrappedCb)
             else
                 wrappedCb()
-        ).nodeify cb
+        ), cb)
     )
 
     # #### Connection noreplyWait method
@@ -626,9 +626,9 @@ class Connection extends events.EventEmitter
         # flag, so we can allow one last `noreplyWait` call before the
         # connection is closed completely.
         unless @open
-            return new Promise( (resolve, reject) ->
+            return asCallback(new Promise( (resolve, reject) ->
                 reject(new err.ReqlDriverError "Connection is closed.")
-            ).nodeify callback
+            ), callback)
 
         # Since `noreplyWait` is invoked just like any other query, we
         # need a token.
@@ -641,7 +641,7 @@ class Connection extends events.EventEmitter
         query.type = protoQueryType.NOREPLY_WAIT
         query.token = token
 
-        new Promise( (resolve, reject) =>
+        asCallback(new Promise( (resolve, reject) =>
             # The method passed to Promise is invoked immediately
             wrappedCb = (err, result) ->
                 # This callback will be invoked when the
@@ -658,7 +658,7 @@ class Connection extends events.EventEmitter
             @_sendQuery(query)
         # After the promise is resolved, the callback passed to
         # `noreplyWait` can be invoked.
-        ).nodeify callback
+        ), callback)
 
     # #### Connection server method
     #
@@ -666,9 +666,9 @@ class Connection extends events.EventEmitter
     #  for server](http://rethinkdb.com/api/javascript/server/).
     server: varar 0, 1, (callback) ->
         unless @open
-            return new Promise( (resolve, reject) ->
+            return asCallback(new Promise( (resolve, reject) ->
                 reject(new err.ReqlDriverError "Connection is closed.")
-            ).nodeify callback
+            ), callback)
 
         token = @nextToken++
 
@@ -676,7 +676,7 @@ class Connection extends events.EventEmitter
         query.type = protoQueryType.SERVER_INFO
         query.token = token
 
-        new Promise( (resolve, reject) =>
+        asCallback(new Promise( (resolve, reject) =>
             wrappedCb = (err, result) ->
                 if (err)
                     reject(err)
@@ -684,7 +684,7 @@ class Connection extends events.EventEmitter
                     resolve(result)
             @outstandingCallbacks[token] = {cb:wrappedCb, root:null, opts:null}
             @_sendQuery(query)
-        ).nodeify callback
+        ), callback)
 
     # #### Connection cancel method
     #
@@ -733,7 +733,7 @@ class Connection extends events.EventEmitter
 
         # Here we call `close` with a callback that will reconnect
         # with the same parameters
-        new Promise( (resolve, reject) =>
+        asCallback(new Promise( (resolve, reject) =>
             closeCb = (err) =>
                 @constructor.call @,
                     host:@host,
@@ -746,7 +746,7 @@ class Connection extends events.EventEmitter
                     else
                         resolve conn
             @close(opts, closeCb)
-        ).nodeify cb
+        ), cb)
     )
 
     # #### Connection use method
@@ -1290,7 +1290,7 @@ class TcpConnection extends Connection
         # 7. If the promise was resolved, the callback provided to
         #    this function (`cb`) will be run (it's chained to the
         #    promise).
-        new Promise( (resolve, reject) =>
+        asCallback(new Promise( (resolve, reject) =>
             wrappedCb = (error, result) =>
                 closeCb = =>
                     if error?
@@ -1323,7 +1323,7 @@ class TcpConnection extends Connection
                     process.nextTick(closeCb)
 
             TcpConnection.__super__.close.call(@, opts, wrappedCb)
-        ).nodeify cb
+        ), cb)
     )
 
     # #### TcpConnection close method
@@ -1643,7 +1643,7 @@ module.exports.connect = varar 0, 2, (hostOrCallback, callback) ->
     #    or in the browser.
     # 2. Initializes the connection, and when it's complete invokes
     #    the user's callback
-    new Promise( (resolve, reject) ->
+    asCallback(new Promise( (resolve, reject) ->
         if host.authKey? && (host.password? || host.user? || host.username?)
             throw new err.ReqlDriverError "Cannot use both authKey and password"
         if host.user && host.username
@@ -1669,9 +1669,12 @@ module.exports.connect = varar 0, 2, (hostOrCallback, callback) ->
             else
                 resolve(result)
         create_connection(host, wrappedCb)
-    ).nodeify callback
+    ), callback)
 
 # Exposing the connection classes
 module.exports.Connection = Connection
 module.exports.HttpConnection = HttpConnection
 module.exports.TcpConnection = TcpConnection
+module.exports._setPromise = (PromiseImplementation) ->
+  Promise = PromiseImplementation;
+  cursors._setPromise(PromiseImplementation)

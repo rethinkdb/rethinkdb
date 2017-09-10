@@ -10,6 +10,8 @@ ar = util.ar
 varar = util.varar
 aropt = util.aropt
 mkErr = util.mkErr
+asCallback = util.asCallback
+fromCallback = util.fromCallback
 
 # setImmediate is not defined in some browsers (including Chrome)
 if not setImmediate?
@@ -169,7 +171,7 @@ class IterableResult
             @_cbQueue.push cb
             @_promptNext()
 
-        return Promise.fromNode(fn).nodeify(cb)
+        return asCallback(fromCallback(fn), cb)
 
 
     close: varar 0, 1, (cb) ->
@@ -177,18 +179,18 @@ class IterableResult
             if @_closeCbPromise.isPending()
                 # There's an existing promise and it hasn't resolved
                 # yet, so we chain this callback onto it.
-                @_closeCbPromise = @_closeCbPromise.nodeify(cb)
+                @_closeCbPromise = asCallback(@_closeCbPromise, cb)
             else
                 # The existing promise has been fulfilled, so we chuck
                 # it out and replace it with a Promise that resolves
                 # immediately with the callback.
-                @_closeCbPromise = Promise.resolve().nodeify(cb)
+                @_closeCbPromise = asCallback(Promise.resolve(), cb)
         else # @_closeCbPromise not set
             if @_endFlag
                 # We are ended and this is the first time close() was
                 # called. Just return a promise that resolves
                 # immediately.
-                @_closeCbPromise = Promise.resolve().nodeify(cb)
+                @_closeCbPromise = asCallback(Promise.resolve(), cb)
                 # Also clear any buffered results, so future calls to
                 # `next` fail.
                 @_responses = []
@@ -196,7 +198,7 @@ class IterableResult
             else
                 # We aren't ended, and we need to. Create a promise
                 # that's resolved when the END query is acknowledged.
-                @_closeCbPromise = new Promise((resolve, reject) =>
+                @_closeCbPromise = asCallback(new Promise((resolve, reject) =>
                     @_closeCb = (err) =>
                         # Clear any buffered results, so future calls to
                         # `next` fail.
@@ -217,7 +219,7 @@ class IterableResult
                     @_closeAsap = true
                     @_outstandingRequests += 1
                     @_conn._endQuery(@_token)
-                ).nodeify(cb)
+                ), cb)
         return @_closeCbPromise
 
     each: varar(1, 2, (cb, onFinished) ->
@@ -263,7 +265,7 @@ class IterableResult
                 handlerCalled = false
                 doneChecking = false
                 handlerArg = undefined
-                ret = Promise.fromNode (handler) ->
+                ret = fromCallback (handler) ->
                     asyncRet = cb(data, (err) ->
                         handlerCalled = true
                         if doneChecking
@@ -319,9 +321,9 @@ class IterableResult
         wrapper = (res) =>
             results.push(res)
             return undefined
-        return @eachAsync(wrapper).then(() =>
+        return asCallback(@eachAsync(wrapper).then(() =>
             return results
-        ).nodeify(cb)
+        ), cb)
 
     _makeEmitter: ->
         @emitter = new EventEmitter
@@ -465,7 +467,7 @@ class ArrayResult extends IterableResult
             else
                 cb new error.ReqlDriverError "No more rows in the cursor."
 
-        return Promise.fromNode(fn).nodeify(cb)
+        return asCallback(fromCallback(fn), cb)
 
     toArray: varar 0, 1, (cb) ->
         fn = (cb) =>
@@ -478,7 +480,7 @@ class ArrayResult extends IterableResult
             else
                 cb(null, @)
 
-        return Promise.fromNode(fn).nodeify(cb)
+        return asCallback(fromCallback(fn), cb)
 
     close: varar 0, 1, (cb) ->
         # Clear the array
@@ -486,7 +488,7 @@ class ArrayResult extends IterableResult
         @__index = 0
         # We set @_closeCbPromise so that functions such as `eachAsync`
         # know that we have been closed and can error accordingly.
-        @_closeCbPromise = Promise.resolve().nodeify(cb)
+        @_closeCbPromise = asCallback(Promise.resolve(), cb)
         return @_closeCbPromise
 
     makeIterable: (response) ->
@@ -507,3 +509,4 @@ module.exports.Feed = Feed
 module.exports.AtomFeed = AtomFeed
 module.exports.OrderByLimitFeed = OrderByLimitFeed
 module.exports.makeIterable = ArrayResult::makeIterable
+module.exports._setPromise = (PromiseImplementation) -> Promise = PromiseImplementation;

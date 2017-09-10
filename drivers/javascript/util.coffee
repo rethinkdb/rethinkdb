@@ -1,3 +1,4 @@
+Promise = require('bluebird')
 err = require('./errors')
 protodef = require('./proto-def')
 
@@ -122,6 +123,23 @@ mkSeq = (response, opts) -> recursivelyConvertPseudotype(response.r, opts)
 mkErr = (ErrClass, response, root) ->
     new ErrClass(mkAtom(response), root, response.b)
 
+module.exports.asCallback = (promise, callback) ->
+  if typeof callback !== 'function' return promise
+  promise.then((value) -> callback(null, value), callback)
+  promise
+
+module.exports.fromCallback = (fn) ->
+  new Promise((resolve, reject) ->
+    try
+      fn (error, result) ->
+        if error
+          reject error
+        else
+          resolve result
+    catch error
+      reject error
+  )
+
 errorClass = (errorType) =>
     switch errorType
         when protoErrorType.QUERY_LOGIC         then err.ReqlQueryLogicError
@@ -140,3 +158,4 @@ module.exports.mkAtom = mkAtom
 module.exports.mkSeq = mkSeq
 module.exports.mkErr = mkErr
 module.exports.errorClass = errorClass
+module.exports._setPromise = (PromiseImplementation) -> Promise = PromiseImplementation;
