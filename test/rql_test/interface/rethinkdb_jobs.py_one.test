@@ -16,10 +16,9 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
         taskLength = self.timeout / 2
         server     = self.cluster[0]
         targetConn = self.r.connect(host=server.host, port=server.driver_port)
-        host       = targetConn.client_address()
         port       = targetConn.client_port()
 
-        filterObject = {"type":"query", "info":{"client_address":host, "client_port":port}}
+        filterObject = {"type":"query", "info":{"client_port":port}}
         query = self.r.db("rethinkdb").table("jobs").filter(filterObject)
 
         # - start the target query
@@ -41,7 +40,6 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
                             self.assertEqual(response["id"][0], "query")
                             self.assertEqual(response["servers"], [server.name])
                             self.assertEqual(response["info"]["client_port"], port)
-                            self.assertEqual(response["info"]["client_address"], host)
                             self.assertEqual(response["info"]["user"], "admin")
                             break # found what we are looking for
                         else:
