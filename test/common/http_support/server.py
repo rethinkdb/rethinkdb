@@ -11,7 +11,7 @@ import utils
 
 def __runServer(httpbinPort=0, httpPort=0, sslPort=0):
     
-    import twisted.internet
+    import twisted.internet.reactor
     import twisted.internet.ssl
     import twisted.web
     import twisted.web.static
@@ -23,7 +23,7 @@ def __runServer(httpbinPort=0, httpPort=0, sslPort=0):
     # -- generate self signed SSL certificate
     
     privateKey = tempfile.NamedTemporaryFile(suffix='.pem')
-    subprocess.check_call(['openssl', 'genrsa'], stdout=privateKey, stderr=subprocess.PIPE)
+    subprocess.check_call(['openssl', 'genrsa', '2048'], stdout=privateKey, stderr=subprocess.PIPE)
     privateKey.flush()
     
     certificate = tempfile.NamedTemporaryFile(suffix='.pem')
