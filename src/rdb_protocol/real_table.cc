@@ -224,11 +224,13 @@ optional<counted_t<const ql::func_t> > real_table_t::get_write_hook(
     ignore_write_hook_t ignore_write_hook) {
     optional<counted_t<const ql::func_t> > write_hook;
     table_config_and_shards_t config;
+    if (ignore_write_hook == ignore_write_hook_t::YES) {
+        return write_hook;
+    }
 
     m_table_meta_client->get_config(uuid, env->interruptor, &config);
 
-    if (config.config.write_hook &&
-        ignore_write_hook == ignore_write_hook_t::NO) {
+    if (config.config.write_hook) {
         write_hook.set(config.config.write_hook->func.compile_wire_func());
     }
     return write_hook;
