@@ -289,9 +289,9 @@ class IterableResult
             else
                 return @_next().then (data) ->
                     return data if pending.length < options.concurrency
-                    return Promise.any(pending)
-                    .catch Promise.AggregateError, (errs) -> throw errs[0]
-                    .return(data)
+                    return Promise.race(pending)
+                    .catch((err) -> throw err)
+                    .then(() -> data)
                 .then (data) ->
                     p = userCb(data).then ->
                         pending.splice pending.indexOf(p), 1
