@@ -13,3 +13,5 @@ rethinkdb._bluebird = require('bluebird')
 
 module.exports = rethinkdb
 module.exports.net = net
+module.exports.setPromise = (PromiseImplementation) ->
+  rethink._setPromise(PromiseImplementation)

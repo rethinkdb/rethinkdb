@@ -9,6 +9,7 @@ Promise = require('bluebird')
 ar = util.ar
 varar = util.varar
 aropt = util.aropt
+asCallback = util.asCallback
 
 # rethinkdb is both the main export object for the module
 # and a function that shortcuts `r.expr`.
@@ -78,7 +79,7 @@ class TermBase
                     options = {}
                 else
                     #options is a function here
-                    return Promise.reject(new err.ReqlDriverError("Second argument to `run` cannot be a function if a third argument is provided.")).nodeify options
+                    return asCallback(Promise.reject(new err.ReqlDriverError("Second argument to `run` cannot be a function if a third argument is provided.")), options)
             # else we suppose that we have run(connection[, options][, callback])
         else if connection?.constructor is Object
             if @showRunWarning is true
@@ -96,12 +97,12 @@ class TermBase
             return Promise.reject(new err.ReqlDriverError("If provided, the callback must be a function. Please use `run(connection[, options][, callback])"))
 
         if net.isConnection(connection) is false
-            return Promise.reject(new err.ReqlDriverError("First argument to `run` must be an open connection.")).nodeify callback
+            return asCallback(Promise.reject(new err.ReqlDriverError("First argument to `run` must be an open connection.")), callback)
 
         # if `noreply` is `true`, the callback will be immediately called without error
         # so we do not have to worry about bluebird complaining about errors not being
         # caught
-        new Promise( (resolve, reject) =>
+        asCallback(new Promise( (resolve, reject) =>
             wrappedCb = (err, result) ->
                 if err?
                     reject(err)
@@ -117,7 +118,7 @@ class TermBase
                 # letting the error bubble up.
                 wrappedCb(e)
 
-        ).nodeify callback
+        ), callback)
 
     toString: -> err.printQuery(@)
 
@@ -1378,6 +1379,11 @@ rethinkdb.uuid = (args...) -> new UUID {}, args...
 rethinkdb.range = (args...) -> new Range {}, args...
 
 rethinkdb.union = (args...) -> new Union {}, args...
+
+rethinkdb.setPromise = (PromiseImplementation) ->
+  Promise = PromiseImplementation;
+  net._setPromise(PromiseImplementation)
+  util._setPromise(PromiseImplementation)
 
 # Export all names defined on rethinkdb
 module.exports = rethinkdb
