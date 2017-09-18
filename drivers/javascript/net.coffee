@@ -1675,3 +1675,4 @@ module.exports.connect = varar 0, 2, (hostOrCallback, callback) ->
 module.exports.Connection = Connection
 module.exports.HttpConnection = HttpConnection
 module.exports.TcpConnection = TcpConnection
+module.exports.cursors = cursors
