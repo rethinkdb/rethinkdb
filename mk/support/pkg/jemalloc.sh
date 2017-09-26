@@ -1,7 +1,7 @@
 
 version=4.1.0
 
-src_url=http://www.canonware.com/download/jemalloc/jemalloc-$version.tar.bz2
+src_url=https://github.com/jemalloc/jemalloc/releases/download/$version/jemalloc-$version.tar.bz2
 
 pkg_install () {
     configure_flags="--libdir=${install_dir}/lib"
