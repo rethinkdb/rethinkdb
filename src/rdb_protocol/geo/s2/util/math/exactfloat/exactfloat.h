@@ -608,6 +608,10 @@ inline ExactFloat ExactFloat::CopyWithSign(int sign) const {
   return r;
 }
 
+void BN_ext_set_uint64(BIGNUM *bn, uint64 v);
+uint64 BN_ext_get_uint64(const BIGNUM *bn);
+int BN_ext_count_low_zero_bits(const BIGNUM *bn);
+
 }  // namespace geo
 
 #endif  // UTIL_MATH_EXACTFLOAT_EXACTFLOAT_H_

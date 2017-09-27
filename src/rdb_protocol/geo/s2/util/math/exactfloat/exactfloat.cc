@@ -60,7 +60,7 @@ bool bn_is_negative_func(const BIGNUM* bn) {
 }
 
 // Set a BIGNUM to the given unsigned 64-bit value.
-inline static void BN_ext_set_uint64(BIGNUM* bn, uint64 v) {
+void BN_ext_set_uint64(BIGNUM* bn, uint64 v) {
 #if BN_BITS2 == 64
   CHECK(BN_set_word(bn, v));
 #else
@@ -73,7 +73,7 @@ inline static void BN_ext_set_uint64(BIGNUM* bn, uint64 v) {
 
 // Return the absolute value of a BIGNUM as a 64-bit unsigned integer.
 // Requires that BIGNUM fits into 64 bits.
-inline static uint64 BN_ext_get_uint64(const BIGNUM* bn) {
+uint64 BN_ext_get_uint64(const BIGNUM* bn) {
   int num_bytes = BN_num_bytes(bn);
   DCHECK_LE(num_bytes, 8);
 
@@ -92,7 +92,7 @@ inline static uint64 BN_ext_get_uint64(const BIGNUM* bn) {
 
 // Count the number of low-order zero bits in the given BIGNUM (ignoring its
 // sign).  Returns 0 if the argument is zero.
-static int BN_ext_count_low_zero_bits(const BIGNUM* bn) {
+int BN_ext_count_low_zero_bits(const BIGNUM* bn) {
   int num_bytes = BN_num_bytes(bn);
   for (int i = 0; i < num_bytes * 8; ++i) {
       if (BN_is_bit_set(bn, i)) {
