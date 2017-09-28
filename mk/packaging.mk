@@ -42,15 +42,21 @@ DSC_CONFIGURE_DEFAULT = --prefix=/usr --sysconfdir=/etc --localstatedir=/var
 DIST_CONFIGURE_DEFAULT_FETCH = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), --fetch $(pkg))
 DIST_SUPPORT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), $(SUPPORT_SRC_DIR)/$(pkg)_$($(pkg)_VERSION))
 
-DEB_BUILD_DEPENDS := libboost-dev, libssl-dev, curl, m4, debhelper
-DEB_BUILD_DEPENDS += , fakeroot, python, libncurses5-dev, libcurl4-openssl-dev, libssl-dev
+DEB_BUILD_DEPENDS := libboost-dev, curl, m4, debhelper
+DEB_BUILD_DEPENDS += , fakeroot, python, libncurses5-dev, libcurl4-openssl-dev
 
 ifeq ($(UBUNTU_RELEASE),yakkety)
   # RethinkDB fails to compile with GCC 6 (#5757)
-  DEB_BUILD_DEPENDS += , g++-5
+  DEB_BUILD_DEPENDS += , g++-5, libssl-dev
   DSC_CONFIGURE_DEFAULT += CXX=g++-5
+else ifneq ($(filter $(DEB_RELEASE), jessie),)
+  DEB_BUILD_DEPENDS += , g++, libssl-dev
 else
-  DEB_BUILD_DEPENDS += , g++
+  # RethinkDB fails to compile with GCC 6 (#5757) -- and there is
+  # no GCC 5 in stretch.  We need to use libssl1.0-dev to be
+  # compatible with libcurl when linking.
+  DEB_BUILD_DEPENDS += , clang, libssl1.0-dev
+  DSC_CONFIGURE_DEFAULT += CXX=clang++
 endif
 
 ifneq (1,$(BUILD_PORTABLE))
