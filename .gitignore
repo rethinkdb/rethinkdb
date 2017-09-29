@@ -54,3 +54,4 @@ last_tested_versions
 /precompiled
 *.xml
 *.iml
+/.vscode
