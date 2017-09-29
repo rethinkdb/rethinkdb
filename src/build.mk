@@ -423,12 +423,11 @@ check-syntax:
 
 VENDORED_COMMIT := f2858e8cc5d984e4acc4133a51367f6bee33ddef
 VENDORED_REMOTE_REPO := https://github.com/srh/rethinkdb-vendored.git
-VENDORED_DIR := vendored
 
 .PHONY: vendored
 vendored:
 	$P GIT clone vendored
-	git clone $(VENDORED_REMOTE_REPO) $(VENDORED_DIR) || true
-	git -C $(VENDORED_DIR) checkout $(VENDORED_COMMIT) || \
-	  ( git -C $(VENDORED_DIR) fetch && git -C $(VENDORED_DIR) checkout $(VENDORED_COMMIT) )
+	git clone --quiet $(VENDORED_REMOTE_REPO) vendored || true
+	git -C vendored checkout --quiet $(VENDORED_COMMIT) || \
+	  ( git -C vendored fetch --quiet && git -C vendored checkout --quiet $(VENDORED_COMMIT) )
 
