@@ -420,7 +420,6 @@ check-syntax:
 VENDORED_COMMIT := f2858e8cc5d984e4acc4133a51367f6bee33ddef
 VENDORED_REMOTE_REPO := https://github.com/srh/rethinkdb-vendored.git
 
-.PHONY: vendored
 vendored:
 	$P GIT clone vendored
 	git clone --quiet $(VENDORED_REMOTE_REPO) vendored || true
