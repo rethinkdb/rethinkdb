@@ -61,8 +61,7 @@ def generate_make_serializable_macro(nfields):
     print "#define RDB_IMPL_SERIALIZABLE_%d(type_t%s) RDB_MAKE_SERIALIZABLE_%d(type_t%s); \\" % (nfields, fields, nfields, fields)
     print
     print "#define RDB_IMPL_SERIALIZABLE_%d_FOR_CLUSTER(type_t%s) \\" % (nfields, fields)
-    print "    RDB_MAKE_SERIALIZABLE_%d_FOR_CLUSTER(type_t%s); \\" % (nfields, fields)
-    print "    INSTANTIATE_SERIALIZABLE_FOR_CLUSTER(type_t);"
+    print "    RDB_MAKE_SERIALIZABLE_%d_FOR_CLUSTER(type_t%s);" % (nfields, fields)
     print
     print "#define RDB_IMPL_SERIALIZABLE_%d_SINCE_v1_13(type_t%s) \\" % (nfields, fields)
     print "    RDB_IMPL_SERIALIZABLE_%d(type_t%s); \\" % (nfields, fields)
