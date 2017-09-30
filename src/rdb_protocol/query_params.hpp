@@ -6,7 +6,7 @@
 #include "containers/intrusive_list.hpp"
 #include "containers/scoped.hpp"
 #include "rdb_protocol/error.hpp"
-#include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/ql2proto.hpp"
 
 namespace ql {
 

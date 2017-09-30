@@ -4,7 +4,7 @@
 #include "perfmon/perfmon.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/rdb_backtrace.hpp"
-#include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/ql2proto.hpp"
 #include "rdb_protocol/query_cache.hpp"
 #include "rdb_protocol/query_params.hpp"
 #include "rdb_protocol/response.hpp"
