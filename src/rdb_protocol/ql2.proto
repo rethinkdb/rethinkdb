@@ -39,6 +39,8 @@
 //   token to get more results from the original query.
 ////////////////////////////////////////////////////////////////////////////////
 
+syntax = "proto2";
+
 message VersionDummy { // We need to wrap it like this for some
                        // non-conforming protobuf libraries
     // This enum contains the magic numbers for your version.  See **THE HIGH-LEVEL
