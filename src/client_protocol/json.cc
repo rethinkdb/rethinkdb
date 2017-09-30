@@ -10,7 +10,7 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "rdb_protocol/rdb_backtrace.hpp"
-#include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/ql2proto.hpp"
 #include "rdb_protocol/query_params.hpp"
 #include "rdb_protocol/response.hpp"
 #include "rdb_protocol/term_storage.hpp"

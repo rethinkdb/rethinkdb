@@ -9,7 +9,7 @@
 #include <boost/optional.hpp>
 
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/ql2proto.hpp"
 
 namespace ql {
 
