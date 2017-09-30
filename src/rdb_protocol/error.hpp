@@ -9,7 +9,7 @@
 
 #include "containers/archive/archive.hpp"
 #include "containers/scoped.hpp"
-#include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/ql2proto.hpp"
 #include "rpc/serialize_macros.hpp"
 
 namespace ql {

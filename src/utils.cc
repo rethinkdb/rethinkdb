@@ -37,7 +37,7 @@
 #include "containers/printf_buffer.hpp"
 #include "debug.hpp"
 #include "logger.hpp"
-#include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/ql2proto.hpp"
 
 void run_generic_global_startup_behavior() {
     // Make sure stderr is non-buffered

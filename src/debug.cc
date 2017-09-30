@@ -4,7 +4,7 @@
 #include <inttypes.h>
 
 #include "arch/runtime/runtime.hpp"
-#include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/ql2proto.hpp"
 #include "time.hpp"
 #include "utils.hpp"
 

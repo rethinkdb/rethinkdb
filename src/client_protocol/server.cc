@@ -38,7 +38,7 @@
 #include "rpc/semilattice/view.hpp"
 #include "time.hpp"
 
-#include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/ql2proto.hpp"
 #include "rdb_protocol/query_server.hpp"
 #include "rdb_protocol/query_cache.hpp"
 #include "rdb_protocol/response.hpp"

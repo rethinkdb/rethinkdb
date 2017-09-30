@@ -5,7 +5,7 @@
 #include "containers/counted.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
-#include "rdb_protocol/ql2.pb.h"
+#include "rdb_protocol/ql2proto.hpp"
 #include "rdb_protocol/val.hpp"
 #include "rdb_protocol/term_storage.hpp"
 
