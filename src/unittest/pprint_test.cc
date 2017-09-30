@@ -1,5 +1,7 @@
 // Copyright 2015 RethinkDB, all rights reserved.
 
+#include <functional>
+
 #include "pprint/pprint.hpp"
 #include "unittest/gtest.hpp"
 
