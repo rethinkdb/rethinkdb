@@ -253,12 +253,12 @@ public:
         if (it == block_infos.end()) {
             block_infos.push_back(block_info_t{static_cast<uint16_t>(_relative_offset / DEVICE_BLOCK_SIZE), false, true, _block_size});
             update_stats(nullptr, &block_infos.back());
-        } else if (it->relative_offset_in_dblocks * DEVICE_BLOCK_SIZE > _relative_offset) {
-            guarantee(it->relative_offset_in_dblocks * DEVICE_BLOCK_SIZE >= _relative_offset + aligned_value(_block_size));
+        } else if (uint32_t(it->relative_offset_in_dblocks * DEVICE_BLOCK_SIZE) > _relative_offset) {
+            guarantee(uint32_t(it->relative_offset_in_dblocks * DEVICE_BLOCK_SIZE) >= _relative_offset + aligned_value(_block_size));
             auto new_block = block_infos.insert(it, block_info_t{static_cast<uint16_t>(_relative_offset / DEVICE_BLOCK_SIZE), false, true, _block_size});
             update_stats(nullptr, &*new_block);
         } else {
-            guarantee(it->relative_offset_in_dblocks * DEVICE_BLOCK_SIZE == _relative_offset);
+            guarantee(uint32_t(it->relative_offset_in_dblocks * DEVICE_BLOCK_SIZE) == _relative_offset);
             guarantee(it->block_size == _block_size);
             const block_info_t old_info = *it;
             it->index_referenced = true;
