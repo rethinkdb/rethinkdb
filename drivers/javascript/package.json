@@ -1,18 +1,37 @@
-{ "name" : "rethinkdb"
-, "version" : "2.3.1"
-, "main" : "rethinkdb"
-, "description" : "This package provides the JavaScript driver library for the RethinkDB database server for use in your node application."
-, "keywords" : ["database", "NoSQL", "reql", "query language"]
-, "homepage" : "http://rethinkdb.com"
-, "bugs" :
-    { "url" : "http://github.com/rethinkdb/rethinkdb/issues"
-    , "email" : "bugs@rethinkdb.com"
-    }
-, "files" : ["rethinkdb.js", "ast.js", "net.js", "util.js", "errors.js", "cursor.js", "README.md", "proto-def.js"]
-, "repository" :
-    { "type" : "git"
-    , "url" : "http://github.com/rethinkdb/rethinkdb.git"
-    }
-, "engines" : { "node": ">= 0.10.0" }
-, "dependencies" : { "bluebird": ">= 2.3.2 < 3" }
+{
+   "name": "rethinkdb",
+   "version": "2.3.1",
+   "main": "rethinkdb",
+   "description": "This package provides the JavaScript driver library for the RethinkDB database server for use in your node application.",
+   "keywords": [
+      "database",
+      "NoSQL",
+      "reql",
+      "query language"
+   ],
+   "homepage": "http://rethinkdb.com",
+   "bugs": {
+      "url": "http://github.com/rethinkdb/rethinkdb/issues",
+      "email": "bugs@rethinkdb.com"
+   },
+   "files": [
+      "rethinkdb.js",
+      "ast.js",
+      "net.js",
+      "util.js",
+      "errors.js",
+      "cursor.js",
+      "README.md",
+      "proto-def.js"
+   ],
+   "repository": {
+      "type": "git",
+      "url": "http://github.com/rethinkdb/rethinkdb.git"
+   },
+   "engines": {
+      "node": ">= 0.10.0"
+   },
+   "dependencies": {
+      "bluebird": "^3.5.1"
+   }
 }
