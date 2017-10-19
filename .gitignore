@@ -58,3 +58,5 @@ last_tested_versions
 *.xml
 *.iml
 /.vscode
+
+/drivers/javascript/node_modules/
