@@ -253,6 +253,30 @@ class RqlQuery(object):
     def mod(self, *args):
         return Mod(self, *args)
 
+    def bit_and(self, *args):
+        return BitAnd(self, *args)
+
+    def bit_or(self, *args):
+        return BitOr(self, *args)
+
+    def bit_xor(self, *args):
+        return BitXor(self, *args)
+
+    def bit_not(self, *args):
+        return BitNot(self, *args)
+
+    def bit_sal(self, *args):
+        return BitSal(self, *args)
+
+    def bit_sar(self, *args):
+        return BitSar(self, *args)
+
+    def bit_shl(self, *args):
+        return BitSal(self, *args)
+
+    def bit_shr(self, *args):
+        return BitShr(self, *args)
+
     def floor(self, *args):
         return Floor(self, *args)
 
@@ -952,6 +976,41 @@ class Div(RqlBiOperQuery):
 class Mod(RqlBiOperQuery):
     tt = pTerm.MOD
     st = "%"
+
+
+class BitAnd(RqlBiOperQuery):
+    tt = pTerm.BIT_AND
+    st = "bit_and"
+
+
+class BitOr(RqlBiOperQuery):
+    tt = pTerm.BIT_OR
+    st = "bit_or"
+
+
+class BitXor(RqlBiOperQuery):
+    tt = pTerm.BIT_XOR
+    st = "bit_xor"
+
+
+class BitNot(RqlQuery):
+    tt = pTerm.BIT_NOT
+    st = "bit_not"
+
+
+class BitSal(RqlBiOperQuery):
+    tt = pTerm.BIT_SAL
+    st = "bit_sal"
+
+
+class BitSar(RqlBiOperQuery):
+    tt = pTerm.BIT_SAR
+    st = "bit_sar"
+
+
+class BitShr(RqlBiOperQuery):
+    tt = pTerm.BIT_SHR
+    st = "bit_shr"
 
 
 class Floor(RqlMethodQuery):
