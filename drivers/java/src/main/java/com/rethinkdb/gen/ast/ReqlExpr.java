@@ -85,6 +85,35 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprA);
         return new Mod(arguments);
     }
+    public BitAnd bitAnd(Object... exprs) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAddAll(exprs);
+        return new BitAnd(arguments);
+    }
+    public BitOr bitOr(Object... exprs) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAddAll(exprs);
+        return new BitOr(arguments);
+    }
+    public BitXor bitXor(Object... exprs) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAddAll(exprs);
+        return new BitXor(arguments);
+    }
+    public BitNot bitNot() {
+        Arguments arguments = new Arguments(this);
+        return new BitNot(arguments);
+    }
+    public BitSal bitSal(Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        return new BitSal(arguments);
+    }
+    public BitSar bitSar(Object exprA) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(exprA);
+        return new BitSar(arguments);
+    }
     public Floor floor() {
         Arguments arguments = new Arguments(this);
         return new Floor(arguments);

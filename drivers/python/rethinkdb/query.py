@@ -8,7 +8,9 @@ __all__ = [
     'table', 'table_create', 'table_drop', 'table_list', 'grant',
     'group', 'reduce', 'count', 'sum', 'avg', 'min', 'max', 'distinct',
     'contains', 'eq', 'ne', 'le', 'ge', 'lt', 'gt', 'and_', 'or_', 'not_',
-    'add', 'sub', 'mul', 'div', 'mod', 'floor', 'ceil', 'round',
+    'add', 'sub', 'mul', 'div', 'mod', 'bit_and', 'bit_or', 'bit_xor',
+    'bit_not', 'bit_sal', 'bit_sar', 'floor', 'ceil',
+    'round',
     'time', 'iso8601', 'epoch_time', 'now', 'make_timezone',
     'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday',
     'sunday',
@@ -201,6 +203,30 @@ def mod(*args):
     return ast.Mod(*args)
 
 
+def bit_and(*args):
+    return ast.BitAnd(*args)
+
+
+def bit_or(*args):
+    return ast.BitOr(*args)
+
+
+def bit_xor(*args):
+    return ast.BitXor(*args)
+
+
+def bit_not(*args):
+    return ast.BitNot(*args)
+
+
+def bit_sal(*args):
+    return ast.BitSal(*args)
+
+
+def bit_sar(*args):
+    return ast.BitSar(*args)
+
+
 def floor(*args):
     return ast.Floor(*args)
 
@@ -262,7 +288,7 @@ class RqlConstant(ast.RqlQuery):
         self.st = st
         self.tt = tt
         super(RqlConstant, self).__init__()
-    
+
     def compose(self, args, optargs):
         return 'r.'+self.st
 

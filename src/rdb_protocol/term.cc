@@ -51,6 +51,12 @@ counted_t<const term_t> compile_on_current_stack(
     case Term::MUL:                // fallthru
     case Term::DIV:                return make_arith_term(env, t);
     case Term::MOD:                return make_mod_term(env, t);
+    case Term::BIT_AND:            // fallthru
+    case Term::BIT_OR:             // fallthru
+    case Term::BIT_XOR:            return make_bit_arith_term(env, t);
+    case Term::BIT_NOT:            return make_bit_not_term(env, t);
+    case Term::BIT_SAL:            // fallthru
+    case Term::BIT_SAR:            return make_bit_shift_term(env, t);
     case Term::CONTAINS:           return make_contains_term(env, t);
     case Term::APPEND:             return make_append_term(env, t);
     case Term::PREPEND:            return make_prepend_term(env, t);
