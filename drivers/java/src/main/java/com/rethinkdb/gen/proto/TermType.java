@@ -186,7 +186,13 @@ public enum TermType {
     GET_NEAREST(168),
     POLYGON_SUB(171),
     MINVAL(180),
-    MAXVAL(181);
+    MAXVAL(181),
+    BIT_AND(191),
+    BIT_OR(192),
+    BIT_XOR(193),
+    BIT_NOT(194),
+    BIT_SAL(195),
+    BIT_SAR(196);
 
     public final int value;
 
@@ -374,6 +380,12 @@ public enum TermType {
             case 171: return TermType.POLYGON_SUB;
             case 180: return TermType.MINVAL;
             case 181: return TermType.MAXVAL;
+            case 191: return TermType.BIT_AND;
+            case 192: return TermType.BIT_OR;
+            case 193: return TermType.BIT_XOR;
+            case 194: return TermType.BIT_NOT;
+            case 195: return TermType.BIT_SAL;
+            case 196: return TermType.BIT_SAR;
             default:
                 throw new IllegalArgumentException(String.format(
                 "%s is not a legal value for TermType", value));

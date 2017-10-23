@@ -108,6 +108,84 @@ reql_docs = {
     "name": "binary", 
     "url": "binary"
   }, 
+  "api/javascript/bit_and/": {
+    "body": "number.bitAnd(number[, number, ...]) &rarr; number",
+    "description": "<p>Compute the arithmetic \"and\" of one or more values.</p>",
+    "example": "<p><strong>Example:</strong></p>\n<pre><code>&gt; r.expr(6).bitAnd(4).run(conn, callback)\n// result passed to callback\n4\n</code></pre>",
+    "io": [
+      [
+        "number",
+        "number"
+      ]
+    ],
+    "name": "bitAnd",
+    "url": "bit_and"
+  },
+  "api/javascript/bit_not/": {
+    "body": "number.bitNot() &rarr; number",
+    "description": "<p>Compute the arithmetic inverse (not) of an expression.</p>",
+    "example": "<p><strong>Example:</strong></p>\n<pre><code>&gt; r.expr(15).bitNot().run(conn, callback)\n// result passed to callback\n-16\n</code></pre>",
+    "io": [
+      [
+        "number",
+        "number"
+      ]
+    ],
+    "name": "bitNot",
+    "url": "bit_not"
+  },
+  "api/javascript/bit_or/": {
+    "body": "number.bitOr(number[, number, ...]) &rarr; number",
+    "description": "<p>Compute the arithmetic \"or\" of one or more values.</p>",
+    "example": "<p><strong>Example:</strong></p>\n<pre><code>&gt; r.expr(6).bitOr(4).run(conn, callback)\n// result passed to callback\n6\n</code></pre>",
+    "io": [
+      [
+        "number",
+        "number"
+      ]
+    ],
+    "name": "bitOr",
+    "url": "bit_or"
+  },
+  "api/javascript/bit_sal/": {
+    "body": "number.bitSal(number, number) &rarr; numbernumber.bitSal(number[, number, ...]) &rarr; number",
+    "description": "<p>Compute the left arithmetic shift of one or more values..</p>",
+    "example": "<p><strong>Example:</strong></p>\n<pre><code>&gt; r.expr(5).bitSal(4).run(conn, callback)\n// result passed to callback\n80\n</code></pre>",
+    "io": [
+      [
+        "number",
+        "number"
+      ]
+    ],
+    "name": "bitSal",
+    "url": "bit_sal"
+  },
+  "api/javascript/bit_sar/": {
+    "body": "number.bitSar(number, number) &rarr; number",
+    "description": "<p>Compute the right arithmetic shift of one or more values.</p>",
+    "example": "<p><strong>Example:</strong></p>\n<pre><code>&gt; r.expr(32).bitSar(3).run(conn, callback)\n// result passed to callback\n4\n</code></pre>",
+    "io": [
+      [
+        "number",
+        "number"
+      ]
+    ],
+    "name": "bitSar",
+    "url": "bit_sar"
+  },
+  "api/javascript/bit_xor/": {
+    "body": "number.bitXor(number[, number, ...]) &rarr; number",
+    "description": "<p>Compute the arithmetic \"xor\" of one or more values.</p>",
+    "example": "<p><strong>Example:</strong></p>\n<pre><code>&gt; r.expr(6).bitXor(4).run(conn, callback)\n// result passed to callback\n2\n</code></pre>",
+    "io": [
+      [
+        "number",
+        "number"
+      ]
+    ],
+    "name": "bitXor",
+    "url": "bit_xor"
+  },
   "api/javascript/bracket/": {
     "body": "sequence(attr) &rarr; sequencesingleSelection(attr) &rarr; valueobject(attr) &rarr; valuearray(index) &rarr; value", 
     "description": "<p>Get a single field from an object. If called on a sequence, gets that field from every object in the sequence, skipping objects that lack it.</p>", 

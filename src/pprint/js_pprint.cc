@@ -623,6 +623,12 @@ private:
         case Term::MUL:
         case Term::DIV:
         case Term::MOD:
+        case Term::BIT_AND:
+        case Term::BIT_OR:
+        case Term::BIT_XOR:
+        case Term::BIT_NOT:
+        case Term::BIT_SAL:
+        case Term::BIT_SAR:
         case Term::OBJECT:
         case Term::RANGE:
         case Term::DB_CREATE:
@@ -921,6 +927,12 @@ static void pprint_update_reminder() {
     case Term::MUL:
     case Term::DIV:
     case Term::MOD:
+    case Term::BIT_AND:
+    case Term::BIT_OR:
+    case Term::BIT_XOR:
+    case Term::BIT_NOT:
+    case Term::BIT_SAL:
+    case Term::BIT_SAR:
     case Term::APPEND:
     case Term::PREPEND:
     case Term::DIFFERENCE:

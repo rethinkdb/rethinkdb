@@ -1,0 +1,129 @@
+desc: Tests bitwise operators
+tests:
+
+    - cd: r.expr(3).bit_and(2)
+      ot: 2
+
+    - cd: r.expr(-2).bit_and(3)
+      ot: 2
+
+    - cd: r.expr(9007199254740992).bit_and(0)
+      ot: err('ReqlQueryLogicError', 'Integer too large: 9007199254740992')
+
+    - cd: r.expr(9007199254740994).bit_and(0)
+      ot: err('ReqlQueryLogicError', 'Number not an integer (>2^53): 9007199254740994')
+
+    - cd: r.expr(9007199254740991).bit_and(23)
+      ot: 23
+
+    - cd: r.expr(-9007199254740992).bit_and(12345)
+      ot: 0
+
+    - cd: r.expr(1).bit_or(2)
+      ot: 3
+
+    - cd: r.expr(9007199254740992).bit_or(0)
+      ot: err('ReqlQueryLogicError', 'Integer too large: 9007199254740992')
+
+    - cd: r.expr(9007199254740991).bit_or(0)
+      ot: 9007199254740991
+
+    - cd: r.expr(9007199254740991).bit_or(-1)
+      ot: -1
+
+    - cd: r.expr(3).bit_xor(6)
+      ot: 5
+
+    - cd: r.expr(2).bit_not()
+      ot: -3
+
+    - cd: r.expr(9007199254740991).bit_not()
+      ot: -9007199254740992
+
+    - cd: r.expr(9007199254740991).bit_not().bit_not()
+      ot: 9007199254740991
+
+    # SAR
+    - cd: r.expr(9007199254740992).bit_sar(0)
+      ot: err('ReqlQueryLogicError', 'Integer too large: 9007199254740992')
+
+    - cd: r.expr(-9007199254740992).bit_sar(0)
+      ot: -9007199254740992
+
+    - cd: r.expr(-9007199254740992).bit_sar(1)
+      ot: -4503599627370496
+
+    - cd: r.expr(-9007199254740992).bit_sar(52)
+      ot: -2
+
+    - cd: r.expr(-9007199254740992).bit_sar(53)
+      ot: -1
+
+    - cd: r.expr(-9007199254740992).bit_sar(54)
+      ot: -1
+
+    - cd: r.expr(9007199254740991).bit_sar(0)
+      ot: 9007199254740991
+
+    - cd: r.expr(9007199254740991).bit_sar(1)
+      ot: 4503599627370495
+
+    - cd: r.expr(9007199254740991).bit_sar(52)
+      ot: 1
+
+    - cd: r.expr(9007199254740991).bit_sar(53)
+      ot: 0
+
+    # SAL
+    - cd: r.expr(0).bit_sal(999999)
+      ot: 0
+
+    - cd: r.expr(0).bit_sal(3000)
+      ot: 0
+
+    - cd: r.expr(0).bit_sal(500)
+      ot: 0
+
+    - cd: r.expr(0).bit_sal(0)
+      ot: 0
+
+    - cd: r.expr(1).bit_sal(0)
+      ot: 1
+
+    - cd: r.expr(1).bit_sal(1)
+      ot: 2
+
+    - cd: r.expr(1).bit_sal(3)
+      ot: 8
+
+    - cd: r.expr(-1).bit_sal(3)
+      ot: -8
+
+    - cd: r.expr(-1).bit_sal(54)
+      ot: -18014398509481984
+
+    - cd: r.expr(1).bit_sal(54)
+      ot: 18014398509481984
+
+    - cd: r.expr(-2).bit_sal(53)
+      ot: -18014398509481984
+
+    - cd: r.expr(2).bit_sal(53)
+      ot: 18014398509481984
+
+    - cd: r.expr(5).bit_sal(-1)
+      ot: err('ReqlQueryLogicError', 'Cannot bit-shift by a negative value')
+
+    - cd: r.expr(5).bit_sar(-1)
+      ot: err('ReqlQueryLogicError', 'Cannot bit-shift by a negative value')
+
+    # Type errors
+    - cd: r.expr('a').bit_and(12)
+      ot: err('ReqlQueryLogicError', 'Expected type NUMBER but found STRING.', [0])
+
+    - cd: r.expr(12).bit_and('a')
+      ot: err('ReqlQueryLogicError', 'Expected type NUMBER but found STRING.', [1])
+
+    - cd: r.expr(1.5).bit_and(3)
+      ot: err('ReqlQueryLogicError', 'Number not an integer: 1.5')
+
