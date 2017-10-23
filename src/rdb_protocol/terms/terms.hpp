@@ -16,6 +16,12 @@ counted_t<term_t> make_arith_term(
     compile_env_t *env, const raw_term_t &term);
 counted_t<term_t> make_mod_term(
     compile_env_t *env, const raw_term_t &term);
+counted_t<term_t> make_bit_arith_term(
+    compile_env_t *env, const raw_term_t &term);
+counted_t<term_t> make_bit_not_term(
+    compile_env_t *env, const raw_term_t &term);
+counted_t<term_t> make_bit_shift_term(
+    compile_env_t *env, const raw_term_t &term);
 counted_t<term_t> make_floor_term(
     compile_env_t *env, const raw_term_t &term);
 counted_t<term_t> make_ceil_term(

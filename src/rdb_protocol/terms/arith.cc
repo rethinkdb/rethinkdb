@@ -136,6 +136,121 @@ private:
     virtual const char *name() const { return "mod"; }
 };
 
+class bit_arith_term_t : public op_term_t {
+public:
+    bit_arith_term_t(compile_env_t *env, const raw_term_t &term)
+        : op_term_t(env, term, argspec_t(1, -1)), namestr(0), op(0) {
+        switch (static_cast<int>(term.type())) {
+        case Term::BIT_AND: namestr = "BIT_AND"; op = &bit_arith_term_t::bit_and; break;
+        case Term::BIT_OR: namestr = "BIT_OR"; op = &bit_arith_term_t::bit_or; break;
+        case Term::BIT_XOR: namestr = "BIT_XOR"; op = &bit_arith_term_t::bit_xor; break;
+        default: unreachable();
+        }
+        guarantee(namestr && op);
+    }
+
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        datum_t acc = args->arg(env, 0)->as_datum();
+        for (size_t i = 1; i < args->num_args(); ++i) {
+            acc = (this->*op)(acc, args->arg(env, i)->as_datum(), env->env->limits());
+        }
+        return new_val(acc);
+    }
+
+    virtual const char *name() const { return namestr; }
+
+private:
+    datum_t bit_and(datum_t lhs,
+                    datum_t rhs,
+                    UNUSED const configured_limits_t &limits) const {
+        lhs.check_type(datum_t::R_NUM);
+        rhs.check_type(datum_t::R_NUM);
+        return datum_t(static_cast<double>(static_cast<long>(lhs.as_num()) & static_cast<long>(rhs.as_num())));
+    }
+    datum_t bit_or(datum_t lhs,
+                   datum_t rhs,
+                   UNUSED const configured_limits_t &limits) const {
+        lhs.check_type(datum_t::R_NUM);
+        rhs.check_type(datum_t::R_NUM);
+        return datum_t(static_cast<double>(static_cast<long>(lhs.as_num()) | static_cast<long>(rhs.as_num())));
+    }
+    datum_t bit_xor(datum_t lhs,
+                    datum_t rhs,
+                    UNUSED const configured_limits_t &limits) const {
+        lhs.check_type(datum_t::R_NUM);
+        rhs.check_type(datum_t::R_NUM);
+        return datum_t(static_cast<double>(static_cast<long>(lhs.as_num()) ^ static_cast<long>(rhs.as_num())));
+    }
+
+    const char *namestr;
+    datum_t (bit_arith_term_t::*op)(datum_t lhs,
+                                    datum_t rhs,
+                                    const configured_limits_t &limits) const;
+};
+
+class bit_not_term_t : public op_term_t {
+public:
+    bit_not_term_t(compile_env_t *env, const raw_term_t &term)
+        : op_term_t(env, term, argspec_t(1)) { }
+private:
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        return new_val(datum_t(static_cast<double>(~static_cast<long>(args->arg(env, 0)->as_num()))));
+    }
+    virtual const char *name() const { return "BIT_NOT"; }
+};
+
+class bit_shift_term_t : public op_term_t {
+public:
+    bit_shift_term_t(compile_env_t *env, const raw_term_t &term)
+        : op_term_t(env, term, argspec_t(1, -1)), namestr(0), op(0) {
+        switch (static_cast<int>(term.type())) {
+        case Term::BIT_SAL: namestr = "BIT_SAL"; op = &bit_shift_term_t::bit_sal; break;
+        case Term::BIT_SAR: namestr = "BIT_SAR"; op = &bit_shift_term_t::bit_sar; break;
+        case Term::BIT_SHR: namestr = "BIT_SHR"; op = &bit_shift_term_t::bit_shr; break;
+        default: unreachable();
+        }
+        guarantee(namestr && op);
+    }
+
+    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        datum_t acc = args->arg(env, 0)->as_datum();
+        for (size_t i = 1; i < args->num_args(); ++i) {
+            acc = (this->*op)(acc, args->arg(env, i)->as_datum(), env->env->limits());
+        }
+        return new_val(acc);
+    }
+
+    virtual const char *name() const { return namestr; }
+
+private:
+    datum_t bit_sal(datum_t lhs,
+                    datum_t rhs,
+                    UNUSED const configured_limits_t &limits) const {
+        lhs.check_type(datum_t::R_NUM);
+        rhs.check_type(datum_t::R_NUM);
+        return datum_t(static_cast<double>(static_cast<long>(lhs.as_num()) << static_cast<unsigned long>(rhs.as_num())));
+    }
+    datum_t bit_sar(datum_t lhs,
+                    datum_t rhs,
+                    UNUSED const configured_limits_t &limits) const {
+        lhs.check_type(datum_t::R_NUM);
+        rhs.check_type(datum_t::R_NUM);
+        return datum_t(static_cast<double>(static_cast<long>(lhs.as_num()) >> static_cast<unsigned long>(rhs.as_num())));
+    }
+    datum_t bit_shr(datum_t lhs,
+                    datum_t rhs,
+                    UNUSED const configured_limits_t &limits) const {
+        lhs.check_type(datum_t::R_NUM);
+        rhs.check_type(datum_t::R_NUM);
+        return datum_t(static_cast<double>(static_cast<unsigned long>(lhs.as_num()) >> static_cast<unsigned long>(rhs.as_num())));
+    }
+
+    const char *namestr;
+    datum_t (bit_shift_term_t::*op)(datum_t lhs,
+                                    datum_t rhs,
+                                    const configured_limits_t &limits) const;
+};
+
 class floor_term_t : public op_term_t {
 public:
     floor_term_t(compile_env_t *env, const raw_term_t &term)
@@ -186,6 +301,21 @@ counted_t<term_t> make_arith_term(
 counted_t<term_t> make_mod_term(
         compile_env_t *env, const raw_term_t &term) {
     return make_counted<mod_term_t>(env, term);
+}
+
+counted_t<term_t> make_bit_arith_term(
+        compile_env_t *env, const raw_term_t &term) {
+    return make_counted<bit_arith_term_t>(env, term);
+}
+
+counted_t<term_t> make_bit_not_term(
+        compile_env_t *env, const raw_term_t &term) {
+    return make_counted<bit_not_term_t>(env, term);
+}
+
+counted_t<term_t> make_bit_shift_term(
+        compile_env_t *env, const raw_term_t &term) {
+    return make_counted<bit_shift_term_t>(env, term);
 }
 
 counted_t<term_t> make_floor_term(
