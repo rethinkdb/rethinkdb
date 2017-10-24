@@ -122,14 +122,14 @@ scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
 obj_or_seq_op_term_t::obj_or_seq_op_term_t(
         compile_env_t *env, const raw_term_t &term,
         poly_type_t _poly_type, argspec_t argspec)
-    : grouped_seq_op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
+    : grouped_seq_op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_", "_NON_EXISTENCE_NULL_"})),
       impl(this, _poly_type, std::set<std::string>()) {
 }
 
 obj_or_seq_op_term_t::obj_or_seq_op_term_t(
         compile_env_t *env, const raw_term_t &term,
         poly_type_t _poly_type, argspec_t argspec, std::set<std::string> &&ptypes)
-    : grouped_seq_op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_"})),
+    : grouped_seq_op_term_t(env, term, argspec, optargspec_t({"_NO_RECURSE_", "_NON_EXISTENCE_NULL_"})),
       impl(this, _poly_type, std::move(ptypes)) {
 }
 
@@ -282,10 +282,51 @@ public:
     }
 
 private:
+    raw_term_t rewrite(compile_env_t *env,
+                       const raw_term_t &in,
+                       argspec_t argspec) {
+        rcheck(argspec.contains(in.num_args()),
+               base_exc_t::LOGIC,
+               strprintf("Expected %s but found %zu.",
+                         argspec.print().c_str(), in.num_args()));
+        raw_term_t preceeding = in.arg(0);
+        if ((preceeding.type() == Term_TermType_GET_FIELD ||
+             preceeding.type() == Term_TermType_BRACKET)) {
+            optional<raw_term_t> v = in.optarg("_NON_EXISTENCE_NULL_");
+            minidriver_t r(preceeding.bt());
+            minidriver_t::reql_t term =
+            r.expr(preceeding);
+            term.copy_optargs_from_term(preceeding);
+            term.add_arg(r.optarg("_NON_EXISTENCE_NULL_", v.value_or(r.boolean(false).root_term())));
+            term = term[in.arg(1)];
+            term.copy_optargs_from_term(in);
+            return term.root_term();
+        }
+        return in;
+    }
+
     virtual scoped_ptr_t<val_t> obj_eval(
         scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t d = v0->as_datum();
-        return new_val(d.get_field(args->arg(env, 1)->as_str()));
+
+        scoped_ptr_t<val_t> v = args->optarg(env, "_NON_EXISTENCE_NULL_");
+        bool non_existence_null;
+        if (v.has()) {
+            non_existence_null = v->as_bool();
+        } else {
+            non_existence_null = false;
+        }
+
+        datum_t r;
+        if (non_existence_null) {
+            r = d.get_field(args->arg(env, 1)->as_str(), NOTHROW);
+            if (r.get_type() == datum_t::UNINITIALIZED) {
+                r = datum_t::null();
+            }
+        } else {
+            r = d.get_field(args->arg(env, 1)->as_str());
+        }
+        return new_val(r);
     }
     virtual const char *name() const { return "get_field"; }
 };
@@ -293,8 +334,8 @@ private:
 class bracket_term_t : public grouped_seq_op_term_t {
 public:
     bracket_term_t(compile_env_t *env, const raw_term_t &term)
-        : grouped_seq_op_term_t(env, term, argspec_t(2),
-                                optargspec_t({"_NO_RECURSE_"})),
+        : grouped_seq_op_term_t(env, rewrite(env, term, argspec_t(2)), argspec_t(2),
+                                optargspec_t({"_NO_RECURSE_", "_NON_EXISTENCE_NULL_"})),
           impl(this, SKIP_MAP, std::set<std::string>()) {}
 
     bool is_simple_selector() const final {
@@ -302,10 +343,42 @@ public:
     }
 
 private:
+    raw_term_t rewrite(compile_env_t *env,
+                       const raw_term_t &in,
+                       argspec_t argspec) {
+        rcheck(argspec.contains(in.num_args()),
+               base_exc_t::LOGIC,
+               strprintf("Expected %s but found %zu.",
+                         argspec.print().c_str(), in.num_args()));
+        raw_term_t preceeding = in.arg(0);
+        if ((preceeding.type() == Term_TermType_GET_FIELD ||
+             preceeding.type() == Term_TermType_BRACKET)) {
+            optional<raw_term_t> v = in.optarg("_NON_EXISTENCE_NULL_");
+            minidriver_t r(preceeding.bt());
+            minidriver_t::reql_t term =
+                r.expr(preceeding);
+            term.copy_optargs_from_term(preceeding);
+            term.add_arg(r.optarg("_NON_EXISTENCE_NULL_", v.value_or(r.boolean(false).root_term())));
+            term = term.bracket(in.arg(1));
+            term.copy_optargs_from_term(in);
+            return term.root_term();
+        }
+        return in;
+    }
+
     scoped_ptr_t<val_t> obj_eval_dereferenced(
-        const scoped_ptr_t<val_t> &v0, const scoped_ptr_t<val_t> &v1) const {
+        const scoped_ptr_t<val_t> &v0, const scoped_ptr_t<val_t> &v1, bool non_existence_null) const {
         datum_t d = v0->as_datum();
-        return new_val(d.get_field(v1->as_str()));
+        datum_t r;
+        if (non_existence_null) {
+            r = d.get_field(v1->as_str(), NOTHROW);
+            if (r.get_type() == datum_t::UNINITIALIZED) {
+                r = datum_t::null();
+            }
+        } else {
+            r = d.get_field(v1->as_str());
+        }
+        return new_val(r);
     }
     virtual scoped_ptr_t<val_t> eval_impl(
         scope_env_t *env, args_t *args, eval_flags_t) const {
@@ -314,6 +387,14 @@ private:
         datum_t d = v1->as_datum();
         r_sanity_check(d.has());
 
+        scoped_ptr_t<val_t> v = args->optarg(env, "_NON_EXISTENCE_NULL_");
+        bool non_existence_null;
+        if (v.has()) {
+            non_existence_null = v->as_bool();
+        } else {
+            non_existence_null = false;
+        }
+
         switch (d.get_type()) {
         case datum_t::R_NUM: {
             return nth_term_impl(this, env, std::move(v0), v1);
@@ -321,7 +402,7 @@ private:
         case datum_t::R_STR:
             return impl.eval_impl_dereferenced(
                 this, env, args, v0,
-                [&]{ return this->obj_eval_dereferenced(v0, v1); });
+                [&]{ return this->obj_eval_dereferenced(v0, v1, non_existence_null); });
         case datum_t::MINVAL:
         case datum_t::R_ARRAY:
         case datum_t::R_BINARY:

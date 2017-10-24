@@ -2,6 +2,7 @@
 #include "rdb_protocol/terms/terms.hpp"
 
 #include "rdb_protocol/error.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"
 
@@ -25,8 +26,30 @@ private:
 class default_term_t : public op_term_t {
 public:
     default_term_t(compile_env_t *env, const raw_term_t &term)
-        : op_term_t(env, term, argspec_t(2)) { }
+        : op_term_t(env, rewrite(env, term, argspec_t(2)), argspec_t(2),
+                    optargspec_t({"_NON_EXISTENCE_NULL_"})) { }
 private:
+    raw_term_t rewrite(compile_env_t *env,
+                       const raw_term_t &in,
+                       argspec_t argspec) {
+        rcheck(argspec.contains(in.num_args()),
+               base_exc_t::LOGIC,
+               strprintf("Expected %s but found %zu.",
+                         argspec.print().c_str(), in.num_args()));
+
+        raw_term_t preceeding = in.arg(0);
+        if (preceeding.type() == Term_TermType_GET_FIELD ||
+            preceeding.type() == Term_TermType_BRACKET) {
+            minidriver_t r(preceeding.bt());
+            minidriver_t::reql_t term =
+                r.expr(preceeding);
+            term.add_arg(r.optarg("_NON_EXISTENCE_NULL_", r.boolean(true)));
+
+            return term.default_(in.arg(1)).root_term();
+        }
+        return in;
+    }
+
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         datum_t func_arg;
         scoped_ptr_t<exc_t> err;

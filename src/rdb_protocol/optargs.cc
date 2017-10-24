@@ -39,6 +39,7 @@ scoped_ptr_t<val_t> global_optargs_t::get_optarg(env_t *env, const std::string &
 static const std::set<std::string> acceptable_optargs({
     "_EVAL_FLAGS_",
     "_NO_RECURSE_",
+    "_NON_EXISTENCE_NULL_",
     "_SHORTCUT_",
     "array_limit",
     "attempts",
