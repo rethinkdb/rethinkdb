@@ -30,7 +30,7 @@ public:
     void run();
 
 private:
-    ticks_t next_time_in_nanos;
+    ticks_t next_time;
     timer_provider_callback_t *timer_cb;
 
     linux_thread_t *thread;
