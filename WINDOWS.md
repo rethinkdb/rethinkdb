@@ -18,6 +18,7 @@
 
       setup.exe -q -P make
       setup.exe -q -P curl
+      setup.exe -q -P wget
       setup.exe -q -P patch
       setup.exe -q -P git
 
