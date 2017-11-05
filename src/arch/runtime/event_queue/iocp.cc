@@ -83,7 +83,7 @@ void iocp_event_queue_t::post_event(linux_event_callback_t *cb) {
 void iocp_event_queue_t::reset_timer(int64_t next_time_in_nanos_,
                                      timer_provider_callback_t *cb) {
     rassert(cb != nullptr);
-    next_time_in_nanos = next_time_in_nanos_;
+    next_time.nanos = next_time_in_nanos_;
     timer_cb = cb;
 }
 
@@ -100,7 +100,7 @@ void iocp_event_queue_t::run() {
 
         DWORD wait_ms;
         if (timer_cb != nullptr) {
-            int64_t wait_ns = next_time_in_nanos - get_ticks();
+            int64_t wait_ns = next_time.nanos - get_ticks().nanos;
             if (wait_ns <= 0) {
                 wait_ms = 0;
             } else {
@@ -122,7 +122,7 @@ void iocp_event_queue_t::run() {
         DWORD error = res ? NO_ERROR : GetLastError();
 
         if (timer_cb != nullptr &&
-              (error == WAIT_TIMEOUT || next_time_in_nanos < get_ticks())) {
+              (error == WAIT_TIMEOUT || next_time.nanos < get_ticks().nanos)) {
             debugf_queue("[%p] trigger timer callback\n", this);
             timer_provider_callback_t *cb = timer_cb;
             timer_cb = nullptr;
