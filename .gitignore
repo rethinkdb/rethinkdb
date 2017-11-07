@@ -50,3 +50,4 @@ last_tested_versions
 /RethinkDB.sdf
 /RethinkDB.vcxproj.*
 /precompiled
+/.vscode
