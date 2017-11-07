@@ -836,7 +836,7 @@ public:
         }
         items.clear();
         finished = true;
-        return std::move(rget_items);
+        return rget_items;
     }
     virtual bool is_finished() const {
         return finished;

@@ -118,7 +118,7 @@ scoped_ptr_t<ql::reader_t> artificial_table_t::read_all_with_sindexes(
 
     guarantee(items.get_type() == ql::datum_t::type_t::R_ARRAY);
     for (size_t i = 0; i < items.arr_size(); ++i) {
-        items_vector.push_back(std::move(items.get(i)));
+        items_vector.push_back(items.get(i));
     }
 
     return make_scoped<ql::vector_reader_t>(std::move(items_vector));
