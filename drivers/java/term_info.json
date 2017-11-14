@@ -265,6 +265,7 @@
         "id": 194
     },
     "BIT_SAL": {
+        "alias": "bit_shl",
         "binop": true,
         "include_in": [
             "T_TOP_LEVEL",

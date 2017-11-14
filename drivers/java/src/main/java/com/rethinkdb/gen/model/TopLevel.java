@@ -220,6 +220,12 @@ public class TopLevel {
         args.coerceAndAddAll(exprs);
         return new BitSal(args);
     }
+    public BitSal bitShl(Object expr, Object... exprs){
+        Arguments args = new Arguments();
+        args.coerceAndAdd(expr);
+        args.coerceAndAddAll(exprs);
+        return new BitSal(args);
+    }
     public BitSar bitSar(Object expr, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);

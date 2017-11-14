@@ -109,6 +109,11 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAddAll(exprs);
         return new BitSal(arguments);
     }
+    public BitSal bitShl(Object... exprs) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAddAll(exprs);
+        return new BitSal(arguments);
+    }
     public BitSar bitSar(Object... exprs) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAddAll(exprs);
