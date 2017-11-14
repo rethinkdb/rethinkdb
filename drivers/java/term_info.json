@@ -235,7 +235,7 @@
             "T_TOP_LEVEL",
             "T_EXPR"
         ],
-        "signatures": [["T_EXPR", "T_EXPR"]],
+        "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 191
     },
     "BIT_OR": {
@@ -244,7 +244,7 @@
             "T_TOP_LEVEL",
             "T_EXPR"
         ],
-        "signatures": [["T_EXPR", "T_EXPR"]],
+        "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 192
     },
     "BIT_XOR": {
@@ -253,7 +253,7 @@
             "T_TOP_LEVEL",
             "T_EXPR"
         ],
-        "signatures": [["T_EXPR", "T_EXPR"]],
+        "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 193
     },
     "BIT_NOT": {
@@ -270,7 +270,7 @@
             "T_TOP_LEVEL",
             "T_EXPR"
         ],
-        "signatures": [["T_EXPR", "T_EXPR"]],
+        "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 195
     },
     "BIT_SAR": {
@@ -279,7 +279,7 @@
             "T_TOP_LEVEL",
             "T_EXPR"
         ],
-        "signatures": [["T_EXPR", "T_EXPR"]],
+        "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 196
     },
     "BIT_SHR": {
@@ -288,7 +288,7 @@
             "T_TOP_LEVEL",
             "T_EXPR"
         ],
-        "signatures": [["T_EXPR", "T_EXPR"]],
+        "signatures": [["T_EXPR", "T_EXPR", "*"]],
         "id": 197
     },
     "FLOOR": {

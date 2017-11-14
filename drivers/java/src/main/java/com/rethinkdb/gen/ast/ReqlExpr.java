@@ -85,38 +85,38 @@ public class ReqlExpr extends ReqlAst {
         arguments.coerceAndAdd(exprA);
         return new Mod(arguments);
     }
-    public BitAnd bitAnd(Object exprA) {
+    public BitAnd bitAnd(Object... exprs) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAddAll(exprs);
         return new BitAnd(arguments);
     }
-    public BitOr bitOr(Object exprA) {
+    public BitOr bitOr(Object... exprs) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAddAll(exprs);
         return new BitOr(arguments);
     }
-    public BitXor bitXor(Object exprA) {
+    public BitXor bitXor(Object... exprs) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAddAll(exprs);
         return new BitXor(arguments);
     }
     public BitNot bitNot() {
         Arguments arguments = new Arguments(this);
         return new BitNot(arguments);
     }
-    public BitSal bitSal(Object exprA) {
+    public BitSal bitSal(Object... exprs) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAddAll(exprs);
         return new BitSal(arguments);
     }
-    public BitSar bitSar(Object exprA) {
+    public BitSar bitSar(Object... exprs) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAddAll(exprs);
         return new BitSar(arguments);
     }
-    public BitShr bitShr(Object exprA) {
+    public BitShr bitShr(Object... exprs) {
         Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(exprA);
+        arguments.coerceAndAddAll(exprs);
         return new BitShr(arguments);
     }
     public Floor floor() {

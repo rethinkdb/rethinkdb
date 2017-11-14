@@ -191,22 +191,22 @@ public class TopLevel {
         args.coerceAndAdd(exprA);
         return new Mod(args);
     }
-    public BitAnd bitAnd(Object expr, Object exprA){
+    public BitAnd bitAnd(Object expr, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
+        args.coerceAndAddAll(exprs);
         return new BitAnd(args);
     }
-    public BitOr bitOr(Object expr, Object exprA){
+    public BitOr bitOr(Object expr, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
+        args.coerceAndAddAll(exprs);
         return new BitOr(args);
     }
-    public BitXor bitXor(Object expr, Object exprA){
+    public BitXor bitXor(Object expr, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
+        args.coerceAndAddAll(exprs);
         return new BitXor(args);
     }
     public BitNot bitNot(Object expr){
@@ -214,22 +214,22 @@ public class TopLevel {
         args.coerceAndAdd(expr);
         return new BitNot(args);
     }
-    public BitSal bitSal(Object expr, Object exprA){
+    public BitSal bitSal(Object expr, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
+        args.coerceAndAddAll(exprs);
         return new BitSal(args);
     }
-    public BitSar bitSar(Object expr, Object exprA){
+    public BitSar bitSar(Object expr, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
+        args.coerceAndAddAll(exprs);
         return new BitSar(args);
     }
-    public BitShr bitShr(Object expr, Object exprA){
+    public BitShr bitShr(Object expr, Object... exprs){
         Arguments args = new Arguments();
         args.coerceAndAdd(expr);
-        args.coerceAndAdd(exprA);
+        args.coerceAndAddAll(exprs);
         return new BitShr(args);
     }
     public Floor floor(Object expr){
