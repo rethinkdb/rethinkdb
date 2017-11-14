@@ -165,21 +165,21 @@ private:
                     UNUSED const configured_limits_t &limits) const {
         lhs.check_type(datum_t::R_NUM);
         rhs.check_type(datum_t::R_NUM);
-        return datum_t(static_cast<double>(static_cast<long>(lhs.as_num()) & static_cast<long>(rhs.as_num())));
+        return datum_t(static_cast<double>(static_cast<int64_t>(lhs.as_num()) & static_cast<int64_t>(rhs.as_num())));
     }
     datum_t bit_or(datum_t lhs,
                    datum_t rhs,
                    UNUSED const configured_limits_t &limits) const {
         lhs.check_type(datum_t::R_NUM);
         rhs.check_type(datum_t::R_NUM);
-        return datum_t(static_cast<double>(static_cast<long>(lhs.as_num()) | static_cast<long>(rhs.as_num())));
+        return datum_t(static_cast<double>(static_cast<int64_t>(lhs.as_num()) | static_cast<int64_t>(rhs.as_num())));
     }
     datum_t bit_xor(datum_t lhs,
                     datum_t rhs,
                     UNUSED const configured_limits_t &limits) const {
         lhs.check_type(datum_t::R_NUM);
         rhs.check_type(datum_t::R_NUM);
-        return datum_t(static_cast<double>(static_cast<long>(lhs.as_num()) ^ static_cast<long>(rhs.as_num())));
+        return datum_t(static_cast<double>(static_cast<int64_t>(lhs.as_num()) ^ static_cast<int64_t>(rhs.as_num())));
     }
 
     const char *namestr;
@@ -194,7 +194,7 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        return new_val(datum_t(static_cast<double>(~static_cast<long>(args->arg(env, 0)->as_num()))));
+        return new_val(datum_t(static_cast<double>(~static_cast<int64_t>(args->arg(env, 0)->as_num()))));
     }
     virtual const char *name() const { return "BIT_NOT"; }
 };
@@ -228,21 +228,21 @@ private:
                     UNUSED const configured_limits_t &limits) const {
         lhs.check_type(datum_t::R_NUM);
         rhs.check_type(datum_t::R_NUM);
-        return datum_t(static_cast<double>(static_cast<long>(lhs.as_num()) << static_cast<unsigned long>(rhs.as_num())));
+        return datum_t(static_cast<double>(static_cast<int64_t>(lhs.as_num()) << static_cast<uint64_t>(rhs.as_num())));
     }
     datum_t bit_sar(datum_t lhs,
                     datum_t rhs,
                     UNUSED const configured_limits_t &limits) const {
         lhs.check_type(datum_t::R_NUM);
         rhs.check_type(datum_t::R_NUM);
-        return datum_t(static_cast<double>(static_cast<long>(lhs.as_num()) >> static_cast<unsigned long>(rhs.as_num())));
+        return datum_t(static_cast<double>(static_cast<int64_t>(lhs.as_num()) >> static_cast<uint64_t>(rhs.as_num())));
     }
     datum_t bit_shr(datum_t lhs,
                     datum_t rhs,
                     UNUSED const configured_limits_t &limits) const {
         lhs.check_type(datum_t::R_NUM);
         rhs.check_type(datum_t::R_NUM);
-        return datum_t(static_cast<double>(static_cast<unsigned long>(lhs.as_num()) >> static_cast<unsigned long>(rhs.as_num())));
+        return datum_t(static_cast<double>(static_cast<uint64_t>(lhs.as_num()) >> static_cast<uint64_t>(rhs.as_num())));
     }
 
     const char *namestr;
