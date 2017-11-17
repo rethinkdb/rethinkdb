@@ -100,6 +100,7 @@ Donors
 ------
 
 * [DNSimple](https://dnsimple.com) provides DNS services for the RethinkDB project.
+* [ZeroTier](https://www.zerotier.com) sponsored the development of per-table configurable write aggregation including the ability to set write delay to infinite to create a memory-only table ([PR #6392](https://github.com/rethinkdb/rethinkdb/pull/6392))
 
 Where's the changelog?
 ----------------------
