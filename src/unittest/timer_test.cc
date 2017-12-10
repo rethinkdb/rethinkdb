@@ -76,8 +76,8 @@ TPTEST(TimerTest, TestChangeInterval) {
     int64_t expected[] = { 5, 10, 20, 40, 65 };
     int64_t naps[] = {0,  0,  0,  25, 0};
     int64_t ms[] = { 10, 20, 30, 10, 50};
-    std::unique_ptr<repeating_timer_t> timer;
-    timer = std::make_unique<repeating_timer_t>(10, [&]() {
+    scoped_ptr_t<repeating_timer_t> timer;
+    timer = make_scoped<repeating_timer_t>(10, [&]() {
         coro_t::spawn_now_dangerously([&]() {
             ASSERT_LT(count, 5);
             ticks_t ticks = get_ticks();
