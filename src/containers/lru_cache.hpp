@@ -1,111 +1,69 @@
 #ifndef CONTAINERS_LRU_CACHE_HPP_
 #define CONTAINERS_LRU_CACHE_HPP_
 
-#include <map>
+#include <unordered_map>
 #include <list>
 
 #include "errors.hpp"
 
-template <typename K, typename V>
+template <class K, class V>
 class lru_cache_t {
 public:
-    typedef K key_type;
-    typedef V value_type;
-    typedef V &reference;
-    typedef const V &const_reference;
-    
-    typedef std::pair<K, V> entry_pair_t;
-    typedef std::list<entry_pair_t> cache_list_t;
-    typedef std::map<K, typename cache_list_t::iterator> cache_map_t;
-    
-    typedef typename cache_list_t::iterator iterator;
-    typedef typename cache_list_t::const_iterator const_iterator;
-    typedef typename cache_list_t::reverse_iterator reverse_iterator;
-    typedef typename cache_list_t::const_reverse_iterator const_reverse_iterator;
-    
-private:
-    // Cache entries, ordered by access time (so cache_list_.begin() points to the
-    // most recently accessed entry).
-    cache_list_t cache_list_;
-    // Map from key values to position in cache list.
-    cache_map_t cache_map_;
-    size_t _max;
-public:
-    explicit lru_cache_t(size_t max) : cache_list_(), cache_map_(), _max(max) {}
-    
-    // These iterators can be invalidated if someone uses `[]` or `find`; specifically
-    // it can be the case (particularly with the end positions) that the object you're
-    // looking at can be recycled by the LRU cache as you insert new entries.
-    iterator begin() { return cache_list_.begin(); }
-    const_iterator begin() const { return cache_list_.cbegin(); }
-    const_iterator cbegin() const { return cache_list_.cbegin(); }
-    iterator end() { return cache_list_.end(); }
-    const_iterator end() const { return cache_list_.cend(); }
-    const_iterator cend() const { return cache_list_.cend(); }
+    explicit lru_cache_t(size_t max_size) : list_(), map_(), max_size_(max_size) {
+        guarantee(max_size > 0);
+    }
 
-    reverse_iterator rbegin() { return cache_list_.rbegin(); }
-    const_reverse_iterator rbegin() const { return cache_list_.crbegin(); }
-    const_reverse_iterator crbegin() const { return cache_list_.crbegin(); }
-    reverse_iterator rend() { return cache_list_.rend(); }
-    const_reverse_iterator rend() const { return cache_list_.crend(); }
-    const_reverse_iterator crend() const { return cache_list_.crend(); }
-    
-    size_t size() const { return cache_list_.size(); }
-    size_t max_size() const { return _max; }
-    bool empty() const { return cache_list_.empty(); }
-    
-    V &operator[](const K &key) {
-        auto search = cache_map_.find(key);
-        if (search != cache_map_.end()) {
-            bump(search);
-            return search->second->second;
+    size_t max_size() const { return max_size_; }
+    size_t size() const { return map_.size(); }
+
+    // Looks up a key, sets *out to point at its value, and marks the entry 'most
+    // recently used'.  Returns false if the key is not found.
+    bool lookup(const K &key, V **out) {
+        auto it = map_.find(key);
+        if (it != map_.end()) {
+            list_iterator list_iter = it->second;
+            list_.splice(list_.end(), list_, list_iter);
+            *out = &list_iter->second;
+            return true;
         } else {
-            return insert(K(key));
+            *out = nullptr;
+            return false;
         }
     }
-    V &operator[](K &&key) {
-        auto search = cache_map_.find(key);
-        if (search != cache_map_.end()) {
-            bump(search);
-            return search->second->second;
+
+    // Returns true if an insertion was performed.  (Does nothing, doesn't even update
+    // LRU, if no insertion was performed.)
+    bool insert(K key, V value) {
+        auto it = map_.find(key);
+        if (it != map_.end()) {
+            return false;
         } else {
-            return insert(std::move(key));
+            if (map_.size() == max_size_) {
+                list_iterator evictee = list_.begin();
+                DEBUG_VAR size_t count = map_.erase(evictee->first);
+                rassert(count == 1);
+                list_.pop_front();
+            }
+
+            list_.push_back(std::make_pair(key, std::move(value)));
+            list_iterator list_iter = list_.end();
+            --list_iter;
+            DEBUG_VAR auto res = map_.emplace(std::move(key), list_iter);
+            rassert(res.second);
+            return true;
         }
     }
-    iterator find(const K &key) {
-        auto search = cache_map_.find(key);
-        if (search != cache_map_.end()) {
-            bump(search);
-            return search->second;
-        } else {
-            return cache_list_.end();
-        }
-    }
+
 private:
-    V &insert(const K &key) {
-        cache_list_.push_front(std::make_pair(key, V()));
-        cache_map_[key] = cache_list_.begin();
-        if (cache_list_.size() > _max) {
-            cache_map_.erase(cache_list_.back().first);
-            cache_list_.pop_back();
-        }
-        return cache_list_.begin()->second;
-    }
-    V &insert(K &&key) {
-        cache_list_.push_front(std::make_pair(std::move(key), V()));
-        cache_map_[key] = cache_list_.begin();
-        if (cache_list_.size() > _max) {
-            cache_map_.erase(cache_list_.back().first);
-            cache_list_.pop_back();
-        }
-        return cache_list_.begin()->second;
-    }
-    void bump(const typename cache_map_t::iterator &it) {
-        entry_pair_t pair = *(it->second);
-        cache_list_.erase(it->second);
-        cache_list_.push_front(std::move(pair));
-        it->second = cache_list_.begin();
-    }
+    using list_iterator = typename std::list<std::pair<K, V>>::iterator;
+
+    // Elements are pushed onto the back and popped (when evicted) off the front.
+    std::list<std::pair<K, V>> list_;
+    std::unordered_map<K, list_iterator> map_;
+
+    size_t max_size_;
+
+    DISABLE_COPYING(lru_cache_t);
 };
 
 #endif // CONTAINERS_LRU_CACHE_HPP_
