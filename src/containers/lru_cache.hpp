@@ -4,6 +4,7 @@
 #include <map>
 #include <list>
 
+#include "debug.hpp"
 #include "errors.hpp"
 
 template <typename K, typename V>
@@ -83,7 +84,7 @@ public:
     }
 private:
     V &insert(const K &key) {
-        cache_list_.push_front(std::make_pair(key, V()));
+        cache_list_.emplace_front(key, V());
         cache_map_[key] = cache_list_.begin();
         if (cache_list_.size() > _max) {
             cache_map_.erase(cache_list_.back().first);
@@ -92,8 +93,8 @@ private:
         return cache_list_.begin()->second;
     }
     V &insert(K &&key) {
-        cache_list_.push_front(std::make_pair(std::move(key), V()));
-        cache_map_[key] = cache_list_.begin();
+        cache_list_.emplace_front(key, V());
+        cache_map_[std::move(key)] = cache_list_.begin();
         if (cache_list_.size() > _max) {
             cache_map_.erase(cache_list_.back().first);
             cache_list_.pop_back();
@@ -106,6 +107,21 @@ private:
         cache_list_.push_front(std::move(pair));
         it->second = cache_list_.begin();
     }
+
+    friend void debug_print(printf_buffer_t *buf, const lru_cache_t &cache) {
+        buf->appendf("lru_cache:\n");
+        buf->appendf("  list: [\n");
+        for (auto &it : cache.cache_list_) {
+            buf->appendf("    '%s' x '%s'\n", it.first.c_str(), it.second ? it.second->pattern().c_str() : "null");
+        }
+        buf->appendf("  ]\n");
+        buf->appendf("  map: [\n");
+        for (auto &it : cache.cache_map_) {
+            buf->appendf("    '%s' -> '%s'\n", it.first.c_str(), it.second->first.c_str());
+        }
+        buf->appendf("  ]\n");
+    }
+
 };
 
 #endif // CONTAINERS_LRU_CACHE_HPP_
