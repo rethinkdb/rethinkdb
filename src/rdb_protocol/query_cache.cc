@@ -133,10 +133,6 @@ void query_cache_t::stop_query(query_params_t *query_params, signal_t *interrupt
 }
 
 void query_cache_t::terminate_internal(query_cache_t::entry_t *entry) {
-    if (entry->state == entry_t::state_t::START ||
-        entry->state == entry_t::state_t::STREAM) {
-        entry->state = entry_t::state_t::DONE;
-    }
     entry->persistent_interruptor.pulse_if_not_already_pulsed();
 }
 
@@ -166,9 +162,9 @@ void query_cache_t::async_destroy_entry(query_cache_t::entry_t *entry) {
 
 query_cache_t::ref_t::~ref_t() {
     query_cache->assert_thread();
-    guarantee(entry->state != entry_t::state_t::START);
 
-    if (entry->state == entry_t::state_t::DONE) {
+    if (entry->state == entry_t::state_t::DONE
+        || (entry->state != entry_t::state_t::DELETING && entry->persistent_interruptor.is_pulsed())) {
         // We do not delete the entry in this context for reasons:
         //  1. If there is an active exception, we aren't allowed to switch coroutines
         //  2. This will block until all auto-drainer locks on the entry have been
