@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.4
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 '''Finds yaml tests, converts them to Java tests.'''
 from __future__ import print_function
@@ -25,6 +25,9 @@ sys.path.append(
 
 import parsePolyglot
 parsePolyglot.printDebug = False
+
+if sys.hexversion < 0x03040000:
+    raise 'Python version must be >= 3.4'
 
 logger = logging.getLogger("convert_tests")
 

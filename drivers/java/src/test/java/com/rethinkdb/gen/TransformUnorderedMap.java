@@ -364,5 +364,26 @@ public class TransformUnorderedMap {
                 throw ae;
             }
         }
+
+        {
+            // transform/unordered_map.yaml line #62
+            /* [x for x in range(0,10000)] + [1, 2, 3] */
+            List expected_ = LongStream.range(0L, 10000L).boxed().map(x -> x).collect(Collectors.toList()) + r.array(1L, 2L, 3L);
+            /* r.range().limit(10000).union([1,2,3], interleave= false) */
+            logger.info("About to run line #62: r.range().limit(10000L).union(r.array(1L, 2L, 3L)).optArg('interleave', false)");
+            Object obtained = runOrCatch(r.range().limit(10000L).union(r.array(1L, 2L, 3L)).optArg("interleave", false),
+                                          new OptArgs()
+                                          ,conn);
+            try {
+                assertEquals(expected_, obtained);
+            logger.info("Finished running line #62");
+            } catch (Throwable ae) {
+                logger.error("Whoops, got exception on line #62:" + ae.toString());
+                if(obtained instanceof Throwable) {
+                    ae.addSuppressed((Throwable) obtained);
+                }
+                throw ae;
+            }
+        }
     }
 }

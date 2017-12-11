@@ -41,12 +41,10 @@ import static com.rethinkdb.TestingCommon.*;
 import com.rethinkdb.TestingFramework;
 
 public class TransformFold {
-    // Tests that manipulation data in tables
+    // Tests for the fold term
     Logger logger = LoggerFactory.getLogger(TransformFold.class);
     public static final RethinkDB r = RethinkDB.r;
     public static final Table tbl = r.db("test").table("tbl");
-    public static final Table tbl2 = r.db("test").table("tbl2");
-    public static final Table tbl3 = r.db("test").table("tbl3");
 
     Connection conn;
 
@@ -62,14 +60,6 @@ public class TransformFold {
             r.db("test").tableCreate("tbl").run(conn);
             r.db("test").table(tbl).wait_().run(conn);
         }catch (Exception e){}
-        try {
-            r.db("test").tableCreate("tbl2").run(conn);
-            r.db("test").table(tbl2).wait_().run(conn);
-        }catch (Exception e){}
-        try {
-            r.db("test").tableCreate("tbl3").run(conn);
-            r.db("test").table(tbl3).wait_().run(conn);
-        }catch (Exception e){}
     }
 
     @After
@@ -81,8 +71,6 @@ public class TransformFold {
             conn = TestingFramework.createConnection();
         }
         r.db("test").tableDrop("tbl").run(conn);
-        r.db("test").tableDrop("tbl2").run(conn);
-        r.db("test").tableDrop("tbl3").run(conn);
         r.dbDrop("test").run(conn);
         conn.close(false);
     }
