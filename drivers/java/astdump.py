@@ -10,7 +10,6 @@ and want to know what the ast of some python expression looks like.
 import ast
 import json
 
-
 def convert_to_dict(node):
     if isinstance(node, list):
         return [convert_to_dict(n) for n in node]
