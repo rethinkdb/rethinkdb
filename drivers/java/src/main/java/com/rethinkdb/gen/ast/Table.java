@@ -169,11 +169,6 @@ public class Table extends ReqlExpr {
         arguments.coerceAndAdd(expr);
         return new SetWriteHook(arguments);
     }
-    public SetWriteHook setWriteHook(ReqlFunction1 func1) {
-        Arguments arguments = new Arguments(this);
-        arguments.coerceAndAdd(func1);
-        return new SetWriteHook(arguments);
-    }
     public SetWriteHook setWriteHook(ReqlFunction3 func3) {
         Arguments arguments = new Arguments(this);
         arguments.coerceAndAdd(func3);

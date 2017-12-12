@@ -1467,7 +1467,6 @@
         ],
         "signatures": [
             ["T_TABLE", "T_FUNC3"],
-            ["T_TABLE", "T_FUNC1"],
             ["T_TABLE", "T_EXPR"]
         ],
         "id": 189
