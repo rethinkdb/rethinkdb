@@ -8,6 +8,11 @@ documentation at [java-api-docs][]
 
 ## Basics
 
+(You're probably here because you added new ReQL terms and need to
+update the driver.  Once you've got this stuff installed and working,
+make appropriate changes to term_info.json and then call `make
+update-driver`.)
+
 The Java driver is built using gradle (2.7+). To build the driver from
 source, you need gradle, Java, and python3.4 installed:
 
