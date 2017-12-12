@@ -301,6 +301,7 @@ class java_term_info(object):
                     'T_FUNC0': 'ReqlFunction0',
                     'T_FUNC1': 'ReqlFunction1',
                     'T_FUNC2': 'ReqlFunction2',
+                    'T_FUNC3': 'ReqlFunction3',
                     'T_JS': 'Javascript',
                 }[arg]
             elif isinstance(arg, list):

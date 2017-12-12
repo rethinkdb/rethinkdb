@@ -1512,5 +1512,20 @@
         "include_in": ["T_EXPR"],
         "signatures": [["T_EXPR"]],
         "id": 186
+    },
+    "SET_WRITE_HOOK": {
+        "side_effect": true,
+        "include_in": [
+            "T_TABLE"
+        ],
+        "signatures": [["T_TABLE", "T_FUNC3"]],
+        "id": 189
+    },
+    "GET_WRITE_HOOK": {
+        "include_in": [
+            "T_TABLE"
+        ],
+        "signatures": [["T_TABLE"]],
+        "id": 190
     }
 }
