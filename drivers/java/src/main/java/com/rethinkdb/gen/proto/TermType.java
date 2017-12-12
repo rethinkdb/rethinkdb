@@ -106,6 +106,8 @@ public enum TermType {
     INDEX_STATUS(139),
     INDEX_WAIT(140),
     INDEX_RENAME(156),
+    SET_WRITE_HOOK(189),
+    GET_WRITE_HOOK(190),
     FUNCALL(64),
     BRANCH(65),
     OR(66),
@@ -121,7 +123,6 @@ public enum TermType {
     SAMPLE(81),
     DEFAULT(92),
     JSON(98),
-    TO_JSON_STRING(172),
     ISO8601(99),
     TO_ISO8601(100),
     EPOCH_TIME(101),
@@ -185,6 +186,7 @@ public enum TermType {
     FILL(167),
     GET_NEAREST(168),
     POLYGON_SUB(171),
+    TO_JSON_STRING(172),
     MINVAL(180),
     MAXVAL(181),
     BIT_AND(191),
@@ -299,6 +301,8 @@ public enum TermType {
             case 139: return TermType.INDEX_STATUS;
             case 140: return TermType.INDEX_WAIT;
             case 156: return TermType.INDEX_RENAME;
+            case 189: return TermType.SET_WRITE_HOOK;
+            case 190: return TermType.GET_WRITE_HOOK;
             case 64: return TermType.FUNCALL;
             case 65: return TermType.BRANCH;
             case 66: return TermType.OR;
@@ -314,7 +318,6 @@ public enum TermType {
             case 81: return TermType.SAMPLE;
             case 92: return TermType.DEFAULT;
             case 98: return TermType.JSON;
-            case 172: return TermType.TO_JSON_STRING;
             case 99: return TermType.ISO8601;
             case 100: return TermType.TO_ISO8601;
             case 101: return TermType.EPOCH_TIME;
@@ -378,6 +381,7 @@ public enum TermType {
             case 167: return TermType.FILL;
             case 168: return TermType.GET_NEAREST;
             case 171: return TermType.POLYGON_SUB;
+            case 172: return TermType.TO_JSON_STRING;
             case 180: return TermType.MINVAL;
             case 181: return TermType.MAXVAL;
             case 191: return TermType.BIT_AND;
