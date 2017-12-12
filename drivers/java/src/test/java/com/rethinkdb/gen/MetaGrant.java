@@ -529,7 +529,7 @@ public class MetaGrant {
             logger.info("About to run line #49: r.grant('test_user', r.hashMap('read', true))");
             Object obtained = runOrCatch(r.grant("test_user", r.hashMap("read", true)),
                                           new OptArgs()
-                                          .with("user", test_user)
+                                          .with("user", "test_user")
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
@@ -572,7 +572,7 @@ public class MetaGrant {
             logger.info("About to run line #54: r.grant('test_user', r.hashMap('read', true))");
             Object obtained = runOrCatch(r.grant("test_user", r.hashMap("read", true)),
                                           new OptArgs()
-                                          .with("user", test_user)
+                                          .with("user", "test_user")
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
@@ -636,7 +636,7 @@ public class MetaGrant {
             logger.info("About to run line #60: r.grant('test_user', r.hashMap('read', true))");
             Object obtained = runOrCatch(r.grant("test_user", r.hashMap("read", true)),
                                           new OptArgs()
-                                          .with("user", test_user)
+                                          .with("user", "test_user")
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
@@ -700,7 +700,7 @@ public class MetaGrant {
             logger.info("About to run line #66: r.grant('test_user', r.hashMap('write', true))");
             Object obtained = runOrCatch(r.grant("test_user", r.hashMap("write", true)),
                                           new OptArgs()
-                                          .with("user", test_user)
+                                          .with("user", "test_user")
                                           ,conn);
             try {
                 assertEquals(expected_, obtained);
