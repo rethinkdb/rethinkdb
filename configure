@@ -107,6 +107,8 @@ configure_unixlike () {
             final_warning="ARM support is still experimental" ;;
         s390x)
             final_warning="s390x support is still experimental" ;;
+        ppc64le|powerpc64le|powerpc64el)
+            final_warning="PowerPC support is still experimental" ;;
         *)
             error "unsupported architecture: $MACHINE"
     esac
