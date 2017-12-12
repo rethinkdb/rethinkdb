@@ -723,7 +723,23 @@ class JavaVisitor(ast.NodeVisitor):
         self.write(opMap[type(node.op)])
         self.visit(node.operand)
 
+    def is_array_add(self, node):
+        if ((type(node.left) == ast.ListComp or type(node.left) == ast.List) and
+            (type(node.right) == ast.ListComp or type(node.right) == ast.List) and
+            type(node.op) == ast.Add):
+            # A hack for the transform/unordered_map case
+            self.write('concatLong(')
+            self.visit(node.left)
+            self.write(', ')
+            self.visit(node.right)
+            self.write(')')
+            return True
+        else:
+            return False
+
     def visit_BinOp(self, node):
+        if self.is_array_add(node):
+            return
         opMap = {
             ast.Add: " + ",
             ast.Sub: " - ",
