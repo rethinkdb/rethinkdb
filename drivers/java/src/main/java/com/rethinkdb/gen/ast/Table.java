@@ -159,4 +159,18 @@ public class Table extends ReqlExpr {
         arguments.coerceAndAdd(expr);
         return new GetNearest(arguments);
     }
+    public SetWriteHook setWriteHook(Javascript js) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(js);
+        return new SetWriteHook(arguments);
+    }
+    public SetWriteHook setWriteHook(ReqlFunction3 func3) {
+        Arguments arguments = new Arguments(this);
+        arguments.coerceAndAdd(func3);
+        return new SetWriteHook(arguments);
+    }
+    public GetWriteHook getWriteHook() {
+        Arguments arguments = new Arguments(this);
+        return new GetWriteHook(arguments);
+    }
 }

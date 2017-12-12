@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.4
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 '''Finds yaml tests, converts them to Java tests.'''
 from __future__ import print_function
@@ -25,6 +25,9 @@ sys.path.append(
 
 import parsePolyglot
 parsePolyglot.printDebug = False
+
+if sys.hexversion < 0x03040000:
+    raise 'Python version must be >= 3.4'
 
 logger = logging.getLogger("convert_tests")
 
@@ -228,7 +231,7 @@ class TestFile(object):
         )
 
 
-def py_to_java_type(py_type):
+def py_to_java_type(py_type, node):
     '''Converts python types to their Java equivalents'''
     if py_type is None:
         return None
@@ -267,7 +270,8 @@ def py_to_java_type(py_type):
         # All of the constants like minval maxval etc are defined in
         # query.py, but no type name is provided to `type`, so we have
         # to pull it out of a class variable
-        return metajava.camel(py_type.st)
+        assert py_type.__name__ == 'RqlConstant'
+        return metajava.camel(node.st)
     else:
         raise Unhandled(
             "Don't know how to convert python type {}.{} to java"
@@ -372,7 +376,10 @@ def query_to_java(item, reql_vars):
             original=item.query.line,
             java=java_line,
         ),
-        expected_type=py_to_java_type(item.expected.type),
+        # If py_to_java_type ever fails here, note that I'm not 100%
+        # sure item.expected.ast is the correct parameter -- I think
+        # we never use it -- so consider changing that.
+        expected_type=py_to_java_type(item.expected.type, item.expected.ast),
         expected_line=Version(
             original=item.expected.line,
             java=java_expected_line,
@@ -414,12 +421,14 @@ class JavaVisitor(ast.NodeVisitor):
     ):
         self.out = StringIO() if out is None else out
         self.reql_vars = reql_vars
-        self.type = py_to_java_type(type_)
         self._type = type_
         self.is_def = is_def
         self.smart_bracket = smart_bracket
         super(JavaVisitor, self).__init__()
         self.write = self.out.write
+
+    def compute_type(self, node):
+        return py_to_java_type(self._type, node)
 
     def skip(self, message, *args, **kwargs):
         cls = Skip
@@ -477,15 +486,16 @@ class JavaVisitor(ast.NodeVisitor):
     def visit_Assign(self, node):
         if len(node.targets) != 1:
             Unhandled("We only support assigning to one variable")
-        self.write(self.type + " ")
+        type = self.compute_type(node)
+        self.write(type + " ")
         self.write(node.targets[0].id)
         self.write(" = (")
-        self.write(self.type)
+        self.write(type)
         self.write(") (")
         if is_reql(self._type):
             ReQLVisitor(self.reql_vars,
                         out=self.out,
-                        type_=self.type,
+                        type_=type,
                         is_def=True,
                         ).visit(node.value)
         else:
@@ -713,7 +723,23 @@ class JavaVisitor(ast.NodeVisitor):
         self.write(opMap[type(node.op)])
         self.visit(node.operand)
 
+    def is_array_add(self, node):
+        if ((type(node.left) == ast.ListComp or type(node.left) == ast.List) and
+            (type(node.right) == ast.ListComp or type(node.right) == ast.List) and
+            type(node.op) == ast.Add):
+            # A hack for the transform/unordered_map case
+            self.write('concatLong(')
+            self.visit(node.left)
+            self.write(', ')
+            self.visit(node.right)
+            self.write(')')
+            return True
+        else:
+            return False
+
     def visit_BinOp(self, node):
+        if self.is_array_add(node):
+            return
         opMap = {
             ast.Add: " + ",
             ast.Sub: " - ",
