@@ -1465,10 +1465,7 @@
         "include_in": [
             "T_TABLE"
         ],
-        "signatures": [
-            ["T_TABLE", "T_FUNC3"],
-            ["T_TABLE", "T_EXPR"]
-        ],
+        "signatures": [["T_TABLE", "T_FUNC3"]],
         "id": 189
     },
     "GET_WRITE_HOOK": {
