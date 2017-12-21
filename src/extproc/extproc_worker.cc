@@ -68,7 +68,7 @@ void extproc_worker_t::acquired(signal_t *_interruptor) {
     bool new_worker = false;
 #endif
     if (worker_pid == INVALID_PROCESS_ID) {
-        socket.reset(spawner->spawn(&worker_pid));
+        socket = spawner->spawn(&worker_pid);
 
 #ifdef _WIN32
         new_worker = true;
