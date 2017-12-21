@@ -45,6 +45,17 @@ tests:
   - cd: r.epoch_time(1.4444445).seconds()
     ot: 1.444
 
+# Check for millisecond truncation bug instead of rounding, see issue 6272.
+  - cd: r.epoch_time(1.444).to_iso8601()
+    js: r.epochTime(1.444).toISO8601()
+    ot: "1970-01-01T00:00:01.444+00:00"
+  - cd: r.epoch_time(1.001).to_iso8601()
+    js: r.epochTime(1.001).toISO8601()
+    ot: "1970-01-01T00:00:01.001+00:00"
+  - cd: r.epoch_time(2.058).to_iso8601()
+    js: r.epochTime(2.058).toISO8601()
+    ot: "1970-01-01T00:00:02.058+00:00"
+
   - cd: r.epoch_time(253430000000).year()
     ot: 10000
   - cd: r.epoch_time(253430000000).to_iso8601()

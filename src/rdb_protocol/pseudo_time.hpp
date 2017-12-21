@@ -17,7 +17,7 @@ extern const char *const time_string;
 
 datum_t iso8601_to_time(
     const std::string &s, const std::string &default_tz, const rcheckable_t *t);
-std::string time_to_iso8601(datum_t d);
+std::string time_to_iso8601(reql_version_t reql_version, datum_t d);
 double time_to_epoch_time(datum_t d);
 
 datum_t time_now();
@@ -28,6 +28,7 @@ int time_cmp(const datum_t &x, const datum_t &y);
 void sanitize_time(datum_t *time);
 datum_t make_time(double epoch_time, std::string tz);
 datum_t make_time(
+    reql_version_t reql_version,
     int year, int month, int day, int hours, int minutes, double seconds,
     std::string tz, const rcheckable_t *target);
 datum_t time_add(
@@ -45,10 +46,10 @@ enum time_component_t {
     MINUTES,
     SECONDS
 };
-double time_portion(datum_t time, time_component_t c);
-datum_t time_date(datum_t time,
-                                   const rcheckable_t *target);
-datum_t time_of_day(datum_t time);
+double time_portion(reql_version_t reql_version, datum_t time, time_component_t c);
+datum_t time_date(reql_version_t reql_version, datum_t time,
+                  const rcheckable_t *target);
+datum_t time_of_day(reql_version_t reql_version, datum_t time);
 
 void time_to_str_key(const datum_t &d, std::string *str_out);
 

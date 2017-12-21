@@ -33,7 +33,9 @@ private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
         return new_val(
             datum_t(datum_string_t(
-                pseudo::time_to_iso8601(args->arg(env, 0)->as_ptype(pseudo::time_string)))));
+                pseudo::time_to_iso8601(
+                    env->env->reql_version(),
+                    args->arg(env, 0)->as_ptype(pseudo::time_string)))));
     }
     virtual const char *name() const { return "to_iso8601"; }
 };
@@ -112,7 +114,9 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        return new_val(pseudo::time_date(args->arg(env, 0)->as_ptype(pseudo::time_string), this));
+        return new_val(pseudo::time_date(
+            env->env->reql_version(),
+            args->arg(env, 0)->as_ptype(pseudo::time_string), this));
     }
     virtual const char *name() const { return "date"; }
 };
@@ -123,7 +127,9 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
 private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        return new_val(pseudo::time_of_day(args->arg(env, 0)->as_ptype(pseudo::time_string)));
+        return new_val(pseudo::time_of_day(
+            env->env->reql_version(),
+            args->arg(env, 0)->as_ptype(pseudo::time_string)));
     }
     virtual const char *name() const { return "time_of_day"; }
 };
@@ -146,7 +152,10 @@ public:
         : op_term_t(env, term, argspec_t(1)), component(_component) { }
 private:
     scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        double d = pseudo::time_portion(args->arg(env, 0)->as_ptype(pseudo::time_string), component);
+        double d = pseudo::time_portion(
+            env->env->reql_version(),
+            args->arg(env, 0)->as_ptype(pseudo::time_string),
+            component);
         return new_val(datum_t(d));
     }
     virtual const char *name() const {
@@ -192,7 +201,8 @@ private:
             r_sanity_check(false);
         }
         return new_val(
-            pseudo::make_time(year, month, day, hours, minutes, seconds, tz, this));
+            pseudo::make_time(env->env->reql_version(), year, month, day, hours, minutes,
+                              seconds, tz, this));
     }
     static std::string parse_tz(scoped_ptr_t<val_t> v) {
         return v->as_str().to_std();
