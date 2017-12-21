@@ -198,7 +198,7 @@ std::string date(const std::string &s, date_format_t *df_out) {
 }
 
 // Sanitize a time.
-std::string time(const std::string &s) {
+std::string time(reql_version_t reql_version, const std::string &s) {
     std::string out;
     size_t at = 0;
     mandatory_digits(s, 2, &at, &out);
@@ -215,16 +215,22 @@ std::string time(const std::string &s) {
                  strprintf("Time string `%s` must have 0 or 2 colons.", s.c_str()));
     mandatory_digits(s, 2, &at, &out);
     if (optional_char(s, '.', &at, &out)) {
-        size_t read = 0;
-        while (at < s.size() && read < 3) {
-            mandatory_digits(s, 1, &at, &out);
-            read += 1;
-        }
-        while (at < s.size()) {
-            mandatory_digits(s, 1, &at, NULL);
-        }
-        while (read++ < 3) {
-            out += '0';
+        if (reql_version < reql_version_t::v2_4) {
+            size_t read = 0;
+            while (at < s.size() && read < 3) {
+                mandatory_digits(s, 1, &at, &out);
+                read += 1;
+            }
+            while (at < s.size()) {
+                mandatory_digits(s, 1, &at, NULL);
+            }
+            while (read++ < 3) {
+                out += '0';
+            }
+        } else {
+            while (at < s.size()) {
+                mandatory_digits(s, 1, &at, &out);
+            }
         }
     } else {
         out += "000";
@@ -275,7 +281,9 @@ std::string tz(const std::string &s) {
 }
 
 // Sanitize an ISO 8601 string.
-std::string iso8601(const std::string &s, const std::string &default_tz, date_format_t *df_out) {
+std::string iso8601(
+        reql_version_t reql_version, const std::string &s,
+        const std::string &default_tz, date_format_t *df_out) {
     std::string date_s, time_s, tz_s;
     size_t tloc, start, sign_loc;
     tloc = s.find('T');
@@ -288,7 +296,7 @@ std::string iso8601(const std::string &s, const std::string &default_tz, date_fo
         sign_loc = s.find('-', start);
         sign_loc = (sign_loc == std::string::npos) ? s.find('+', start) : sign_loc;
         sign_loc = (sign_loc == std::string::npos) ? s.find('Z', start) : sign_loc;
-        time_s = time(s.substr(start, sign_loc - start));
+        time_s = time(reql_version, s.substr(start, sign_loc - start));
         if (sign_loc == std::string::npos) {
             tz_s = default_tz;
         } else {
@@ -346,12 +354,13 @@ datum_t boost_to_time(time_t t, const rcheckable_t *target) {
 }
 
 datum_t iso8601_to_time(
-    const std::string &s, const std::string &default_tz, const rcheckable_t *target) {
+        reql_version_t reql_version, const std::string &s,
+        const std::string &default_tz, const rcheckable_t *target) {
     try {
         date_format_t df = UNSET;
         std::string sanitized;
         try {
-            sanitized = sanitize::iso8601(s, default_tz, &df);
+            sanitized = sanitize::iso8601(reql_version, s, default_tz, &df);
         } catch (const datum_exc_t &e) {
             rfail_target(target, base_exc_t::LOGIC, "%s", e.what());
         }

@@ -20,7 +20,8 @@ private:
         if (scoped_ptr_t<val_t> vtz = args->optarg(env, "default_timezone")) {
             tz = vtz->as_str().to_std();
         }
-        return new_val(pseudo::iso8601_to_time(v->as_str().to_std(), tz, v.get()));
+        return new_val(pseudo::iso8601_to_time(
+            env->env->reql_version(), v->as_str().to_std(), tz, v.get()));
     }
     virtual const char *name() const { return "iso8601"; }
 };
