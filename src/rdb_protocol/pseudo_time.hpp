@@ -16,7 +16,8 @@ namespace pseudo {
 extern const char *const time_string;
 
 datum_t iso8601_to_time(
-    const std::string &s, const std::string &default_tz, const rcheckable_t *t);
+    reql_version_t reql_version, const std::string &s,
+    const std::string &default_tz, const rcheckable_t *t);
 std::string time_to_iso8601(reql_version_t reql_version, datum_t d);
 double time_to_epoch_time(datum_t d);
 
