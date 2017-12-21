@@ -233,4 +233,4 @@ fd_t extproc_spawner_t::spawn(object_buffer_t<socket_stream_t> *stream_out, pid_
     return fds[0];
 }
 
-#endif
+#endif  // _WIN32
