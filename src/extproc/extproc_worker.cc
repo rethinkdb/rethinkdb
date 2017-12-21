@@ -61,9 +61,9 @@ void extproc_worker_t::acquired(signal_t *_interruptor) {
 
     // We create the streams here, since they are thread-dependant
     if (worker_pid == -1) {
-        socket.reset(spawner->spawn(&socket_stream, &worker_pid));
+        socket = spawner->spawn(&socket_stream, &worker_pid);
     } else {
-        socket_stream.create(socket.get(), reinterpret_cast<fd_watcher_t*>(NULL));
+        socket_stream.create(socket.get(), static_cast<fd_watcher_t *>(nullptr));
     }
 
     // Apply the user interruptor to our stream along with the extproc pool's interruptor
