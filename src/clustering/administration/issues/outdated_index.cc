@@ -80,7 +80,8 @@ bool outdated_index_issue_tracker_t::is_acceptable_outdated(const sindex_config_
         case reql_version_t::v2_0:
         case reql_version_t::v2_1:
         case reql_version_t::v2_2:
-        case reql_version_t::v2_3_is_latest:
+        case reql_version_t::v2_3:
+        case reql_version_t::v2_4_is_latest:
         default:
             return true;
         }

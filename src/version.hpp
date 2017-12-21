@@ -100,13 +100,14 @@ enum class reql_version_t {
     v2_1 = 4,
     v2_2 = 5,
     v2_3 = 6,
+    v2_4 = 7,
 
     // Code that uses _is_latest may need to be updated when the
     // version changes
-    v2_3_is_latest = v2_3,
+    v2_4_is_latest = v2_4,
 
     EARLIEST = v1_16,
-    LATEST = v2_3_is_latest
+    LATEST = v2_4_is_latest
 };
 
 // Serialization of reql_version_t is defined in protocol_api.hpp.
