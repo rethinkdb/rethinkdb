@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <unistd.h>
 
+#include "extproc/extproc_job.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "extproc/extproc_worker.hpp"
 #include "arch/fd_send_recv.hpp"
@@ -210,27 +211,32 @@ void extproc_spawner_t::fork_spawner() {
 }
 
 // Spawns a new worker process and returns the fd of the socket used to communicate with it
-fd_t extproc_spawner_t::spawn(object_buffer_t<socket_stream_t> *stream_out, pid_t *pid_out) {
+scoped_fd_t extproc_spawner_t::spawn(object_buffer_t<socket_stream_t> *stream_out, pid_t *pid_out) {
     guarantee(spawner_socket.get() != INVALID_FD);
 
     fd_t fds[2];
     int res = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
     guarantee_err(res == 0, "could not create socket pair for worker process");
 
-    res = send_fds(spawner_socket.get(), 1, &fds[1]);
-    guarantee_err(res == 0, "could not send socket file descriptor to worker process");
+    scoped_fd_t fd0(fds[0]);
+    scoped_fd_t fd1(fds[1]);
 
-    stream_out->create(fds[0], reinterpret_cast<fd_watcher_t*>(NULL));
+    res = send_fds(spawner_socket.get(), 1, &fds[1]);
+    if (res != 0) {
+        throw extproc_worker_exc_t("could not send file descriptor to worker process");
+    }
+
+    stream_out->create(fds[0], static_cast<fd_watcher_t *>(nullptr));
 
     // Get the pid of the new worker process
     archive_result_t archive_res;
     archive_res = deserialize<cluster_version_t::LATEST_OVERALL>(stream_out->get(),
                                                                  pid_out);
-    guarantee_deserialization(archive_res, "pid_out");
-    guarantee(*pid_out != -1);
+    if (archive_res != archive_result_t::SUCCESS || *pid_out == -1) {
+        throw extproc_worker_exc_t("malformed response from fresh worker process");
+    }
 
-    scoped_fd_t closer(fds[1]);
-    return fds[0];
+    return fd0;
 }
 
 #endif  // _WIN32
