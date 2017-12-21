@@ -112,9 +112,17 @@ class LogMessageFatal : public LogMessage {
  public:
   LogMessageFatal(const char* file, int line)
     : LogMessage(file, line) { }
+#ifdef _MSC_VER
+#pragma warning(push)
+  // Silences "destructor never returns, potential memory leak"
+#pragma warning(disable: 4722)
+#endif
   NORETURN ~LogMessageFatal() {
     crash("Fatal S2 error: %s", str.str().c_str());
   }
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
  private:
   DISALLOW_COPY_AND_ASSIGN(LogMessageFatal);
 };
