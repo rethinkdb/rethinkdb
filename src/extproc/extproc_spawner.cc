@@ -1,17 +1,18 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #ifndef _WIN32
-
 #include <sys/wait.h>
 #include <sys/time.h>
 #include <sys/socket.h>
-#else
+#else  // _WIN32
 #include <atomic>
-#endif
+#endif  // _WIN32
+
 #include <sys/types.h>
 #include <signal.h>
 #include <unistd.h>
 
 #include "arch/process.hpp"
+#include "extproc/extproc_job.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "extproc/extproc_worker.hpp"
 #include "arch/fd_send_recv.hpp"
@@ -50,7 +51,7 @@ public:
         serialize<cluster_version_t::LATEST_OVERALL>(&wm, getpid());
         int res = send_write_message(&socket_stream, &wm);
         guarantee(res == 0);
-#endif
+#endif  // _WIN32
     }
 
     ~worker_run_t() {
@@ -104,7 +105,7 @@ private:
             ::_exit(EXIT_FAILURE);
         }
     }
-#endif
+#endif  // _WIN32
 
     scoped_fd_t socket;
     socket_stream_t socket_stream;
@@ -231,7 +232,7 @@ void extproc_spawner_t::fork_spawner() {
 #endif
 
 // Spawns a new worker process and returns the fd of the socket used to communicate with it
-fd_t extproc_spawner_t::spawn(process_id_t *pid_out) {
+scoped_fd_t extproc_spawner_t::spawn(process_id_t *pid_out) {
 #ifdef _WIN32
     static std::atomic<uint64_t> unique = 0;
 
@@ -276,16 +277,21 @@ fd_t extproc_spawner_t::spawn(process_id_t *pid_out) {
 
     *pid_out = process_id_t(GetProcessId(process_info.hProcess));
     CloseHandle(process_info.hThread);
-    return fd.release();
-#else
+    return fd;
+#else  // _WIN32
     guarantee(spawner_socket.get() != INVALID_FD);
 
     fd_t fds[2];
     int res = socketpair(AF_UNIX, SOCK_STREAM, 0, fds);
     guarantee_err(res == 0, "could not create socket pair for worker process");
 
+    scoped_fd_t fd0(fds[0]);
+    scoped_fd_t fd1(fds[1]);
+
     res = send_fds(spawner_socket.get(), 1, &fds[1]);
-    guarantee_err(res == 0, "could not send socket file descriptor to worker process");
+    if (res != 0) {
+        throw extproc_worker_exc_t("could not send file descriptor to worker process");
+    }
 
     socket_stream_t stream_out(fds[0]);
 
@@ -293,12 +299,12 @@ fd_t extproc_spawner_t::spawn(process_id_t *pid_out) {
     archive_result_t archive_res;
     archive_res = deserialize<cluster_version_t::LATEST_OVERALL>(&stream_out,
                                                                  pid_out);
-    guarantee_deserialization(archive_res, "pid_out");
-    guarantee(*pid_out != INVALID_PROCESS_ID);
+    if (archive_res != archive_result_t::SUCCESS || *pid_out == INVALID_PROCESS_ID) {
+        throw extproc_worker_exc_t("malformed response from fresh worker process");
+    }
 
-    scoped_fd_t closer(fds[1]);
-    return fds[0];
-#endif
+    return fd0;
+#endif  // _WIN32
 }
 
 #ifdef _WIN32
@@ -324,5 +330,4 @@ bool extproc_maybe_run_worker(int argc, char **argv) {
     ::_exit(EXIT_SUCCESS);
     return true;
 }
-
-#endif
+#endif  // _WIN32
