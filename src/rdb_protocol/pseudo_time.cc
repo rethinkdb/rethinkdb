@@ -384,14 +384,19 @@ datum_t iso8601_to_time(
 }
 
 const int64_t sec_incr = INT_MAX;
-void add_seconds_to_ptime(ptime_t *t, double raw_sec) {
+void add_seconds_to_ptime(reql_version_t reql_version, ptime_t *t, double raw_sec) {
     int64_t sec = raw_sec;
-    int64_t microsec = (raw_sec * 1000000.0) - (sec * 1000000);
+    int sign = raw_sec < 0 ? -1 : 1;
+    int64_t microsec;
+    if (reql_version < reql_version_t::v2_4) {
+        microsec = (raw_sec * 1000000.0) - (sec * 1000000);
+    } else {
+        microsec = (raw_sec * 1000000.0) - (sec * 1000000.0) + sign * 0.5;
+    }
 
     // boost::posix_time::seconds doesn't like large numbers, and like any
     // mature library, it reacts by silently overflowing somewhere and producing
     // an incorrect date if you give it a number that it doesn't like.
-    int sign = sec < 0 ? -1 : 1;
     sec *= sign;
     while (sec > 0) {
         int64_t diff = std::min(sec, sec_incr);
@@ -403,10 +408,10 @@ void add_seconds_to_ptime(ptime_t *t, double raw_sec) {
     *t += boost::posix_time::microseconds(microsec);
 }
 
-time_t time_to_boost(datum_t d) {
+time_t time_to_boost(reql_version_t reql_version, datum_t d) {
     double raw_sec = d.get_field(epoch_time_key).as_num();
     ptime_t t(date_t(1970, 1, 1));
-    add_seconds_to_ptime(&t, raw_sec);
+    add_seconds_to_ptime(reql_version, &t, raw_sec);
 
     const datum_t tz = d.get_field(timezone_key, NOTHROW);
     if (tz.has()) {
@@ -428,9 +433,9 @@ const std::locale &no_tz_format() {
     return it;
 }
 
-std::string time_to_iso8601(datum_t d) {
+std::string time_to_iso8601(reql_version_t reql_version, datum_t d) {
     try {
-        time_t t = time_to_boost(d);
+        time_t t = time_to_boost(reql_version, d);
         int year = t.date().year();
         // Boost also accepts year 10000.  I don't think any real users will hit
         // that edge case, but better safe than sorry.
@@ -445,7 +450,7 @@ std::string time_to_iso8601(datum_t d) {
         } else {
             ss.imbue(no_tz_format());
         }
-        ss << time_to_boost(d);
+        ss << t;
         std::string s = ss.str();
         size_t dot_off = s.find('.');
         return (dot_off == std::string::npos) ? s :
@@ -576,11 +581,12 @@ datum_t make_time(double epoch_time, std::string tz) {
 }
 
 datum_t make_time(
+    reql_version_t reql_version,
     int year, int month, int day, int hours, int minutes, double seconds,
     std::string tz, const rcheckable_t *target) {
     try {
         ptime_t ptime(date_t(year, month, day), dur_t(hours, minutes, 0));
-        add_seconds_to_ptime(&ptime, seconds);
+        add_seconds_to_ptime(reql_version, &ptime, seconds);
         try {
             tz = sanitize::tz(tz);
         } catch (const datum_exc_t &e) {
@@ -629,9 +635,9 @@ datum_t time_sub(datum_t time, datum_t time_or_duration) {
     }
 }
 
-double time_portion(datum_t time, time_component_t c) {
+double time_portion(reql_version_t reql_version, datum_t time, time_component_t c) {
     try {
-        ptime_t ptime = time_to_boost(time).local_time();
+        ptime_t ptime = time_to_boost(reql_version, time).local_time();
         switch (c) {
         case YEAR: return ptime.date().year();
         case MONTH: return ptime.date().month();
@@ -661,15 +667,15 @@ time_t boost_date(time_t boost_time) {
     return time_t(ptime_t(d) - zone->base_utc_offset(), zone);
 }
 
-datum_t time_date(datum_t time, const rcheckable_t *target) {
+datum_t time_date(reql_version_t reql_version, datum_t time, const rcheckable_t *target) {
     try {
-        return boost_to_time(boost_date(time_to_boost(time)), target);
+        return boost_to_time(boost_date(time_to_boost(reql_version, time)), target);
     } HANDLE_BOOST_ERRORS(target);
 }
 
-datum_t time_of_day(datum_t time) {
+datum_t time_of_day(reql_version_t reql_version, datum_t time) {
     try {
-        time_t boost_time = time_to_boost(time);
+        time_t boost_time = time_to_boost(reql_version, time);
         double sec =
             (boost_time - boost_date(boost_time)).total_microseconds() / 1000000.0;
         sec = round(sec * 1000) / 1000;
