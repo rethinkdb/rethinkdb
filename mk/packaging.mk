@@ -45,18 +45,26 @@ DIST_SUPPORT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), $(SUPPORT_SRC_DIR)/$(pkg
 DEB_BUILD_DEPENDS := libboost-dev, curl, m4, debhelper
 DEB_BUILD_DEPENDS += , fakeroot, python, libncurses5-dev, libcurl4-openssl-dev
 
-ifeq ($(filter $(UBUNTU_RELEASE), trusty xenial),)
-  # RethinkDB fails to compile with GCC 6 (#5757)
-  DEB_BUILD_DEPENDS += , g++-5, libssl-dev
-  DSC_CONFIGURE_DEFAULT += CXX=g++-5
-else ifneq ($(filter $(DEB_RELEASE), jessie),)
-  DEB_BUILD_DEPENDS += , g++, libssl-dev
-else
-  # RethinkDB fails to compile with GCC 6 (#5757) -- and there is
-  # no GCC 5 in stretch.  We need to use libssl1.0-dev to be
-  # compatible with libcurl when linking.
-  DEB_BUILD_DEPENDS += , clang, libssl1.0-dev
-  DSC_CONFIGURE_DEFAULT += CXX=clang++
+ifneq ($(UBUNTU_RELEASE),)
+  ifneq ($(filter $(UBUNTU_RELEASE), trusty xenial),)
+    # RethinkDB fails to compile with GCC 6 (#5757)
+    DEB_BUILD_DEPENDS += , g++-5, libssl-dev
+    DSC_CONFIGURE_DEFAULT += CXX=g++-5
+  else
+    # RethinkDB fails to compile with GCC 6 (#5757) -- and there is
+    # no GCC 5 in later Ubuntus.  We need to use libssl1.0-dev to be
+    # compatible with libcurl when linking.
+    DEB_BUILD_DEPENDS += , clang, libssl1.0-dev
+    DSC_CONFIGURE_DEFAULT += CXX=clang++
+  endif
+else ifneq ($(DEB_RELEASE),)
+  ifneq ($(filter $(DEB_RELEASE), jessie),)
+    DEB_BUILD_DEPENDS += , g++, libssl-dev
+  else
+    # As with Ubuntus.
+    DEB_BUILD_DEPENDS += , clang, libssl1.0-dev
+    DSC_CONFIGURE_DEFAULT += CXX=clang++
+  endif
 endif
 
 ifneq (1,$(BUILD_PORTABLE))
