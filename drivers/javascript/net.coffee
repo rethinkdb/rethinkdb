@@ -1630,11 +1630,14 @@ module.exports.connect = varar 0, 2, (hostOrCallback, callback) ->
         # and set host to an empty object
         host = {}
         callback = hostOrCallback
-    else
+    else if typeof hostOrCallback is 'string'
         # Otherwise, the `callback` variable is already correctly
         # holding the callback, and the host variable is the first
-        # argument
-        host = hostOrCallback || {}
+        # argument -- either a string or an object.
+        host = hostOrCallback
+    else
+        # Copy the object so that we feel free to modify it.
+        host = Object.assign {}, hostOrCallback
 
     # `r.connect` returns a Promise which does the following:
     #
