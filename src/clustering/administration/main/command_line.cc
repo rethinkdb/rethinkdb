@@ -1609,7 +1609,7 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
 
     options_out->push_back(options::option_t(options::names_t("--canonical-address"),
                                              options::OPTIONAL_REPEAT));
-    help.add("--canonical-address addr", "address that other rethinkdb instances will use to connect to us, can be specified multiple times");
+    help.add("--canonical-address host[:port]", "address that other rethinkdb instances will use to connect to us, can be specified multiple times");
 
     options_out->push_back(options::option_t(options::names_t("--join-delay"),
                                              options::OPTIONAL));
