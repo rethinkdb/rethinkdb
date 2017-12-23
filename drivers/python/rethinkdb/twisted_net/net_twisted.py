@@ -66,21 +66,24 @@ class DatabaseProtocol(Protocol):
     def _handleHandshake(self, data):
         try:
             self.buf += data
-            end_index = self.buf.find(b'\0')
-            if end_index != -1:
-                response = self.buf[:end_index]
-                self.buf = self.buf[end_index + 1:]
-                request = self.factory.handshake.next_message(response)
+            while True:
+                end_index = self.buf.find(b'\0')
+                if end_index != -1:
+                    response = self.buf[:end_index]
+                    self.buf = self.buf[end_index + 1:]
+                    request = self.factory.handshake.next_message(response)
 
-                if request is None:
-                    # We're now ready to work with real data.
-                    self.state = DatabaseProtocol.READY
-                    # We cancel the scheduled timeout.
-                    self._timeout_defer.cancel()
-                    # We callback our wait_for_handshake.
-                    self.wait_for_handshake.callback(None)
-                elif request != "":
-                    self.transport.write(request)
+                    if request is None:
+                        # We're now ready to work with real data.
+                        self.state = DatabaseProtocol.READY
+                        # We cancel the scheduled timeout.
+                        self._timeout_defer.cancel()
+                        # We callback our wait_for_handshake.
+                        self.wait_for_handshake.callback(None)
+                    elif request != "":
+                        self.transport.write(request)
+                else:
+                    break
         except Exception as e:
             self.wait_for_handshake.errback(e)
 
