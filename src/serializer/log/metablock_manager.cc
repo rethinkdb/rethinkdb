@@ -356,7 +356,10 @@ void metablock_manager_t::co_start_existing(file_t *file, bool *mb_found_out,
         crc_metablock_t *mb = reinterpret_cast<crc_metablock_t *>(lbm.get() + i * METABLOCK_SIZE);
         if (crc_metablock::check_crc(mb)) {
             guarantee(mb->version != MB_BAD_VERSION);
-            indices_by_version.push_back(std::make_pair(mb->version, i));
+            // Copy out mb->version to silence complaints about passing reference to
+            // packed field to make_pair.
+            metablock_version_t version = mb->version;
+            indices_by_version.push_back(std::make_pair(version, i));
         }
     }
 
