@@ -182,8 +182,7 @@ $(DIST_DIR)/VERSION.OVERRIDE: FORCE | reset-dist-dir
 	$P ECHO "> $@"
 	echo -n $(RETHINKDB_CODE_VERSION) > $@
 
-PRECOMPILED_ASSETS := $(DIST_DIR)/precompiled/bundle_assets/web_assets.cc
-PRECOMPILED_ASSETS += $(DIST_DIR)/precompiled/proto/rdb_protocol/ql2.pb.h
+PRECOMPILED_ASSETS := $(DIST_DIR)/precompiled/proto/rdb_protocol/ql2.pb.h
 PRECOMPILED_ASSETS += $(DIST_DIR)/precompiled/proto/rdb_protocol/ql2.pb.cc
 
 .PRECIOUS: $(PRECOMPILED_ASSETS)
