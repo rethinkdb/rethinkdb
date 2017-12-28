@@ -5,9 +5,9 @@
 definitions.
 
 This script is meant to be run as follows (assuming you are in the
-"rethinkdb/src" directory):
+top directory):
 
-$ ../scripts/generate_join_macros.py > rpc/semilattice/joins/macros.hpp
+$ ./scripts/generate_join_macros.py > src/rpc/semilattice/joins/macros.hpp
 
 """
 

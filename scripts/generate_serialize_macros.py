@@ -8,9 +8,9 @@ many variations, and because they are so similar, it's easier to just
 have a Python script to generate them.
 
 This script is meant to be run as follows (assuming you are in the
-"rethinkdb/src" directory):
+top directory):
 
-$ ../scripts/generate_serialize_macros.py > rpc/serialize_macros.hpp
+$ ./scripts/generate_serialize_macros.py > src/rpc/serialize_macros.hpp
 
 """
 
