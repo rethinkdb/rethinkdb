@@ -78,4 +78,4 @@ else
 endif
 
 .PHONY: generate
-generate: generate-web-assets-cc
+generate: generate-web-assets-cc generate-headers
