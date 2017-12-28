@@ -171,8 +171,6 @@
         </ItemDefinitionGroup>
 
         <ItemGroup Condition="'$(Configuration)|$(Platform)'=='{@configuration}|{@platform}'">
-          <ResourceCompile Include="build\bundle_assets\web_assets.rc" />
-          <ClCompile Include="build\bundle_assets\web_assets.cc" />
           <ClCompile Include="build\proto\rdb_protocol\ql2.pb.cc" />
           <ClCompile Include="src\**\*.cc">
             <xsl:choose>
