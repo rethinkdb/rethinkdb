@@ -19,9 +19,9 @@ ifeq (1,$(DEBUG))
   windows-all: $(TOP)/build/$(CONFIGURATION)_$(PLATFORM)/rethinkdb-unittest.exe
 endif
 
-SOURCES := $(shell find $(SOURCE_DIR) \( -name '*.cc' -or -name '*.hpp' -or -name '*.tcc' \) -and -not -name '\.*')
+SOURCES := $(shell find $(TOP)/src \( -name '*.cc' -or -name '*.hpp' -or -name '*.tcc' \) -and -not -name '\.*')
 
-SOURCES_NOUNIT := $(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES))
+SOURCES_NOUNIT := $(filter-out $(TOP)/src/unittest/%,$(SOURCES))
 
 LIB_DEPS := $(foreach dep, $(FETCH_LIST), $(SUPPORT_BUILD_DIR)/$(dep)_$($(dep)_VERSION)/$(INSTALL_WITNESS))
 
@@ -48,7 +48,7 @@ build-clean:
 	$P RM $(BUILD_ROOT_DIR)
 	rm -rf $(BUILD_ROOT_DIR)
 
-$(PROTO_DIR)/%.pb.h $(PROTO_DIR)/%.pb.cc: $(SOURCE_DIR)/%.proto $(PROTOC_BIN_DEP) | $(PROTO_DIR)/.
+$(PROTO_DIR)/%.pb.h $(PROTO_DIR)/%.pb.cc: $(TOP)/src/%.proto $(PROTOC_BIN_DEP) | $(PROTO_DIR)/.
 	$P PROTOC
 	+rm -f $(PROTO_DIR)/$*.pb.h $(PROTO_DIR)/$*.pb.cc
-	$(PROTOC) --proto_path="$(shell cygpath -w '$(SOURCE_DIR)')" --cpp_out "$(shell cygpath -w '$(PROTO_DIR)')" $<
+	$(PROTOC) --proto_path="$(shell cygpath -w '$(TOP)/src')" --cpp_out "$(shell cygpath -w '$(PROTO_DIR)')" $<

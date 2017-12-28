@@ -2,8 +2,6 @@
 
 # This makefile defines paths that are needed by the other Makefiles
 
-SCRIPTS_DIR := $(TOP)/scripts
-SOURCE_DIR := $(TOP)/src
 BUILD_ROOT_DIR := $(TOP)/build
 PACKAGING_DIR := $(TOP)/packaging
 PACKAGES_DIR := $(BUILD_ROOT_DIR)/packages
@@ -66,11 +64,6 @@ GDB_FUNCTIONS_NAME := rethinkdb-gdb.py
 
 PACKAGE_NAME := $(VANILLA_PACKAGE_NAME)
 SERVER_UNIT_TEST_NAME := $(SERVER_EXEC_NAME)-unittest
-
-EXTERNAL_DIR := $(TOP)/external
-EXTERNAL_DIR_ABS := $(abspath $(EXTERNAL_DIR))
-COLONIZE_SCRIPT := $(EXTERNAL_DIR)/colonist/colonize.sh
-COLONIZE_SCRIPT_ABS := $(EXTERNAL_DIR_ABS)/colonist/colonize.sh
 
 PROTO_FILE_SRC := $(TOP)/src/rdb_protocol/ql2.proto
 PROTO_DIR := $(BUILD_ROOT_DIR)/proto
