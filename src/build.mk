@@ -140,17 +140,6 @@ ifeq ($(COMPILER),INTEL)
   LD_OUTPUT_FILTER += 2> >(grep -v "warning: relocation refers to discarded section")
 endif
 
-
-ifeq ($(RT_FORCE_NATIVE),1)
-  RT_CXXFLAGS+=-march=native
-endif
-ifeq ($(RT_COPY_NATIVE),1)
-  RT_CXXFLAGS+=-march="$(GCC_ARCH)"
-endif
-ifeq ($(RT_REDUCE_NATIVE),1)
-  RT_CXXFLAGS+=-march="$(GCC_ARCH_REDUCED)"
-endif
-
 ifeq ($(RQL_ERROR_BT),1)
   RT_CXXFLAGS+=-DRQL_ERROR_BT
 endif
