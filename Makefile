@@ -71,9 +71,6 @@ include $(TOP)/mk/configure.mk
 # Require CHECK_ARG_VARIABLES
 include $(TOP)/mk/check-env.mk
 
-# Require pipe-stderr
-include $(TOP)/mk/pipe-stderr.mk
-
 # The cached list of phony targets
 PHONY_LIST = var-%
 -include $(TOP)/mk/gen/phony-list.mk
