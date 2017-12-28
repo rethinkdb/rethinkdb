@@ -168,10 +168,6 @@ else # ifeq ($(DEBUG),1)
   RT_CXXFLAGS += -O3 -DNDEBUG -fno-strict-aliasing # -march=native
 endif # ifeq ($(DEBUG),1)
 
-ifeq ($(DISABLE_BREAKPOINTS),1)
-  RT_CXXFLAGS += -DDISABLE_BREAKPOINTS
-endif
-
 ifeq (${STATIC_LIBGCC},1)
   RT_LDFLAGS += -static-libgcc -static-libstdc++
 endif
