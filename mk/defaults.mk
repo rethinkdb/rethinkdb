@@ -55,9 +55,6 @@ DESTDIR ?=
 # Check for unknown variables in custom.mk
 MAKE_VARIABLE_CHECK ?= 1
 
-# Do not allow unknown variables in custom.mk
-STRICT_MAKE_VARIABLE_CHECK ?= 0
-
 # Enable code coverage
 COVERAGE ?= 0
 

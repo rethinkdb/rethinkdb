@@ -14,8 +14,6 @@ allowed-variables :=
 -include $(TOP)/mk/gen/allowed-variables.mk
 allowed-variables += TOP CWD JUST_SCAN_MAKEFILES COUNTDOWN_TOTAL
 
-STRICT_MAKE_VARIABLE_CHECK ?= 0
-
 # CHECK_ARG_VARIABLES checks the variables set on the command line for unknown variables
 # These variables are retrieved from MAKEFLAGS within a recipe
 # CHECK_ARG_VARIABLES is used by $(TOP)/Makefile
@@ -25,11 +23,7 @@ define CHECK_ARG_VARIABLES_RUN
   ifneq (,$(allowed-variables))
     remaining-variables := $(filter-out $(allowed-variables),$(arg-variables))
     ifneq (,$(remaining-variables))
-      ifeq (1,$(STRICT_MAKE_VARIABLE_CHECK))
-        $(error Possibly unknown variables: $(remaining-variables))
-      else
-        $(info make: Possibly unknown variables: $(remaining-variables))
-      endif
+      $(info make: Possibly unknown variables: $(remaining-variables))
     endif
   endif
 endef
@@ -60,11 +54,7 @@ define check-env-check
       checked-makefiles := $(filter-out $(old-makefiles) $(TOP)/mk/gen/allowed-variables.mk,$(MAKEFILE_LIST))
 
       ifneq (,$(remaining-variables))
-        ifeq (1,$(STRICT_MAKE_VARIABLE_CHECK))
-          $(error Possibly unknown variables defined in $(checked-makefiles): $(remaining-variables))
-        else
-          $(info make: Possibly unknown variables defined in $(checked-makefiles): $(remaining-variables))
-        endif
+        $(info make: Possibly unknown variables defined in $(checked-makefiles): $(remaining-variables))
       endif
     endif
   endif
