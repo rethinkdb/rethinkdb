@@ -89,15 +89,6 @@ Drivers
 
 * `make drivers`: Build all the drivers.
 
-
-Test
----
-
-* `make test`: Run the unit tests, reql tests and integration
-  tests. The `TEST` variables determines which tests to run. See
-  `test/run -h` for more documentation.
-
-
 Dependencies
 ---
 

@@ -61,9 +61,6 @@ include $(TOP)/mk/packaging.mk
 # Rules for tools like valgrind and code coverage report
 include $(TOP)/mk/tools.mk
 
-# Tests
-include $(TOP)/test/build.mk
-
 endif # Windows
 
 .PHONY: clean
