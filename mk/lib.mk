@@ -93,16 +93,6 @@ else
   endif
 endif
 
-##### Timings
-
-# This is a small hack to support timings like the old Makefile did
-ifeq ($(TIMINGS),1)
-  # Replace the default shell with one that times every command
-  # This only useful with VERBOSE=1 and when the target is explicit:
-  # make VERBOSE=1 TIMINGS=1 all
-  $(MAKECMDGOALS): SHELL = /bin/bash -c 'a=$$*; [[ "$${a:0:1}" != "#" ]] && time eval "$$*"; true'
-endif
-
 ##### Directories
 
 # To make directories needed for a rule, use order-only dependencies

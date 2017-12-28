@@ -61,9 +61,6 @@ BUILD_DIR ?=
 # Destination directory when installing. Defaults to /
 DESTDIR ?=
 
-# Time every command
-TIMINGS ?= 0
-
 # Check for unknown variables in custom.mk
 MAKE_VARIABLE_CHECK ?= 1
 
