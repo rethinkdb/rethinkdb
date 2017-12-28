@@ -187,10 +187,6 @@ ifeq ($(SYMBOLS),1)
   RT_CXXFLAGS += -g
 endif  # ($(SYMBOLS),1)
 
-ifeq ($(JSON_SHORTCUTS),1)
-  RT_CXXFLAGS += -DJSON_SHORTCUTS
-endif
-
 ifeq ($(LEGACY_LINUX),1)
   RT_CXXFLAGS += -DLEGACY_LINUX -DNO_EPOLL -Wno-format
 endif

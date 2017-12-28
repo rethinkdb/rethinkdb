@@ -37,9 +37,6 @@ SYMBOLS ?= 1
 # Put the symbols in a separate file
 SPLIT_SYMBOLS ?= 0
 
-# Add numeric indices to json objects in the json adapter
-JSON_SHORTCUTS ?= 0
-
 # Set to 0 for release mode or 1 for debug mode
 DEBUG ?= 0
 
