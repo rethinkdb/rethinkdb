@@ -24,14 +24,8 @@ $(BUILD_ROOT_DIR)/bundle_assets/web_assets.cc: $(PRECOMPILED_DIR)/bundle_assets/
 
 else # Don't use precompiled assets
 
-ifeq ($(OS),Windows)
-$(BUILD_ROOT_DIR)/bundle_assets/web_%.cc $(BUILD_ROOT_DIR)/bundle_assets/web_%.rc: $(TOP)/scripts/build-web-%-rc.py $(ALL_WEB_ASSETS) | $(BUILD_ROOT_DIR)/bundle_assets/.
-	$P GENERATE
-	$(TOP)/scripts/build-web-assets-rc.py $(WEB_ASSETS_BUILD_DIR) $(dir $@)
-else
 $(BUILD_ROOT_DIR)/bundle_assets/web_assets.cc: $(TOP)/scripts/compile-web-assets.py $(ALL_WEB_ASSETS) | $(BUILD_ROOT_DIR)/bundle_assets/.
 	$P GENERATE
 	$(TOP)/scripts/compile-web-assets.py $(WEB_ASSETS_BUILD_DIR) > $@
-endif
 
 endif
