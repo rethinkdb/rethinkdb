@@ -40,7 +40,7 @@
  * data in release mode as well.
  * You should compile as follows: `make CORO_PROFILING=1 DEBUG=1`
  * If you want to use the profiler in release mode, compile with
- * `make CORO_PROFILING=1 NO_OMIT_FRAME_POINTER=1`
+ * `make CORO_PROFILING=1 CXXFLAGS=-fno-omit-frame-pointer
  * Keep in mind though that backtraces can be unreliable in release.
  *
  * The coro profiler records a sample whenever it encounters a `PROFILER_RECORD_SAMPLE`

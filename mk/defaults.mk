@@ -111,10 +111,6 @@ DIST_CONFIGURE_DEFAULT ?=
 # Minify the webui source code with "uglify".
 UGLIFY ?= 1
 
-# Sets the `-fno-omit-frame-pointer` compiler flag. Important for some profiling tools
-# such as oprofile.
-NO_OMIT_FRAME_POINTER ?= 0
-
 # Check the hash of fetched archives
 VERIFY_FETCH_HASH=1
 
