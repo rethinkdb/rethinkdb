@@ -83,3 +83,5 @@ else
   all: $(TOP)/src/all $(TOP)/drivers/all
 endif
 
+.PHONY: generate
+generate: generate-web-assets-cc
