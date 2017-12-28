@@ -9,9 +9,6 @@
 .PHONY: default-goal
 default-goal: real-default-goal
 
-# $/ is a shorthand for $(TOP)/, without the leading ./
-/ := $(patsubst ./%,%,$(TOP)/)
-
 # check-env.mk provides check-env-start and check-env-check
 include $(TOP)/mk/check-env.mk
 
@@ -30,27 +27,24 @@ include $(TOP)/mk/paths.mk
 # Download and build internal tools like v8 and gperf
 include $(TOP)/mk/support/build.mk
 
-ifeq (Windows,$(OS))
-
 # make install
 include $(TOP)/mk/install.mk
 
+ifeq (Windows,$(OS))
+
 # Windows build
-include $/mk/windows.mk
+include $(TOP)/mk/windows.mk
 
 # Python driver
-include $/drivers/python/build.mk
+include $(TOP)/drivers/python/build.mk
 
 # JavaScript driver
-include $/drivers/javascript/build.mk
+include $(TOP)/drivers/javascript/build.mk
 
 # Build the web assets
 include $(TOP)/admin/build.mk
 
 else # Windows
-
-# make install
-include $(TOP)/mk/install.mk
 
 # Clients drivers
 include $(TOP)/drivers/build.mk

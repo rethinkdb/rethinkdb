@@ -31,7 +31,7 @@ ifeq (Windows,$(OS))
   PKG_SCRIPT_VARIABLES += DEBUG PLATFORM MSBUILD VCVARSALL CMAKE
 endif
 
-PKG_SCRIPT = $(foreach v, $(PKG_SCRIPT_VARIABLES), $v='$($v)') MAKEFLAGS='$(PKG_MAKEFLAGS)' $/mk/support/pkg/pkg.sh
+PKG_SCRIPT = $(foreach v, $(PKG_SCRIPT_VARIABLES), $v='$($v)') MAKEFLAGS='$(PKG_MAKEFLAGS)' $(TOP)/mk/support/pkg/pkg.sh
 PKG_SCRIPT_TRACE = TRACE=1 $(PKG_SCRIPT)
 PKG_RECURSIVE_MARKER := $(if $(findstring 0,$(JUST_SCAN_MAKEFILES)),$(if $(DRY_RUN),,+))
 

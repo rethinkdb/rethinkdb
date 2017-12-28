@@ -6,17 +6,17 @@ else
   CONFIGURATION := Release
 endif
 
-$/rethinkdb.vcxproj.xml:
-	test -e $@ || sed "s/RETHINKDB_VERSION/`$/scripts/gen-version.sh`/" < $/mk/rethinkdb.vcxproj.xml > $@
+$(TOP)/rethinkdb.vcxproj.xml:
+	test -e $@ || sed "s/RETHINKDB_VERSION/`$(TOP)/scripts/gen-version.sh`/" < $(TOP)/mk/rethinkdb.vcxproj.xml > $@
 
-$/%.vcxproj $/%-unittest.vcxproj: $/%.vcxproj.xml $/mk/%.vcxproj.xsl
+$(TOP)/%.vcxproj $(TOP)/%-unittest.vcxproj: $(TOP)/%.vcxproj.xml $(TOP)/mk/%.vcxproj.xsl
 	$P GEN
-	cscript /nologo $/mk/gen-vs-project.js
+	cscript /nologo $(TOP)/mk/gen-vs-project.js
 
 .PHONY: windows-all
-windows-all: $/build/$(CONFIGURATION)_$(PLATFORM)/rethinkdb.exe
+windows-all: $(TOP)/build/$(CONFIGURATION)_$(PLATFORM)/rethinkdb.exe
 ifeq (1,$(DEBUG))
-  windows-all: $/build/$(CONFIGURATION)_$(PLATFORM)/rethinkdb-unittest.exe
+  windows-all: $(TOP)/build/$(CONFIGURATION)_$(PLATFORM)/rethinkdb-unittest.exe
 endif
 
 SOURCES := $(shell find $(SOURCE_DIR) \( -name '*.cc' -or -name '*.hpp' -or -name '*.tcc' \) -and -not -name '\.*')
@@ -35,11 +35,11 @@ ifneq (1,$(VERBOSE))
   MSBUILD_FLAGS += /verbosity:minimal
 endif
 
-$/build/$(CONFIGURATION)_$(PLATFORM)/rethinkdb.exe: $/rethinkdb.vcxproj $(SOURCES_NOUNIT) $(LIB_DEPS) $(PROTO_DEPS)
+$(TOP)/build/$(CONFIGURATION)_$(PLATFORM)/rethinkdb.exe: $(TOP)/rethinkdb.vcxproj $(SOURCES_NOUNIT) $(LIB_DEPS) $(PROTO_DEPS)
 	$P MSBUILD
 	"$(MSBUILD)" $(MSBUILD_FLAGS) $<
 
-$/build/$(CONFIGURATION)_$(PLATFORM)/rethinkdb-unittest.exe: $/rethinkdb-unittest.vcxproj $(SOURCES) $(LIB_DEPS) $(PROTO_DEPS)
+$(TOP)/build/$(CONFIGURATION)_$(PLATFORM)/rethinkdb-unittest.exe: $(TOP)/rethinkdb-unittest.vcxproj $(SOURCES) $(LIB_DEPS) $(PROTO_DEPS)
 	$P MSBUILD
 	"$(MSBUILD)" $(MSBUILD_FLAGS) $<
 
