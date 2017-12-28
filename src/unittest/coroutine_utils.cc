@@ -106,6 +106,10 @@ NOINLINE int test_function_blocking() {
     return 1;
 }
 
+double nanos_to_secs(int64_t nanos) {
+    return ticks_to_secs(ticks_t{nanos});
+}
+
 TEST(CoroutineUtilsTest, WithEnoughStackBenchmark) {
     run_in_coro([&]() {
         const int NUM_REPETITIONS = 1000000;
@@ -117,7 +121,7 @@ TEST(CoroutineUtilsTest, WithEnoughStackBenchmark) {
         for(int i = 0; i < NUM_REPETITIONS; ++i) {
             sum += test_function();
         }
-        double dur_base = ticks_to_secs(get_ticks() - start_ticks);
+        double dur_base = nanos_to_secs(get_ticks().nanos - start_ticks.nanos);
         EXPECT_EQ(sum, NUM_REPETITIONS);
 
         sum = 0;
@@ -125,7 +129,7 @@ TEST(CoroutineUtilsTest, WithEnoughStackBenchmark) {
         for(int i = 0; i < NUM_REPETITIONS; ++i) {
             sum += test_function_blocking();
         }
-        double dur_base_blocking = ticks_to_secs(get_ticks() - start_ticks);
+        double dur_base_blocking = nanos_to_secs(get_ticks().nanos - start_ticks.nanos);
         EXPECT_EQ(sum, NUM_REPETITIONS);
 
         {
@@ -139,7 +143,7 @@ TEST(CoroutineUtilsTest, WithEnoughStackBenchmark) {
                     return test_function();
                 }, 1);
             }
-            double dur = ticks_to_secs(get_ticks() - start_ticks);
+            double dur = nanos_to_secs(get_ticks().nanos - start_ticks.nanos);
             EXPECT_EQ(sum, NUM_REPETITIONS);
             printf("%f us overhead\n",
                    (dur - dur_base) / NUM_REPETITIONS * 1000000);
@@ -155,7 +159,7 @@ TEST(CoroutineUtilsTest, WithEnoughStackBenchmark) {
                     return test_function();
                 }, COROUTINE_STACK_SIZE);
             }
-            double dur = ticks_to_secs(get_ticks() - start_ticks);
+            double dur = nanos_to_secs(get_ticks().nanos - start_ticks.nanos);
             EXPECT_EQ(sum, NUM_REPETITIONS);
             printf("%f us overhead\n",
                    (dur - dur_base) / NUM_REPETITIONS * 1000000);
@@ -171,13 +175,13 @@ TEST(CoroutineUtilsTest, WithEnoughStackBenchmark) {
                     return test_function_blocking();
                 }, COROUTINE_STACK_SIZE);
             }
-            double dur = ticks_to_secs(get_ticks() - start_ticks);
+            double dur = nanos_to_secs(get_ticks().nanos - start_ticks.nanos);
             EXPECT_EQ(sum, NUM_REPETITIONS);
             printf("%f us overhead\n",
                    (dur - dur_base_blocking) / NUM_REPETITIONS * 1000000);
         }
     });
 }
-#endif
+#endif  // NDEBUG
 
 }   /* namespace unittest */
