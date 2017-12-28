@@ -93,8 +93,6 @@ Drivers
 Test
 ---
 
-* `make unit`: Build and run the unit tests.
-
 * `make test`: Run the unit tests, reql tests and integration
   tests. The `TEST` variables determines which tests to run. See
   `test/run -h` for more documentation.
