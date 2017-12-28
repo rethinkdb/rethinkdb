@@ -52,9 +52,6 @@ UNIT_TESTS ?= $(DEBUG)
 # Set to 1 to enable valgrind awareness
 VALGRIND ?= 0
 
-# Run lintian after building the debian package
-LINTIAN ?= 0
-
 # Build directory (empty for default)
 BUILD_DIR ?=
 

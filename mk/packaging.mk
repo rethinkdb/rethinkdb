@@ -9,7 +9,6 @@ OSX_PACKAGE_DIR := $(PACKAGES_DIR)/osx
 OSX_PACKAGING_DIR := $(PACKAGING_DIR)/osx
 
 DEBIAN_PKG_DIR := $(PACKAGING_DIR)/debian
-SUPPRESSED_LINTIAN_TAGS := new-package-should-close-itp-bug
 DEB_CONTROL_ROOT := $(DEB_PACKAGE_DIR)/DEBIAN
 
 DIST_FILE_LIST_REL := admin demos drivers mk packaging scripts src test
