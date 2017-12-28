@@ -107,10 +107,6 @@ endif
 
 
 
-ifneq (1,$(ALLOW_WARNINGS))
-  RT_CXXFLAGS += -Werror
-endif
-
 RT_CXXFLAGS += -Wnon-virtual-dtor -Wno-deprecated-declarations -std=gnu++0x
 
 ifeq ($(COMPILER), INTEL)
