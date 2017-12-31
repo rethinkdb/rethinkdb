@@ -89,6 +89,11 @@ Drivers
 
 * `make drivers`: Build all the drivers.
 
+Test
+---
+
+* `make test`: Invokes `./test/run`
+
 Dependencies
 ---
 

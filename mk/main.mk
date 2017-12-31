@@ -76,3 +76,8 @@ endif
 
 .PHONY: generate
 generate: generate-web-assets-cc generate-headers
+
+.PHONY: test
+test: $(BUILD_DIR)/rethinkdb $(BUILD_DIR)/rethinkdb-unittest web-assets rb-driver py-driver
+	$P RUN-TESTS
+	MAKEFLAGS= $(TOP)/test/run -b $(BUILD_DIR)
