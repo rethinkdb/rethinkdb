@@ -149,14 +149,17 @@ std::set<ip_address_t> hostname_to_ips(const std::string &host) {
 }
 
 std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
-                                     local_ip_filter_t filter_type) {
+                                     local_ip_filter_t filter_type, 
+                                     bool ifaddr_only) {
     std::set<ip_address_t> all_ips;
     std::set<ip_address_t> filtered_ips;
 
-    try {
-        all_ips = hostname_to_ips(str_gethostname());
-    } catch (const host_lookup_exc_t &ex) {
-        // Continue on, this probably means there's no DNS entry for this host
+    if (!ifaddr_only) {
+        try {
+            all_ips = hostname_to_ips(str_gethostname());
+        } catch (const host_lookup_exc_t &ex) {
+            // Continue on, this probably means there's no DNS entry for this host
+        }
     }
 
 #ifdef _WIN32

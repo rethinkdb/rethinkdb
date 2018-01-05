@@ -593,7 +593,8 @@ private:
 std::set<ip_address_t> get_local_addresses(
     const std::vector<std::string> &specific_options,
     const std::vector<std::string> &default_options,
-    local_ip_filter_t filter_type) {
+    local_ip_filter_t filter_type, 
+    bool ifaddr_only) {
     std::set<ip_address_t> set_filter;
 
     const std::vector<std::string> &bind_options =
@@ -622,7 +623,7 @@ std::set<ip_address_t> get_local_addresses(
         }
     }
 
-    std::set<ip_address_t> result = get_local_ips(set_filter, filter_type);
+    std::set<ip_address_t> result = get_local_ips(set_filter, filter_type, ifaddr_only);
 
     // Make sure that all specified addresses were found
     for (std::set<ip_address_t>::iterator i = set_filter.begin(); i != set_filter.end(); ++i) {
@@ -712,19 +713,24 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
             local_ip_filter_t::MATCH_FILTER :
             local_ip_filter_t::MATCH_FILTER_OR_LOOPBACK;
 
+    bool ifaddr_only = exists_option(opts, "--no-dns-resolution");
+
     const std::vector<std::string> &default_options =
         all_options(opts, "--bind");
     return service_address_ports_t(
-        get_local_addresses(default_options, default_options, filter),
+        get_local_addresses(default_options, default_options, filter, ifaddr_only),
         get_local_addresses(all_options(opts, "--bind-cluster"),
                             default_options,
-                            filter),
+                            filter,
+                            ifaddr_only),
         get_local_addresses(all_options(opts, "--bind-driver"),
                             default_options,
-                            filter),
+                            filter,
+                            ifaddr_only),
         get_local_addresses(all_options(opts, "--bind-http"),
                             default_options,
-                            filter),
+                            filter,
+                            ifaddr_only),
         get_canonical_addresses(opts, cluster_port),
         cluster_port,
         get_single_int(opts, "--client-port"),
@@ -1576,6 +1582,9 @@ options::help_section_t get_network_options(const bool join_required, std::vecto
     options_out->push_back(options::option_t(options::names_t("--no-default-bind"),
                                              options::OPTIONAL_NO_PARAMETER));
     help.add("--no-default-bind", "disable automatic listening on loopback addresses");
+    options_out->push_back(options::option_t(options::names_t("--no-dns-resolution"),
+                                             options::OPTIONAL_NO_PARAMETER));
+    help.add("--no-dns-resolution", "disable listening on addresses resolved via hostname by the configured DNS server");
 
     options_out->push_back(options::option_t(options::names_t("--cluster-port"),
                                              options::OPTIONAL,
