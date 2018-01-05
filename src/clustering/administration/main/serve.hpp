@@ -79,10 +79,9 @@ struct service_address_ports_t {
             sanitize_port(reql_port, "reql_port", port_offset);
     }
 
-    std::string get_addresses_string(
-        std::set<ip_address_t> actual_addresses) const;
+    static std::string get_addresses_string(std::set<ip_address_t> actual_addresses);
 
-    bool is_bind_all(std::set<ip_address_t> addresses) const;
+    static bool is_bind_all(const std::set<ip_address_t> &addresses);
 
     std::set<ip_address_t> local_addresses;
     std::set<ip_address_t> local_addresses_cluster;

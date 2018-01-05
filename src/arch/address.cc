@@ -151,28 +151,19 @@ std::set<ip_address_t> hostname_to_ips(const std::string &host) {
 std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
                                      local_ip_filter_t filter_type) {
     std::set<ip_address_t> all_ips;
-    std::set<ip_address_t> filtered_ips;
-
+#ifdef _WIN32
+    // NOTE: We used to use hostname_to_ips for all OSes, we stopped using it because
+    // DNS resolution could be slow.  Now we only use it for Windows because nobody's
+    // fixed the Windows implementation to get the network interfaces more sensibly.
     try {
         all_ips = hostname_to_ips(str_gethostname());
     } catch (const host_lookup_exc_t &ex) {
         // Continue on, this probably means there's no DNS entry for this host
     }
 
-#ifdef _WIN32
     // TODO WINDOWS: is this enough?
     all_ips.emplace("127.0.0.1");
 #else
-    // Ignore loopback addresses - those will be returned by getifaddrs, and
-    // getaddrinfo is not so trustworthy.
-    // See https://github.com/rethinkdb/rethinkdb/issues/2405
-    for (auto it = all_ips.begin(); it != all_ips.end();) {
-        auto curr = it++;
-        if (!curr->is_loopback()) {
-            all_ips.erase(curr);
-        }
-    }
-
     struct ifaddrs *addrs;
     int res = getifaddrs(&addrs);
     guarantee_err(res == 0,
@@ -191,6 +182,7 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
     freeifaddrs(addrs);
 #endif
 
+    std::set<ip_address_t> filtered_ips;
     // Remove any addresses that don't fit the filter
     for (auto const &ip : all_ips) {
         if (filter_type == local_ip_filter_t::ALL ||

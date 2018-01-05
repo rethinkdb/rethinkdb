@@ -58,7 +58,7 @@ peer_address_set_t look_up_peers_addresses(const std::vector<host_and_port_t> &n
 }
 
 std::string service_address_ports_t::get_addresses_string(
-    std::set<ip_address_t> actual_addresses) const {
+    std::set<ip_address_t> actual_addresses) {
 
     bool first = true;
     std::string result;
@@ -77,8 +77,7 @@ std::string service_address_ports_t::get_addresses_string(
     return result;
 }
 
-bool service_address_ports_t::is_bind_all(
-    std::set<ip_address_t> addresses) const {
+bool service_address_ports_t::is_bind_all(const std::set<ip_address_t> &addresses) {
     // If the set is empty, it means we're listening on all addresses.
     return addresses.empty();
 }
@@ -630,7 +629,7 @@ bool do_serve(io_backender_t *io_backender,
                            serve_info.ports.local_addresses_http.size() == 1 ? "" : "es",
                            addresses_string.c_str());
 
-                    if (!serve_info.ports.is_bind_all(serve_info.ports.local_addresses)) {
+                    if (!service_address_ports_t::is_bind_all(serve_info.ports.local_addresses)) {
                         if(serve_info.config_file) {
                             logNTC("To fully expose RethinkDB on the network, bind to "
                                    "all addresses by adding `bind=all' to the config "
