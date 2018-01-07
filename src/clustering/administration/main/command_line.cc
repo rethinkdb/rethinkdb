@@ -593,7 +593,7 @@ private:
 std::set<ip_address_t> get_local_addresses(
     const std::vector<std::string> &specific_options,
     const std::vector<std::string> &default_options,
-    local_ip_filter_t filter_type, 
+    local_ip_filter_t filter_type,
     bool ifaddr_only) {
     std::set<ip_address_t> set_filter;
 

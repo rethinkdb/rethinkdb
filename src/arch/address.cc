@@ -149,10 +149,9 @@ std::set<ip_address_t> hostname_to_ips(const std::string &host) {
 }
 
 std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
-                                     local_ip_filter_t filter_type, 
+                                     local_ip_filter_t filter_type,
                                      bool ifaddr_only) {
     std::set<ip_address_t> all_ips;
-    std::set<ip_address_t> filtered_ips;
 
     if (!ifaddr_only) {
         try {
@@ -194,6 +193,7 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
     freeifaddrs(addrs);
 #endif
 
+    std::set<ip_address_t> filtered_ips;
     // Remove any addresses that don't fit the filter
     for (auto const &ip : all_ips) {
         if (filter_type == local_ip_filter_t::ALL ||
