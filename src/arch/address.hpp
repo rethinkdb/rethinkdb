@@ -109,8 +109,7 @@ enum class local_ip_filter_t {
 };
 
 std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
-                                     local_ip_filter_t filter_type,
-                                     bool ifaddr_only);
+                                     local_ip_filter_t filter_type);
 
 class port_t {
 public:
