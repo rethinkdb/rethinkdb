@@ -90,7 +90,7 @@ A great place to start is [rethinkdb.com/community](https://rethinkdb.com/commun
 
 If you need help right now, you can also find us [on Slack](http://slack.rethinkdb.com/), [Twitter](https://twitter.com/rethinkdb), or IRC at [#rethinkdb](irc://chat.freenode.net/#rethinkdb) on Freenode.
 
-**Join us now:** <a href="http://slack.rethinkdb.com/"><img valign="middle"  src="http://slack.rethinkdb.com/badge.svg"></a>
+**Join us now:** <a href="http://rethinkdb.slack.com/"><img valign="middle"  src="http://slack.rethinkdb.com/badge.svg"></a>
 
 Contributing
 ------------
