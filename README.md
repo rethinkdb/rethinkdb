@@ -45,7 +45,7 @@ Besides our four official drivers, we also have many [third-party drivers](https
 * **Elixir:** [rethinkdb-elixir](https://github.com/hamiltop/rethinkdb-elixir)
 * **Go:** [GoRethink](https://github.com/dancannon/gorethink)
 * **Haskell:** [haskell-rethinkdb](https://github.com/atnnn/haskell-rethinkdb)
-* **PHP:** [php-rql](https://github.com/danielmewes/php-rql)
+* **PHP:** [php-rethink-ql](https://github.com/tbolier/php-rethink-ql), [php-rql](https://github.com/danielmewes/php-rql)
 * **Rust:** [reql](https://github.com/rust-rethinkdb/reql)
 * **Scala:** [rethink-scala](https://github.com/kclay/rethink-scala)
 
