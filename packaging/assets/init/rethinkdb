@@ -17,6 +17,10 @@
 set -e -u
 umask 022
 
+# Make sure limit of open files is high (see issue #4447)
+ulimit -Hn 1000000
+ulimit -Sn 1000000
+
 itask="${1:-}"
 
 rtdbbin=/usr/bin/rethinkdb ;
