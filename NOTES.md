@@ -1,3 +1,238 @@
+# Release 2.3.6 (Fantasia)
+
+Released on 2017-07-17
+
+Bug fix release
+
+### Notes ###
+
+This is the first release of RethinkDB since October 2016. The
+RethinkDB project has [joined the Linux
+Foundation][blog-new-rethinkdb]. This release is brought to you by
+volunteers from the Open RethinkDB team. The RethinkDB source code is
+now licensed under an [ASLv2 license][ASLv2-license].
+
+[blog-new-rethinkdb]: https://rethinkdb.com/blog/rethinkdb-joins-linux-foundation/
+[ASLv2-license]: https://www.apache.org/licenses/LICENSE-2.0
+
+### Compatibility ###
+
+On 32-bit platforms and on Windows (64 and 32 bit), RethinkDB 2.3.6 servers should not
+be mixed with servers running RethinkDB 2.3.3 or older in the same cluster. Doing so can lead to
+server crashes when using the web UI or when accessing the `logs` system table.
+
+On 64-bit platforms, RethinkDB 2.3.6 servers can be mixed with older RethinkDB 2.3.x
+servers in the same cluster. We recommend that you run a mixed-version cluster only
+temporarily for upgrading purposes.
+
+No migration is required when upgrading from RethinkDB 2.3.x. Please read the
+[RethinkDB 2.3.0 release notes][release-notes-2.3.0] if you're upgrading from an
+older version.
+
+### Changes ###
+
+* Server
+ * Improved the compatibility of the web UI with Chrome 48 and Edge (#5878, #5426, #5300) -- @danielmewes
+ * Fixed a crash caused by unwanted connections (#6084) -- @danielmewes
+ * Fixed a crash caused by recreating indexes with active changefeeds (#6093) -- @danielmewes
+ * Sizes passed to `sample` are now bound by the array size limit (#6148) -- @AtnNn
+ * Fixed a crashing bug in the implementation of the `interleave` argument to `union` (#6139) -- @AtnNn
+ * Fixed a crash caused by `eqJoin` of system tables when using the `uuid` `identifierFormat` (#6108) -- @nighelles
+ * Fixed a bug that caused `r.match('')` to return wrong results (#6241) -- @AtnNn
+ * Miscellaneous regression fixes and code improvements by @srh and @VeXocide
+ * Fixed argument order in pretty-printed queries in the jobs table (#6240) -- @AtnNn
+* Packaging
+ * Fix glibc version detection in RPM packaging script (#6229) -- @gamename
+ * Add packages for Ubuntu Yakkety and Zesty (#6364) -- @AtnNn
+
+--
+
+# Release 2.3.5 (Fantasia)
+
+Released on 2016-08-26
+
+Bug fix release
+
+### Compatibility ###
+
+On 32-bit platforms and on Windows (64 and 32 bit), RethinkDB 2.3.5 servers should not
+be mixed with servers running RethinkDB 2.3.3 or older in the same cluster. Doing so can lead to
+server crashes when using the web UI or when accessing the `logs` system table.
+
+On 64-bit platforms, RethinkDB 2.3.5 servers can be mixed with older RethinkDB 2.3.x
+servers in the same cluster. We recommend that you run a mixed-version cluster only
+temporarily for upgrading purposes.
+
+No migration is required when upgrading from RethinkDB 2.3.x. Please read the
+[RethinkDB 2.3.0 release notes][release-notes-2.3.0] if you're upgrading from an
+older version.
+
+[release-notes-2.3.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.3.0
+
+### Bug fixes ###
+
+* Server
+ * Improved the efficiency of the on-disk garbage collector to reduce the risk of
+   excessive file growth (#5923)
+ * Improved the latency of read queries under heavy write loads (#6072)
+ * Fixed a bug that could cause the server to crash with a deserialization error
+   or to stop completing any table reads (#6033)
+ * Fixed a bug in the implementation of the `interleave` option of the `union` command,
+   which could potentially lead to results being generated in the wrong order (#6041)
+ * Fixed a bug in the batch handling of the `fold` and multi-stream `map` commands,
+   that would stop results from being generated correctly if these commands were
+   applied to a changefeed (#6007)
+ * Fixed an issue that could cause proxies to remain listed in the `connected_to`
+   field of the `server_status` table, even after they had disconnected (#5871)
+ * Fixed the detection of non-deterministic conflict functions in the `insert` command
+   (#5842)
+ * Improved the Raft election timeout logic to avoid infinite Raft election loops (#6038)
+ * Improved the response time when reading from the `table_status` system table (#4589)
+ * The server no longer logs the message
+   `Rejected a connection from server X since one is already open` when trying to connect
+   to itself (#5456)
+ * Fixed a bug that could cause an `Uncaught exception` server crash if a TLS-encrypted
+   connection was closed during a certain connection stage (#5904)
+ * Fixed a bug in `merge` that could cause `r.literal` objects to remain after the `merge`
+   and be stored in a table (#5977)
+ * On Windows: Fixed a bug in the `r.http` command that resulted in decoding issues (#5924)
+ * On Windows: RethinkDB now binds TCP ports exclusively (#6008)
+ * On Windows: No longer print an error to the log whenever a connection attempt fails
+   (no issue #)
+ * Fixed a build issue that caused system libraries to not be found during `make` on
+   OpenSUSE (#2363)
+* JavaScript driver
+ * Fixed the server nonce validation in the connection handshake (#5916)
+ * The `host` argument to `connect` is now optional (#5846)
+* Java driver
+ * Cursors now implement the `Closeable` interface (#5468)
+ * Fixed no-reply queries as run through `runNoReply` (#5938)
+ * Fixed a bug in the `reconnect` method (#5841)
+ * Fixed a memory leak in the `Connection` object that was caused by the driver not
+   properly cleaning up closed cursors (#5980)
+* Python driver
+ * The `asyncio` loop type is now available when using the driver from a Python .egg
+   file (#6043)
+* Ruby driver
+ * Fixed a rounding issue with time objects (#5825)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.3.5.
+
+* Arve Seljebu (@arve0)
+* Ben Sharpe (@bsharpe)
+* Brian Chavez (@bchavez)
+* Dan Wiechert (@DWiechert)
+* mbains (@mbains)
+* QianJin2013 (@QianJin2013)
+* Raman Gupta (@rocketraman)
+
+--
+
+# Release 2.3.4 (Fantasia)
+
+Released on 2016-06-03
+
+Bug fix release
+
+### Compatibility ###
+
+On 32-bit platforms and on Windows (64 and 32 bit), RethinkDB 2.3.4 servers should not
+be mixed with older RethinkDB 2.3.x servers in the same cluster. Doing so can lead to
+server crashes when using the web UI or when accessing the `logs` system table.
+
+On 64-bit platforms, RethinkDB 2.3.4 servers can be mixed with older RethinkDB 2.3.x
+servers in the same cluster. We recommend that you run a mixed-version cluster only
+temporarily for upgrading purposes.
+
+No migration is required when upgrading from RethinkDB 2.3.x. Please read the
+[RethinkDB 2.3.0 release notes][release-notes-2.3.0] if you're upgrading from an
+older version.
+
+[release-notes-2.3.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.3.0
+
+### Bug fixes ###
+
+* Server
+ * Fixed a segmentation fault in the `orderBy.limit` changefeed implementation (#5824)
+ * Fixed an incompatibility in the cluster protocol between Windows and Linux / OS X
+   servers (#5819)
+* Python driver
+ * Fixed various bugs in the connection class for the asyncio event loop (#5795, #5816, #5820)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.3.4.
+
+* Ultrabug (@ultrabug)
+
+--
+
+# Release 2.3.3 (Fantasia)
+
+Released on 2016-06-01
+
+Bug fix release
+
+### Compatibility ###
+
+RethinkDB 2.3.3 servers can be mixed with older RethinkDB 2.3.x servers in the same
+cluster. We recommend that you run a mixed-version cluster only temporarily for upgrading
+purposes.
+
+No migration is required when upgrading from RethinkDB 2.3.x. Please read the
+[RethinkDB 2.3.0 release notes][release-notes-2.3.0] if you're upgrading from an
+older version.
+
+[release-notes-2.3.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.3.0
+
+### Windows support ###
+
+RethinkDB 2.3.0 was the first version to include native Windows compatibility. In
+RethinkDB 2.3.3, the Windows port is ready to emerge from "beta" testing. We now
+officially support RethinkDB on the Windows platform alongside our existing support for
+Linux and Mac OS X. We're also extending our [commercial support][comm-support] services
+to include RethinkDB on Windows.
+
+Although RethinkDB is now stable on Windows, there are still a few [remaining limitations][windows-tag]
+that we are actively working to address. We also haven't yet carried out as much
+performance tuning on the Windows port as we have on the Linux and OS X releases.
+
+[comm-support]: https://rethinkdb.com/services/
+[windows-tag]: https://github.com/rethinkdb/rethinkdb/issues?q=is%3Aopen+is%3Aissue+label%3Awindows
+
+### Bug fixes ###
+
+* Server
+ * Fixed a bug in `orderBy.limit` changefeeds that caused the server to crash with
+   `Guarantee failed: [sub_it != real_added.end()]` (#5561)
+ * Improved the performance of the `table_status` system table when the cluster is under
+   high load (#5586)
+ * Fixed a race condition in the cluster connection logic that could cause occasional
+   crashes with a `Guarantee failed: [refcount == 0]` error (#5783)
+ * Fixed a stack overflow when executing queries with a very high number of chained
+   commands (#5792)
+ * Made the `fold` command work on a changefeed stream (#5800)
+ * Fixed the server uptime calculation on Windows (#5388)
+ * Fixed source code incompatibilities with GCC 6.0 (#5757)
+* JavaScript driver
+ * The `Connection` class is now exported from the RethinkDB JavaScript module (#5758)
+* Java driver
+ * Added the `clientPort` and `clientAddress` methods to the `Connection` class in the
+   Java driver (#5571)
+
+## Contributors ##
+
+Many thanks to external contributors from the RethinkDB community for helping
+us ship RethinkDB 2.3.3.
+
+* Gergely Nemeth (@gergelyke)
+
+--
+
 # Release 2.3.2 (Fantasia)
 
 Released on 2016-05-06
