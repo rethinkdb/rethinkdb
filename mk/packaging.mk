@@ -51,9 +51,14 @@ ifneq ($(UBUNTU_RELEASE),)
     DSC_CONFIGURE_DEFAULT += CXX=g++-5
   else
     # RethinkDB fails to compile with GCC 6 (#5757) -- and there is
-    # no GCC 5 in later Ubuntus.  We need to use libssl1.0-dev to be
-    # compatible with libcurl when linking.
-    DEB_BUILD_DEPENDS += , clang, libssl1.0-dev
+    # no GCC 5 in later Ubuntus.  We need to use libssl1.0-dev on
+    # zesty to be compatible with libcurl when linking.
+    ifneq ($(filter $(UBUNTU_RELEASE), zesty),)
+      DEB_BUILD_DEPENDS += , libssl1.0-dev
+    else
+      DEB_BUILD_DEPENDS += , libssl-dev
+    endif
+    DEB_BUILD_DEPENDS += , clang
     DSC_CONFIGURE_DEFAULT += CXX=clang++
   endif
 else ifneq ($(DEB_RELEASE),)
