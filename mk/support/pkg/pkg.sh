@@ -130,7 +130,7 @@ pkg_patch () {
     for patch in "$pkg_dir"/patch/"$pkg"_*.patch; do # lexical order
         case "$patch" in
             *_\*.patch) ;;
-            *) in_dir "$1" patch -fp1 < "$patch" ;;
+            *) in_dir "$1" patch -p1 < "$patch" ;;
         esac
     done
 }
@@ -162,15 +162,6 @@ pkg_save_patch () {
     echo "Wrote $pkg_dir/patch/${pkg}_$patch_name.patch"
 
     pkg_remove_tmp_fetch_dir
-}
-
-pkg_patch () {
-    for patch in "$pkg_dir"/patch/"$pkg"_*.patch; do # lexical order
-        case "$patch" in
-            *_\*.patch) ;;
-            *) in_dir "$1" patch -fp1 < "$patch" ;;
-        esac
-    done
 }
 
 pkg_fetch_git () {
