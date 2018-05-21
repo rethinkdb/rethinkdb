@@ -6,13 +6,13 @@ src_url=http://commondatastorage.googleapis.com/chromium-browser-official/v8-${v
 
 pkg_install-include () {
     pkg_copy_src_to_build
-    in_dir "$build_dir" patch -fp1 < "$pkg_dir"/patch/v8_2-HandleScope-protected.patch
-    
+    in_dir "$build_dir" patch -p1 < "$pkg_dir"/patch/v8_2-HandleScope-protected.patch
+
     rm -rf "$install_dir/include"
     mkdir -p "$install_dir/include"
     cp -RL "$build_dir/include/." "$install_dir/include"
     sed -i.bak 's/include\///' "$install_dir/include/libplatform/libplatform.h"
-    
+
     # -- assemble the icu headers
     if [[ "$CROSS_COMPILING" = 1 ]]; then
         ( cross_build_env; in_dir "$build_dir/third_party/icu" ./configure --prefix="$(niceabspath "$install_dir")" --enable-static "$@" )
@@ -29,7 +29,7 @@ pkg_install-include () {
 
 pkg_install () {
     pkg_copy_src_to_build
-    in_dir "$build_dir" patch -fp1 < "$pkg_dir"/patch/v8_2-HandleScope-protected.patch
+    in_dir "$build_dir" patch -p1 < "$pkg_dir"/patch/v8_2-HandleScope-protected.patch
     sed -i.bak '/unittests/d;/cctest/d' "$build_dir/build/all.gyp" # don't build the tests
     mkdir -p "$install_dir/lib"
     if [[ "$OS" = Darwin ]]; then
