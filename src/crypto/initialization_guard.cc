@@ -14,16 +14,17 @@
 #include "arch/io/concurrency.hpp"
 #include "arch/runtime/runtime.hpp"
 
+#if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
+#define OPENSSL_init_ssl(x, y)     SSL_library_init()
+#define OPENSSL_init_crypto(x, y)  SSL_load_error_strings()
+#define OPENSSL_cleanup            ERR_free_strings
+#endif
+
 namespace crypto {
 
 initialization_guard_t::initialization_guard_t() {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-    SSL_library_init();
-    SSL_load_error_strings();
-#else
     OPENSSL_init_ssl(0, nullptr);
     OPENSSL_init_crypto(0, nullptr);
-#endif
 
     // Make OpenSSL thread-safe by registering the required callbacks
     CRYPTO_THREADID_set_callback([](CRYPTO_THREADID *thread_out) {
@@ -49,11 +50,7 @@ initialization_guard_t::initialization_guard_t() {
 }
 
 initialization_guard_t::~initialization_guard_t() {
-#if OPENSSL_VERSION_NUMBER < 0x10100000L
-    ERR_free_strings();
-#else
     OPENSSL_cleanup();
-#endif
 }
 
 }  // namespace crypto
