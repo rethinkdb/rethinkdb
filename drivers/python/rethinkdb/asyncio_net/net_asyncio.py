@@ -133,7 +133,7 @@ class AsyncioCursor(Cursor):
            len(self.items) < self.threshold and \
            self.outstanding_requests == 0:
             self.outstanding_requests += 1
-            asyncio.async(self.conn._parent._continue(self))
+            asyncio.ensure_future(self.conn._parent._continue(self))
 
 
 class ConnectionInstance(object):
@@ -211,7 +211,7 @@ class ConnectionInstance(object):
 
         # Start a parallel function to perform reads
         #  store a reference to it so it doesn't get destroyed
-        self._reader_task = asyncio.async(self._reader(), loop=self._io_loop)
+        self._reader_task = asyncio.ensure_future(self._reader(), loop=self._io_loop)
         return self._parent
 
     def is_open(self):
