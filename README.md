@@ -103,6 +103,11 @@ Donors
 * [DNSimple](https://dnsimple.com) provides DNS services for the RethinkDB project.
 * [ZeroTier](https://www.zerotier.com) sponsored the development of per-table configurable write aggregation including the ability to set write delay to infinite to create a memory-only table ([PR #6392](https://github.com/rethinkdb/rethinkdb/pull/6392))
 
+Licensing
+---------
+
+RethinkDB is licensed by the Linux Foundation under the open-source Apache 2.0 license. Portions of the software are licensed by Google and others and used with permission or subject to their respective license agreements.
+
 Where's the changelog?
 ----------------------
 We keep [a list of changes and feature explanations here](NOTES.md).
