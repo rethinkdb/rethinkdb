@@ -7,6 +7,7 @@ src_url=http://commondatastorage.googleapis.com/chromium-browser-official/v8-${v
 pkg_install-include () {
     pkg_copy_src_to_build
     in_dir "$build_dir" patch -p1 < "$pkg_dir"/patch/v8_2-HandleScope-protected.patch
+    in_dir "$build_dir" patch -p1 < "$pkg_dir"/patch/v8_3-clang9.patch
 
     rm -rf "$install_dir/include"
     mkdir -p "$install_dir/include"
@@ -30,6 +31,7 @@ pkg_install-include () {
 pkg_install () {
     pkg_copy_src_to_build
     in_dir "$build_dir" patch -p1 < "$pkg_dir"/patch/v8_2-HandleScope-protected.patch
+    in_dir "$build_dir" patch -p1 < "$pkg_dir"/patch/v8_3-clang9.patch
     sed -i.bak '/unittests/d;/cctest/d' "$build_dir/build/all.gyp" # don't build the tests
     mkdir -p "$install_dir/lib"
     if [[ "$OS" = Darwin ]]; then
