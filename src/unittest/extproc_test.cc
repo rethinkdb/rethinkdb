@@ -293,7 +293,7 @@ private:
     }
 };
 
-SPAWNER_TEST(ExtProc, CrashedJob) {
+SPAWNER_TEST(ExtProc, DISABLED_CrashedJob) {
     extproc_pool_t pool(1);
 
     // Crash the worker, then make sure it recovers and we can still run more jobs
