@@ -211,18 +211,13 @@ void assertion_failed(char const * expr, char const * function, char const * fil
     T &operator=(T &&) = default
 
 
-/* Put these after functions to indicate what they throw. In release mode, they
+/* Put these after functions to indicate what they throw. In all modes, they
 turn into noops so that the compiler doesn't have to generate exception-checking
-code everywhere. If you need to add an exception specification for compatibility
-with e.g. a virtual method, don't use these, or your code won't compile in
-release mode. */
-#ifdef NDEBUG
+code everywhere.  Originally, these resolved to throw() and throw(__VA_ARGS__)
+in debug mode, but C++17 removed the language feature.  Consider these to be
+vestigial. */
 #define THROWS_NOTHING
 #define THROWS_ONLY(...)
-#else
-#define THROWS_NOTHING throw ()
-#define THROWS_ONLY(...) throw (__VA_ARGS__)
-#endif
 
 // This is a workaround for old versions of boost causing a compilation error
 #include <boost/version.hpp> // NOLINT(build/include_order)
