@@ -59,6 +59,7 @@ real_superblock_t::real_superblock_t(
 
 void real_superblock_t::release() {
     sb_buf_.reset_buf_lock();
+    write_semaphore_acq_.reset();
 }
 
 const reql_btree_superblock_t *get_reql_btree_superblock(buf_read_t *read) {
@@ -378,7 +379,7 @@ void get_btree_superblock_and_txn_for_writing(
         sem_acq.acquisition_signal()->wait();
     }
 
-    get_btree_superblock(txn, access_t::write, got_superblock_out);
+    get_btree_superblock(txn, write_access_t::write, std::move(sem_acq), got_superblock_out);
 }
 
 void get_btree_superblock_and_txn_for_backfilling(
