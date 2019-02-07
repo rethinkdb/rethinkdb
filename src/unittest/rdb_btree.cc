@@ -127,6 +127,7 @@ ql::grouped_t<ql::stream_t> read_row_via_sindex(
             sindex_name,
             "",
             super_block.get(),
+            release_superblock_t::RELEASE,
             &sindex_sb,
             &opaque_definition,
             &sindex_uuid);
