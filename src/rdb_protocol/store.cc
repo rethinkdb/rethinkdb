@@ -154,6 +154,7 @@ void store_t::help_construct_bring_sindexes_up_to_date() {
 scoped_ptr_t<sindex_superblock_t> acquire_sindex_for_read(
     store_t *store,
     real_superblock_t *superblock,
+    release_superblock_t release_superblock,
     const std::string &table_name,
     const std::string &sindex_id,
     sindex_disk_info_t *sindex_info_out,
@@ -170,6 +171,7 @@ scoped_ptr_t<sindex_superblock_t> acquire_sindex_for_read(
             sindex_name_t(sindex_id),
             table_name,
             superblock,
+            release_superblock,
             &sindex_sb,
             &sindex_mapping_data,
             &sindex_uuid);
@@ -231,6 +233,7 @@ void do_read(ql::env_t *env,
                 acquire_sindex_for_read(
                     store,
                     superblock,
+                    release_superblock,
                     rget.table_name,
                     rget.sindex->id,
                     &sindex_info,
@@ -495,6 +498,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 acquire_sindex_for_read(
                     store,
                     superblock,
+                    release_superblock_t::RELEASE,
                     geo_read.table_name,
                     geo_read.sindex.id,
                 &sindex_info, &sindex_uuid);
@@ -553,6 +557,7 @@ struct rdb_read_visitor_t : public boost::static_visitor<void> {
                 acquire_sindex_for_read(
                     store,
                     superblock,
+                    release_superblock_t::RELEASE,
                     geo_read.table_name,
                     geo_read.sindex_id,
                 &sindex_info, &sindex_uuid);
