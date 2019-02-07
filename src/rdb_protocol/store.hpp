@@ -248,7 +248,8 @@ public:
     MUST_USE bool acquire_sindex_superblock_for_read(
             const sindex_name_t &name,
             const std::string &table_name,
-            real_superblock_t *superblock,  // releases this.
+            real_superblock_t *superblock,
+            release_superblock_t release_superblock,
             scoped_ptr_t<sindex_superblock_t> *sindex_sb_out,
             std::vector<char> *opaque_definition_out,
             uuid_u *sindex_uuid_out)

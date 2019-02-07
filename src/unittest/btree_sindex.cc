@@ -256,6 +256,7 @@ TPTEST(BTreeSindex, BtreeStoreAPI) {
                         name,
                         "",
                         main_sb.get(),
+                        release_superblock_t::RELEASE,
                         &sindex_super_block,
                         &opaque_definition,
                         &sindex_uuid);
