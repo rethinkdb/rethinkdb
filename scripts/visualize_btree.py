@@ -18,11 +18,11 @@ class GoodBlock(Block):
     def ref_as_html(self):
         return """<a href="#buf-%d">Block %d</a>""" % (id(self), self.id)
     def block_print_html(self):
-        print """<div class="block">"""
-        print """<a name="buf-%d"/>""" % id(self)
-        print """<h1>Block %d: %s</h1>""" % (self.id, self.block_obj.name)
+        print("""<div class="block">""")
+        print("""<a name="buf-%d"/>""" % id(self))
+        print("""<h1>Block %d: %s</h1>""" % (self.id, self.block_obj.name))
         self.block_obj.print_html()
-        print """</div>"""
+        print("""</div>""")
 
 class BadBlock(Block):
     def __init__(self, id, name, msg):
@@ -33,11 +33,11 @@ class BadBlock(Block):
     def ref_as_html(self):
         return """<a href="#buf-%d">Block %d</a>""" % (id(self), self.id)
     def block_print_html(self):
-        print """<div class="block">"""
-        print """<a name="buf-%d"/>""" % id(self)
-        print """<h1>Block %d: %s</h1>""" % (self.id, self.name)
-        print """<pre style="color: red">%s</pre>""" % escape(self.msg)
-        print """</div>"""
+        print("""<div class="block">""")
+        print("""<a name="buf-%d"/>""" % id(self))
+        print("""<h1>Block %d: %s</h1>""" % (self.id, self.name))
+        print("""<pre style="color: red">%s</pre>""" % escape(self.msg))
+        print("""</div>""")
 
 class BadBlockRef(Block):
     def __init__(self, id, msg):
@@ -47,8 +47,8 @@ class BadBlockRef(Block):
         return """<span style="color:red">Bad reference to block %d: <code>%s</code></span>""" % \
             (self.id, escape(self.msg))
     def block_print_html(self):
-        print """<span style="color:red">This shouldn't go here! But here it is anyway: %s</span>""" % \
-            escape(self.msg)
+        print("""<span style="color:red">This shouldn't go here! But here it is anyway: %s</span>""" % \
+            escape(self.msg))
 
 class BlockGroup(object):
     def __init__(self, blocks):
@@ -73,7 +73,7 @@ class BlockGroup(object):
 class UnusedBlock(object):
     name = "Unused Block"
     def print_html(self):
-        print """<p>This block is not reachable from the root.</p>"""
+        print("""<p>This block is not reachable from the root.</p>""")
 
 def blocks_to_btree(blocks):
     
@@ -105,13 +105,13 @@ class BtreeKey(object):
     def __init__(self, name):
         self.name = name
     
-    def print_html(self):
+    def _html(self):
         if len(self.name) < 15:
-            print """<code>%s</code>""" % escape(self.name.encode("string-escape"))
+            print("""<code>%s</code>""" % escape(self.name.encode("string-escape")))
         else:
-            print """<code>%s</code>...<code>%s</code>""" % \
+            print("""<code>%s</code>...<code>%s</code>""" % \
                 (escape(self.name[:8].encode("string-escape")),
-                 escape(self.name[-8:].encode("string-escape")))
+                 escape(self.name[-8:].encode("string-escape"))))
 
 class BtreeValue(object):
     
@@ -159,11 +159,11 @@ class BtreeSmallValue(BtreeValue):
     def print_html(self):
         # TODO: CAS, flags, and exptime.
         if len(self.contents) < 15:
-            print """<code>%s</code>""" % escape(self.contents.encode("string-escape"))
+            print("""<code>%s</code>""" % escape(self.contents.encode("string-escape")))
         else:
-            print """<code>%s</code>...<code>%s</code>""" % \
+            print("""<code>%s</code>...<code>%s</code>""" % \
                 (escape(self.contents[:8].encode("string-escape")),
-                 escape(self.contents[-8:].encode("string-escape")))
+                 escape(self.contents[-8:].encode("string-escape"))))
 
 class BtreeLargeValue(BtreeValue):
     
@@ -173,7 +173,7 @@ class BtreeLargeValue(BtreeValue):
         self.superblock = superblock
     
     def print_html(self):
-        print """large value: %s""" % self.superblock.ref_as_html()
+        print("""large value: %s""" % self.superblock.ref_as_html())
 
 class BtreeLargeValueSuperblock(object):
     
@@ -210,10 +210,10 @@ class BtreeLargeValueSuperblock(object):
         self.segments = segments
     
     def print_html(self):
-        print """<p>Size: %d bytes</p>""" % self.size
-        print """<p>Offset into first block: %d bytes</p>""" % self.first_block_offset
+        print("""<p>Size: %d bytes</p>""" % self.size)
+        print("""<p>Offset into first block: %d bytes</p>""" % self.first_block_offset)
         for segment in self.segments:
-            print """<p>Segment: %s</p>""" % segment.ref_as_html()
+            print("""<p>Segment: %s</p>""" % segment.ref_as_html())
 
 class BtreeLargeValueBlock(object):
     
@@ -227,7 +227,7 @@ class BtreeLargeValueBlock(object):
         self.contents = contents
     
     def print_html(self):
-        print """<code>%s</code>""" % escape(self.contents.encode("string-escape"))
+        print("""<code>%s</code>""" % escape(self.contents.encode("string-escape")))
 
 class BtreeNode(object):
     
@@ -273,19 +273,19 @@ class BtreeLeafNode(BtreeNode):
     
     def print_html(self):
         
-        print """<p>%d key/value pairs</p>""" % len(self.pairs)
+        print("""<p>%d key/value pairs</p>""" % len(self.pairs))
         
-        print """<div style="-webkit-column-width: 310px">"""
-        print """<table>"""
-        print """<tr><th>Key</th><th>Value</th></tr>"""
+        print("""<div style="-webkit-column-width: 310px">""")
+        print("""<table>""")
+        print("""<tr><th>Key</th><th>Value</th></tr>""")
         for key, value in self.pairs:
-            print """<tr><td>"""
+            print("""<tr><td>""")
             key.print_html()
-            print """</td><td>"""
+            print("""</td><td>""")
             value.print_html()
-            print """</td></tr>"""
-        print """</table>"""
-        print """</div>"""
+            print("""</td></tr>""")
+        print("""</table>""")
+        print("""</div>""")
         
 class BtreeInternalNode(BtreeNode):
     
@@ -320,20 +320,20 @@ class BtreeInternalNode(BtreeNode):
     
     def print_html(self):
         
-        print """<p>%d key/value pairs</p>""" % len(self.pairs)
+        print("""<p>%d key/value pairs</p>""" % len(self.pairs))
         
-        print """<table>"""
-        print """<tr><th>Keys</th><th>Subtree</th></tr>"""
+        print("""<table>""")
+        print("""<tr><th>Keys</th><th>Subtree</th></tr>""")
         for key, subtree in self.pairs:
-            print """<tr>"""
+            print("""<tr>""")
             if key is None:
-                print """<td>All other keys</td>"""
+                print("""<td>All other keys</td>""")
             else:
-                print """<td>Keys up to """
+                print("""<td>Keys up to """)
                 key.print_html()
-                print """</td>"""
-            print """<td>%s</td></tr>""" % subtree.ref_as_html()
-        print """</table>"""
+                print("""</td>""")
+            print("""<td>%s</td></tr>""" % subtree.ref_as_html())
+        print("""</table>""")
 
 class Superblock(object):
     
@@ -363,7 +363,7 @@ class Superblock(object):
         self.root = root
     
     def print_html(self):
-        print """<p>Root: %s</p>""" % self.root.ref_as_html()
+        print("""<p>Root: %s</p>""" % self.root.ref_as_html())
 
 
 
@@ -374,7 +374,7 @@ def btree_to_html(btree, filename):
     with file(filename, "w") as f:
         sys.stdout = f
         try:
-            print """
+            print("""
 <html>
     <head>
         <style type="text/css">
@@ -397,19 +397,19 @@ td, th {
         </style>
     </head>
     <body>
-"""
+""")
             
-            print """<h1>BTree</h1>"""
+            print("""<h1>BTree</h1>""")
             
-            print """<p>Superblock: %s</p>""" % superblock.ref_as_html()
+            print("""<p>Superblock: %s</p>""" % superblock.ref_as_html())
             
             for block_id in sorted(values.keys()):
                 values[block_id].block_print_html()
             
-            print """
+            print("""
     </body>
 </html>
-            """
+            """)
         finally:
             sys.stdout = sys.__stdout__
 
@@ -420,4 +420,4 @@ if __name__ == "__main__":
         btree_to_html(blocks_to_btree(database_to_blocks(file_to_database(sys.argv[1]))), sys.argv[2])
     
     else:
-        print "Usage: %s data_file output.html" % sys.argv[0]
+        print("Usage: %s data_file output.html" % sys.argv[0])
