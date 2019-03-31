@@ -76,6 +76,10 @@ Web assets
 
 * `make web-assets`: Build only the web assets.
 
+* If there is a `precompiled/web` folder, the web assets will not be
+  rebuilt unless the `--disable-precompiled-web` flag is passed to
+  `./configure`
+
 * The web assets are compiled into the executable. To speed up
   development time and avoid rebuilding the executable, the
   `--web-static-directory` option can be used. For example:

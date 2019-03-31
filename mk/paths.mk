@@ -81,6 +81,8 @@ OBJ_DIR := $(BUILD_DIR)/obj
 WEB_ASSETS_DIR_NAME := web_assets
 WEB_ASSETS_BUILD_DIR := $(BUILD_ROOT_DIR)/$(WEB_ASSETS_DIR_NAME)
 
+PRECOMPILED_DIR := $(TOP)/precompiled
+
 ##### To rebuild when Makefiles change
 
 ifeq ($(IGNORE_MAKEFILE_CHANGES),1)

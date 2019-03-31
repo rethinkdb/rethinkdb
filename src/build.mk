@@ -269,9 +269,9 @@ NAMES := $(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS := $(patsubst %,$(DEP_DIR)/%$(DEPS_POSTFIX).d,$(NAMES))
 OBJS := $(QL2_PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
-SERVER_EXEC_OBJS := $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(SERVER_EXEC_SOURCES))
+SERVER_EXEC_OBJS := $(OBJ_DIR)/web_assets/web_assets.o $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(SERVER_EXEC_SOURCES))
 
-SERVER_NOMAIN_OBJS := $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(filter-out %/main.cc,$(SOURCES)))
+SERVER_NOMAIN_OBJS := $(OBJ_DIR)/web_assets/web_assets.o $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(filter-out %/main.cc,$(SOURCES)))
 
 SERVER_UNIT_TEST_OBJS := $(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
@@ -367,6 +367,11 @@ $(BUILD_DIR)/$(SERVER_UNIT_TEST_NAME): $(SERVER_UNIT_TEST_OBJS) $(GTEST_LIBS_DEP
 $(BUILD_DIR)/$(GDB_FUNCTIONS_NAME): | $(BUILD_DIR)/.
 	$P CP $@
 	cp $(SCRIPTS_DIR)/$(GDB_FUNCTIONS_NAME) $@
+
+$(OBJ_DIR)/web_assets/web_assets.o: $(BUILD_ROOT_DIR)/bundle_assets/web_assets.cc $(MAKEFILE_DEPENDENCY)
+	mkdir -p $(dir $@)
+	$P CC
+	$(RT_CXX) $(RT_CXXFLAGS) -c -o $@ $<
 
 $(OBJ_DIR)/%.pb.o: $(PROTO_DIR)/%.pb.cc $(MAKEFILE_DEPENDENCY) $(QL2_PROTO_HEADERS)
 	mkdir -p $(dir $@)

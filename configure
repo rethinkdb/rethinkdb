@@ -39,7 +39,7 @@ init () {
     web_assets_deps="npm coffee browserify bluebird"
     required_bin_deps="protoc python"
     optional_bin_deps="wget curl"
-    bin_deps="cxx $required_bin_deps $optional_bin_deps"
+    bin_deps="cxx $web_assets_deps $required_bin_deps $optional_bin_deps"
     all_deps="$bin_deps $all_libs boost"
 
     default_allocator_linux=jemalloc
@@ -131,12 +131,17 @@ configure_unixlike () {
 
     fi
     check_cxx11
+    check_precompiled_web
     for bin in $required_bin_deps; do
         require_dep $bin
         check_bin $bin
     done
     for bin in $web_assets_deps; do
-        require_dep $bin
+        if $enable_precompiled_web; then
+            optional_dep $bin
+        else
+            require_dep $bin
+        fi
         check_bin $bin
     done
     check_admin_deps
@@ -196,6 +201,7 @@ configure_windows () {
     var PTHREAD_LIBS
     var CROSS_COMPILING 0
     var CXX false
+    var USE_PRECOMPILED_WEB_ASSETS 0
     for pkg in protobuf curl v8 zlib re2 openssl gtest boost; do
         require_dep $pkg
         fetch_lib $pkg
@@ -273,6 +279,7 @@ read_args () {
     arg_sysconfdir=
     arg_localstatedir=
     custom_allocator=
+    enable_precompiled_web=
     use_ccache=false
 
     while [[ $# -ne 0 ]]; do
@@ -328,6 +335,8 @@ read_args () {
             --with-tcmalloc) $no_arg; set_custom_allocator tcmalloc ;;
             --with-jemalloc) $no_arg; set_custom_allocator jemalloc ;;
             --with-system-malloc) $no_arg; set_custom_allocator system ;;
+            --enable-precompiled-web) $no_arg; enable_precompiled_web=true ;;
+            --disable-precompiled-web) $no_arg; enable_precompiled_web=false ;;
             --ccache) $no_arg; use_ccache=true ;;
             --prefix) $has_arg; arg_prefix=$arg ;;
             --sysconfdir) $has_arg; arg_sysconfdir=$arg ;;
@@ -402,6 +411,8 @@ EOF
   --with-tcmalloc         Use TCMalloc
   --with-jemalloc         Use jemalloc (default on Linux)
   --with-system-malloc    Use the system malloc (default on OS X)
+  --enable-precompiled-web
+  --disable-precompiled-web Use precompiled web assets located in precompiled/web (default: autodetect)
   --ccache                Speed up the build using ccache
   --windows-platform      Windows platform: Win32 (32 bit, default) or x64 (64 bit)
 EOF
@@ -1331,6 +1342,18 @@ check_windows_platform () {
             *) var PLATFORM Win32 ;;
         esac
     fi
+}
+
+check_precompiled_web () {
+    optional "Precompiled web assets"
+    if [[ -z "$enable_precompiled_web" ]]; then
+        if test -d precompiled/bundle_assets; then
+            enable_precompiled_web=true
+        else
+            enable_precompiled_web=false
+        fi
+    fi
+    boolvar USE_PRECOMPILED_WEB_ASSETS $enable_precompiled_web
 }
 
 # The root of the source tree
