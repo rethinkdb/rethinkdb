@@ -754,11 +754,9 @@ class ReQLDecoder(py_json.JSONDecoder):
                                    'have expected field "epoch_time".')
                                   % py_json.dumps(obj))
 
-        if 'timezone' in obj:
-            return datetime.datetime.fromtimestamp(obj['epoch_time'],
-                                                   RqlTzinfo(obj['timezone']))
-        else:
-            return datetime.datetime.utcfromtimestamp(obj['epoch_time'])
+        tzinfo = RqlTzinfo(obj["timezone"]) if "timezone" in obj else None
+        tz_epoch = datetime.datetime(1970, 1, 1, tzinfo=tzinfo)
+        return tz_epoch + datetime.timedelta(0, 0, 0, obj["epoch_time"])
 
     def convert_grouped_data(self, obj):
         if 'data' not in obj:
