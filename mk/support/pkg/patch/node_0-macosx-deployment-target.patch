@@ -1,0 +1,12 @@
+diff -ruN --label original original ./common.gypi
+--- original
++++ ./common.gypi	2019-04-27 10:27:04.000000000 -0700
+@@ -356,7 +356,7 @@
+           'GCC_ENABLE_PASCAL_STRINGS': 'NO',        # No -mpascal-strings
+           'GCC_THREADSAFE_STATICS': 'NO',           # -fno-threadsafe-statics
+           'PREBINDING': 'NO',                       # No -Wl,-prebind
+-          'MACOSX_DEPLOYMENT_TARGET': '10.7',       # -mmacosx-version-min=10.7
++          'MACOSX_DEPLOYMENT_TARGET': '10.9',       # -mmacosx-version-min=10.9
+           'USE_HEADERMAP': 'NO',
+           'OTHER_CFLAGS': [
+             '-fno-strict-aliasing',
