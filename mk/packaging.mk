@@ -66,9 +66,13 @@ else ifneq ($(DEB_RELEASE),)
   ifneq ($(filter $(DEB_RELEASE), jessie),)
     DEB_BUILD_DEPENDS += , g++, libssl-dev
   else
-    # As with Ubuntus.
-    DEB_BUILD_DEPENDS += , clang, libssl1.0-dev
     DSC_CONFIGURE_DEFAULT += CXX=clang++
+    DEB_BUILD_DEPENDS += , clang
+    ifneq ($(filter $(DEB_RELEASE), stretch),)
+        DEB_BUILD_DEPENDS += , libssl1.0-dev
+    else
+        DEB_BUILD_DEPENDS += , libssl-dev
+    endif
   endif
 endif
 
