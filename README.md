@@ -4,10 +4,8 @@
 ======================================
 
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3038/badge)](https://bestpractices.coreinfrastructure.org/projects/3038)
-[![Codacy Badge](https://api.codacy.com/project/badge/Grade/e486b20dee3141c89dcb974fe1ae16de)](https://www.codacy.com/app/RethinkDB/rethinkdb?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=rethinkdb/rethinkdb&amp;utm_campaign=Badge_Grade)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/6e0fed97691941b1aa3fc5098bfc9385)](https://www.codacy.com/app/RethinkDB/rethinkdb?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=rethinkdb/rethinkdb&amp;utm_campaign=Badge_Grade)
 
-
-What is RethinkDB?
 ------------------
 
 * **Open-source** database for building realtime web applications
