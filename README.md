@@ -91,9 +91,7 @@ Need help?
 
 A great place to start is [rethinkdb.com/community](https://rethinkdb.com/community). Here you can find out how to ask us questions, reach out to us, or [report an issue](https://github.com/rethinkdb/rethinkdb/issues). You'll be able to find all the places we frequent online and at which conference or meetups you might be able to meet us next.
 
-If you need help right now, you can also find us [on Slack](http://slack.rethinkdb.com/), [Twitter](https://twitter.com/rethinkdb), or IRC at [#rethinkdb](irc://chat.freenode.net/#rethinkdb) on Freenode.
-
-**Join us now:** <a href="http://slack.rethinkdb.com/"><img valign="middle"  src="http://slack.rethinkdb.com/badge.svg"></a>
+If you need help right now, you can also find us [on Slack](https://join.slack.com/t/rethinkdb/shared_invite/enQtNzAxOTUzNTk1NzMzLWY5ZTA0OTNmMWJiOWFmOGVhNTUxZjQzODQyZjIzNjgzZjdjZDFjNDg1NDY3MjFhYmNhOTY1MDVkNDgzMWZiZWM), [Twitter](https://twitter.com/rethinkdb), or IRC at [#rethinkdb](irc://chat.freenode.net/#rethinkdb) on Freenode.
 
 Contributing
 ------------
