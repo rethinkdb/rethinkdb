@@ -1,3 +1,25 @@
+# Release 2.3.7 (Fantasia 2000)
+
+Released around August 2019
+
+Bug fix / build fix release
+
+### Compatibility ###
+
+See version 2.3.6 Compatibility notes.
+
+### Changes ###
+
+* Server
+  * Fixes a race condition when interrupting a query
+  * Handles certain worker subprocess creation errors
+  * Don't use DNS resolution when finding local ip addresses (except on Windows)
+  * Replace boost::tribool usage with in-house tribool
+* Packaging
+  * Fixes builds and packaging for Ubuntu/Debian versions up to Disco/Buster
+
+--
+
 # Release 2.3.6 (Fantasia)
 
 Released on 2017-07-17
