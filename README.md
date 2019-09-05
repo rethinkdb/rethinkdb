@@ -1,7 +1,5 @@
 <img style="width:100%;" src="/github-banner.png">
 
-[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/3038/badge)](https://bestpractices.coreinfrastructure.org/projects/3038)
-
 [RethinkDB](https://www.rethinkdb.com)
 ======================================
 
