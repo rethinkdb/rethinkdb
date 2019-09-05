@@ -101,7 +101,11 @@ RethinkDB was built by a dedicated team, but it wouldn't have been possible with
 Donors
 ------
 
-* [DNSimple](https://dnsimple.com) provides DNS services for the RethinkDB project.
+* [CNCF](https://www.cncf.io/)
+* [Digital Ocean](https://www.digitalocean.com/) provides infrastructure and servers needed for serving mission-critical sites like download.rethinkdb.com or update.rethinkdb.com
+* [Atlassian](https://www.atlassian.com/) provides OSS license to be able to handle internal tickets like vulnerability issues
+* [Netlify](https://www.netlify.com/) OSS license to be able to migrate rethinkdb.com
+* [DNSimple](https://dnsimple.com) provides DNS services for the RethinkDB project
 * [ZeroTier](https://www.zerotier.com) sponsored the development of per-table configurable write aggregation including the ability to set write delay to infinite to create a memory-only table ([PR #6392](https://github.com/rethinkdb/rethinkdb/pull/6392))
 
 Licensing
