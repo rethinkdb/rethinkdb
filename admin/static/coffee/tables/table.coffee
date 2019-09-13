@@ -337,6 +337,8 @@ class TableMainView extends Backbone.View
         'click .close': 'close_alert'
         'click .operations .rename': 'rename_table'
         'click .operations .delete': 'delete_table'
+        'click .explore-table': 'explore_table'
+        'submit .table-lookup-by-id': 'explore_table_document'
 
 
     initialize: (data, options) =>
@@ -378,6 +380,7 @@ class TableMainView extends Backbone.View
             type: 'table'
         )
 
+
     set_indexes: (indexes) =>
         if not @indexes?
             @indexes = indexes
@@ -415,6 +418,8 @@ class TableMainView extends Backbone.View
         # Display server reconfiguration
         @$('.reconfigure-panel').html @reconfigure.render().el
 
+        @table_viewer = TableViewer.makeWithTable(@$('.table_viewer')[0], r, driver, @model.get('id'))
+
         @
 
     close_alert: (event) ->
@@ -442,6 +447,12 @@ class TableMainView extends Backbone.View
             database: @model.get 'db'
         }]
 
+    explore_table: (event) ->
+        app.main.router.goto_explore_table(@model.get('id'))
+
+    explore_table_document: (event) ->
+        id = @$('.table-lookup-box').attr('value')
+        app.main.router.goto_explore_table_id(@model.get('id'), id)
 
     remove: =>
         @title.remove()

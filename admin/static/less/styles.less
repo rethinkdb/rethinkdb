@@ -1008,7 +1008,7 @@ TODO: retire this
                     margin: 0;
                     font-family: @sans;
                 }
-                .name, .quick_info, .status {
+                .name, .quick_info, .status, .table-lookup-by-id {
                     @offset: 8px;
                     padding: 0 @offset * 2;
                     border-left: thin solid #e4e4e4;
@@ -1049,6 +1049,13 @@ TODO: retire this
                     }
                     &.label-partial-success {
                         .with-icon('images/yellow-light_glow.png');
+                    }
+                }
+                .table-lookup-by-id {
+                    input {
+                        height: 18px;
+                        width: 150px;
+                        margin: 5px;
                     }
                 }
             }
@@ -1694,6 +1701,9 @@ TODO: retire this
     .result_view{
         margin: 35px 0px 0px 0px;
         overflow: auto;
+        &.unpaginated {
+            overflow: visible;
+        }
         .tab-content{
             clear: both;
         }
@@ -1838,6 +1848,9 @@ TODO: retire this
         padding: 0px;
         font-family: @sans;
         overflow: auto;
+        &.table_viewer_container {
+            overflow: visible;
+        }
         width: 100%;
         .profile_summary {
             margin-bottom: 20px;
@@ -2227,12 +2240,16 @@ TODO: retire this
 #database-view, #table-view, #datacenter-view, #server-view, .reconfigure-modal {
     h1.title {
         line-height: 20px;
-        width: 808px;
+        width: 500px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
     }
     .operations {
+        float: right;
+        margin-left: 10px;
+    }
+    .explore, .table-lookup-by-id {
         float: right;
         margin-left: 10px;
     }

@@ -69,6 +69,20 @@ class BackboneCluster extends Backbone.Router
         @current_view.init_after_dom_rendered() # Need to be called once the view is in the DOM tree
         @current_view.results_view_wrapper.set_scrollbar() # In case we check the data explorer, leave and come back
 
+    # TODO: Maybe these functions don't belong in the router.
+    goto_explore_table: (table_id) ->
+        @update_active_tab('table')
+        @navigate("#tables/" + table_id, {replace: false})
+        @table(table_id)
+        setTimeout((=> window.scrollTo(0,document.body.scrollHeight)), 0)
+
+    goto_explore_table_id: (table_id, document_id) ->
+        @update_active_tab('table')
+        @navigate("#tables/" + table_id, {replace: false})
+        @table(table_id)
+        @current_view.table_view.table_viewer.initiateSeek(document_id);
+        setTimeout((=> window.scrollTo(0,document.body.scrollHeight)), 0)
+
     table: (id) ->
         @current_view.remove()
         @current_view = new table_view.TableContainer id
