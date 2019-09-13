@@ -478,3 +478,9 @@ exports.replica_roleclass = replica_roleclass
 exports.state_color = state_color
 exports.humanize_state_string = humanize_state_string
 exports.format_bytes = format_bytes
+
+# There is surely a nicer way to accomplish this.
+window.rethinkdbGlobal = window.rethinkdbGlobal || {};
+window.rethinkdbGlobal.binary_to_string = binary_to_string;
+window.rethinkdbGlobal.date_to_string = date_to_string;
+window.rethinkdbGlobal.json_to_node = json_to_node

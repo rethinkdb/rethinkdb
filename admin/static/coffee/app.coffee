@@ -46,32 +46,51 @@ class Driver
     close: (conn) ->
         conn.close noreplyWait: false
 
+    checkAndHandleConnectionError: (error) =>
+        if error?
+            # If we cannot open a connection, we blackout the whole interface
+            # And do not call the callback (seen in the caller).
+            if is_disconnected?
+                if @state is 'ok'
+                    is_disconnected.display_fail()
+            else
+                is_disconnected = new require('body').IsDisconnected
+            @state = 'fail'
+            return true
+        else
+            if @state is 'fail'
+                # Force refresh
+                window.location.reload true
+                return true
+            else
+                @state = 'ok'
+                return false
+
+    # Run a query and just pass on the result
+    run_raw: (query, callback) =>
+        @connect (error, connection) =>
+            if @checkAndHandleConnectionError(error)
+                # Yeah, we don't call the callback.
+                return 
+            query.private_run connection, {binaryFormat: 'raw', timeFormat: 'raw'}, (err, result) =>
+                if result?.value? and result?.profile?
+                    result = result.value
+                callback(err, result)
+
     # Run a query once
     run_once: (query, callback) =>
         @connect (error, connection) =>
-            if error?
-                # If we cannot open a connection, we blackout the whole interface
-                # And do not call the callback
-                if is_disconnected?
-                    if @state is 'ok'
-                        is_disconnected.display_fail()
+            if @checkAndHandleConnectionError(error)
+                # Yeah, we don't call the callback.
+                return
+            query.private_run connection, (err, result) =>
+                if result?.value? and result?.profile?
+                    result = result.value
+                if typeof result?.toArray is 'function'
+                    result.toArray (err, result) ->
+                        callback(err, result)
                 else
-                    is_disconnected = new require('body').IsDisconnected
-                @state = 'fail'
-            else
-                if @state is 'fail'
-                    # Force refresh
-                    window.location.reload true
-                else
-                    @state = 'ok'
-                    query.private_run connection, (err, result) =>
-                        if result?.value? and result?.profile?
-                            result = result.value
-                        if typeof result?.toArray is 'function'
-                            result.toArray (err, result) ->
-                                callback(err, result)
-                        else
-                            callback(err, result)
+                    callback(err, result)
 
 
     # Run the query every `delay` ms - using setTimeout

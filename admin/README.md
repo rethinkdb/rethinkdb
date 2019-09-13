@@ -79,7 +79,7 @@ returns a timer (integer) that you can use to stop the interval with `stop_timer
 
 We do not delegate fetching data to Backbone.sync because we want to group queries. For
 example for the table view, we want to retrieve the table (model `Table`), but also the
-secondary indexes (collection `Indexes`), and the responsibilities (collection `Shards).
+secondary indexes (collection `Indexes`), and the responsibilities (collection `Shards`).
 
 The following has to be done to open a connection, run a query and close it:
 - send an HTTP request to `/ajax/reql/open-new-connection` to open a connection and retrieve a token

@@ -38,7 +38,7 @@ dataexplorer_state = _.extend({}, DEFAULTS)
 #
 # It triggers the following events:
 #  * ready: The first response has been received
-#  * add: Another row has been received from a cursor
+#  * add: Some rows have been received from a cursor
 #  * error: An error has occurred
 #  * end: There are no more documents to fetch
 #  * discard: The results have been discarded
@@ -100,6 +100,25 @@ class QueryResult
         @cursor?.close().catch?(() -> null)
         delete @cursor
 
+    fetch_next_many: (count) =>
+        if not @ended
+            try
+                @driver_handler.cursor_next_many @cursor, count, (err, rows) =>
+                    if not @discard_results
+                        for row in rows
+                            @results.push row
+                        # TODO: Just merge all these signals into one?
+                        if rows.length > 0
+                            @trigger 'add', @
+                        if err and not @ended
+                            @set_error err
+                        if rows.length < count
+                            @ended = true
+                            @trigger 'end', @
+            catch error
+                @set_error error
+
+
     # Gets the next result from the cursor
     fetch_next: =>
         if not @ended
@@ -115,16 +134,16 @@ class QueryResult
                         if @discard_results
                             return
                         @results.push row
-                        @trigger 'add', @, row
+                        @trigger 'add', @
             catch error
                 @set_error error
 
     set_error: (error) =>
         @type = 'error'
         @error = error
-        @trigger 'error', @, error
         @discard_results = true
         @ended = true
+        @trigger 'error', @, error
 
     size: =>
         switch @type
@@ -159,9 +178,9 @@ class QueryResult
             else
                 to = to - @results_offset
             to = Math.min @results.length, to
-            return @results[from .. to]
+            return @results[from ... to]
         else
-            return @results[from ..]
+            return @results[from ...]
 
     at_beginning: =>
         if @results_offset?
@@ -2838,6 +2857,13 @@ class Container extends Backbone.View
         @codemirror.setValue ''
         @codemirror.focus()
 
+    # Set the input
+    load_query_text: (text) =>
+        @codemirror.setValue text
+        @state.current_query = text
+        @save_current_query()
+
+
     # Called if there is any on the connection
     error_on_connect: (error) =>
         if /^(Unexpected token)/.test(error.message)
@@ -2908,7 +2934,6 @@ class Container extends Backbone.View
         # We do not destroy the cursor, because the user might come back and use it.
         super()
 
-
 # An abstract base class
 class ResultView extends Backbone.View
     tree_large_container_template: require('../handlebars/dataexplorer_large_result_json_tree_container.hbs')
@@ -2934,6 +2959,26 @@ class ResultView extends Backbone.View
         super()
 
     max_datum_threshold: 1000
+
+    current_batch: =>
+        switch @query_result.type
+            when 'value'
+                return @query_result.value
+            when 'cursor'
+                if @query_result.is_feed
+                    pause_at = @parent.container.state.pause_at
+                    if pause_at?
+                        latest = @query_result.slice(Math.min(0, pause_at - @parent.container.state.options.query_limit), pause_at)
+                    else
+                        latest = @query_result.slice(-@parent.container.state.options.query_limit)
+                    latest.reverse()
+
+                    return latest
+                else
+                    return @query_result.slice(@query_result.position, @query_result.position + @parent.container.state.options.query_limit)
+
+    current_batch_size: =>
+        return @current_batch()?.length ? 0
 
     # Return whether there are too many datums
     # If there are too many, we will disable syntax highlighting to avoid freezing the page
@@ -3003,26 +3048,6 @@ class ResultView extends Backbone.View
             @parent.container.state.pause_at = null
             @render()
 
-    current_batch: =>
-        switch @query_result.type
-            when 'value'
-                return @query_result.value
-            when 'cursor'
-                if @query_result.is_feed
-                    pause_at = @parent.container.state.pause_at
-                    if pause_at?
-                        latest = @query_result.slice(Math.min(0, pause_at - @parent.container.state.options.query_limit), pause_at - 1)
-                    else
-                        latest = @query_result.slice(-@parent.container.state.options.query_limit)
-                    latest.reverse()
-
-                    return latest
-                else
-                    return @query_result.slice(@query_result.position, @query_result.position + @parent.container.state.options.query_limit)
-
-    current_batch_size: =>
-        return @current_batch()?.length ? 0
-
     setStackSize: =>
         # In some versions of firefox, the effective recursion
         # limit gets hit sometimes by the driver. Here we patch
@@ -3040,6 +3065,11 @@ class ResultView extends Backbone.View
             @_patched_already = true
 
 
+
+class PagedResultView extends ResultView
+    initialize: (args) =>
+        super args
+
     # TODO: rate limit events to avoid freezing the browser when there are too many
     fetch_batch_rows:  =>
         if @query_result.type is not 'cursor'
@@ -3053,7 +3083,7 @@ class ResultView extends Backbone.View
                     if not @parent.container.state.pause_at?
                         if not @paused_at?
                             @query_result.drop_before(@query_result.size() - @parent.container.state.options.query_limit)
-                        @add_row row
+                        @add_row()
                     @parent.update_feed_metadata()
                 @fetch_batch_rows()
             @query_result.fetch_next()
@@ -3061,23 +3091,123 @@ class ResultView extends Backbone.View
             @parent.render()
             @render()
 
+    rerenderTableViewerView: =>
+        # Do nothing, this is not a TableViewerView
+        return null
+
     show_next_batch: =>
         @query_result.position += @parent.container.state.options.query_limit
-        @query_result.drop_before @parent.container.state.options.query_limit
+        @query_result.drop_before @query_result.position
         @render()
         @parent.render()
         @fetch_batch_rows()
 
-    add_row: (row) =>
+    add_row: =>
         # TODO: Don't render the whole view on every change
         @render()
 
 
-class TreeView extends ResultView
+class TableViewerView extends ResultView
+    className: 'results table_viewer_container'
+
+    initialize: (args) =>
+
+        # It's important that @row_source gets the current query_result.results
+        # and the query_result.on 'add' event listener gets registered at the
+        # same time.
+
+        # This duplicates cursor_updated logic.
+        initial_results = []
+        results_offset = 0
+        switch args.query_result.type
+            when 'cursor'
+                initial_results = args.query_result.results
+                results_offset = args.query_result.results_offset  # Only (potentially) non-zero in this case
+            when 'value'
+                if args.query_result.value instanceof Array
+                    initial_results = args.query_result.value
+                else
+                    initial_results = [args.query_result.value]
+
+        @row_source = new ExternalRowSource(args.query_result.is_feed, initial_results, args.query_result.ended, () => @requestMoreRows())
+        @table_viewer = TableViewer.makeWithExternalSource(@el, @row_source, results_offset)
+        @pending = false
+
+        cb = (event) =>
+            @pending = false
+            if @removed_self
+                return
+            @cursor_updated()
+
+        args.query_result.on
+            'add': cb
+            'end': cb
+            'error': cb
+
+        super args
+
+    remove: =>
+        @table_viewer.cleanup()
+        super()
+
+    fetch_batch_rows:  =>
+        if @query_result.type is not 'cursor'
+            return
+        @setStackSize()
+        @initiate_fetch_next()
+
+    initiate_fetch_next: =>
+        if not @pending
+            @pending = true
+            if @query_result.is_feed
+                @query_result.fetch_next()
+            else
+                amount_to_fetch = 60
+                @query_result.fetch_next_many(amount_to_fetch)
+
+    show_next_batch: =>
+        console.error "TableViewerView show_next_batch called, ignored"
+
+    requestMoreRows: () =>
+        @initiate_fetch_next()
+
+    render: =>
+        @table_viewer.redrawAndFetchNow()
+        @
+
+    rerenderTableViewerView: =>
+        # For whatever reason, its style element can't be moved onto the DOM after being set.
+        @table_viewer.wipeAndRedrawAndFetch()
+
+    cursor_updated: =>
+        if @query_result.ready
+            # TODO: This kind of duplicates TableViewerView ctor logic.
+            hitEnd = @query_result.ended
+            if @query_result.error
+                hitEnd = {error: @query_result.error.message}
+            slice = []
+            switch @query_result.type
+                when 'cursor'
+                    slice = @query_result.slice(@row_source.rowsCount(), @query_result.size())
+                when 'value'
+                    if @query_result.value instanceof Array
+                        slice = @query_result.value.slice(@row_source.rowsCount())
+                    else
+                        if @row_source.rowsCount() is 0
+                            slice = [@query_result.value]
+            @row_source.addRows(slice, hitEnd)
+
+
+
+class TreeView extends PagedResultView
     className: 'results tree_view_container'
     templates:
         wrapper: require('../handlebars/dataexplorer_result_tree.hbs')
         no_result: require('../handlebars/dataexplorer_result_empty.hbs')
+
+    initialize: (args) =>
+        super args
+        @rendered_position = @query_result.size()
 
     render: =>
         if @query_result.results?.length == 0
@@ -3095,17 +3225,19 @@ class TreeView extends ResultView
                     tree_container.append @json_to_tree row
         return @
 
-    add_row: (row, noflash) =>
+    add_row: () =>
         tree_container = @$('.json_tree_container')
-        node = $(@json_to_tree(row)).prependTo(tree_container)
-        if not noflash
+        for row in @query_result.slice(@rendered_position)
+            node = $(@json_to_tree(row)).prependTo(tree_container)
             node.addClass 'flash'
+        @rendered_position = @query_result.size()
         children = tree_container.children()
         if children.length > @parent.container.state.options.query_limit
             children.last().remove()
 
 
-class TableView extends ResultView
+
+class TableView extends PagedResultView
     className: 'results table_view_container'
 
     templates:
@@ -3143,6 +3275,8 @@ class TableView extends ResultView
 
     handle_mousemove: (event) =>
         if @mouse_down
+
+
             @parent.container.state.last_columns_size[@col_resizing] = Math.max 5, @start_width-@start_x+event.pageX # Save the personalized size
             @resize_column @col_resizing, @parent.container.state.last_columns_size[@col_resizing] # Resize
 
@@ -3284,7 +3418,7 @@ class TableView extends ResultView
                     else
                         value = undefined
                 new_document.cells.push @json_to_table_get_td_value value, col
-            index = if @query_result.is_feed then @query_result.size() - i else i + 1
+            index = if @query_result.is_feed then @query_result.size() - i - 1 else i
             @tag_record new_document, index
             document_list.push new_document
         return @templates.tr_value
@@ -3473,7 +3607,7 @@ class TableView extends ResultView
         return @
 
 
-class RawView extends ResultView
+class RawView extends PagedResultView
     className: 'results raw_view_container'
 
     template: require('../handlebars/dataexplorer_result_raw.hbs')
@@ -3492,7 +3626,7 @@ class RawView extends ResultView
         return @
 
 
-class ProfileView extends ResultView
+class ProfileView extends PagedResultView
     className: 'results profile_view_container'
 
     template:
@@ -3554,6 +3688,7 @@ class ResultViewWrapper extends Backbone.View
     views:
         tree: TreeView
         table: TableView
+        tableviewer: TableViewerView
         profile: ProfileView
         raw: RawView
 
@@ -3561,6 +3696,8 @@ class ResultViewWrapper extends Backbone.View
         'click .link_to_profile_view': 'show_profile'
         'click .link_to_tree_view': 'show_tree'
         'click .link_to_table_view': 'show_table'
+        'click .link_to_tableviewer_view': 'show_tableviewer'
+
         'click .link_to_raw_view': 'show_raw'
         'click .activate_profiler': 'activate_profiler'
         'click .more_results_link': 'show_next_batch'
@@ -3610,18 +3747,20 @@ class ResultViewWrapper extends Backbone.View
         @view_object?.unpause_feed()
         @$('.metadata').removeClass('feed_paused').addClass('feed_unpaused')
 
+    show_view: (event, view) =>
+        event.preventDefault()
+        @set_view view
+
     show_tree: (event) =>
-        event.preventDefault()
-        @set_view 'tree'
+        @show_view event, 'tree'
     show_profile: (event) =>
-        event.preventDefault()
-        @set_view 'profile'
+        @show_view event, 'profile'
     show_table: (event) =>
-        event.preventDefault()
-        @set_view 'table'
+        @show_view event, 'table'
+    show_tableviewer: (event) =>
+        @show_view event, 'tableviewer'
     show_raw: (event) =>
-        event.preventDefault()
-        @set_view 'raw'
+        @show_view event, 'raw'
 
     set_view: (view) =>
         @view = view
@@ -3629,6 +3768,7 @@ class ResultViewWrapper extends Backbone.View
         @$(".link_to_#{@view}_view").parent().addClass 'active'
         @$(".link_to_#{@view}_view").parent().siblings().removeClass 'active'
         if @query_result?.ready
+            @render()
             @new_view()
 
     # TODO: The scrollbar sometime shows up when it is not needed
@@ -3642,9 +3782,9 @@ class ResultViewWrapper extends Backbone.View
         else if @view is 'profile'
             content_name = '.json_tree'
             content_container = '.profile_view_container'
-        else if @view is 'raw'
+        else if @view is 'raw' or @view is 'tableviewer'
             @$('.wrapper_scrollbar').hide()
-            # There is no scrolbar with the raw view
+            # There is no scrolbar with the raw or tableviewer views
             return
 
         # Set the floating scrollbar
@@ -3725,18 +3865,24 @@ class ResultViewWrapper extends Backbone.View
                 @render()
                 @new_view()
         @query_result.on 'end', =>
-            @render()
+            # This condition is a hack, but tableviewer doesn't like being
+            # re-rendered -- it has to maintain its scroll position.
+            if @view isnt 'tableviewer'
+                @render()
 
     render: (args) =>
         if @query_result?.ready
             @view_object?.$el.detach()
-            has_more_data = not @query_result.ended and @query_result.position + @container.state.options.query_limit <= @query_result.size()
-            batch_size = @view_object?.current_batch_size()
+            has_more_data = @query_result.position + @container.state.options.query_limit < @query_result.size()
+            paginated = @view isnt 'tableviewer'
+            batch_size = paginated and @view_object?.current_batch_size()
+
             @$el.html @template
-                range_begin: @query_result.position + 1
-                range_end: batch_size and @query_result.position + batch_size
+                paginated: paginated
+                range_begin: paginated and @query_result.position
+                range_end: paginated and batch_size and @query_result.position + batch_size - 1
                 query_has_changed: args?.query_has_changed
-                show_more_data: has_more_data and not @container.state.cursor_timed_out
+                show_more_data: paginated and has_more_data and not @container.state.cursor_timed_out
                 cursor_timed_out_template: (
                     @cursor_timed_out_template() if not @query_result.ended and @container.state.cursor_timed_out)
                 execution_time_pretty: util.prettify_duration @query_result.server_duration
@@ -3750,6 +3896,8 @@ class ResultViewWrapper extends Backbone.View
 
                 placement: 'bottom'
             @$('.tab-content').html @view_object?.$el
+            @set_unpaginated()
+            @view_object?.rerenderTableViewerView()
             @$(".link_to_#{@view}_view").parent().addClass 'active'
         return @
 
@@ -3768,12 +3916,28 @@ class ResultViewWrapper extends Backbone.View
             paused: @container.state.pause_at?
             upcoming: @query_result.size() - total
 
+    set_unpaginated: =>
+        if @view is 'tableviewer'
+            @$el.addClass('unpaginated')
+            @$('.tab-content').addClass('unpaginated')
+        else
+            @$el.removeClass('unpaginated')
+            @$('.tab-content').removeClass('unpaginated')
+
+
     new_view: () =>
         @view_object?.remove()
         @view_object = new @views[@view]
             parent: @
             query_result: @query_result
-        @$('.tab-content').html @view_object.render().$el
+
+        # TableViewerView can't be "rendered" until its element is part of the
+        # DOM, because its style sheet will stop working otherwise.
+        if @view isnt 'tableviewer'
+            @view_object.render()
+        @$('.tab-content').html @view_object.$el
+        @set_unpaginated()
+        @view_object.rerenderTableViewerView()
         @init_after_dom_rendered()
         @set_scrollbar()
 
@@ -3902,9 +4066,7 @@ class HistoryView extends Backbone.View
     load_query: (event) =>
         id = @$(event.target).data().id
         # Set + save codemirror
-        @container.codemirror.setValue @history[parseInt(id)].query
-        @container.state.current_query = @history[parseInt(id)].query
-        @container.save_current_query()
+        @container.load_query_text(@history[parseInt(id)].query)
 
     delete_query: (event) =>
         that = @
@@ -4009,6 +4171,31 @@ class DriverHandler
                 @_end()
                 callback error, result
 
+    cursor_next_many: (cursor, count, cb) =>
+        if not @connection?
+            end()
+        @_begin()
+        # The code here is cribbed from readCursor in tableview.ts
+        rows = []
+        reader = null
+        reader = () =>
+            if rows.length is count
+                @_end()
+                setTimeout(cb, 0, null, rows)
+                return
+            cursor.next (err, row) =>
+                if err
+                    @_end()
+                    # TODO: Is this seriously how we denote EOF?
+                    if err.message is 'No more rows in the cursor.'
+                        setTimeout(cb, 0, null, rows)
+                        return
+                    setTimeout(cb, 0, err, rows)
+                    return
+                rows.push(row)
+                reader()
+        reader()
+
     cursor_next: (cursor, {error, row, end}) =>
         if not @connection?
             end()
@@ -4031,7 +4218,9 @@ class DriverHandler
 exports.QueryResult = QueryResult
 exports.Container = Container
 exports.ResultView = ResultView
+exports.PagedResultView = PagedResultView
 exports.TreeView = TreeView
+exports.TableViewerView = TableViewerView
 exports.TableView = TableView
 exports.RawView = RawView
 exports.ProfileView = ProfileView

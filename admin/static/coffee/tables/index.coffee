@@ -291,6 +291,9 @@ class TableView extends Backbone.View
     initialize: =>
         @listenTo @model, 'change', @render
 
+    events:
+        'submit .table-lookup-by-id': 'submit_id_lookup'
+
     render: =>
         @$el.html @template
             id: @model.get 'id'
@@ -303,6 +306,10 @@ class TableView extends Backbone.View
             replicas_ready: @model.get 'replicas_ready'
             status: @model.get 'status'
         @
+
+    submit_id_lookup: =>
+        id = @$('.table-lookup-box').attr('value')
+        app.main.router.goto_explore_table_id(@model.get('id'), id)
 
     remove: =>
         @stopListening()

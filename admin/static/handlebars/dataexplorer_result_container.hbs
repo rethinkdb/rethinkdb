@@ -5,6 +5,7 @@
         {{/unless}}
         <li><a href="#raw_view" class="link_to_raw_view">Raw view</a></li>
         <li><a href="#table_view" class="link_to_table_view">Table view</a></li>
+        <li><a href="#tableviewer_view" class="link_to_tableviewer_view">Table Viewer View</a>
         <li><a href="#tree_view" class="link_to_tree_view">Tree view</a></li>
     </ul>
     <p class="metadata {{#if floating_metadata}}floating_metadata{{/if}} {{#if feed.paused}}feed_paused{{else}}feed_unpaused{{/if}}">
@@ -22,15 +23,17 @@
             {{#if no_results~}}
                 No results returned.
             {{else}}
-                {{num_results}} {{pluralize_noun 'row' num_results}} returned
-                {{~#if show_more_data}} so far{{/if}}
-                {{~#if execution_time_pretty}}
-                    in {{execution_time_pretty}}
-                {{~/if~}}.
-                {{#if range_end~}}
-                    Displaying rows {{range_begin}}-{{range_end}}
-                {{~/if}}
-                {{~#if show_more_data}}, more available {{/if}}
+                {{#if paginated}}
+                    {{num_results}} {{pluralize_noun 'row' num_results}} returned
+                    {{~#if show_more_data}} so far{{/if}}
+                    {{~#if execution_time_pretty}}
+                        in {{execution_time_pretty}}
+                    {{~/if~}}.
+                    {{#if range_end~}}
+                        Displaying rows {{range_begin}}-{{range_end}}
+                    {{~/if}}
+                    {{~#if show_more_data}}, more available {{/if}}
+                {{/if}}
             {{/if}}
         {{/if}}
     </p>
