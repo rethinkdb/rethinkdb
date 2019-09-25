@@ -12,7 +12,7 @@ DEBIAN_PKG_DIR := $(PACKAGING_DIR)/debian
 DEB_CONTROL_ROOT := $(DEB_PACKAGE_DIR)/DEBIAN
 
 DIST_FILE_LIST_REL := admin demos drivers mk packaging scripts src test
-DIST_FILE_LIST_REL += configure COPYRIGHT Makefile NOTES.md README.md
+DIST_FILE_LIST_REL += configure LICENSE Makefile NOTES.md README.md
 
 DIST_FILE_LIST := $(foreach x,$(DIST_FILE_LIST_REL),$(TOP)/$x)
 
