@@ -764,9 +764,11 @@ ExactFloat logb(const ExactFloat& a) {
 #ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunknown-pragmas"
-// Some versions of CLANG suggest noreturn...
-#pragma GCC diagnostic ignored "-Wsuggest-attribute=noreturn"
-#endif
+// Some versions of Clang suggest noreturn...
+#ifdef __clang__
+#pragma GCC diagnostic ignored "-Wmissing-noreturn"
+#endif  // __clang__
+#endif  // __GNUC__
 ExactFloat ExactFloat::Unimplemented() {
   LOG(FATAL) << "Unimplemented ExactFloat method called";
   return NaN();
