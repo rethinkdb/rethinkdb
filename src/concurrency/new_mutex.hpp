@@ -29,7 +29,7 @@ public:
     explicit new_mutex_in_line_t(new_mutex_t *new_mutex)
         : rwlock_in_line_(&new_mutex->rwlock_, access_t::write) { }
 
-    MOVABLE_BUT_NOT_COPYABLE(new_mutex_in_line_t);
+    new_mutex_in_line_t(new_mutex_in_line_t &&) = default;
 
     const signal_t *acq_signal() const { return rwlock_in_line_.write_signal(); }
     void reset() { rwlock_in_line_.reset(); }
@@ -38,6 +38,8 @@ public:
     }
 private:
     rwlock_in_line_t rwlock_in_line_;
+
+    DISABLE_COPYING(new_mutex_in_line_t);
 };
 
 class new_mutex_acq_t {
