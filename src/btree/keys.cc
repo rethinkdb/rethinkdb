@@ -72,21 +72,21 @@ key_range_t::key_range_t(bound_t lm, const btree_key_t *l, bound_t rm, const btr
 
 void key_range_t::init(bound_t lm, const btree_key_t *l, bound_t rm, const btree_key_t *r) {
     switch (lm) {
-        case closed:
+        case bound_t::closed:
             left.assign(l);
             break;
-        case open:
+        case bound_t::open:
             left.assign(l);
             if (left.increment()) {
                 break;
             } else {
-                rassert(rm == none);
+                rassert(rm == bound_t::none);
                 /* Our left bound is the largest possible key, and we are open
                 on the left-hand side. So we are empty. */
                 *this = key_range_t::empty();
                 return;
             }
-        case none:
+        case bound_t::none:
             left = store_key_t::min();
             break;
         default:
@@ -94,18 +94,18 @@ void key_range_t::init(bound_t lm, const btree_key_t *l, bound_t rm, const btree
     }
 
     switch (rm) {
-        case closed: {
+        case bound_t::closed: {
             right.unbounded = false;
             right.key().assign(r);
             bool ok = right.increment();
             guarantee(ok);
             break;
         }
-        case open:
+        case bound_t::open:
             right.unbounded = false;
             right.key().assign(r);
             break;
-        case none:
+        case bound_t::none:
             right.unbounded = true;
             break;
         default:
