@@ -98,8 +98,6 @@ private:
                 const raft_member_id_t &mid,
                 const raft_persistent_state_t<dummy_raft_state_t> &ss) :
             member_id(mid), stored_state(ss), live(live_t::dead) { }
-        member_info_t(member_info_t &&) = default;
-        member_info_t &operator=(member_info_t &&) = default;
 
         const raft_persistent_state_t<dummy_raft_state_t> *get() {
             return &stored_state;
@@ -133,6 +131,8 @@ private:
         scoped_ptr_t<auto_drainer_t> member_drainer;
         scoped_ptr_t<watchable_t<raft_business_card_t<dummy_raft_state_t> >
             ::subscription_t> bcard_subs;
+
+        DISABLE_COPYING(member_info_t);
     };
 
     void add_member(
