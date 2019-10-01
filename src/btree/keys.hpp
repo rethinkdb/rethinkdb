@@ -267,11 +267,18 @@ public:
         return right.key_or_max();
     }
 
-    enum bound_t {
+    // This enum class / static constexpr stuff is to silence a warning that "open"
+    // shadows a global variable named open.  This used to be "enum bound_t".  Removing
+    // the static constexpr definitions would be acceptable.
+    enum class bound_t {
         open,
         closed,
         none
     };
+
+    static constexpr bound_t open = bound_t::open;
+    static constexpr bound_t closed = bound_t::closed;
+    static constexpr bound_t none = bound_t::none;
 
     key_range_t();   /* creates a range containing no keys */
     key_range_t(bound_t lm, const store_key_t &l,
