@@ -27,8 +27,6 @@ LIB_DEPS := $(foreach dep, $(FETCH_LIST), $(SUPPORT_BUILD_DIR)/$(dep)_$($(dep)_V
 
 PROTO_DEPS := $(PROTO_DIR)/rdb_protocol/ql2.pb.h $(PROTO_DIR)/rdb_protocol/ql2.pb.cc
 
-WEB_ASSETS_DEPS := $(BUILD_ROOT_DIR)/bundle_assets/web_assets.cc $(BUILD_ROOT_DIR)/bundle_assets/web_assets.rc
-
 MSBUILD_FLAGS := /nologo /maxcpucount
 MSBUILD_FLAGS += /p:Configuration=$(CONFIGURATION)
 MSBUILD_FLAGS += /p:Platform=$(PLATFORM)
@@ -37,11 +35,11 @@ ifneq (1,$(VERBOSE))
   MSBUILD_FLAGS += /verbosity:minimal
 endif
 
-$/build/$(CONFIGURATION)_$(PLATFORM)/rethinkdb.exe: $/rethinkdb.vcxproj $(SOURCES_NOUNIT) $(LIB_DEPS) $(PROTO_DEPS) $(WEB_ASSETS_DEPS)
+$/build/$(CONFIGURATION)_$(PLATFORM)/rethinkdb.exe: $/rethinkdb.vcxproj $(SOURCES_NOUNIT) $(LIB_DEPS) $(PROTO_DEPS)
 	$P MSBUILD
 	"$(MSBUILD)" $(MSBUILD_FLAGS) $<
 
-$/build/$(CONFIGURATION)_$(PLATFORM)/rethinkdb-unittest.exe: $/rethinkdb-unittest.vcxproj $(SOURCES) $(LIB_DEPS) $(PROTO_DEPS) $(WEB_ASSETS_DEPS)
+$/build/$(CONFIGURATION)_$(PLATFORM)/rethinkdb-unittest.exe: $/rethinkdb-unittest.vcxproj $(SOURCES) $(LIB_DEPS) $(PROTO_DEPS)
 	$P MSBUILD
 	"$(MSBUILD)" $(MSBUILD_FLAGS) $<
 
