@@ -138,7 +138,7 @@ deb-src-dir: dist-dir
 .PHONY: build-deb
 build-deb: deb-src-dir
 	$P BUILD-DEB $(DSC_PACKAGE_DIR)
-	cd $(DSC_PACKAGE_DIR) && dpkg-buildpackage -rfakeroot $(DEBUILD_SIGN_OPTIONS)
+	cd $(DSC_PACKAGE_DIR) && dpkg-buildpackage --jobs=auto -rfakeroot $(DEBUILD_SIGN_OPTIONS)
 
 .PHONY: install-osx
 install-osx: install-binaries
