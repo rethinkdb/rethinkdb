@@ -241,7 +241,7 @@ void directory_read_manager_t<metadata_t>::propagate_update(
             });
         map_variable.set_key_no_equals(connection->get_peer_id(), std::move(*new_value));
 
-    } catch (interrupted_exc_t) {
+    } catch (const interrupted_exc_t &) {
         /* This can only occur if we are shutting down or the connection was lost. In
         either case, it's safe to ignore the update. */
     }

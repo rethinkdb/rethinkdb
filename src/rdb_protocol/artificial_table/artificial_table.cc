@@ -253,7 +253,7 @@ ql::datum_t artificial_table_t::write_batched_replace(
             if (!static_cast<bool>(permission_error_what)) {
                 permission_error_what.set(permission_error.what());
             }
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             /* don't throw since we're in throttled_pmap() */
         }
     }, max_parallel_ops);
@@ -320,7 +320,7 @@ ql::datum_t artificial_table_t::write_batched_insert(
             if (!static_cast<bool>(permission_error_what)) {
                 permission_error_what.set(permission_error.what());
             }
-        } catch (interrupted_exc_t) {
+        } catch (const interrupted_exc_t &) {
             /* don't throw since we're in throttled_pmap() */
         }
     }, max_parallel_ops);
