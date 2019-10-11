@@ -1260,7 +1260,7 @@ can_fetch () {
 all_fetch_deps () {
     local ret=
     local pkg
-    for dep in $all_deps; do
+    for dep in $all_deps $web_assets_deps; do
         pkg=$(guess_pkg_name "$dep")
         if can_fetch $pkg; then
             ret="$ret $pkg"
