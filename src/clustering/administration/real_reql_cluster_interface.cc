@@ -1289,7 +1289,7 @@ bool real_reql_cluster_interface_t::sindex_create(
             query_state_t::FAILED};
         return false;
     } CATCH_NAME_ERRORS(db->name, name, error_out)
-      CATCH_OP_ERRORS(db->name, name, error_out,
+      CATCH_OP_ERRORS(db->name, table, error_out,
         "The secondary index was not created.",
         "The secondary index may or may not have been created.")
 }
