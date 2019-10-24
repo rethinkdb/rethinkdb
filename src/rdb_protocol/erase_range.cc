@@ -2,6 +2,7 @@
 #include "rdb_protocol/erase_range.hpp"
 
 #include "buffer_cache/alt.hpp"
+#include "btree/depth_first_traversal.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
 #include "btree/operations.hpp"
@@ -141,11 +142,9 @@ continue_bool_t rdb_erase_small_range(
                 buf_parent_t(&kv_location.buf), kv_location.value.get());
             // Erase the entry from the leaf node
             kv_location.value.reset();
-            null_key_modification_callback_t null_cb;
             apply_keyvalue_change(&sizer, &kv_location, key.btree_key(),
                                   repli_timestamp_t::invalid /* ignored for erase */,
                                   deletion_context->in_tree_deleter(),
-                                  &null_cb,
                                   delete_mode_t::ERASE);
         } // kv_location is destroyed here. That's important because sometimes
           // pass_back_superblock_promise isn't pulsed before the kv_location

@@ -17,6 +17,7 @@
 #include "http/http_parser.hpp"
 #include "rapidjson/document.h"
 #include "rapidjson/error/en.h"
+#include "rdb_protocol/datum_json.hpp"
 #include "rdb_protocol/env.hpp"
 
 #define RETHINKDB_USER_AGENT (SOFTWARE_NAME_STRING "/" RETHINKDB_VERSION)

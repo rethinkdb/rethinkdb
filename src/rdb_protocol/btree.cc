@@ -130,9 +130,8 @@ void kv_location_delete(keyvalue_location_t *kv_location,
 
     kv_location->value.reset();
     rdb_value_sizer_t sizer(block_size);
-    null_key_modification_callback_t null_cb;
     apply_keyvalue_change(&sizer, kv_location, key.btree_key(), timestamp,
-            deletion_context->balancing_detacher(), &null_cb, delete_mode);
+            deletion_context->balancing_detacher(), delete_mode);
 }
 
 MUST_USE ql::serialization_result_t
@@ -174,11 +173,10 @@ kv_location_set(keyvalue_location_t *kv_location,
 
     // Actually update the leaf, if needed.
     kv_location->value = std::move(new_value);
-    null_key_modification_callback_t null_cb;
     rdb_value_sizer_t sizer(block_size);
     apply_keyvalue_change(&sizer, kv_location, key.btree_key(),
                           timestamp,
-                          deletion_context->balancing_detacher(), &null_cb,
+                          deletion_context->balancing_detacher(),
                           delete_mode_t::REGULAR_QUERY);
     return ql::serialization_result_t::SUCCESS;
 }
@@ -201,10 +199,9 @@ kv_location_set(keyvalue_location_t *kv_location,
     // Update the leaf, if needed.
     kv_location->value = std::move(new_value);
 
-    null_key_modification_callback_t null_cb;
     rdb_value_sizer_t sizer(kv_location->buf.cache()->max_block_size());
     apply_keyvalue_change(&sizer, kv_location, key.btree_key(), timestamp,
-                          deletion_context->balancing_detacher(), &null_cb,
+                          deletion_context->balancing_detacher(),
                           delete_mode_t::REGULAR_QUERY);
     return ql::serialization_result_t::SUCCESS;
 }

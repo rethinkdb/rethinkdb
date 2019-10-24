@@ -11,6 +11,7 @@
 
 #include "containers/counted.hpp"
 #include "containers/scoped.hpp"
+#include "rapidjson/document.h"
 #include "rapidjson/rapidjson.h"
 #include "rdb_protocol/rdb_backtrace.hpp"
 #include "rdb_protocol/datum.hpp"
