@@ -74,7 +74,7 @@ private:
     std::function<T(const std::map<datum_t, uint64_t> &)> f2;
 };
 
-struct datumspec_t {
+class datumspec_t {
 public:
     template<class T>
     explicit datumspec_t(T t) : spec(std::move(t)) { }

@@ -9,8 +9,6 @@
 #include <vector>
 
 #include "buffer_cache/types.hpp"
-#include "clustering/administration/auth/user_context.hpp"
-#include "clustering/administration/auth/permission_error.hpp"
 #include "concurrency/fifo_checker.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/interruptor.hpp"
@@ -27,6 +25,8 @@
 #include "version.hpp"
 
 namespace auth {
+class permission_error_t;
+class user_context_t;
 class username_t;
 }  // namespace auth
 
