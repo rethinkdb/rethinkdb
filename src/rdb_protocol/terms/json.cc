@@ -1,5 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "cjson/json.hpp"
+#include "rdb_protocol/datum_json.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/terms/terms.hpp"

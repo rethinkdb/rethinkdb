@@ -12,6 +12,7 @@
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "rdb_protocol/changefeed.hpp"
+#include "rdb_protocol/datum_json.hpp"
 #include "rdb_protocol/datum_stream/vector.hpp"
 #include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/protocol.hpp"

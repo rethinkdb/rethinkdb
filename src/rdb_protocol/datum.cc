@@ -1575,43 +1575,6 @@ template void datum_t::write_json(
 template void datum_t::write_json(
     rapidjson::PrettyWriter<rapidjson::StringBuffer> *writer) const;
 
-rapidjson::Value datum_t::as_json(rapidjson::Value::AllocatorType *allocator) const {
-    switch (get_type()) {
-    case MINVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.minval` to JSON.");
-    case MAXVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.maxval` to JSON.");
-    case R_NULL: return rapidjson::Value(rapidjson::kNullType);
-    case R_BINARY: return pseudo::encode_base64_ptype(as_binary(), allocator);
-    case R_BOOL: return rapidjson::Value(as_bool());
-    case R_NUM: return rapidjson::Value(as_num());
-    case R_STR: return rapidjson::Value(as_str().data(), as_str().size(), *allocator);
-    case R_ARRAY: {
-        rapidjson::Value res(rapidjson::kArrayType);
-        for (size_t i = 0; i < arr_size(); ++i) {
-            const datum_t el = unchecked_get(i);
-            el.call_with_enough_stack_datum([&]() {
-                    res.PushBack(el.as_json(allocator), *allocator);
-                });
-        }
-        return res;
-    } break;
-    case R_OBJECT: {
-        rapidjson::Value res(rapidjson::kObjectType);
-        for (size_t i = 0; i < obj_size(); ++i) {
-            auto pair = get_pair(i);
-            pair.second.call_with_enough_stack_datum([&]() {
-                    res.AddMember(rapidjson::Value(pair.first.data(),
-                                                   pair.first.size(), *allocator),
-                                  pair.second.as_json(allocator), *allocator);
-                });
-        }
-        return res;
-    } break;
-    case UNINITIALIZED: // fallthru
-    default: unreachable();
-    }
-    unreachable();
-}
-
 cJSON *datum_t::as_json_raw() const {
     switch (get_type()) {
     case MINVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.minval` to JSON.");
