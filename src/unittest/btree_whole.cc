@@ -2,6 +2,7 @@
 
 #include "arch/io/disk.hpp"
 #include "arch/types.hpp"
+#include "btree/depth_first_traversal.hpp"
 #include "btree/reql_specific.hpp"
 #include "buffer_cache/cache_balancer.hpp"
 #include "rdb_protocol/btree.hpp"
