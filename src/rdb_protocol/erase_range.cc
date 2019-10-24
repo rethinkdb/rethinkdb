@@ -2,6 +2,7 @@
 #include "rdb_protocol/erase_range.hpp"
 
 #include "buffer_cache/alt.hpp"
+#include "btree/depth_first_traversal.hpp"
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
 #include "btree/operations.hpp"

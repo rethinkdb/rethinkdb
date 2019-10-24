@@ -3,6 +3,7 @@
 
 #include <map>
 
+#include "math.hpp"
 #include "rdb_protocol/batching.hpp"
 #include "rdb_protocol/datum_stream/array.hpp"
 #include "rdb_protocol/datum_stream/eq_join.hpp"
@@ -35,8 +36,6 @@
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/val.hpp"
 #include "utils.hpp"
-
-#include "debug.hpp"
 
 namespace ql {
 

@@ -2,7 +2,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_PERSIST_FILE_HPP_
 #define CLUSTERING_ADMINISTRATION_PERSIST_FILE_HPP_
 
-#include "btree/operations.hpp"
+#include "btree/keys.hpp"
+#include "btree/stats.hpp"
 #include "buffer_cache/alt.hpp"
 #include "buffer_cache/types.hpp"
 #include "concurrency/rwlock.hpp"
