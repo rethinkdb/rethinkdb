@@ -3,6 +3,7 @@
 
 #include <map>
 #include <string>
+
 #include "rpc/serialize_macros.hpp"
 
 class rdb_context_t;
