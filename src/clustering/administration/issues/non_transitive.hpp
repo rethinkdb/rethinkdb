@@ -3,6 +3,7 @@
 #define CLUSTERING_ADMINISTRATION_ISSUES_NON_TRANSITIVE_HPP_
 
 #include "clustering/administration/issues/issue.hpp"
+#include "rpc/connectivity/server_id.hpp"
 
 class non_transitive_issue_t : public issue_t {
 public:
