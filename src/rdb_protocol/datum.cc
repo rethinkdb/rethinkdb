@@ -1519,15 +1519,15 @@ datum_t datum_t::get_field(const char *key, throw_bool_t throw_bool) const {
 }
 
 template <class json_writer_t>
-void datum_t::write_json_unchecked_stack(json_writer_t *writer) const {
-    switch (get_type()) {
-    case MINVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.minval` to JSON.");
-    case MAXVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.maxval` to JSON.");
-    case R_NULL: writer->Null(); break;
-    case R_BINARY: pseudo::encode_base64_ptype(as_binary(), writer); break;
-    case R_BOOL: writer->Bool(as_bool()); break;
-    case R_NUM: {
-        const double d = as_num();
+void write_json_unchecked_stack(const datum_t &datum, json_writer_t *writer) {
+    switch (datum.get_type()) {
+    case datum_t::MINVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.minval` to JSON.");
+    case datum_t::MAXVAL: rfail_datum(base_exc_t::LOGIC, "Cannot convert `r.maxval` to JSON.");
+    case datum_t::R_NULL: writer->Null(); break;
+    case datum_t::R_BINARY: pseudo::encode_base64_ptype(datum.as_binary(), writer); break;
+    case datum_t::R_BOOL: writer->Bool(datum.as_bool()); break;
+    case datum_t::R_NUM: {
+        const double d = datum.as_num();
         // Always print -0.0 as a double since integers cannot represent -0.
         // Otherwise check if the number is an integer and print it as such.
         int64_t i;
@@ -1538,26 +1538,26 @@ void datum_t::write_json_unchecked_stack(json_writer_t *writer) const {
             writer->Double(d);
         }
     } break;
-    case R_STR: writer->String(as_str().data(), as_str().size()); break;
-    case R_ARRAY: {
+    case datum_t::R_STR: writer->String(datum.as_str().data(), datum.as_str().size()); break;
+    case datum_t::R_ARRAY: {
         writer->StartArray();
-        const size_t sz = arr_size();
+        const size_t sz = datum.arr_size();
         for (size_t i = 0; i < sz; ++i) {
-            unchecked_get(i).write_json(writer);
+            datum.unchecked_get(i).write_json(writer);
         }
         writer->EndArray();
     } break;
-    case R_OBJECT: {
+    case datum_t::R_OBJECT: {
         writer->StartObject();
-        const size_t sz = obj_size();
+        const size_t sz = datum.obj_size();
         for (size_t i = 0; i < sz; ++i) {
-            auto pair = get_pair(i);
+            auto pair = datum.get_pair(i);
             writer->Key(pair.first.data(), pair.first.size());
             pair.second.write_json(writer);
         }
         writer->EndObject();
     } break;
-    case UNINITIALIZED: // fallthru
+    case datum_t::UNINITIALIZED: // fallthru
     default: unreachable();
     }
 }
@@ -1565,7 +1565,7 @@ void datum_t::write_json_unchecked_stack(json_writer_t *writer) const {
 template <class json_writer_t>
 void datum_t::write_json(json_writer_t *writer) const {
     call_with_enough_stack_datum([&] {
-            return this->write_json_unchecked_stack<json_writer_t>(writer);
+            return write_json_unchecked_stack<json_writer_t>(*this, writer);
         });
 }
 
