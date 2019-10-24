@@ -1504,8 +1504,7 @@ void insert(
         const btree_key_t *key,
         const void *value,
         repli_timestamp_t tstamp,
-        repli_timestamp_t maximum_existing_tstamp,
-        UNUSED key_modification_proof_t km_proof) {
+        repli_timestamp_t maximum_existing_tstamp) {
     rassert(!is_full(sizer, node, key, value));
 
     /* Make space for the entry itself */
@@ -1533,8 +1532,7 @@ void remove(
         leaf_node_t *node,
         const btree_key_t *key,
         repli_timestamp_t tstamp,
-        repli_timestamp_t maximum_existing_tstamp,
-        UNUSED key_modification_proof_t km_proof) {
+        repli_timestamp_t maximum_existing_tstamp) {
     /* If the deletion entry would fall after `tstamp_cutpoint`, then it
     shouldn't be written at all. If that's the case, then
     `prepare_space_for_new_entry()` will return false because we pass false for
@@ -1557,7 +1555,7 @@ void remove(
 }
 
 // Erases the entry for the given key, leaving behind no trace.
-void erase_presence(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, UNUSED key_modification_proof_t km_proof) {
+void erase_presence(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key) {
     int index;
     bool found = find_key(node, key, &index);
     if (found) {

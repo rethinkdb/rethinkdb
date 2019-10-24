@@ -2,6 +2,7 @@
 #include "btree/depth_first_traversal.hpp"
 
 #include "btree/internal_node.hpp"
+#include "btree/leaf_node.hpp"
 #include "btree/operations.hpp"
 #include "concurrency/interruptor.hpp"
 #include "rdb_protocol/profile.hpp"

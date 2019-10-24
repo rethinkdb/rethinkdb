@@ -291,9 +291,8 @@ void metadata_file_t::write_txn_t::write_bin(
                     blob::btree_maxreflen);
         write_onto_blob(buf_parent_t(&kvloc.buf), &blob, *msg);
     }
-    null_key_modification_callback_t null_cb;
     apply_keyvalue_change(&sizer, &kvloc, key.btree_key(), repli_timestamp_t::invalid,
-        &detacher, &null_cb, delete_mode_t::ERASE);
+        &detacher, delete_mode_t::ERASE);
 }
 
 metadata_file_t::metadata_file_t(
