@@ -6,7 +6,6 @@
 #include <utility>
 #include <vector>
 
-#include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
 #include "buffer_cache/alt.hpp"
 #include "concurrency/fifo_enforcer.hpp"
@@ -139,36 +138,6 @@ private:
     DISABLE_COPYING(keyvalue_location_t);
 };
 
-
-// KSI: This type is stupid because the only subclass is
-// null_key_modification_callback_t?
-class key_modification_callback_t {
-public:
-    // Perhaps this modifies the kv_loc in place, swapping in its own
-    // scoped_malloc_t.  It's the caller's responsibility to have
-    // destroyed any blobs that the value might reference, before
-    // calling this here, so that this callback can reacquire them.
-    virtual key_modification_proof_t value_modification(keyvalue_location_t *kv_loc, const btree_key_t *key) = 0;
-
-    key_modification_callback_t() { }
-protected:
-    virtual ~key_modification_callback_t() { }
-private:
-    DISABLE_COPYING(key_modification_callback_t);
-};
-
-
-
-
-class null_key_modification_callback_t : public key_modification_callback_t {
-    key_modification_proof_t
-    value_modification(UNUSED keyvalue_location_t *kv_loc,
-                       UNUSED const btree_key_t *key) {
-        // do nothing
-        return key_modification_proof_t::real_proof();
-    }
-};
-
 buf_lock_t get_root(value_sizer_t *sizer, superblock_t *sb);
 
 void check_and_handle_split(value_sizer_t *sizer,
@@ -235,7 +204,6 @@ void apply_keyvalue_change(
         const btree_key_t *key,
         repli_timestamp_t tstamp,
         const value_deleter_t *balancing_detacher,
-        key_modification_callback_t *km_callback,
         delete_mode_t delete_mode);
 
 #endif  // BTREE_OPERATIONS_HPP_

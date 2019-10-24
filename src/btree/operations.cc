@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "btree/internal_node.hpp"
+#include "btree/leaf_node.hpp"
 #include "buffer_cache/alt.hpp"
 #include "buffer_cache/blob.hpp"
 #include "containers/archive/vector_stream.hpp"
@@ -557,11 +558,7 @@ void apply_keyvalue_change(
         keyvalue_location_t *kv_loc,
         const btree_key_t *key, repli_timestamp_t tstamp,
         const value_deleter_t *balancing_detacher,
-        key_modification_callback_t *km_callback,
         delete_mode_t delete_mode) {
-    key_modification_proof_t km_proof
-        = km_callback->value_modification(kv_loc, key);
-
     /* how much this keyvalue change affects the total population of the btree
      * (should be -1, 0 or 1) */
     int population_change;
@@ -605,8 +602,7 @@ void apply_keyvalue_change(
                          key,
                          kv_loc->value.get(),
                          tstamp,
-                         previous_leaf_recency,
-                         km_proof);
+                         previous_leaf_recency);
         }
     } else {
         // Delete the value if it's there.
@@ -631,14 +627,12 @@ void apply_keyvalue_change(
                              leaf_node,
                              key,
                              tstamp,
-                             previous_leaf_recency,
-                             km_proof);
+                             previous_leaf_recency);
                     } break;
                     case delete_mode_t::ERASE: {
                         leaf::erase_presence(sizer,
                             leaf_node,
-                            key,
-                            km_proof);
+                            key);
                     } break;
                     default: unreachable();
                 }

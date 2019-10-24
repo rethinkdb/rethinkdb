@@ -47,8 +47,7 @@ public:
             key.btree_key(),
             v.data(),
             tstamp,
-            maximum_existing_tstamp_,
-            key_modification_proof_t::real_proof());
+            maximum_existing_tstamp_);
 
         maximum_existing_tstamp_ =
             superceding_recency(maximum_existing_tstamp_, tstamp);
@@ -77,8 +76,7 @@ public:
             node(),
             key.btree_key(),
             tstamp,
-            maximum_existing_tstamp_,
-            key_modification_proof_t::real_proof());
+            maximum_existing_tstamp_);
 
         maximum_existing_tstamp_ =
             superceding_recency(maximum_existing_tstamp_, tstamp);

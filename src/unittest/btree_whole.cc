@@ -138,7 +138,6 @@ public:
             profile::trace_t trace;
             noop_value_deleter_t deleter;
             rdb_live_deletion_context_t deletion_context;
-            null_key_modification_callback_t null_cb;
 
             keyvalue_location_t kv_location;
             find_keyvalue_location_for_write(
@@ -162,7 +161,6 @@ public:
                 key.btree_key(),
                 timestamp,
                 &deleter,
-                &null_cb,
                 delete_mode_t::REGULAR_QUERY);
         });
 
@@ -180,7 +178,6 @@ public:
             profile::trace_t trace;
             noop_value_deleter_t deleter;
             rdb_live_deletion_context_t deletion_context;
-            null_key_modification_callback_t null_cb;
 
             keyvalue_location_t kv_location;
             find_keyvalue_location_for_write(
@@ -202,7 +199,6 @@ public:
                 key.btree_key(),
                 timestamp,
                 &deleter,
-                &null_cb,
                 delete_mode_t::REGULAR_QUERY);
         });
 
