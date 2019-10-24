@@ -12,6 +12,7 @@
 #include "containers/uuid.hpp"
 #include "rapidjson/document.h"
 #include "rdb_protocol/btree.hpp"
+#include "rdb_protocol/datum_json.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/erase_range.hpp"
 #include "rdb_protocol/minidriver.hpp"

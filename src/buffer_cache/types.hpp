@@ -46,4 +46,9 @@ struct block_magic_t {
 
 void debug_print(printf_buffer_t *buf, block_magic_t magic);
 
+struct which_cpu_shard_t {
+    int which_shard;
+    int num_shards;
+};
+
 #endif /* BUFFER_CACHE_TYPES_HPP_ */

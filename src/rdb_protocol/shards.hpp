@@ -9,8 +9,8 @@
 #include <vector>
 
 #include "arch/runtime/coroutines.hpp"
-#include "btree/concurrent_traversal.hpp"
 #include "btree/keys.hpp"
+#include "btree/types.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "containers/archive/varint.hpp"
 #include "containers/uuid.hpp"

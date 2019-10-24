@@ -14,7 +14,6 @@
 #include <boost/variant.hpp>
 
 #include "btree/keys.hpp"
-#include "clustering/administration/auth/user_context.hpp"
 #include "concurrency/new_mutex.hpp"
 #include "concurrency/promise.hpp"
 #include "concurrency/rwlock.hpp"
@@ -178,7 +177,8 @@ struct keyspec_t {
 };
 region_t keyspec_to_region(const keyspec_t &keyspec);
 
-struct streamspec_t {
+class streamspec_t {
+public:
     counted_t<datum_stream_t> maybe_src; // Non-null iff `include_initial`.
     std::string table_name;
     bool include_offsets;

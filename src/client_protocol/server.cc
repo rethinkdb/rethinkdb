@@ -32,16 +32,17 @@
 #include "perfmon/perfmon.hpp"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 #include "rdb_protocol/rdb_backtrace.hpp"
 #include "rdb_protocol/base64.hpp"
+#include "rdb_protocol/datum_json.hpp"
 #include "rdb_protocol/env.hpp"
-#include "rpc/semilattice/view.hpp"
-#include "time.hpp"
-
 #include "rdb_protocol/ql2proto.hpp"
 #include "rdb_protocol/query_server.hpp"
 #include "rdb_protocol/query_cache.hpp"
 #include "rdb_protocol/response.hpp"
+#include "rpc/semilattice/view.hpp"
+#include "time.hpp"
 
 http_conn_cache_t::http_conn_t::http_conn_t(rdb_context_t *rdb_ctx,
                                             ip_and_port_t client_addr_port) :

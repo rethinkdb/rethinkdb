@@ -37,7 +37,7 @@ multi_table_manager_t::multi_table_manager_t(
         [&](const namespace_id_t &table_id,
                 const table_active_persistent_state_t &state,
                 raft_storage_interface_t<table_raft_state_t> *raft_storage,
-                metadata_file_t::read_txn_t *metadata_read_txn) {
+                metadata::read_txn_t *metadata_read_txn) {
             guarantee(tables.count(table_id) == 0);
             table_t *table;
             tables[table_id].init(table = new table_t);
@@ -55,7 +55,7 @@ multi_table_manager_t::multi_table_manager_t(
         },
         [&](const namespace_id_t &table_id,
                 const table_inactive_persistent_state_t &state,
-                metadata_file_t::read_txn_t *) {
+                metadata::read_txn_t *) {
             guarantee(tables.count(table_id) == 0);
             table_t *table;
             tables[table_id].init(table = new table_t);

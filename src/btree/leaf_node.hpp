@@ -15,23 +15,6 @@ class value_sizer_t;
 struct btree_key_t;
 class repli_timestamp_t;
 
-// TODO: Could key_modification_proof_t not go in this file?
-
-// Originally we thought that leaf node modification functions would
-// take a key-modification callback, thus forcing every key/value
-// modification to consider the callback.  The problem is that the
-// user is supposed to call is_full before calling insert, and is_full
-// depends on the value size and can cause a split to happen.  But
-// what if the key modification then wants to change the value size?
-// Then we would need to redo the logic considering whether we want to
-// split the leaf node.  Instead the caller just provides evidence
-// that they considered doing the appropriate value modifications, by
-// constructing one of these dummy values.
-class key_modification_proof_t {
-public:
-    static key_modification_proof_t real_proof() { return key_modification_proof_t(); }
-};
-
 namespace leaf {
 class iterator;
 class reverse_iterator;
@@ -152,8 +135,7 @@ void insert(
         const void *value,
         repli_timestamp_t tstamp,
         /* the recency of the buf_t that `node` comes from */
-        repli_timestamp_t maximum_existing_tstamp,
-        UNUSED key_modification_proof_t km_proof);
+        repli_timestamp_t maximum_existing_tstamp);
 
 /* `remove()` removes any preexisting value or tombstone, then creates a tombstone unless
 `tstamp` is before `tstamp_cutpoint`. */
@@ -163,12 +145,11 @@ void remove(
         const btree_key_t *key,
         repli_timestamp_t tstamp,
         /* the recency of the buf_t that `node` comes from */
-        repli_timestamp_t maximum_existing_tstamp,
-        key_modification_proof_t km_proof);
+        repli_timestamp_t maximum_existing_tstamp);
 
 /* `erase_presence()` removes any preexisting value or tombstone, but does not create a
 new tombstone. */
-void erase_presence(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key, key_modification_proof_t km_proof);
+void erase_presence(value_sizer_t *sizer, leaf_node_t *node, const btree_key_t *key);
 
 /* Returns the smallest timestamp such that if a deletion had occurred with that
 timestamp, the node would still have a record of it. */

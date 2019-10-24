@@ -40,11 +40,6 @@ private:
     DISABLE_COPYING(alt_txn_throttler_t);
 };
 
-struct which_cpu_shard_t {
-    int which_shard;
-    int num_shards;
-};
-
 class cache_t : public home_thread_mixin_t {
 public:
     explicit cache_t(serializer_t *serializer,

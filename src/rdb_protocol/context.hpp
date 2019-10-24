@@ -10,6 +10,8 @@
 
 #include "concurrency/one_per_thread.hpp"
 #include "concurrency/promise.hpp"
+#include "concurrency/watchable.hpp"
+#include "containers/clone_ptr.hpp"
 #include "containers/counted.hpp"
 #include "containers/name_string.hpp"
 #include "containers/optional.hpp"
@@ -17,7 +19,6 @@
 #include "containers/uuid.hpp"
 #include "perfmon/perfmon.hpp"
 #include "protocol_api.hpp"
-#include "rdb_protocol/changefeed.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/geo/distances.hpp"
 #include "rdb_protocol/geo/lon_lat_types.hpp"
@@ -30,6 +31,17 @@ class user_context_t;
 class permissions_t;
 
 }  // namespace auth
+
+namespace ql {
+class configured_limits_t;
+class datumspec_t;
+class env_t;
+class query_cache_t;
+
+namespace changefeed {
+class streamspec_t;
+}
+}
 
 struct admin_err_t;
 
@@ -116,9 +128,6 @@ public:
 RDB_DECLARE_SERIALIZABLE(sindex_status_t);
 
 namespace ql {
-class configured_limits_t;
-class env_t;
-class query_cache_t;
 class db_t : public single_threaded_countable_t<db_t> {
 public:
     db_t(uuid_u _id, const name_string_t &_name) : id(_id), name(_name) { }

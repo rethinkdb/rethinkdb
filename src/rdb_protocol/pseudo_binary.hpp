@@ -6,6 +6,7 @@
 #include <utility>
 #include <vector>
 
+#include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "rdb_protocol/datum_string.hpp"

@@ -6,8 +6,8 @@
 #include <utility>
 #include <vector>
 
-#include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
+#include "btree/stats.hpp"
 #include "buffer_cache/alt.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/new_semaphore.hpp"
@@ -24,6 +24,8 @@ namespace profile {
 class trace_t;
 }
 
+class buf_parent_t;
+class cache_t;
 class value_deleter_t;
 
 enum cache_snapshotted_t { CACHE_SNAPSHOTTED_NO, CACHE_SNAPSHOTTED_YES };
@@ -54,47 +56,6 @@ public:
 
 private:
     DISABLE_COPYING(superblock_t);
-};
-
-class btree_stats_t {
-public:
-    explicit btree_stats_t(perfmon_collection_t *parent,
-                           const std::string &identifier)
-        : btree_collection(),
-          pm_keys_read(secs_to_ticks(1)),
-          pm_keys_set(secs_to_ticks(1)),
-          pm_keys_membership(&btree_collection,
-              &pm_keys_read, "keys_read",
-              &pm_total_keys_read, "total_keys_read",
-              &pm_keys_set, "keys_set",
-              &pm_total_keys_set, "total_keys_set") {
-        if (parent != nullptr) {
-            rename(parent, identifier);
-        }
-    }
-
-    void hide() {
-        btree_collection_membership.reset();
-    }
-
-    void rename(perfmon_collection_t *parent,
-                const std::string &identifier) {
-        btree_collection_membership.reset();
-        btree_collection_membership.init(new perfmon_membership_t(
-            parent,
-            &btree_collection,
-            "btree-" + identifier));
-    }
-
-    perfmon_collection_t btree_collection;
-    scoped_ptr_t<perfmon_membership_t> btree_collection_membership;
-    perfmon_rate_monitor_t
-        pm_keys_read,
-        pm_keys_set;
-    perfmon_counter_t
-        pm_total_keys_read,
-        pm_total_keys_set;
-    perfmon_multi_membership_t pm_keys_membership;
 };
 
 class keyvalue_location_t {
@@ -137,36 +98,6 @@ public:
 private:
 
     DISABLE_COPYING(keyvalue_location_t);
-};
-
-
-// KSI: This type is stupid because the only subclass is
-// null_key_modification_callback_t?
-class key_modification_callback_t {
-public:
-    // Perhaps this modifies the kv_loc in place, swapping in its own
-    // scoped_malloc_t.  It's the caller's responsibility to have
-    // destroyed any blobs that the value might reference, before
-    // calling this here, so that this callback can reacquire them.
-    virtual key_modification_proof_t value_modification(keyvalue_location_t *kv_loc, const btree_key_t *key) = 0;
-
-    key_modification_callback_t() { }
-protected:
-    virtual ~key_modification_callback_t() { }
-private:
-    DISABLE_COPYING(key_modification_callback_t);
-};
-
-
-
-
-class null_key_modification_callback_t : public key_modification_callback_t {
-    key_modification_proof_t
-    value_modification(UNUSED keyvalue_location_t *kv_loc,
-                       UNUSED const btree_key_t *key) {
-        // do nothing
-        return key_modification_proof_t::real_proof();
-    }
 };
 
 buf_lock_t get_root(value_sizer_t *sizer, superblock_t *sb);
@@ -235,7 +166,6 @@ void apply_keyvalue_change(
         const btree_key_t *key,
         repli_timestamp_t tstamp,
         const value_deleter_t *balancing_detacher,
-        key_modification_callback_t *km_callback,
         delete_mode_t delete_mode);
 
 #endif  // BTREE_OPERATIONS_HPP_

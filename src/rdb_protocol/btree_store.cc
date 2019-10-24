@@ -5,6 +5,7 @@
 
 #include "arch/runtime/coroutines.hpp"
 #include "btree/depth_first_traversal.hpp"
+#include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
 #include "btree/operations.hpp"
 #include "btree/reql_specific.hpp"
@@ -805,8 +806,7 @@ void store_t::clear_sindex_data(
                                  leaf_node,
                                  keys[i].btree_key(),
                                  repli_timestamp_t::distant_past,
-                                 kv_location.buf.get_recency(),
-                                 key_modification_proof_t::real_proof());
+                                 kv_location.buf.get_recency());
                 }
                 check_and_handle_underfull(sizer, &kv_location.buf,
                         &kv_location.last_buf, kv_location.superblock,
