@@ -3,6 +3,6 @@ table_variable_name: tbl
 tests:
 
     - py: tbl.changes().merge({'a': r.now()})
-      ot: err('ReqlQueryLogicError')
+      ot: err("ReqlQueryLogicError", "Expected to call now() before changes(), not after")
 
     - py: tbl.merge({'a': r.now()}).changes()
