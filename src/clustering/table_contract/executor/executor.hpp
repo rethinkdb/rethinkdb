@@ -4,13 +4,14 @@
 
 #include "clustering/generic/raft_core.hpp"
 #include "clustering/immediate_consistency/history.hpp"
-#include "clustering/table_contract/contract_metadata.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"
 #include "clustering/table_contract/executor/exec.hpp"
 #include "concurrency/pump_coro.hpp"
 #include "store_subview.hpp"
 
 class backfill_progress_tracker_t;
+class contract_t;
+class table_shard_status_t;
 
 /* The `contract_executor_t` is responsible for executing the instructions contained in
 the `contract_t`s in the `table_raft_state_t`. Each server has one `contract_executor_t`

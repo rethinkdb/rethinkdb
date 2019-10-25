@@ -8,6 +8,7 @@
 
 #include "clustering/administration/tables/table_metadata.hpp"
 #include "clustering/generic/raft_core.hpp"
+#include "clustering/id_types.hpp"
 #include "clustering/immediate_consistency/history.hpp"
 #include "containers/optional.hpp"
 #include "region/region_map.hpp"
@@ -103,7 +104,8 @@ acking.
 In order to facilitiate CPU sharding, each contract's region must apply to exactly one
 CPU shard. */
 
-typedef uuid_u contract_id_t;
+// Defined in id_types.hpp.
+// typedef uuid_u contract_id_t;
 
 /* The `contract_executor_t` looks at what each `contract_t` says about its server ID,
 and reacts according to the following rules:

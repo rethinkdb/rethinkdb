@@ -3,8 +3,13 @@
 #define CLUSTERING_TABLE_CONTRACT_COORDINATOR_COORDINATOR_HPP_
 
 #include "clustering/generic/raft_core.hpp"
-#include "clustering/table_contract/contract_metadata.hpp"
+#include "clustering/id_types.hpp"
 #include "concurrency/pump_coro.hpp"
+
+class contract_ack_t;
+class server_id_t;
+class table_config_and_shards_t;
+class table_raft_state_t;
 
 /* There is one `contract_coordinator_t` per table, located on whichever server is
 currently the Raft leader. It's the only thing which ever initiates Raft transactions.

@@ -3,6 +3,7 @@
 
 #include "clustering/administration/admin_op_exc.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/env.hpp"
 
 /* We destroy the machinery if there have been no changefeeds for this many seconds */

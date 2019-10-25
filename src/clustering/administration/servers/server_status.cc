@@ -3,6 +3,7 @@
 
 #include "clustering/administration/admin_op_exc.hpp"
 #include "clustering/administration/datum_adapter.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/servers/config_client.hpp"
 

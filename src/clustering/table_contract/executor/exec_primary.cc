@@ -6,9 +6,53 @@
 #include "clustering/immediate_consistency/primary_dispatcher.hpp"
 #include "clustering/immediate_consistency/remote_replicator_server.hpp"
 #include "clustering/query_routing/direct_query_server.hpp"
+#include "clustering/table_contract/contract_metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/promise.hpp"
 #include "store_view.hpp"
+
+void ack_counter_t::note_ack(const server_id_t &server) {
+    if (static_cast<bool>(contract.primary)) {
+        primary_ack |= (server == contract.primary->server);
+    }
+    voter_acks += contract.voters.count(server);
+    if (static_cast<bool>(contract.temp_voters)) {
+        temp_voter_acks += contract.temp_voters->count(server);
+    }
+}
+
+bool ack_counter_t::is_safe() const {
+    return primary_ack &&
+        voter_acks * 2 > contract.voters.size() &&
+        (!static_cast<bool>(contract.temp_voters) ||
+            temp_voter_acks * 2 > contract.temp_voters->size());
+}
+
+class primary_execution_t::contract_info_t
+    : public slow_atomic_countable_t<primary_execution_t::contract_info_t> {
+public:
+    contract_info_t(const contract_id_t &_contract_id,
+                    const contract_t &_contract,
+                    write_durability_t _default_write_durability,
+                    write_ack_config_t _write_ack_config) :
+            contract_id(_contract_id),
+            contract(_contract),
+            default_write_durability(_default_write_durability),
+            write_ack_config(_write_ack_config) {
+    }
+    bool equivalent(const contract_info_t &other) const {
+        /* This method is called `equivalent` rather than `operator==` to avoid
+        confusion, because it doesn't actually compare every member */
+        return contract_id == other.contract_id &&
+            default_write_durability == other.default_write_durability &&
+            write_ack_config == other.write_ack_config;
+    }
+    contract_id_t contract_id;
+    contract_t contract;
+    write_durability_t default_write_durability;
+    write_ack_config_t write_ack_config;
+    cond_t obsolete;
+};
 
 primary_execution_t::primary_execution_t(
         const execution_t::context_t *_context,
@@ -55,8 +99,8 @@ void primary_execution_t::update_contract_or_raft_state(
             branch_registered.pulse();
             /* Change `latest_ack` immediately so we don't keep sending the branch
             registration request */
-            latest_ack = make_optional(contract_ack_t(
-                contract_ack_t::state_t::primary_in_progress));
+            latest_ack = make_scoped<contract_ack_t>(
+                contract_ack_t::state_t::primary_in_progress);
             params->send_ack(contract_id, *latest_ack);
         }
     }
@@ -84,10 +128,10 @@ void primary_execution_t::update_contract_or_raft_state(
 
     /* If we were acking `primary_ready`, go back to acking `primary_in_progress` until
     we sync with the replicas according to the new contract. */
-    if (static_cast<bool>(latest_ack) &&
+    if (latest_ack.has() &&
             latest_ack->state == contract_ack_t::state_t::primary_ready) {
-        latest_ack = make_optional(contract_ack_t(
-            contract_ack_t::state_t::primary_in_progress));
+        latest_ack = make_scoped<contract_ack_t>(
+            contract_ack_t::state_t::primary_in_progress);
     }
 
     /* Deliver the new contract to the other thread. If the broadcaster exists, we'll
@@ -99,7 +143,7 @@ void primary_execution_t::update_contract_or_raft_state(
         new new_mutex_in_line_t(&update_contract_mutex)));
 
     /* Send an ack for the new contract */
-    if (static_cast<bool>(latest_ack)) {
+    if (latest_ack.has()) {
         params->send_ack(contract_id, *latest_ack);
     }
 }
@@ -153,7 +197,7 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             ack.branch_history.branches.insert(std::make_pair(
                 *our_branch_id,
                 primary_dispatcher.get_branch_birth_certificate()));
-            latest_ack = make_optional(ack);
+            latest_ack = make_scoped<contract_ack_t>(ack);
             params->send_ack(latest_contract_home_thread->contract_id, ack);
         }
 
@@ -526,8 +570,7 @@ void primary_execution_t::update_contract_on_store_thread(
 
         if (should_ack) {
             /* OK, time to ack the contract */
-            latest_ack = make_optional(
-                contract_ack_t(contract_ack_t::state_t::primary_ready));
+            latest_ack = make_scoped<contract_ack_t>(contract_ack_t::state_t::primary_ready);
             params->send_ack(contract->contract_id, *latest_ack);
         }
 

@@ -13,6 +13,7 @@
 #include "rpc/semilattice/view.hpp"
 
 class real_reql_cluster_interface_t;
+class table_config_t;
 
 /* This is publicly exposed so that it can be used to create the return value of
 `table.reconfigure()`. */

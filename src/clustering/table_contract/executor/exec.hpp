@@ -2,16 +2,18 @@
 #ifndef CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_HPP_
 #define CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_HPP_
 
+#include "clustering/id_types.hpp"
 #include "clustering/immediate_consistency/backfill_metadata.hpp"
 #include "clustering/immediate_consistency/remote_replicator_metadata.hpp"
-#include "clustering/table_contract/contract_metadata.hpp"
-#include "clustering/query_routing/metadata.hpp"
 #include "paths.hpp"
 #include "store_view.hpp"
 
 class backfill_progress_tracker_t;
 class backfill_throttler_t;
+class contract_ack_t;
 class io_backender_t;
+class table_raft_state_t;
+class table_query_bcard_t;
 
 /* `contract_execution_bcard_t`s are passed around between the `contract_executor_t`s for
 the same table on different servers. They allow servers to request backfills from one

@@ -2,6 +2,7 @@
 #include "clustering/table_manager/multi_table_manager.hpp"
 
 #include "clustering/generic/raft_core.tcc"
+#include "clustering/query_routing/metadata.hpp"
 #include "clustering/table_manager/table_manager.hpp"
 #include "logger.hpp"
 

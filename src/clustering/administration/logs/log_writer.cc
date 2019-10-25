@@ -17,6 +17,7 @@
 #include "arch/io/disk.hpp"
 #include "concurrency/promise.hpp"
 #include "containers/scoped.hpp"
+#include "paths.hpp"
 #include "thread_local.hpp"
 
 

@@ -2,12 +2,33 @@
 #ifndef CLUSTERING_TABLE_MANAGER_TABLE_META_CLIENT_HPP_
 #define CLUSTERING_TABLE_MANAGER_TABLE_META_CLIENT_HPP_
 
-#include "clustering/table_manager/table_metadata.hpp"
+#include "btree/keys.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
 #include "concurrency/watchable_map.hpp"
+#include "containers/uuid.hpp"
 
+enum class all_replicas_ready_mode_t;
+enum class emergency_repair_mode_t;
+class mailbox_manager_t;
 class multi_table_manager_t;
+class multi_table_manager_bcard_t;
+class multi_table_manager_timestamp_t;
+class multi_table_manager_timestamp_epoch_t;
+class name_string_t;
+class peer_id_t;
+template <class edge_t, class value_t> class range_map_t;
 class server_config_client_t;
+class server_id_t;
+class sindex_config_t;
+class sindex_status_t;
+class table_basic_config_t;
+class table_config_and_shards_t;
+class table_config_and_shards_change_t;
+class table_raft_state_t;
+class table_manager_bcard_t;
+class table_shard_status_t;
+class table_status_request_t;
+class table_status_response_t;
 
 /* These four exception classes are all thrown by `table_meta_client_t` to describe
 different error conditions. There are several reasons why this is better than having
@@ -79,6 +100,7 @@ public:
         watchable_map_t<std::pair<peer_id_t, namespace_id_t>, table_manager_bcard_t>
             *_table_manager_directory,
         server_config_client_t *_server_config_client);
+    ~table_meta_client_t();
 
     /* All of these functions can be called from any thread. */
 
@@ -216,7 +238,7 @@ private:
     void create_or_emergency_repair(
         const namespace_id_t &table_id,
         const table_raft_state_t &raft_state,
-        const multi_table_manager_timestamp_t::epoch_t &epoch,
+        const multi_table_manager_timestamp_epoch_t &epoch,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t,
             maybe_failed_table_op_exc_t);

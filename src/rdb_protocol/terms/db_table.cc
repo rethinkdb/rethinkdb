@@ -8,6 +8,7 @@
 #include "clustering/administration/auth/permissions.hpp"
 #include "clustering/administration/auth/username.hpp"
 #include "containers/name_string.hpp"
+#include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/op.hpp"
 #include "rdb_protocol/pseudo_geometry.hpp"

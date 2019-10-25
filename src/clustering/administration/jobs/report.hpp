@@ -12,6 +12,7 @@
 #include "containers/archive/stl_types.hpp"
 #include "containers/uuid.hpp"
 #include "rdb_protocol/datum.hpp"
+#include "rpc/mailbox/typed.hpp"
 #include "rpc/serialize_macros.hpp"
 #include "time.hpp"
 

@@ -7,6 +7,7 @@
 #include <boost/variant.hpp>
 
 #include "debug.hpp"
+#include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/profile.hpp"
 #include "rdb_protocol/protocol.hpp"

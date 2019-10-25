@@ -2,6 +2,9 @@
 #include "clustering/administration/logs/logs_backend.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
+#include "clustering/administration/logs/log_writer.hpp"
+#include "clustering/administration/logs/log_transfer.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/config_client.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 

@@ -6,11 +6,14 @@
 #include <set>
 #include <string>
 
-#include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
+
+class cluster_directory_metadata_t;
+class empty_value_t;
+struct admin_err_t;
 
 struct server_connectivity_t {
     std::map<server_id_t, std::set<server_id_t> > connected_to;

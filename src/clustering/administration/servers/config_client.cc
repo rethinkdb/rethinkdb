@@ -1,6 +1,9 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/servers/config_client.hpp"
 
+#include "clustering/administration/admin_op_exc.hpp"
+#include "clustering/administration/metadata.hpp"
+
 server_config_client_t::server_config_client_t(
         mailbox_manager_t *_mailbox_manager,
         watchable_map_t<peer_id_t, cluster_directory_metadata_t> *_directory_view,

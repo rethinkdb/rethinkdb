@@ -13,6 +13,10 @@
 
 namespace ql {
 
+selection_t::selection_t(counted_t<table_t> _table, counted_t<datum_stream_t> _seq)
+        : table(std::move(_table)), seq(std::move(_seq)) { }
+selection_t::~selection_t() {}
+
 class get_selection_t : public single_selection_t {
 public:
     get_selection_t(env_t *_env,

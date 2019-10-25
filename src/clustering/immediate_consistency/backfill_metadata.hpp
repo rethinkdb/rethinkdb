@@ -6,8 +6,8 @@
 #include "clustering/generic/registration_metadata.hpp"
 #include "clustering/immediate_consistency/backfill_item_seq.hpp"
 #include "clustering/immediate_consistency/history.hpp"
+#include "concurrency/fifo_enforcer.hpp"
 #include "rdb_protocol/distribution_progress.hpp"
-#include "rdb_protocol/protocol.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 /* `backfill_config_t` contains parameters for tuning the backfill's performance and

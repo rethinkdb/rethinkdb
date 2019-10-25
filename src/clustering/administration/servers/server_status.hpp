@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 
-#include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/server_common.hpp"
 #include "clustering/administration/servers/server_metadata.hpp"
 #include "rdb_protocol/artificial_table/backend.hpp"

@@ -7,10 +7,12 @@
 #include <vector>
 
 #include "clustering/administration/admin_op_exc.hpp"
-#include "clustering/administration/metadata.hpp"
 #include "containers/lifetime.hpp"
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
+#include "rdb_protocol/context.hpp"
 #include "rpc/semilattice/view.hpp"
+
+class cluster_semilattice_metadata_t;
 
 /* This is a base class for the `rethinkdb.table_config` and `rethinkdb.table_status`
 pseudo-tables. Subclasses should implement `format_row()` and `write_row()`. */

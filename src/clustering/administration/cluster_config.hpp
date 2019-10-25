@@ -6,7 +6,6 @@
 #include <string>
 #include <vector>
 
-#include "clustering/administration/metadata.hpp"
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "rpc/semilattice/view.hpp"
 

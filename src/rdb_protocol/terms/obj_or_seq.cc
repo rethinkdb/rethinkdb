@@ -4,6 +4,7 @@
 #include <string>
 #include <functional>
 
+#include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/op.hpp"

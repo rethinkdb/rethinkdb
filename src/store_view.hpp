@@ -1,6 +1,7 @@
 #ifndef STORE_VIEW_HPP_
 #define STORE_VIEW_HPP_
 
+#include "btree/types.hpp"
 #include "protocol_api.hpp"
 #include "region/region_map.hpp"
 

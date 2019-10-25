@@ -5,6 +5,7 @@
 #include "clustering/administration/servers/config_client.hpp"
 #include "concurrency/exponential_backoff.hpp"
 #include "concurrency/wait_any.hpp"
+#include "logger.hpp"
 
 auto_reconnector_t::auto_reconnector_t(
         connectivity_cluster_t *connectivity_cluster_,

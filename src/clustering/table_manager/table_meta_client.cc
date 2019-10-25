@@ -24,6 +24,8 @@ table_meta_client_t::table_meta_client_t(
     table_basic_configs(multi_table_manager->get_table_basic_configs())
     { }
 
+table_meta_client_t::~table_meta_client_t() {}
+
 void table_meta_client_t::find(
         const database_id_t &database,
         const name_string_t &name,

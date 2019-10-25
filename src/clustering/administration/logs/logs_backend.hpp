@@ -8,8 +8,11 @@
 #include <vector>
 
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
-#include "clustering/administration/metadata.hpp"
+#include "rdb_protocol/context.hpp"
 
+class cluster_directory_metadata_t;
+class log_message_t;
+class log_server_business_card_t;
 class server_config_client_t;
 
 /* This backend assumes that the entries in the log file have timestamps that are unique

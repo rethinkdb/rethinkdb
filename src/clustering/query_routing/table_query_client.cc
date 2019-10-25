@@ -6,6 +6,7 @@
 #include "clustering/query_routing/primary_query_client.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"
 #include "clustering/table_manager/multi_table_manager.hpp"
+#include "clustering/table_manager/table_meta_client.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"

@@ -7,7 +7,6 @@
 #include <string>
 
 #include "clustering/administration/issues/issue.hpp"
-#include "clustering/administration/metadata.hpp"
 #include "rpc/connectivity/server_id.hpp"
 #include "rpc/semilattice/view.hpp"
 

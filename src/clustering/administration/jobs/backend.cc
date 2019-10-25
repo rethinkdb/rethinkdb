@@ -8,6 +8,7 @@
 #include "clustering/administration/jobs/manager.hpp"
 #include "clustering/administration/jobs/report.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 
 jobs_artificial_table_backend_t::jobs_artificial_table_backend_t(

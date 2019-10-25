@@ -9,7 +9,6 @@
 #include <vector>
 
 #include "containers/counted.hpp"
-#include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/geo/distances.hpp"
 #include "rdb_protocol/geo/lon_lat_types.hpp"
@@ -174,8 +173,8 @@ protected:
 
 class selection_t : public single_threaded_countable_t<selection_t> {
 public:
-    selection_t(counted_t<table_t> _table, counted_t<datum_stream_t> _seq)
-        : table(std::move(_table)), seq(std::move(_seq)) { }
+    selection_t(counted_t<table_t> _table, counted_t<datum_stream_t> _seq);
+    ~selection_t();
     counted_t<table_t> table;
     counted_t<datum_stream_t> seq;
 };

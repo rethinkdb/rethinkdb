@@ -3,6 +3,7 @@
 #define CLUSTERING_ADMINISTRATION_AUTH_PERMISSIONS_ARTIFICIAL_TABLE_BACKEND_HPP
 
 #include "clustering/administration/auth/base_artificial_table_backend.hpp"
+#include "rdb_protocol/context.hpp"
 
 class name_resolver_t;
 

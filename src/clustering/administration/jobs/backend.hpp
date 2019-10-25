@@ -7,11 +7,16 @@
 #include <vector>
 
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
+#include "rdb_protocol/context.hpp"
 #include "clustering/administration/auth/user_context.hpp"
-#include "clustering/administration/metadata.hpp"
 #include "concurrency/watchable.hpp"
 
+class cluster_directory_metadata_t;
+class cluster_semilattice_metadata_t;
 class server_config_client_t;
+class table_meta_client_t;
+template <class T> class semilattice_readwrite_view_t;
+template <class key_type, class inner_type> class change_tracking_map_t;
 
 class jobs_artificial_table_backend_t :
     public timer_cfeed_artificial_table_backend_t

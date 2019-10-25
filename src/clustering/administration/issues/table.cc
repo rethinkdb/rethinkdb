@@ -3,7 +3,7 @@
 #include <map>
 
 #include "clustering/administration/datum_adapter.hpp"
-#include "clustering/administration/tables/table_metadata.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "clustering/administration/tables/table_status.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
 

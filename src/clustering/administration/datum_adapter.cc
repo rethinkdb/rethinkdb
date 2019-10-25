@@ -1,8 +1,10 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/datum_adapter.hpp"
 
+#include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/config_client.hpp"
 #include "clustering/administration/tables/database_metadata.hpp"
+#include "clustering/administration/tables/table_metadata.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 

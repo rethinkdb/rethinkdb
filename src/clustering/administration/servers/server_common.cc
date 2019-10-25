@@ -2,6 +2,7 @@
 #include "clustering/administration/servers/server_common.hpp"
 
 #include "clustering/administration/datum_adapter.hpp"
+#include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/config_client.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 

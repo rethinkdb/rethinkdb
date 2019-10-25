@@ -5,6 +5,9 @@
 #include "clustering/administration/servers/config_client.hpp"
 #include "concurrency/pump_coro.hpp"
 
+template <class state_t> class raft_member_t;
+class table_raft_state_t;
+
 class server_name_cache_updater_t {
 public:
     server_name_cache_updater_t(

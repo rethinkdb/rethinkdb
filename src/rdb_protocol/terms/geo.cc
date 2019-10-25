@@ -2,6 +2,7 @@
 
 #include <limits>
 
+#include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/geo/distances.hpp"
 #include "rdb_protocol/geo/ellipsoid.hpp"
 #include "rdb_protocol/geo/exceptions.hpp"

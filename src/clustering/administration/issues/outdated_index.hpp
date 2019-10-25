@@ -11,7 +11,6 @@
 #include "concurrency/one_per_thread.hpp"
 #include "concurrency/pump_coro.hpp"
 #include "containers/scoped.hpp"
-#include "rdb_protocol/store.hpp"
 
 class outdated_index_issue_t : public issue_t {
 public:

@@ -6,6 +6,7 @@
 #include "clustering/table_contract/executor/exec.hpp"
 #include "containers/counted.hpp"
 
+class contract_t;
 class io_backender_t;
 class primary_dispatcher_t;
 
@@ -15,21 +16,8 @@ class ack_counter_t {
 public:
     explicit ack_counter_t(const contract_t &_contract) :
         contract(_contract), primary_ack(false), voter_acks(0), temp_voter_acks(0) { }
-    void note_ack(const server_id_t &server) {
-        if (static_cast<bool>(contract.primary)) {
-            primary_ack |= (server == contract.primary->server);
-        }
-        voter_acks += contract.voters.count(server);
-        if (static_cast<bool>(contract.temp_voters)) {
-            temp_voter_acks += contract.temp_voters->count(server);
-        }
-    }
-    bool is_safe() const {
-        return primary_ack &&
-            voter_acks * 2 > contract.voters.size() &&
-            (!static_cast<bool>(contract.temp_voters) ||
-                temp_voter_acks * 2 > contract.temp_voters->size());
-    }
+    void note_ack(const server_id_t &server);
+    bool is_safe() const;
 private:
     const contract_t &contract;
     bool primary_ack;
@@ -59,30 +47,7 @@ private:
     /* `contract_info_t` stores a contract, its ack callback, and a condition variable
     indicating if it's obsolete. The reason this is in a struct is because we sometimes
     need to reason about old contracts, so we may keep multiple versions around. */
-    class contract_info_t : public slow_atomic_countable_t<contract_info_t> {
-    public:
-        contract_info_t(const contract_id_t &_contract_id,
-                        const contract_t &_contract,
-                        write_durability_t _default_write_durability,
-                        write_ack_config_t _write_ack_config) :
-                contract_id(_contract_id),
-                contract(_contract),
-                default_write_durability(_default_write_durability),
-                write_ack_config(_write_ack_config) {
-        }
-        bool equivalent(const contract_info_t &other) const {
-            /* This method is called `equivalent` rather than `operator==` to avoid
-            confusion, because it doesn't actually compare every member */
-            return contract_id == other.contract_id &&
-                default_write_durability == other.default_write_durability &&
-                write_ack_config == other.write_ack_config;
-        }
-        contract_id_t contract_id;
-        contract_t contract;
-        write_durability_t default_write_durability;
-        write_ack_config_t write_ack_config;
-        cond_t obsolete;
-    };
+    class contract_info_t;
 
     /* This is started in a coroutine when the `primary_t` is created. It sets up the
     broadcaster, listener, etc. */
@@ -154,8 +119,10 @@ private:
     and the `store_thread` version should only be accessed on `store->home_thread()`. */
     counted_t<contract_info_t> latest_contract_home_thread, latest_contract_store_thread;
 
-    /* `latest_ack` stores the latest contract ack we've sent. */
-    optional<contract_ack_t> latest_ack;
+    /* `latest_ack` stores the latest contract ack we've sent.  This is possibly null --
+    treated as an optional<contract_ack_t>, with a pointer indirection for the sake of
+    compile times. */
+    scoped_ptr_t<contract_ack_t> latest_ack;
 
     /* `update_contract_mutex` is used to order calls to
     `update_contract_on_store_thread()`, so that we don't overwrite a newer contract with

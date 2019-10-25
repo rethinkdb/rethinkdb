@@ -5,8 +5,23 @@
 #include <string>
 #include <vector>
 
+#include "concurrency/cross_thread_mutex.hpp"
+#include "containers/name_string.hpp"
+#include "containers/uuid.hpp"
 #include "rdb_protocol/datum.hpp"
-#include "rdb_protocol/datum_stream.hpp"
+
+namespace auth {
+class user_context_t;
+}
+
+namespace ql {
+class datum_stream_t;
+class datumspec_t;
+namespace changefeed { class streamspec_t; }
+}
+
+struct admin_err_t;
+enum class sorting_t;
 
 /* `artificial_table_backend_t` is the interface that `artificial_table_t` uses to access
 the actual data or configuration. There is one subclass for each table like

@@ -1,7 +1,10 @@
 #ifndef CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILL_ITEM_SEQ_HPP_
 #define CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILL_ITEM_SEQ_HPP_
 
-#include "rdb_protocol/protocol.hpp"
+#include <list>
+
+#include "btree/keys.hpp"
+#include "region/region.hpp"
 
 /* A `backfill_item_seq_t` contains all of the `backfill_{pre_}item_t`s in some range of
 the key-space. The items are stored in lexicographical order.

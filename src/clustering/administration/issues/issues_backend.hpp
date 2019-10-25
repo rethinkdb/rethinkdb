@@ -7,7 +7,6 @@
 #include <vector>
 
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
-#include "clustering/administration/metadata.hpp"
 #include "concurrency/watchable.hpp"
 #include "clustering/administration/issues/local.hpp"
 #include "clustering/administration/issues/name_collision.hpp"

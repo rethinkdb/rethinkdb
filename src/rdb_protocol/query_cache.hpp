@@ -20,7 +20,6 @@
 #include "containers/counted.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/object_buffer.hpp"
-#include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/rdb_backtrace.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/env.hpp"
@@ -31,6 +30,8 @@
 #include "rdb_protocol/wire_func.hpp"
 
 namespace ql {
+class datum_stream_t;
+class response_t;
 
 class query_cache_t : public home_thread_mixin_t {
     class entry_t;

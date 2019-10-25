@@ -16,45 +16,48 @@ class read_txn_t;
 class write_txn_t;
 }
 
+class multi_table_manager_timestamp_epoch_t {
+    using epoch_t = multi_table_manager_timestamp_epoch_t;
+public:
+    static epoch_t min();
+    static epoch_t deletion();
+    static epoch_t migrate(time_t ts);
+    static epoch_t make(const epoch_t &prev);
+
+    ql::datum_t to_datum() const;
+
+    bool is_unset() const;
+    bool is_deletion() const;
+    bool operator==(const epoch_t &other) const;
+    bool operator!=(const epoch_t &other) const;
+    bool supersedes(const epoch_t &other) const;
+private:
+    // Workaround for issue #4668 - invalid timestamps that were migrated
+    // These timestamps should never supercede any other timestamps
+    static const microtime_t special_timestamp;
+
+    /* Every table's lifetime is divided into "epochs". Each epoch corresponds to
+    one Raft instance. Normally tables only have one epoch; a new epoch is created
+    only when the user manually overrides the Raft state, which requires creating a
+    new Raft instance.
+
+    `timestamp` is the wall-clock time when the epoch began. `id` is a unique ID
+    created for the epoch. An epoch with a later `timestamp` supersedes an epoch
+    with an earlier `timestamp`. `id` breaks ties. Ties are possible because the
+    user may manually override the Raft state on both sides of a netsplit, for
+    example. */
+    microtime_t timestamp;
+    uuid_u id;
+
+    // Keep the class keyword here to satisfy VC++
+    RDB_DECLARE_ME_SERIALIZABLE(class multi_table_manager_timestamp_epoch_t);
+};
+
 /* Every message to the `action_mailbox` has an `multi_table_manager_timestamp_t`
 attached. This is used to filter out outdated instructions. */
 class multi_table_manager_timestamp_t {
 public:
-    class epoch_t {
-    public:
-        static epoch_t min();
-        static epoch_t deletion();
-        static epoch_t migrate(time_t ts);
-        static epoch_t make(const epoch_t &prev);
-
-        ql::datum_t to_datum() const;
-
-        bool is_unset() const;
-        bool is_deletion() const;
-        bool operator==(const epoch_t &other) const;
-        bool operator!=(const epoch_t &other) const;
-        bool supersedes(const epoch_t &other) const;
-    private:
-        // Workaround for issue #4668 - invalid timestamps that were migrated
-        // These timestamps should never supercede any other timestamps
-        static const microtime_t special_timestamp;
-
-        /* Every table's lifetime is divided into "epochs". Each epoch corresponds to
-        one Raft instance. Normally tables only have one epoch; a new epoch is created
-        only when the user manually overrides the Raft state, which requires creating a
-        new Raft instance.
-
-        `timestamp` is the wall-clock time when the epoch began. `id` is a unique ID
-        created for the epoch. An epoch with a later `timestamp` supersedes an epoch
-        with an earlier `timestamp`. `id` breaks ties. Ties are possible because the
-        user may manually override the Raft state on both sides of a netsplit, for
-        example. */
-        microtime_t timestamp;
-        uuid_u id;
-
-        // Keep the class keyword here to satisfy VC++
-        RDB_DECLARE_ME_SERIALIZABLE(class epoch_t);
-    };
+    using epoch_t = multi_table_manager_timestamp_epoch_t;
 
     static multi_table_manager_timestamp_t min() {
         multi_table_manager_timestamp_t ts;

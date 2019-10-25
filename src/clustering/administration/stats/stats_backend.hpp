@@ -7,9 +7,12 @@
 #include <vector>
 
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
-#include "clustering/administration/metadata.hpp"
+#include "rdb_protocol/context.hpp"
 #include "clustering/administration/servers/config_client.hpp"
 #include "concurrency/watchable.hpp"
+
+class cluster_semilattice_metadata_t;
+class table_meta_client_t;
 
 class stats_artificial_table_backend_t :
     public timer_cfeed_artificial_table_backend_t

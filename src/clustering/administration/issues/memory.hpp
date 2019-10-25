@@ -7,7 +7,6 @@
 #include "clustering/administration/issues/issue.hpp"
 #include "containers/incremental_lenses.hpp"
 #include "rpc/mailbox/typed.hpp"
-#include "rdb_protocol/store.hpp"
 
 class local_issue_server_t;
 

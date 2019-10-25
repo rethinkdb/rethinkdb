@@ -26,8 +26,6 @@ class func_t;
 class response_t;
 class val_t;
 
-enum class return_empty_normal_batches_t { NO, YES };
-
 enum class feed_type_t { not_feed, point, stream, orderby_limit, unioned };
 
 // Handle unions of changefeeds; if there's no plausible unioned type then we

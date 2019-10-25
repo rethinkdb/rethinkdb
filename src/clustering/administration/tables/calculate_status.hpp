@@ -2,7 +2,9 @@
 #ifndef CLUSTERING_ADMINISTRATION_TABLES_CALCULATE_STATUS_HPP_
 #define CLUSTERING_ADMINISTRATION_TABLES_CALCULATE_STATUS_HPP_
 
+#include "clustering/administration/servers/server_metadata.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
+#include "rpc/connectivity/server_id.hpp"
 #include "protocol_api.hpp"
 
 class namespace_repo_t;
@@ -54,7 +56,7 @@ public:
     appear in `server_shards` that aren't in `config`. Every server in any of the three
     appears in `server_names`. */
 
-    table_config_and_shards_t config;
+    scoped_ptr_t<table_config_and_shards_t> config = make_scoped<table_config_and_shards_t>();
     std::map<server_id_t, range_map_t<key_range_t::right_bound_t,
         table_shard_status_t> > server_shards;
     optional<server_id_t> raft_leader;

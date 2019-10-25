@@ -6,10 +6,12 @@
 #include <string>
 #include <vector>
 
-#include "clustering/administration/metadata.hpp"
 #include "clustering/table_manager/table_meta_client.hpp"
 #include "containers/lifetime.hpp"
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
+#include "rpc/semilattice/view.hpp"
+
+class cluster_semilattice_metadata_t;
 
 namespace auth {
 

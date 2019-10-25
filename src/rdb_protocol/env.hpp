@@ -15,7 +15,6 @@
 #include "extproc/js_runner.hpp"
 #include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/context.hpp"
-#include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/optargs.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -32,6 +31,8 @@ class RE2;
 namespace ql {
 class datum_t;
 class term_t;
+
+enum class return_empty_normal_batches_t { NO, YES };
 
 scoped_ptr_t<profile::trace_t> maybe_make_profile_trace(profile_bool_t profile);
 

@@ -2,6 +2,7 @@
 #include "rdb_protocol/query_cache.hpp"
 
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/response.hpp"
 #include "rdb_protocol/term_walker.hpp"

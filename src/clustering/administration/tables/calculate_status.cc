@@ -77,7 +77,7 @@ void get_table_status(
         table_status_t *status_out)
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t) {
     status_out->total_loss = false;
-    status_out->config = config;
+    *status_out->config = config;
 
     /* Get the Raft leader for this table. */
     table_meta_client->get_raft_leader(table_id, interruptor, &status_out->raft_leader);
