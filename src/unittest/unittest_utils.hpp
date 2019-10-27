@@ -12,6 +12,8 @@
 #include "rdb_protocol/protocol.hpp"
 #include "rpc/serialize_macros.hpp"
 
+class rng_t;
+
 namespace unittest {
 
 std::string rand_string(int len);

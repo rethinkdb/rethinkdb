@@ -3,6 +3,7 @@
 
 #include "clustering/administration/admin_op_exc.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "rpc/mailbox/disconnect_watcher.hpp"
 
 server_config_client_t::server_config_client_t(
         mailbox_manager_t *_mailbox_manager,

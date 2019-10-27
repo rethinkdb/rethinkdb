@@ -14,6 +14,8 @@ class contract_ack_t;
 class io_backender_t;
 class table_raft_state_t;
 class table_query_bcard_t;
+template <class key_t, class value_t> class watchable_map_t;
+template<class key_t, class value_t> class watchable_map_var_t;
 
 /* `contract_execution_bcard_t`s are passed around between the `contract_executor_t`s for
 the same table on different servers. They allow servers to request backfills from one

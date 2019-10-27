@@ -30,7 +30,6 @@ public:
         counted_t<ql::datum_stream_t> *cfeed_out,
         admin_err_t *error_out);
 
-protected:
     class machinery_t : private ql::changefeed::artificial_t {
     public:
         machinery_t(
@@ -75,6 +74,7 @@ protected:
         microtime_t last_subscriber_time;
     };
 
+protected:
     cfeed_artificial_table_backend_t(
             name_string_t const &table_name,
             rdb_context_t *rdb_context,

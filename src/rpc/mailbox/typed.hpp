@@ -8,10 +8,32 @@
 #include "containers/archive/versioned.hpp"
 #include "containers/archive/tuple.hpp"
 #include "rpc/serialize_macros.hpp"
-#include "rpc/mailbox/mailbox.hpp"
+#include "rpc/mailbox/raw_mailbox.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 
 template <class...> class mailbox_t;
+
+class mailbox_write_callback_t {
+public:
+    virtual ~mailbox_write_callback_t() { }
+    virtual void write(cluster_version_t cluster_version,
+                       write_message_t *wm) = 0;
+#ifdef ENABLE_MESSAGE_PROFILER
+    virtual const char *message_profiler_tag() const = 0;
+#endif
+};
+
+class mailbox_read_callback_t {
+public:
+    virtual ~mailbox_read_callback_t() { }
+
+    /* `read()` is allowed to block indefinitely after reading the message from the
+    stream, but the mailbox's destructor cannot return until `read()` returns. */
+    virtual void read(
+        read_stream_t *stream,
+        /* `interruptor` will be pulsed if the mailbox is destroyed. */
+        signal_t *interruptor) = 0;
+};
 
 template <class... Args>
 class mailbox_addr_t {
@@ -33,6 +55,10 @@ private:
 
     raw_mailbox_t::address_t addr;
 };
+
+/* `mailbox_t` is a receiver of messages. Construct it with a callback function
+to handle messages it receives. To send messages to the mailbox, call the
+`get_address()` method and then call `send_write()` on the address it returns. */
 
 template <class... Args>
 class mailbox_t {

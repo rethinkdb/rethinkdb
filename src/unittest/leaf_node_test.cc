@@ -4,6 +4,7 @@
 #include "btree/leaf_node.hpp"
 #include "btree/node.hpp"
 #include "containers/scoped.hpp"
+#include "random.hpp"
 #include "repli_timestamp.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"

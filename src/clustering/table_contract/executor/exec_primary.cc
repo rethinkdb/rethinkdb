@@ -9,6 +9,7 @@
 #include "clustering/table_contract/contract_metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/promise.hpp"
+#include "rpc/mailbox/mailbox.hpp"
 #include "store_view.hpp"
 
 void ack_counter_t::note_ack(const server_id_t &server) {

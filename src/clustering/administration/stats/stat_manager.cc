@@ -7,6 +7,7 @@
 #include "concurrency/watchable.hpp"
 #include "perfmon/collect.hpp"
 #include "perfmon/filter.hpp"
+#include "rpc/mailbox/disconnect_watcher.hpp"
 #include "stl_utils.hpp"
 
 stat_manager_t::stat_manager_t(mailbox_manager_t* mm,

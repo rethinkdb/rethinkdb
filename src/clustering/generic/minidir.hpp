@@ -5,8 +5,10 @@
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable_map.hpp"
 #include "containers/archive/boost_types.hpp"
-#include "rpc/mailbox/mailbox.hpp"
+#include "rpc/connectivity/cluster.hpp"
 #include "rpc/mailbox/typed.hpp"
+
+class mailbox_manager_t;
 
 /* "Minidir" is short for "mini directory". The minidir classes are for broadcasting
 state across the network just like the directory, but the broadcast is to a finite set of

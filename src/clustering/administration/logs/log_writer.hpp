@@ -11,6 +11,7 @@
 
 #include "arch/io/io_utils.hpp"
 #include "clustering/administration/issues/log_write.hpp"
+#include "concurrency/mutex.hpp"
 #include "containers/scoped.hpp"
 #include "logger.hpp"
 #include "rpc/mailbox/typed.hpp"

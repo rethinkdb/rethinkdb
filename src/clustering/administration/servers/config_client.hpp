@@ -7,13 +7,14 @@
 #include <string>
 
 #include "clustering/administration/servers/server_metadata.hpp"
+#include "concurrency/watchable_map.hpp"
 #include "containers/incremental_lenses.hpp"
-#include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
 
+struct admin_err_t;
 class cluster_directory_metadata_t;
 class empty_value_t;
-struct admin_err_t;
+class mailbox_manager_t;
 
 struct server_connectivity_t {
     std::map<server_id_t, std::set<server_id_t> > connected_to;

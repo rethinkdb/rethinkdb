@@ -5,6 +5,7 @@
 #include "btree/depth_first_traversal.hpp"
 #include "btree/reql_specific.hpp"
 #include "buffer_cache/cache_balancer.hpp"
+#include "random.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "repli_timestamp.hpp"
 #include "serializer/log/log_serializer.hpp"

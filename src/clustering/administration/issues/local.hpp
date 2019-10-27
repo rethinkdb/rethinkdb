@@ -8,6 +8,7 @@
 #include "clustering/administration/issues/log_write.hpp"
 #include "clustering/administration/issues/memory.hpp"
 #include "concurrency/watchable.hpp"
+#include "concurrency/watchable_map.hpp"
 #include "containers/clone_ptr.hpp"
 #include "rpc/semilattice/joins/macros.hpp"
 #include "rpc/serialize_macros.hpp"

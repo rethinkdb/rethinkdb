@@ -1,6 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 
 #include "containers/archive/string_stream.hpp"
+#include "containers/archive/vector_stream.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/env.hpp"

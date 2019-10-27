@@ -11,57 +11,8 @@
 #include "containers/archive/versioned.hpp"
 #include "concurrency/pmap.hpp"
 #include "logger.hpp"
+#include "rpc/mailbox/typed.hpp"
 
-/* raw_mailbox_t */
-
-raw_mailbox_t::address_t::address_t() :
-    peer(peer_id_t()), thread(-1), mailbox_id(0) { }
-
-raw_mailbox_t::address_t::address_t(const address_t &a) :
-    peer(a.peer), thread(a.thread), mailbox_id(a.mailbox_id) { }
-
-bool raw_mailbox_t::address_t::is_nil() const {
-    return peer.is_nil();
-}
-
-peer_id_t raw_mailbox_t::address_t::get_peer() const {
-    guarantee(!is_nil(), "A nil address has no peer");
-    return peer;
-}
-
-std::string raw_mailbox_t::address_t::human_readable() const {
-    return strprintf("%s:%d:%" PRIu64, uuid_to_str(peer.get_uuid()).c_str(), thread, mailbox_id);
-}
-
-raw_mailbox_t::raw_mailbox_t(mailbox_manager_t *m, mailbox_read_callback_t *_callback) :
-    manager(m),
-    mailbox_id(manager->register_mailbox(this)),
-    callback(_callback) {
-    guarantee(callback != nullptr);
-}
-
-raw_mailbox_t::~raw_mailbox_t() {
-    assert_thread();
-    if (callback != nullptr) {
-        begin_shutdown();
-    }
-}
-
-void raw_mailbox_t::begin_shutdown() {
-    assert_thread();
-    guarantee(callback != nullptr);
-    callback = nullptr;
-    manager->unregister_mailbox(mailbox_id);
-    drainer.begin_draining();
-}
-
-raw_mailbox_t::address_t raw_mailbox_t::get_address() const {
-    address_t a;
-    a.peer = manager->get_connectivity_cluster()->get_me();
-    a.thread = home_thread().threadnum;
-    a.mailbox_id = mailbox_id;
-    return a;
-}
 
 class raw_mailbox_writer_t :
     public cluster_send_message_write_callback_t
@@ -301,21 +252,3 @@ void mailbox_manager_t::unregister_mailbox(raw_mailbox_t::id_t id) {
     size_t num_elements_erased = mailbox_tables.get()->mailboxes.erase(id);
     guarantee(num_elements_erased == 1);
 }
-
-disconnect_watcher_t::disconnect_watcher_t(mailbox_manager_t *mailbox_manager,
-                                           peer_id_t peer) {
-    if (mailbox_manager->get_connectivity_cluster()->
-            get_connection(peer, &connection_keepalive) != nullptr) {
-        /* The peer is currently connected. Start watching for when they disconnect. */
-        signal_t::subscription_t::reset(connection_keepalive.get_drain_signal());
-    } else {
-        /* The peer is not currently connected. Pulse ourself immediately. */
-        pulse();
-    }
-}
-
-/* This is the callback for when `connection_keepalive.get_drain_signal()` is pulsed */
-void disconnect_watcher_t::run() {
-    pulse();
-}
-

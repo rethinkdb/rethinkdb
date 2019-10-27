@@ -2,6 +2,7 @@
 #include <algorithm>
 
 #include "debug.hpp"
+#include "random.hpp"
 #include "rdb_protocol/geo/distances.hpp"
 #include "rdb_protocol/geo/ellipsoid.hpp"
 #include "rdb_protocol/geo/exceptions.hpp"

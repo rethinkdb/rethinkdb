@@ -5,6 +5,7 @@
 #include "clustering/query_routing/metadata.hpp"
 #include "clustering/table_manager/table_manager.hpp"
 #include "logger.hpp"
+#include "rpc/mailbox/mailbox.hpp"
 
 multi_table_manager_t::multi_table_manager_t(
         const server_id_t &_server_id,

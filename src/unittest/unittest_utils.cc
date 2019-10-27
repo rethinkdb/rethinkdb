@@ -7,6 +7,7 @@
 
 #include "arch/timing.hpp"
 #include "arch/runtime/starter.hpp"
+#include "random.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/pseudo_time.hpp"

@@ -7,6 +7,7 @@
 #include "concurrency/queue/unlimited_fifo.hpp"
 #include "concurrency/watchable.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rpc/connectivity/server_id.hpp"
 
 /* The job of the `primary_dispatcher_t` is:
 - Take in reads and writes

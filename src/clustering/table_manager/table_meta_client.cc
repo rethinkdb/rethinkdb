@@ -7,6 +7,7 @@
 #include "clustering/table_contract/emergency_repair.hpp"
 #include "clustering/table_manager/multi_table_manager.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "rpc/mailbox/disconnect_watcher.hpp"
 
 table_meta_client_t::table_meta_client_t(
         mailbox_manager_t *_mailbox_manager,

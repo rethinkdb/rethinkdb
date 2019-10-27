@@ -9,6 +9,7 @@
 #include "buffer_cache/cache_balancer.hpp"
 #include "containers/uuid.hpp"
 #include "unittest/unittest_utils.hpp"
+#include "random.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/store.hpp"

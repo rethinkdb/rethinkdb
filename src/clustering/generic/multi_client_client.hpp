@@ -6,6 +6,7 @@
 
 #include "clustering/generic/multi_client_metadata.hpp"
 #include "concurrency/promise.hpp"
+#include "containers/optional.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 template <class> class registrant_t;

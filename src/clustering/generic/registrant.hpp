@@ -12,6 +12,7 @@
 #include "containers/death_runner.hpp"
 #include "containers/uuid.hpp"
 #include "rpc/mailbox/typed.hpp"
+#include "rpc/mailbox/mailbox.hpp"
 #include "rpc/semilattice/view.hpp"
 
 template<class business_card_t>

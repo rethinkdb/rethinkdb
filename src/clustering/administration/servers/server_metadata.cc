@@ -1,6 +1,7 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/servers/server_metadata.hpp"
 
+#include "containers/archive/stl_types.hpp"
 #include "logger.hpp"
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v2_1(server_config_t, name, tags, cache_size_bytes);

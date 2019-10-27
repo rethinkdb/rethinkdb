@@ -18,6 +18,7 @@
 #include "rdb_protocol/protocol.hpp"
 #include "rdb_protocol/response.hpp"
 #include "rdb_protocol/val.hpp"
+#include "rpc/mailbox/disconnect_watcher.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 #include "debug.hpp"

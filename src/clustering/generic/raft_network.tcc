@@ -3,6 +3,7 @@
 #define CLUSTERING_GENERIC_RAFT_NETWORK_TCC_
 
 #include "clustering/generic/raft_network.hpp"
+#include "rpc/mailbox/disconnect_watcher.hpp"
 
 template<class state_t>
 raft_networked_member_t<state_t>::raft_networked_member_t(
