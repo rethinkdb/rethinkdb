@@ -8,6 +8,7 @@
 #include "clustering/generic/registrar.hpp"
 #include "clustering/immediate_consistency/history.hpp"
 #include "clustering/immediate_consistency/backfill_metadata.hpp"
+#include "concurrency/new_semaphore.hpp"
 #include "store_view.hpp"
 
 class backfill_progress_tracker_t;

@@ -7,9 +7,13 @@
 #include <string>
 
 #include "perfmon/types.hpp"
+#include "rpc/connectivity/server_id.hpp"
 #include "rpc/mailbox/typed.hpp"
 
 struct admin_err_t;
+namespace ql {
+class datum_t;
+}
 
 class stat_manager_t {
 public:

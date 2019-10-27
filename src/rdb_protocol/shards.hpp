@@ -19,6 +19,7 @@
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/datum_utils.hpp"
 #include "rdb_protocol/profile.hpp"
+#include "rdb_protocol/serialize_datum.hpp"
 #include "rdb_protocol/wire_func.hpp"
 #include "region/region.hpp"
 #include "stl_utils.hpp"

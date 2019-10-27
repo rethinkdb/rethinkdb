@@ -12,6 +12,7 @@
 #include "rpc/semilattice/view.hpp"
 
 class cluster_semilattice_metadata_t;
+class auth_semilattice_metadata_t;
 
 namespace auth {
 

@@ -2,6 +2,8 @@
 
 #include "arch/timing.hpp"
 #include "btree/backfill.hpp"
+#include "random.hpp"
+#include "rdb_protocol/serialize_datum.hpp"
 #include "rdb_protocol/store.hpp"
 
 namespace unittest {

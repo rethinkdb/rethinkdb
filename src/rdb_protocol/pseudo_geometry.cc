@@ -3,6 +3,7 @@
 
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
+#include "utils.hpp"
 
 namespace ql {
 namespace pseudo {

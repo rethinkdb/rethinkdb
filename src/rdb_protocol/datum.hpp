@@ -18,7 +18,6 @@
 #include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/error.hpp"
-#include "rdb_protocol/serialize_datum.hpp"
 #include "version.hpp"
 
 // Enough precision to reconstruct doubles from their decimal representations.

@@ -1,6 +1,9 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "perfmon/collect.hpp"
+
 #include "concurrency/pmap.hpp"
+#include "rdb_protocol/datum.hpp"
+#include "utils.hpp"
 
 /* This is the function that actually gathers the stats. It is illegal to create or destroy
 perfmon_t objects while perfmon_get_stats is active. */

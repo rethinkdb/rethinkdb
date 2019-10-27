@@ -4,8 +4,9 @@
 
 #include <string>
 
-#include "rdb_protocol/datum_string.hpp"
 #include "rpc/serialize_macros.hpp"
+
+class datum_string_t;
 
 // The kind of string that can only contain either the empty string or acceptable names for
 // things.  You may only assign non-empty strings.

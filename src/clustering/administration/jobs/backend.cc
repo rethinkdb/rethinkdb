@@ -10,6 +10,7 @@
 #include "clustering/administration/main/watchable_fields.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "rpc/mailbox/disconnect_watcher.hpp"
 
 jobs_artificial_table_backend_t::jobs_artificial_table_backend_t(
         rdb_context_t *rdb_context,

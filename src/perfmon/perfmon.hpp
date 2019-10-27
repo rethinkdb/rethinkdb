@@ -1,12 +1,12 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
+#ifndef PERFMON_PERFMON_HPP_
+#define PERFMON_PERFMON_HPP_
 /* Please avoid #include'ing this file from other headers unless you absolutely
  * need to. Please #include "perfmon/types.hpp" instead. This helps avoid
  * potential circular dependency problems, since perfmons are used all over the
  * place but also depend on a significant chunk of our threading infrastructure
  * (by way of get_thread_id() & co).
  */
-#ifndef PERFMON_PERFMON_HPP_
-#define PERFMON_PERFMON_HPP_
 
 #include <algorithm>
 #include <limits>
@@ -32,44 +32,35 @@ threadnum_t get_thread_id();
 extern bool global_full_perfmon;
 
 // Abstract perfmon subclass that implements perfmon tracking by combining per-thread values.
-template<typename thread_stat_t, typename combined_stat_t = thread_stat_t>
-struct perfmon_perthread_t : public perfmon_t {
+template <typename perfmon_type>
+class perfmon_perthread_t : public perfmon_t {
+public:
     perfmon_perthread_t() { }
 
-    void *begin_stats() {
-        return new thread_stat_t[get_num_threads()];
-    }
-    void visit_stats(void *data) {
-        get_thread_stat(&(static_cast<thread_stat_t *>(data))[get_thread_id().threadnum]);
-    }
-    ql::datum_t end_stats(void *v_data) {
-        std::unique_ptr<thread_stat_t[]> data(static_cast<thread_stat_t *>(v_data));
-        combined_stat_t combined = combine_stats(data.get());
-        return output_stat(combined);
-    }
-
-protected:
-    virtual void get_thread_stat(thread_stat_t *) = 0;
-    virtual combined_stat_t combine_stats(const thread_stat_t *) = 0;
-    virtual ql::datum_t output_stat(const combined_stat_t &) = 0;
+    void *begin_stats();
+    void visit_stats(void *data);
+    ql::datum_t end_stats(void *v_data);
 };
 
 /* perfmon_counter_t is a perfmon_t that keeps a global counter that can be
  * incremented and decremented. (Internally, it keeps many individual counters
  * for thread-safety.)
  */
-class perfmon_counter_t : public perfmon_perthread_t<cache_line_padded_t<int64_t>, int64_t> {
+class perfmon_counter_t : public perfmon_perthread_t<perfmon_counter_t> {
     friend class perfmon_counter_step_t;
-protected:
+private:
     typedef cache_line_padded_t<int64_t> padded_int64_t;
     padded_int64_t *thread_data;
 
     int64_t &get();
 
+    friend class perfmon_perthread_t<perfmon_counter_t>;
     void get_thread_stat(padded_int64_t *);
     int64_t combine_stats(const padded_int64_t *);
     ql::datum_t output_stat(const int64_t&);
 public:
+    typedef padded_int64_t thread_stat_type;
+    typedef int64_t combined_stat_type;
     perfmon_counter_t();
     virtual ~perfmon_counter_t();
     void operator++() { get()++; }
@@ -123,7 +114,7 @@ struct stats_t {
 
 }   /* namespace perfmon_sampler */
 
-class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler::stats_t> {
+class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler_t> {
     typedef perfmon_sampler::stats_t stats_t;
     struct thread_info_t {
         stats_t current_stats, last_stats;
@@ -132,6 +123,7 @@ class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler::stats_t> {
 
     thread_info_t *thread_data;
 
+    friend class perfmon_perthread_t<perfmon_sampler_t>;
     void get_thread_stat(stats_t *);
     stats_t combine_stats(const stats_t *);
     ql::datum_t output_stat(const stats_t&);
@@ -141,6 +133,8 @@ class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler::stats_t> {
     ticks_t length;
     bool include_rate;
 public:
+    using thread_stat_type = perfmon_sampler::stats_t;
+    using combined_stat_type = perfmon_sampler::stats_t;
     perfmon_sampler_t(ticks_t _length, bool _include_rate);
     virtual ~perfmon_sampler_t();
     void record(double value);
@@ -173,18 +167,21 @@ private:
 /* Tracks the mean and standard deviation of a sequence value in constant space
  * & time.
  */
-struct perfmon_stddev_t : public perfmon_perthread_t<stddev_t> {
-private:
+struct perfmon_stddev_t : public perfmon_perthread_t<perfmon_stddev_t> {
 public:
+    using thread_stat_type = stddev_t;
+    using combined_stat_type = stddev_t;
+
     // should be possible to make this a templated class if necessary
     perfmon_stddev_t();
     void record(double value);
 
-protected:
+private:
+    friend class perfmon_perthread_t<perfmon_stddev_t>;
     void get_thread_stat(stddev_t *);
     stddev_t combine_stats(const stddev_t *);
     ql::datum_t output_stat(const stddev_t&);
-private:
+
     cache_line_padded_t<stddev_t> thread_data[MAX_THREADS];
 };
 
@@ -194,7 +191,7 @@ private:
  * once. For example, it would be good for recording how fast bytes are sent
  * over the network.
  */
-class perfmon_rate_monitor_t : public perfmon_perthread_t<double> {
+class perfmon_rate_monitor_t : public perfmon_perthread_t<perfmon_rate_monitor_t> {
 private:
     struct thread_info_t {
         double current_count, last_count;
@@ -207,10 +204,13 @@ private:
     void update(ticks_t now);
     ticks_t length;
 
+    friend class perfmon_perthread_t<perfmon_rate_monitor_t>;
     void get_thread_stat(double *);
     double combine_stats(const double *);
     ql::datum_t output_stat(const double&);
 public:
+    using thread_stat_type = double;
+    using combined_stat_type = double;
     explicit perfmon_rate_monitor_t(ticks_t length);
     void record(double value = 1.0);
 };

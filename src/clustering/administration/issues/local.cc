@@ -3,6 +3,7 @@
 
 #include "arch/runtime/runtime_utils.hpp"
 #include "clustering/administration/metadata.hpp"
+#include "rpc/mailbox/disconnect_watcher.hpp"
 #include "utils.hpp"
 
 RDB_MAKE_SERIALIZABLE_2_FOR_CLUSTER(local_issues_t, log_write_issues, memory_issues);

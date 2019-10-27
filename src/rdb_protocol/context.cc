@@ -3,6 +3,7 @@
 
 #include "clustering/administration/metadata.hpp"
 #include "concurrency/cross_thread_watchable.hpp"
+#include "containers/archive/vector_stream.hpp"
 #include "rdb_protocol/query_cache.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rpc/semilattice/view/field.hpp"

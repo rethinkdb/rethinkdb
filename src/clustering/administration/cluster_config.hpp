@@ -9,6 +9,8 @@
 #include "rdb_protocol/artificial_table/caching_cfeed_backend.hpp"
 #include "rpc/semilattice/view.hpp"
 
+class heartbeat_semilattice_metadata_t;
+
 /* The `rethinkdb.cluster_config` table is a catch-all for settings that don't fit
 elsewhere but aren't complicated enough to deserve their own table. It has a fixed set of
 rows, each of which has a unique format and corresponds to a different setting.

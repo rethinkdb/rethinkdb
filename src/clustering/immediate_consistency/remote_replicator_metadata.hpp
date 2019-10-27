@@ -5,6 +5,7 @@
 #include "clustering/generic/registration_metadata.hpp"
 #include "clustering/immediate_consistency/history.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rpc/connectivity/server_id.hpp"
 
 class remote_replicator_client_intro_t {
 public:

@@ -12,8 +12,9 @@
 #include "containers/archive/stl_types.hpp"
 #include "extproc/extproc_job.hpp"
 #include "math.hpp"
-#include "rdb_protocol/pseudo_time.hpp"
 #include "rdb_protocol/configured_limits.hpp"
+#include "rdb_protocol/pseudo_time.hpp"
+#include "rdb_protocol/serialize_datum.hpp"
 #include "utils.hpp"
 
 const js_id_t MIN_ID = 1;

@@ -8,6 +8,7 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/rwlock.hpp"
 #include "serializer/types.hpp"
+#include "utils.hpp"
 
 class base_path_t;
 class io_backender_t;

@@ -5,6 +5,7 @@
 
 #include "containers/archive/stl_types.hpp"
 #include "debug.hpp"
+#include "rdb_protocol/datum_string.hpp"
 
 const char *const name_string_t::valid_char_msg = "Use A-Z, a-z, 0-9, _ and - only";
 

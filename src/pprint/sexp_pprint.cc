@@ -11,6 +11,7 @@
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/term_storage.hpp"
 #include "rdb_protocol/pseudo_binary.hpp"
+#include "utils.hpp"
 
 namespace pprint {
 

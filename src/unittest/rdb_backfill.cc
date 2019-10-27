@@ -23,6 +23,7 @@
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
+#include "unittest/simple_mailbox_cluster.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {

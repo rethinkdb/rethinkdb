@@ -5,6 +5,7 @@
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/error.hpp"
+#include "rdb_protocol/serialize_datum.hpp"
 
 #include "debug.hpp"
 
@@ -295,6 +296,14 @@ archive_result_t deserialize(read_stream_t *s, batchspec_t *batchspec) {
     return res;
 }
 INSTANTIATE_DESERIALIZE_FOR_CLUSTER(batchspec_t);
+
+bool batcher_t::note_el(const datum_t &t) {
+    seen_one_el = true;
+    els_left -= 1;
+    min_els_left -= 1;
+    size_left -= serialized_size<cluster_version_t::CLUSTER>(t);
+    return should_send_batch();
+}
 
 bool batcher_t::should_send_batch(ignore_latency_t ignore_latency) const {
     // We ignore `size_left` as long as we have not got at least

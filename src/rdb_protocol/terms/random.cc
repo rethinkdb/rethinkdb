@@ -9,6 +9,7 @@
 #include "rdb_protocol/term.hpp"
 #include "rdb_protocol/math_utils.hpp"
 #include "rdb_protocol/terms/terms.hpp"
+#include "random.hpp"
 
 namespace ql {
 

@@ -5,6 +5,7 @@
 #include "concurrency/fifo_checker.hpp"
 #include "containers/counted.hpp"
 #include "debug.hpp"
+#include "random.hpp"
 #include "rdb_protocol/configured_limits.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"

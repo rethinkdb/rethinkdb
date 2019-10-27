@@ -6,9 +6,11 @@
 #include "clustering/administration/logs/log_transfer.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/servers/config_client.hpp"
+#include "concurrency/watchable_map.hpp"
 #include "rdb_protocol/pseudo_time.hpp"
 
 static const int entries_per_server = 1000;
+
 
 ql::datum_t convert_timespec_to_datum(const timespec &t) {
     return ql::pseudo::make_time(
@@ -213,7 +215,65 @@ bool logs_artificial_table_backend_t::write_row(
     return false;
 }
 
-logs_artificial_table_backend_t::cfeed_machinery_t::cfeed_machinery_t(
+namespace logs_backend {
+class cfeed_machinery_t : public cfeed_artificial_table_backend_t::machinery_t {
+public:
+    cfeed_machinery_t(
+        namespace_id_t const &namespace_id,
+        lifetime_t<name_resolver_t const &> name_resolver,
+        auth::user_context_t const &user_context,
+        logs_artificial_table_backend_t *_parent);
+
+    /* `on_change()` checks for newly-connected peers. If it finds one, it puts an
+    entry in `peers_handled` and spawns an instance of `run()`. */
+    void on_change(const peer_id_t &peer, const cluster_directory_metadata_t *dir);
+
+    /* One instance of `run` will be running for each server we're in contact with
+    that hasn't been permanently removed. It first fetches the latest entry of each
+    server's log, then repeatedly checks for newer log entries at a regular interval.
+    If it sees that the server is disconnected, then it removes itself from
+    `peers_handled` and stops. */
+    void run(
+        const peer_id_t &peer,
+        const server_id_t &server_id,
+        const log_server_business_card_t &bcard,
+        bool is_a_starter,
+        auto_drainer_t::lock_t keepalive);
+
+    /* Helper function for `run()`. Checks if the server is no longer present in the
+    directory; if so, removes the entry from `peers_handled` and returns `false`. */
+    bool check_disconnected(const peer_id_t &peer);
+
+    /* Called by `cfeed_artificial_table_backend_t` to fetch the initial values for a
+    new changefeed */
+    bool get_initial_values(
+        const new_mutex_acq_t *proof,
+        std::vector<ql::datum_t> *initial_values_out,
+        signal_t *interruptor);
+
+    logs_artificial_table_backend_t *parent;
+    std::set<peer_id_t> peers_handled;
+    std::map<peer_id_t, timespec> last_timestamps;
+
+    /* `all_starters_done` is pulsed when we've fetched logs from every peer that was
+    connected to the `cfeed_machinery_t` when it was first created. When the
+    `cfeed_machinery_t` is first created, `starting` is true, and any instance of
+    `run()` that are spawned in the first group have `is_a_starter` set to `true`.
+    `num_starters_left` is initially the number of such coroutines. As soon as the
+    initial batch are spawned, `starting` is set to `false`, so any further instances
+    that are spawned for newly-connected servers will have `is_a_starter` set to
+    `false`. As each instance with `is_a_starter` set to `true` finishes fetching the
+    initial timestamp, it decrements `num_starters_left`. The last one pulses
+    `all_starters_done`.*/
+    bool starting;
+    int num_starters_left;
+    cond_t all_starters_done;
+
+    auto_drainer_t drainer;
+    watchable_map_t<peer_id_t, cluster_directory_metadata_t>::all_subs_t dir_subs;
+};
+
+cfeed_machinery_t::cfeed_machinery_t(
         namespace_id_t const &table_id,
         lifetime_t<name_resolver_t const &> name_resolver,
         auth::user_context_t const &user_context,
@@ -236,7 +296,7 @@ logs_artificial_table_backend_t::cfeed_machinery_t::cfeed_machinery_t(
     }
 }
 
-void logs_artificial_table_backend_t::cfeed_machinery_t::on_change(
+void cfeed_machinery_t::on_change(
         const peer_id_t &peer,
         const cluster_directory_metadata_t *dir) {
     if (dir == nullptr || peers_handled.count(peer) != 0) {
@@ -252,7 +312,7 @@ void logs_artificial_table_backend_t::cfeed_machinery_t::on_change(
         auto_drainer_t::lock_t(&drainer)));
 }
 
-void logs_artificial_table_backend_t::cfeed_machinery_t::run(
+void cfeed_machinery_t::run(
         const peer_id_t &peer,
         const server_id_t &server_id,
         const log_server_business_card_t &bcard,
@@ -402,7 +462,7 @@ void logs_artificial_table_backend_t::cfeed_machinery_t::run(
     }
 }
 
-bool logs_artificial_table_backend_t::cfeed_machinery_t::check_disconnected(
+bool cfeed_machinery_t::check_disconnected(
         const peer_id_t &peer) {
     /* We have to do this atomically. If we don't, then we would lose the guarantee that
     there is exactly one instance of `run()` for each connected peer. For example, if we
@@ -424,7 +484,7 @@ bool logs_artificial_table_backend_t::cfeed_machinery_t::check_disconnected(
     return connected;
 }
 
-bool logs_artificial_table_backend_t::cfeed_machinery_t::get_initial_values(
+bool cfeed_machinery_t::get_initial_values(
         const new_mutex_acq_t *proof,
         std::vector<ql::datum_t> *initial_values_out,
         signal_t *interruptor) {
@@ -449,6 +509,8 @@ bool logs_artificial_table_backend_t::cfeed_machinery_t::get_initial_values(
         interruptor,
         &dummy_error);
 }
+
+} // namespace logs_backend
 
 bool logs_artificial_table_backend_t::read_all_rows_raw(
         const std::function<void(
@@ -530,8 +592,8 @@ logs_artificial_table_backend_t::construct_changefeed_machinery(
         lifetime_t<name_resolver_t const &> name_resolver,
         auth::user_context_t const &user_context,
         signal_t *interruptor) {
-    scoped_ptr_t<cfeed_machinery_t> machinery(
-        new cfeed_machinery_t(get_table_id(), name_resolver, user_context, this));
+    scoped_ptr_t<logs_backend::cfeed_machinery_t> machinery(
+        new logs_backend::cfeed_machinery_t(get_table_id(), name_resolver, user_context, this));
     wait_interruptible(&machinery->all_starters_done, interruptor);
     return scoped_ptr_t<cfeed_artificial_table_backend_t::machinery_t>(
         machinery.release());
