@@ -2,6 +2,7 @@
 #include "buffer_cache/stats.hpp"
 
 #include "perfmon/perfmon.hpp"
+#include "rdb_protocol/datum.hpp"
 
 alt_cache_stats_t::alt_cache_stats_t(alt::page_cache_t *_page_cache,
                                      perfmon_collection_t *parent) :

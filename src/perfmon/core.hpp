@@ -11,8 +11,11 @@
 #include "concurrency/cross_thread_mutex.hpp"
 #include "containers/intrusive_list.hpp"
 #include "containers/scoped.hpp"
-#include "rdb_protocol/datum.hpp"
 #include "threading.hpp"
+
+namespace ql {
+class datum_t;
+}
 
 class perfmon_collection_t;
 class scoped_regex_t;

@@ -5,6 +5,7 @@
 #include "containers/scoped.hpp"
 #include "logger.hpp"
 #include "perfmon/core.hpp"
+#include "rdb_protocol/datum.hpp"
 #include "utils.hpp"
 
 /* Constructor and destructor register and deregister the perfmon. */

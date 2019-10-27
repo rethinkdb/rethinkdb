@@ -6,8 +6,9 @@
 #include <cmath>
 #include <map>
 
-#include "concurrency/pmap.hpp"
 #include "arch/arch.hpp"
+#include "concurrency/pmap.hpp"
+#include "rdb_protocol/datum.hpp"
 
 static const char *stat_avg = "avg";
 static const char *stat_min = "min";
@@ -24,10 +25,35 @@ bool global_full_perfmon = true;
 bool global_full_perfmon = false;
 #endif
 
+template <class perfmon_type>
+void *perfmon_perthread_t<perfmon_type>::begin_stats() {
+    using thread_stat_t = typename perfmon_type::thread_stat_type;
+
+    return new thread_stat_t[get_num_threads()];
+}
+
+template <class perfmon_type>
+void perfmon_perthread_t<perfmon_type>::visit_stats(void *data) {
+    using thread_stat_t = typename perfmon_type::thread_stat_type;
+
+    static_cast<perfmon_type&>(*this).get_thread_stat(&(static_cast<thread_stat_t *>(data))[get_thread_id().threadnum]);
+}
+
+template <class perfmon_type>
+ql::datum_t perfmon_perthread_t<perfmon_type>::end_stats(void *v_data) {
+    using thread_stat_t = typename perfmon_type::thread_stat_type;
+    using combined_stat_t = typename perfmon_type::combined_stat_type;
+
+    std::unique_ptr<thread_stat_t[]> data(static_cast<thread_stat_t *>(v_data));
+    combined_stat_t combined = static_cast<perfmon_type&>(*this).combine_stats(data.get());
+    return static_cast<perfmon_type&>(*this).output_stat(combined);
+}
+
+
 /* perfmon_counter_t */
 
 perfmon_counter_t::perfmon_counter_t()
-    : perfmon_perthread_t<cache_line_padded_t<int64_t>, int64_t>(),
+    : perfmon_perthread_t<perfmon_counter_t>(),
       thread_data(new padded_int64_t[MAX_THREADS])
 {
     for (int i = 0; i < MAX_THREADS; i++) thread_data[i].value = 0;
@@ -70,8 +96,10 @@ scoped_perfmon_counter_t::~scoped_perfmon_counter_t() {
 /* perfmon_sampler_t */
 
 perfmon_sampler_t::perfmon_sampler_t(ticks_t _length, bool _include_rate)
-    : perfmon_perthread_t<stats_t>(), thread_data(new thread_info_t[MAX_THREADS]), length(_length), include_rate(_include_rate)
-{
+    : perfmon_perthread_t<perfmon_sampler_t>(),
+      thread_data(new thread_info_t[MAX_THREADS]),
+      length(_length),
+      include_rate(_include_rate) {
     for (int i = 0; i < MAX_THREADS; i++) {
         thread_data[i].current_interval = get_ticks() / length;
     }
@@ -208,7 +236,7 @@ stddev_t stddev_t::combine(size_t nelts, const stddev_t *data) {
     return stddev_t();
 }
 
-perfmon_stddev_t::perfmon_stddev_t() : perfmon_perthread_t<stddev_t>() { }
+perfmon_stddev_t::perfmon_stddev_t() : perfmon_perthread_t<perfmon_stddev_t>() { }
 
 void perfmon_stddev_t::get_thread_stat(stddev_t *stat) {
     rassert(get_thread_id().threadnum >= 0);
@@ -242,8 +270,7 @@ void perfmon_stddev_t::record(double value) {
 /* perfmon_rate_monitor_t */
 
 perfmon_rate_monitor_t::perfmon_rate_monitor_t(ticks_t _length)
-    : perfmon_perthread_t<double>(), length(_length)
-{
+    : perfmon_perthread_t<perfmon_rate_monitor_t>(), length(_length) {
     for (int i = 0; i < MAX_THREADS; i++) {
         thread_data[i].value.current_interval = get_ticks() / length;
     }
