@@ -5,6 +5,7 @@
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/serialize_datum.hpp"
 #include "unittest/gtest.hpp"
 
 

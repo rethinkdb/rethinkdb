@@ -1,10 +1,11 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "extproc/http_runner.hpp"
 
-#include "extproc/http_job.hpp"
-#include "containers/archive/stl_types.hpp"
 #include "arch/timing.hpp"
+#include "containers/archive/stl_types.hpp"
+#include "extproc/http_job.hpp"
 #include "protocol_api.hpp"
+#include "rdb_protocol/serialize_datum.hpp"
 
 RDB_IMPL_SERIALIZABLE_4_FOR_CLUSTER(http_result_t, header, body, cookies, error);
 RDB_IMPL_SERIALIZABLE_3_SINCE_v1_13(http_opts_t::http_auth_t, type, username, password);

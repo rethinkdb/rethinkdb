@@ -42,13 +42,7 @@ enum ignore_latency_t { NO, YES };
 
 class batcher_t {
 public:
-    bool note_el(const datum_t &t) {
-        seen_one_el = true;
-        els_left -= 1;
-        min_els_left -= 1;
-        size_left -= serialized_size<cluster_version_t::CLUSTER>(t);
-        return should_send_batch();
-    }
+    bool note_el(const datum_t &t);
     bool should_send_batch(
         ignore_latency_t ignore_latency = ignore_latency_t::NO) const;
     batcher_t(batcher_t &&other) :

@@ -11,6 +11,7 @@
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/profile.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/serialize_datum.hpp"
 
 bool reversed(sorting_t sorting) { return sorting == sorting_t::DESCENDING; }
 

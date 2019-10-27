@@ -4,6 +4,7 @@
 #include "containers/archive/buffer_group_stream.hpp"
 #include "containers/archive/versioned.hpp"
 #include "rdb_protocol/blob_wrapper.hpp"
+#include "rdb_protocol/serialize_datum.hpp"
 
 ql::datum_t get_data(const rdb_value_t *value, buf_parent_t parent) {
     // TODO: Just use deserialize_from_blob?

@@ -7,6 +7,7 @@
 #include "concurrency/watchable.hpp"
 #include "perfmon/collect.hpp"
 #include "perfmon/filter.hpp"
+#include "rdb_protocol/serialize_datum.hpp"
 #include "rpc/mailbox/disconnect_watcher.hpp"
 #include "stl_utils.hpp"
 

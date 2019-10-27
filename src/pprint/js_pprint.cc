@@ -11,6 +11,7 @@
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/term_storage.hpp"
+#include "utils.hpp"
 
 namespace pprint {
 

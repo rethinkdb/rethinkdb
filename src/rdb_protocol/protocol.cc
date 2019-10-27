@@ -19,6 +19,7 @@
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/ql2proto.hpp"
+#include "rdb_protocol/serialize_datum.hpp"
 #include "rdb_protocol/store.hpp"
 
 #include "debug.hpp"

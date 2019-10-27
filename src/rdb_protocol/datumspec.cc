@@ -5,6 +5,7 @@
 #include "containers/archive/stl_types.hpp"
 #include "containers/object_buffer.hpp"
 #include "rdb_protocol/protocol.hpp"
+#include "rdb_protocol/serialize_datum.hpp"
 
 namespace ql {
 

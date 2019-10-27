@@ -14,7 +14,6 @@
 #include <vector>
 #include <utility>
 
-#include "arch/runtime/coroutines.hpp"
 #include "containers/archive/archive.hpp"
 #include "containers/archive/varint.hpp"
 #include "version.hpp"

@@ -5,6 +5,7 @@
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/error.hpp"
 #include "rdb_protocol/env.hpp"
+#include "rdb_protocol/serialize_datum.hpp"
 #include "stl_utils.hpp"
 
 namespace ql {

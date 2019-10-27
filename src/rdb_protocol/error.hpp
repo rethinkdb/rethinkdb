@@ -11,6 +11,7 @@
 #include "containers/scoped.hpp"
 #include "rdb_protocol/ql2proto.hpp"
 #include "rpc/serialize_macros.hpp"
+#include "utils.hpp"
 
 namespace ql {
 

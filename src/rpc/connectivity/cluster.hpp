@@ -23,10 +23,6 @@
 #include "rpc/connectivity/server_id.hpp"
 #include "utils.hpp"
 
-namespace boost {
-template <class> class optional;
-}
-
 class auth_semilattice_metadata_t;
 class cluster_message_handler_t;
 class co_semaphore_t;
