@@ -1,12 +1,16 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
+#include "arch/io/disk.hpp"
 #include "clustering/immediate_consistency/standard_backfill_throttler.hpp"
 #include "clustering/table_contract/executor/executor.hpp"
 #include "clustering/table_manager/backfill_progress_tracker.hpp"
+#include "clustering/query_routing/metadata.hpp"
+#include "clustering/query_routing/primary_query_client.hpp"
 #include "unittest/branch_history_manager.hpp"
 #include "unittest/clustering_contract_utils.hpp"
-#include "unittest/clustering_utils.hpp"
+#include "unittest/mock_store.hpp"
+#include "unittest/simple_mailbox_cluster.hpp"
 
 namespace unittest {
 

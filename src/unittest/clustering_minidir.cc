@@ -3,7 +3,7 @@
 
 #include "clustering/generic/minidir.hpp"
 #include "clustering/generic/minidir.tcc"
-#include "unittest/clustering_utils.hpp"
+#include "unittest/simple_mailbox_cluster.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {

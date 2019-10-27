@@ -3,7 +3,7 @@
 
 #include "clustering/generic/registrar.hpp"
 #include "clustering/generic/registrant.hpp"
-#include "unittest/clustering_utils.hpp"
+#include "unittest/simple_mailbox_cluster.hpp"
 #include "unittest/unittest_utils.hpp"
 
 namespace unittest {
