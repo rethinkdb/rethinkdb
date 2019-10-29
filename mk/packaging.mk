@@ -109,7 +109,7 @@ OS_RELEASE := $(if $(DEB_RELEASE),$(DEB_RELEASE),$(if $(UBUNTU_RELEASE),$(UBUNTU
 .PHONY: build-deb-src
 build-deb-src: deb-src-dir
 	$P DEBUILD ""
-	cd $(DSC_PACKAGE_DIR) && yes | debuild -S -sa $(DEBUILD_SIGN_OPTIONS)
+	cd $(DSC_PACKAGE_DIR) && yes | MAKEFLAGS='$(PKG_MAKEFLAGS)' debuild -S -sa $(DEBUILD_SIGN_OPTIONS)
 
 .PHONY: deb-src-dir
 deb-src-dir: dist-dir
@@ -138,7 +138,7 @@ deb-src-dir: dist-dir
 .PHONY: build-deb
 build-deb: deb-src-dir
 	$P BUILD-DEB $(DSC_PACKAGE_DIR)
-	cd $(DSC_PACKAGE_DIR) && dpkg-buildpackage --jobs=auto -rfakeroot $(DEBUILD_SIGN_OPTIONS)
+	cd $(DSC_PACKAGE_DIR) && MAKEFLAGS='$(PKG_MAKEFLAGS)' dpkg-buildpackage --jobs=auto -rfakeroot $(DEBUILD_SIGN_OPTIONS)
 
 .PHONY: install-osx
 install-osx: install-binaries
