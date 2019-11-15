@@ -64,6 +64,7 @@ ifneq ($(UBUNTU_RELEASE),)
     # RethinkDB fails to compile with GCC 6 (#5757)
     DEB_BUILD_DEPENDS += , g++-5, libssl-dev
     DSC_CONFIGURE_DEFAULT += CXX=g++-5
+    DPKG_JOBS := -j7
   else
     # RethinkDB fails to compile with GCC 6 (#5757) -- and there is
     # no GCC 5 in later Ubuntus.  We need to use libssl1.0-dev on
@@ -75,13 +76,16 @@ ifneq ($(UBUNTU_RELEASE),)
     endif
     DEB_BUILD_DEPENDS += , clang
     DSC_CONFIGURE_DEFAULT += CXX=clang++
+    DPKG_JOBS := --jobs=auto
   endif
 else ifneq ($(DEB_RELEASE),)
   ifneq ($(filter $(DEB_RELEASE), jessie),)
     DEB_BUILD_DEPENDS += , g++
+    DPKG_JOBS := -j7
   else
     DEB_BUILD_DEPENDS += , clang
     DSC_CONFIGURE_DEFAULT += CXX=clang++
+    DPKG_JOBS := --jobs=auto
   endif
   ifneq ($(filter $(DEB_RELEASE), stretch),)
     DEB_BUILD_DEPENDS += , libssl1.0-dev
@@ -142,7 +146,7 @@ deb-src-dir: dist-dir
 .PHONY: build-deb
 build-deb: deb-src-dir
 	$P BUILD-DEB $(DSC_PACKAGE_DIR)
-	cd $(DSC_PACKAGE_DIR) && MAKEFLAGS='$(PKG_MAKEFLAGS)' dpkg-buildpackage --jobs=auto -rfakeroot $(DEBUILD_SIGN_OPTIONS)
+	cd $(DSC_PACKAGE_DIR) && MAKEFLAGS='$(PKG_MAKEFLAGS)' dpkg-buildpackage $(DPKG_JOBS) -rfakeroot $(DEBUILD_SIGN_OPTIONS)
 
 .PHONY: install-osx
 install-osx: install-binaries
