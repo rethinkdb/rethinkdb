@@ -7,5 +7,5 @@ if [ ! -f admin/generate.sh ]; then
 fi
 
 mkdir -p build
-make build/web-assets
+make -j7 build/web-assets
 ./scripts/compile-web-assets.py build/web_assets > src/gen/web_assets.cc
