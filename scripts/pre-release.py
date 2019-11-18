@@ -91,7 +91,7 @@ class Ref(SmartGetitem):
 
     @cache
     def serializer_version(self):
-        return self.extract_version_macro("src/config/args.hpp", 'serializer')
+        return self.extract_version_macro("src/serializer/log/static_header.cc", 'current_serializer')
 
     @cache
     def cluster_version(self, ref):
