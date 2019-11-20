@@ -71,23 +71,19 @@ class DatabasesContainer extends Backbone.View
             collection: @databases
             container: @
 
-        @query = r.db(system_db).table('db_config').filter( (db) ->
-            db("name").ne(system_db)
-        ).map (db) ->
-            name: db("name")
-            id: db("id")
-            tables: r.db(system_db).table('table_status').orderBy((table) -> table("name"))
-                .filter({db: db("name")})
-                .merge( (table) ->
-                    shards: table("shards").count().default(0)
-                    replicas: table("shards").default([]).map((shard) ->
-                        shard('replicas').count()).sum()
-                    replicas_ready: table('shards').default([]).map((shard) ->
-                        shard('replicas').filter((replica) ->
-                            replica('state').eq('ready')).count()).sum()
-                    status: table('status')
-                    id: table('id')
-                )
+        @query = r.db(system_db).table('table_status').group('db').orderBy('name').merge((table) ->
+            shards: table("shards").count().default(0)
+            replicas: table("shards").default([]).map((shard) ->
+                shard('replicas').count()).sum()
+            replicas_ready: table('shards').default([]).map((shard) ->
+                shard('replicas').filter((replica) ->
+                    replica('state').eq('ready')).count()).sum()
+            status: table('status')
+            id: table('id')
+        ).ungroup().map((x) -> [x('group'), x('reduction')]).coerceTo('object').do((statuses) ->
+            r.db(system_db).table('db_config').map((db) ->
+                db.merge({tables: statuses(db('name')).default([])})))
+
 
         @fetch_data()
 
