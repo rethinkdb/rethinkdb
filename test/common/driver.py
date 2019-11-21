@@ -604,9 +604,6 @@ class Process(object):
         else:
             self.logfile_path = os.path.join(self.data_path, "log_file.txt")
         
-        if not '--no-update-check' in extra_options:
-            self.options += ['--no-update-check'] # supress update checks/reporting in
-        
         self.options += extra_options
         
         # - subclass modifications

@@ -16,7 +16,6 @@
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/memory_checker.hpp"
 #include "clustering/administration/main/watchable_fields.hpp"
-#include "clustering/administration/main/version_check.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/perfmon_collection_repo.hpp"
 #include "clustering/administration/persist/file_keys.hpp"
@@ -648,15 +647,6 @@ bool do_serve(io_backender_t *io_backender,
                                server_id.print().c_str());
                     } else {
                         logNTC("Proxy ready, %s", server_id.print().c_str());
-                    }
-
-                    /* `checker` periodically phones home to RethinkDB HQ to check if
-                    there are later versions of RethinkDB available. */
-                    scoped_ptr_t<version_checker_t> checker;
-                    if (i_am_a_server
-                        && serve_info.do_version_checking == update_check_t::perform) {
-                        checker.init(new version_checker_t(
-                            &rdb_ctx, uname, &table_meta_client, &server_config_client));
                     }
 
                     /* This is the end of the startup process. `stop_cond` will be pulsed

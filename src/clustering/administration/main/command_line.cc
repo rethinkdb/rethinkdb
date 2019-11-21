@@ -51,7 +51,6 @@
 #include "clustering/administration/main/ports.hpp"
 #include "clustering/administration/main/serve.hpp"
 #include "clustering/administration/main/directory_lock.hpp"
-#include "clustering/administration/main/version_check.hpp"
 #include "clustering/administration/main/windows_service.hpp"
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/logs/log_writer.hpp"
@@ -1390,8 +1389,7 @@ options::help_section_t get_log_options(std::vector<options::option_t> *options_
     help.add("--log-file file", "specify the file to log to, defaults to 'log_file'");
     options_out->push_back(options::option_t(options::names_t("--no-update-check"),
                                             options::OPTIONAL_NO_PARAMETER));
-    help.add("--no-update-check", "disable checking for available updates.  Also turns "
-             "off anonymous usage data collection.");
+    help.add("--no-update-check", "obsolete.  Update checking has been removed.");
     return help;
 }
 
@@ -1887,12 +1885,6 @@ MUST_USE bool parse_io_threads_option(const std::map<std::string, options::value
     return true;
 }
 
-update_check_t parse_update_checking_option(const std::map<std::string, options::values_t> &opts) {
-    return exists_option(opts, "--no-update-check")
-        ? update_check_t::do_not_perform
-        : update_check_t::perform;
-}
-
 file_direct_io_mode_t parse_direct_io_mode_option(const std::map<std::string, options::values_t> &opts) {
     return exists_option(opts, "--direct-io") ?
         file_direct_io_mode_t::direct_desired :
@@ -2057,8 +2049,6 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        update_check_t do_update_checking = parse_update_checking_option(opts);
-
         optional<optional<uint64_t> > total_cache_size =
             parse_total_cache_size_option(opts);
 
@@ -2101,7 +2091,6 @@ int main_rethinkdb_serve(int argc, char *argv[]) {
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
-                                do_update_checking,
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc),
@@ -2204,7 +2193,6 @@ int main_rethinkdb_proxy(int argc, char *argv[]) {
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
-                                update_check_t::do_not_perform,
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc),
@@ -2328,8 +2316,6 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
             return EXIT_FAILURE;
         }
 
-        update_check_t do_update_checking = parse_update_checking_option(opts);
-
         optional<int> join_delay_secs = parse_join_delay_secs_option(opts);
         optional<int> node_reconnect_timeout_secs =
             parse_node_reconnect_timeout_secs_option(opts);
@@ -2394,7 +2380,6 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         serve_info_t serve_info(std::move(joins),
                                 get_reql_http_proxy_option(opts),
                                 std::move(web_path),
-                                do_update_checking,
                                 address_ports,
                                 get_optional_option(opts, "--config-file"),
                                 std::vector<std::string>(argv, argv + argc),
