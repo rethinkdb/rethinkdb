@@ -7,8 +7,7 @@ class NavBarView extends Backbone.View
     id: 'navbar'
     className: 'container'
     template: require('../handlebars/navbar_view.hbs')
-    events:
-        'click .options_link': 'update_cog_icon'
+    events: {}
 
     initialize: (data) =>
         @databases = data.databases
@@ -16,8 +15,6 @@ class NavBarView extends Backbone.View
         @servers = data.servers
 
         @container = data.container
-
-        @options_state = 'hidden' # can be 'hidden' or 'visible'
 
     init_typeahead: => # Has to be called after we have injected the template
         @$('input.search-box').typeahead
@@ -74,10 +71,6 @@ class NavBarView extends Backbone.View
                 when 'logs'
                     @$('ul.nav-left li').removeClass('active')
                     @$('li#nav-logs').addClass('active')
-
-    update_cog_icon: (event) =>
-        @$('.cog_icon').toggleClass 'active'
-        @container.toggle_options event
 
 
 exports.NavBarView = NavBarView
