@@ -1,3 +1,80 @@
+# Release 2.4.0 (Night of the Living Dead?)
+
+Released on 2019-11-??
+
+RethinkDB 2.4 introduces write hooks and a few other enhancements.
+
+### Compatibility ###
+
+Data files from RethinkDB version 1.16 onward will be automatically
+migrated.  As with any major release, back up your data files before
+performing the upgrade.  Please read the [RethinkDB 2.3.0 release
+notes][release-notes-2.3.0] if you're upgrading from version 2.2.x or
+earlier.
+
+[release-notes-2.3.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.3.0
+
+RethinkDB 2.4.0 servers cannot be mixed with servers running RethinkDB
+2.3.x or earlier in the same cluster.
+
+### Official Drivers ###
+
+Except for JavaScript, the official drivers are now generally
+maintained as separate projects.  But note that there is some coupling
+of RethinkDB console commands, like `rethinkdb dump`, with the Python
+driver.  RethinkDB 2.4 contains some old copies of the drivers to keep
+`./test/run` working with minimal effort.  The JavaScript driver is
+still used in the Web UI.  However, the web assets are now
+pre-generated, at src/gen/web_assets.cc, making the presence of the
+driver in the repository not strictly necessary.
+
+Here are links to the official drivers:
+
+ * Python: https://github.com/rethinkdb/rethinkdb-python/
+ * Ruby: https://github.com/rethinkdb/rethinkdb-ruby/
+ * Java: https://github.com/rethinkdb/rethinkdb-java/
+ * JavaScript: https://github.com/rethinkdb/rethinkdb/tree/next/drivers/javascript
+
+### API-breaking changes ###
+
+* Write hooks add a new field to the table configuration.
+* A bugfix changes the `match` command's behavior on empty regexes.
+  It had previously been behaving incorrectly.
+
+### Substantive Changes ###
+
+(Issue numbers point into the https://github.com/rethinkdb/rethinkdb
+bugtracker.)
+
+* ReQL
+  * Added the `set_write_hook` and `get_write_hook` commands, which attach to
+    tables a function that can modify the behavior of any write. (#5813)
+  * Permitted the hyphen character (`-`) to be used in table names. (#5537)
+  * Users may be granted permissions on system tables. (#5692)
+  * Make `iso8601` command round, not truncate. (#6909)
+  * Fix timestamp millisecond down-truncation bug. (#6272)
+* Server
+  * Fixed crash with limit change feed `inserted` guarantee failure. (#6710)
+  * Avoid using DNS resolution when finding network interface addresses. (#6588)
+  * Removed update checker. (#6791)
+  * Added experimental support for arm64/aarch64. (#6438)
+  * Added experimental  support for Power8/LE platform. (#6317)
+  * Fixed race condition in the query cache. (#6564)
+  * Avoid quadratic growth in segmented vector. (#6385)
+  * Big-Endian fixes and s390x support. (#6242)
+* Web UI
+  * Implemented a new table viewer widget for browsing the contents of tables. (#6767)
+  * Improved table page performance in case with many databases. (#6790)
+* Compilation
+  * The web assets are now pre-generated, so that macOS users can build them. (#6770)
+  * Debian package building is now parallelized. (#6780)
+  * Fixed extproc spawner bug. (#5572)
+  * Allowed building against libressl. (#6671)
+* JavaScript Driver
+  * Avoided mutating object passed to `r.connect`. (#6575)
+* Other Drivers
+  * Changes omitted, as they're in separate repositories.
+
 # Release 2.3.6 (Fantasia)
 
 Released on 2017-07-17
