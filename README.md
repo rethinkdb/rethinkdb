@@ -14,7 +14,7 @@ What is RethinkDB?
 * **Distributed** database that is easy to scale
 * **High availability** database with automatic failover and robust fault tolerance
 
-RethinkDB is the first open-source scalable database built for realtime applications. It exposes a new database access model -- instead of polling for changes, the developer can tell the database to continuously push updated query results to applications in realtime. RethinkDB allows developers to build scalable realtime apps in a fraction of the time with less effort.
+RethinkDB is the first open-source scalable database built for realtime applications. It exposes a new database access model, in which the developer can tell the database to continuously push updated query results to applications without polling for changes.  RethinkDB allows developers to build scalable realtime apps in a fraction of the time with less effort.
 
 To learn more, check out [rethinkdb.com](https://rethinkdb.com).
 
@@ -37,7 +37,7 @@ Or, get started right away with our ten-minute guide in these languages:
 * [**JavaScript**](https://rethinkdb.com/docs/guide/javascript/)
 * [**Python**](https://rethinkdb.com/docs/guide/python/)
 * [**Ruby**](https://rethinkdb.com/docs/guide/ruby/)
-* [**Java**](https://rethinkdb.com/docs/guide/java/) 
+* [**Java**](https://rethinkdb.com/docs/guide/java/)
 
 Besides our four official drivers, we also have many [third-party drivers](https://rethinkdb.com/docs/install-drivers/) supported by the RethinkDB community. Here are a few of them:
 
