@@ -48,22 +48,22 @@ tests:
     - cd: r.db("rethinkdb").table("permissions").filter({"user": "test_user"}).delete()
     - cd: r.grant("test_user", {"read": true})
       runopts:
-        user: test_user
+        user: "test_user"
       ot: err("ReqlPermissionError", "User `test_user` does not have the required `read` permission.", [])
     - cd: r.grant("test_user", {"read": true, "write": true})
     - cd: r.grant("test_user", {"read": true})
       runopts:
-        user: test_user
+        user: "test_user"
       ot: err("ReqlPermissionError", "User `test_user` does not have the required `read` permission.", [])
     - cd: r.grant("test_user", {"read": null, "write": null})
     - cd: r.db("rethinkdb").grant("test_user", {"read": true, "write": true})
     - cd: r.grant("test_user", {"read": true})
       runopts:
-        user: test_user
+        user: "test_user"
       ot: {"granted": 1, "permissions_changes": [{"old_val": null, "new_val": {"read": true}}]}
     - cd: r.db("rethinkdb").grant("test_user", {"read": null, "write": null})
     - cd: r.db("rethinkdb").table("permissions").grant("test_user", {"read": true, "write": true})
     - cd: r.grant("test_user", {"write": true})
       runopts:
-        user: test_user
+        user: "test_user"
       ot: {"granted": 1, "permissions_changes": [{"old_val": {"read": true}, "new_val": {"read": true, "write": true}}]}
