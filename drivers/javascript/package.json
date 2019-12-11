@@ -18,6 +18,6 @@
         "node": ">= 0.10.0"
     },
     "dependencies": {
-        "bluebird": ">= 2.3.2 < 3"
+        "bluebird": "^3.5.1"
     }
 }
