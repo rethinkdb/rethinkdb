@@ -49,6 +49,7 @@ bugtracker.)
 * ReQL
   * Added the `set_write_hook` and `get_write_hook` commands, which attach to
     tables a function that can modify the behavior of any write. (#5813)
+  * Added bitwise operations. (#6534)
   * Permitted the hyphen character (`-`) to be used in table names. (#5537)
   * Users may be granted permissions on system tables. (#5692)
   * Make `iso8601` command round, not truncate. (#6909)
@@ -72,6 +73,8 @@ bugtracker.)
   * Allowed building against libressl. (#6671)
 * JavaScript Driver
   * Avoided mutating object passed to `r.connect`. (#6575)
+* Python Driver
+  * See more details at https://github.com/rethinkdb/rethinkdb-python/releases
 * Other Drivers
   * Changes omitted, as they're in separate repositories.
 
