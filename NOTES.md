@@ -1,6 +1,6 @@
-# Release 2.4.0 (Night of the Living Dead?)
+# Release 2.4.0 (Night of the Living Dead)
 
-Released on 2019-11-??
+Released on 2019-12-19
 
 RethinkDB 2.4 introduces write hooks and a few other enhancements.
 
