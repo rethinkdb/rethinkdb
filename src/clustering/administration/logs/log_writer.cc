@@ -469,8 +469,15 @@ bool fallback_log_writer_t::write(const log_message_t &msg, std::string *error_o
         flockfile(write_stream);
 #endif
 
+        bool write_failure = false;
         size_t write_res = ::fwrite(console_formatted.data(), 1, console_formatted.length(), write_stream);
-        if (write_res != console_formatted.length()) {
+        if (write_res == console_formatted.length()) {
+            int fflush_res = ::fflush(write_stream);
+            write_failure = (fflush_res != 0);
+        } else {
+            write_failure = true;
+        }
+        if (write_failure) {
             error_out->assign("cannot write to stdout/stderr: " + errno_string(get_errno()));
             return false;
         }
