@@ -7,7 +7,7 @@
     "homepage": "https://rethinkdb.com",
     "bugs": {
         "url": "https://github.com/rethinkdb/rethinkdb/issues",
-        "email": "gabor.brs@gmail.com"
+        "email": "bugs@rethinkdb.com"
     },
     "files": ["rethinkdb.js", "ast.js", "net.js", "util.js", "errors.js", "cursor.js", "README.md", "proto-def.js"],
     "repository": {
