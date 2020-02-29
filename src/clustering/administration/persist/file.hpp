@@ -8,6 +8,7 @@
 #include "buffer_cache/types.hpp"
 #include "concurrency/rwlock.hpp"
 #include "serializer/types.hpp"
+#include "utils.hpp"
 
 class base_path_t;
 class io_backender_t;
@@ -39,8 +40,8 @@ public:
     }
 private:
     friend class metadata_file_t;
-    friend class metadata::read_txn_t;
-    friend class metadata::write_txn_t;
+    friend class read_txn_t;
+    friend class write_txn_t;
     store_key_t key;
 };
 }  // namespace metadata
@@ -88,7 +89,6 @@ private:
 
 
 namespace metadata {
-
 class read_txn_t {
 public:
     read_txn_t(metadata_file_t *file, signal_t *interruptor);
@@ -121,16 +121,17 @@ public:
     template<class T, cluster_version_t W = cluster_version_t::LATEST_DISK>
     void read_many(
             const key_t<T> &key_prefix,
-            const std::function<void(std::string &&key_suffix, T &&value)> &cb,
+            const std::function<void(
+                const std::string &key_suffix, const T &value)> &cb,
             signal_t *interruptor) {
         read_many_bin(
             key_prefix.key,
-            [&](std::string &&key_suffix, read_stream_t *bin_value) {
+            [&](const std::string &key_suffix, read_stream_t *bin_value) {
                 T value;
                 archive_result_t res = deserialize<W>(bin_value, &value);
                 guarantee_deserialization(res,
                     "metadata_file_t::read_txn_t::read_many");
-                cb(std::move(key_suffix), std::move(value));
+                cb(key_suffix, value);
             },
             interruptor);
     }
@@ -155,7 +156,7 @@ private:
     void read_many_bin(
         const store_key_t &key_prefix,
         const std::function<void(
-            std::string &&key_suffix, read_stream_t *)> &cb,
+            const std::string &key_suffix, read_stream_t *)> &cb,
         signal_t *interruptor);
 
     metadata_file_t *file;
