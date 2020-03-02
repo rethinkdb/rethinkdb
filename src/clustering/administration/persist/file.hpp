@@ -44,7 +44,7 @@ private:
     friend class write_txn_t;
     store_key_t key;
 };
-}
+}  // namespace metadata
 
 class metadata_file_t {
 public:

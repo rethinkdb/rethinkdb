@@ -10,7 +10,7 @@
 #if OPENSSL_VERSION_NUMBER < 0x10100000L || defined(LIBRESSL_VERSION_NUMBER)
 
 inline HMAC_CTX *HMAC_CTX_new() {
-    HMAC_CTX *tmp = (HMAC_CTX *)OPENSSL_malloc(sizeof(HMAC_CTX));
+    HMAC_CTX *tmp = reinterpret_cast<HMAC_CTX *>(OPENSSL_malloc(sizeof(HMAC_CTX)));
     if (tmp)
         HMAC_CTX_init(tmp);
     return tmp;
