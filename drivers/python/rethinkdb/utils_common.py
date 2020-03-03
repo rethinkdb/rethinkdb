@@ -112,7 +112,7 @@ def check_minimum_version(options, minimum_version='1.6'):
 
 
 DbTable = collections.namedtuple('DbTable', ['db', 'table'])
-_tableNameRegex = re.compile(r'^(?P<db>\w+)(\.(?P<table>\w+))?$')
+_tableNameRegex = re.compile(r'^(?P<db>[\w-]+)(\.(?P<table>[\w-]+))?$')
 
 
 class CommonOptionsParser(optparse.OptionParser, object):
