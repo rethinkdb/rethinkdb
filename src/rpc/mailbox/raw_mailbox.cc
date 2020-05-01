@@ -8,9 +8,6 @@
 raw_mailbox_t::address_t::address_t() :
     peer(peer_id_t()), thread(-1), mailbox_id(0) { }
 
-raw_mailbox_t::address_t::address_t(const address_t &a) :
-    peer(a.peer), thread(a.thread), mailbox_id(a.mailbox_id) { }
-
 bool raw_mailbox_t::address_t::is_nil() const {
     return peer.is_nil();
 }

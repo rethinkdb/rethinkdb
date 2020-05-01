@@ -116,7 +116,7 @@ void serialize_offset_table(write_message_t *wm,
                             datum_t::type_t datum_type,
                             const std::vector<size_tree_node_t> &elem_sizes,
                             datum_offset_size_t offset_size) {
-    rassert(datum_type == datum_t::R_OBJECT || datum_t::R_ARRAY);
+    rassert(datum_type == datum_t::R_OBJECT || datum_type == datum_t::R_ARRAY);
     const size_t num_elements =
         datum_type == datum_t::R_OBJECT
         ? elem_sizes.size() / 2

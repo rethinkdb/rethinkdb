@@ -112,10 +112,8 @@ class DocId {
   explicit DocId(value_type _docid)     { docid_ = _docid; }
   value_type docid() const              { return docid_; }   // ONLY use here
   value_type* docidptr()                { return &docid_; }  // ie in this file
-  DocId& operator=(const DocId& x) {
-    docid_ = x.docid_;
-    return *this;
-  }
+  DocId& operator=(const DocId&) = default;
+  DocId(const DocId&) = default;
   // These two are required for delta encoding
   value_type operator+(const DocId& x) const { return docid_ + x.docid_; }
   value_type operator-(const DocId& x) const { return docid_ - x.docid_; }
@@ -218,10 +216,8 @@ class DocId32Bit {
   }
   value_type docid() const              { return docid_; }   // ONLY use here
   value_type* docidptr()                { return &docid_; }  // ie in this file
-  DocId32Bit& operator=(const DocId32Bit& x) {
-    docid_ = x.docid_;
-    return *this;
-  }
+  DocId32Bit(const DocId32Bit&) = default;
+  DocId32Bit& operator=(const DocId32Bit&) = default;
   // These two are required for delta encoding
   value_type operator+(const DocId32Bit& x) const { return docid_ + x.docid_; }
   value_type operator-(const DocId32Bit& x) const { return docid_ - x.docid_; }
