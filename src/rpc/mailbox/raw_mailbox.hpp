@@ -51,7 +51,8 @@ public:
         /* Constructs a nil address */
         address_t();
 
-        address_t(const address_t&);
+        address_t(const address_t&) = default;
+        address_t &operator=(const address_t&) = default;
 
         /* Tests if the address is nil */
         bool is_nil() const;

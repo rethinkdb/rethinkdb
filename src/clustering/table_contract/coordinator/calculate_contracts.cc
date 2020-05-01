@@ -549,7 +549,7 @@ void calculate_all_contracts(
     /* We want to break the key-space into sub-regions small enough that the contract,
     table config, and ack versions are all constant across the sub-region. First we
     iterate over all contracts: */
-    for (const std::pair<contract_id_t, std::pair<region_t, contract_t> > &cpair :
+    for (const std::pair<const contract_id_t, std::pair<region_t, contract_t> > &cpair :
             old_state.contracts) {
         /* Next iterate over all shards of the table config and find the ones that
         overlap the contract in question: */

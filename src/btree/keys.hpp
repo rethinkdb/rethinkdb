@@ -66,6 +66,11 @@ public:
         assign(_key.size(), _key.contents());
     }
 
+    store_key_t &operator=(const store_key_t &_key) {
+        assign(_key.size(), _key.contents());
+        return *this;
+    }
+
     explicit store_key_t(const btree_key_t *key) {
         assign(key->size, key->contents);
     }

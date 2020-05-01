@@ -326,10 +326,10 @@ struct GenericStringRef {
 
 private:
     //! Disallow copy-assignment
-    GenericStringRef operator=(const GenericStringRef&);
+    GenericStringRef &operator=(const GenericStringRef&) = delete;
     //! Disallow construction from non-const array
     template<SizeType N>
-    GenericStringRef(CharType (&str)[N]) /* = delete */;
+    GenericStringRef(CharType (&str)[N]) = delete;
 };
 
 //! Mark a character pointer as constant string
