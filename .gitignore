@@ -58,4 +58,5 @@ last_tested_versions
 *.iml
 /.vscode
 
-/drivers/javascript/node_modules/
+virtualenv
+
