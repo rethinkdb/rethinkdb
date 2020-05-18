@@ -33,7 +33,7 @@ with driver.Cluster(output_folder='./servers', command_prefix=command_prefix, ex
     
     def check(expected, timer):
         time.sleep(timer)
-        for name, feed in feeds.items():
+        for name, feed in list(feeds.items()):
             changes = []
             try:
                 while True:

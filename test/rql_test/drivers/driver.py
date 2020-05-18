@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import atexit
 import copy
 import inspect
@@ -22,15 +20,6 @@ import driver, utils
 
 sys.path = stashedPath
 
-try:
-    unicode
-except NameError:
-    unicode = str
-try:
-    long
-except NameError:
-    long = int
-
 # -- global variables
 
 failure_count = 0
@@ -48,7 +37,7 @@ DEBUG_ENABLED = os.environ.get('VERBOSE', 'false').lower() == 'true'
 
 def print_debug(message):
     if DEBUG_ENABLED:
-        print('DEBUG (%.2f):\t %s' % (time.time() - start_time, message.rstrip()))
+        print(('DEBUG (%.2f):\t %s' % (time.time() - start_time, message.rstrip())))
         sys.stdout.flush()
 
 
@@ -77,7 +66,7 @@ required_external_tables.reverse()  # setup for .pop()
 def print_failure(name, src, expected, result, message=None):
     global failure_count
     failure_count += 1
-    print('''
+    print(('''
 TEST FAILURE: %(name)s%(message)s
     SOURCE:   %(source)s
     EXPECTED: %(expected)s
@@ -87,7 +76,7 @@ TEST FAILURE: %(name)s%(message)s
         'message': '\n    FAILURE:  %s' % message if message is not None else '',
         'expected': utils.RePrint.pformat(expected, hangindent=14),
         'result': utils.RePrint.pformat(result, hangindent=14)
-    })
+    }))
 
 
 def check_pp(src, query):
@@ -111,17 +100,17 @@ class OptionsBox(object):
         self.options = options
 
     def __str__(self):
-        if self.options and self.options.keys() == ['ordered'] and self.options['ordered'] == False:
+        if self.options and list(self.options.keys()) == ['ordered'] and self.options['ordered'] == False:
             return 'bag(%s)' % self.value
-        elif self.options and self.options.keys() == ['partial'] and self.options['partial'] == True:
+        elif self.options and list(self.options.keys()) == ['partial'] and self.options['partial'] == True:
             return 'partial(%s)' % self.value
         else:
             return 'options(%s, %s)' % (self.options, self.value)
 
     def __repr__(self):
-        if self.options and self.options.keys() == ['ordered'] and self.options['ordered'] == False:
+        if self.options and list(self.options.keys()) == ['ordered'] and self.options['ordered'] == False:
             return 'bag(%r)' % self.value
-        elif self.options and self.options.keys() == ['partial'] and self.options['partial'] == True:
+        elif self.options and list(self.options.keys()) == ['partial'] and self.options['partial'] == True:
             return 'partial(%r)' % self.value
         else:
             return 'options(%s, %r)' % (self.options, self.value)
@@ -130,7 +119,7 @@ class OptionsBox(object):
 class FalseStr(str):
     '''return a string that evaluates as false'''
 
-    def __nonzero__(self):
+    def __bool__(self):
         return False
 
 
@@ -180,7 +169,7 @@ class Err(object):
 
     def __str__(self):
         return "%s(%s)" % (
-        self.err_type.__name__, ('~' + self.message.pattern) if hasattr(self.message, 'pattern') else self.message)
+            self.err_type.__name__, ('~' + self.message.pattern) if hasattr(self.message, 'pattern') else self.message)
 
     def __repr__(self):
         return self.__str__()
@@ -196,7 +185,7 @@ class Regex(object):
             raise ValueError('Regex got a bad value: %r' % value)
 
     def match(self, other):
-        if not isinstance(other, (str, unicode)):
+        if not isinstance(other, str):
             return False
         return self.value.match(other) is not None
 
@@ -279,8 +268,8 @@ def compare(expected, result, options=None):
         return result is None
 
     # -- number
-    if isinstance(expected, (int, long, float)):
-        if not isinstance(result, (int, long, float)):
+    if isinstance(expected, (int, float)):
+        if not isinstance(result, (int, float)):
             return FalseStr('expected number %s but got %s (%s)' % (expected, result, type(result).__name__))
         if abs(expected - result) <= options['precision']:
             return True
@@ -291,7 +280,7 @@ def compare(expected, result, options=None):
                 return FalseStr('value << %r >> was not equal to: %r' % (result, expected))
 
     # -- string/unicode
-    if isinstance(expected, (str, unicode)):
+    if isinstance(expected, str):
         if result == expected:
             return True
         else:
@@ -313,7 +302,7 @@ def compare(expected, result, options=None):
                 return FalseStr('unmatched keys from either side: %s' % expectedKeys.symmetric_difference(resultKeys))
 
         # - values
-        for key, value in expected.items():
+        for key, value in list(expected.items()):
             compareResult = compare(value, result[key], options=options)
             if not compareResult:
                 return compareResult
@@ -476,7 +465,7 @@ class PyTestDriver(object):
         # -- build the expected result
 
         print_debug('\tExpected: %s' % str(expected))
-        exp_val = eval(unicode(expected), self.scope)
+        exp_val = eval(str(expected), self.scope)
 
         # -- evaluate the command
 
@@ -572,7 +561,7 @@ def test(query, expected, name, runopts=None, testopts=None):
     if runopts is None:
         runopts = {}
     else:
-        for k, v in runopts.items():
+        for k, v in list(runopts.items()):
             if isinstance(v, str):
                 try:
                     runopts[k] = eval(v)
@@ -611,7 +600,7 @@ def setup_table(table_variable_name, table_name, db_name='test'):
             raise AssertionError('External table %s.%s did not exist' % (db_name, table_name))
         atexit.register(_clean_table, table_name=table_name, db_name=db_name)
 
-        print('Using existing table: %s.%s, will be %s' % (db_name, table_name, table_variable_name))
+        print(('Using existing table: %s.%s, will be %s' % (db_name, table_name, table_variable_name)))
     else:
         if table_name in r.db(db_name).table_list().run(driver.connection()):
             r.db(db_name).table_drop(table_name).run(driver.connection())
@@ -703,7 +692,7 @@ def fetch(cursor, limit=None, timeout=0.2):
             if deadline:
                 result.append(cursor.next(wait=deadline - time.time()))
             else:
-                result.append(cursor.next())
+                result.append(next(cursor))
             if limit and len(result) >= limit:
                 break
         except r.ReqlTimeoutError:
@@ -741,10 +730,10 @@ def regex(value):
 
 
 def int_cmp(expected_value):
-    if not isinstance(expected_value, (int, long)):
+    if not isinstance(expected_value, int):
         raise ValueError(
-            'value must be of type `int` or `long` but got: %r (%s)' % (expected_value, type(expected_value).__name__))
-    return OptionsBox(expected_value, {'explicit_type': (int, long)})
+            'value must be of type `int` but got: %r (%s)' % (expected_value, type(expected_value).__name__))
+    return OptionsBox(expected_value, {'explicit_type': (int, int)})
 
 
 def float_cmp(expected_value):
@@ -758,7 +747,7 @@ def the_end():
     if failure_count > 0:
         sys.exit("Failed %d tests, passed %d" % (failure_count, passed_count))
     else:
-        print("Passed all %d tests" % passed_count)
+        print(("Passed all %d tests" % passed_count))
 
 
 false = False

@@ -1,10 +1,14 @@
 #!/usr/bin/env python
 # Copyright 2010-2015 RethinkDB, all rights reserved.
 
-import os, sys, threading, time
+import os
+import sys
+import threading
+import time
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common'))
 import driver, rdb_unittest, utils
+
 
 class JobsTableTests(rdb_unittest.RdbTestCase):
     '''Tests the artificial `rethinkdb.jobs` table'''
@@ -14,12 +18,12 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
 
     def test_query(self):
         taskLength = self.timeout / 2
-        server     = self.cluster[0]
+        server = self.cluster[0]
         targetConn = self.r.connect(host=server.host, port=server.driver_port)
-        host       = targetConn.client_address()
-        port       = targetConn.client_port()
+        host = targetConn.client_address()
+        port = targetConn.client_port()
 
-        filterObject = {"type":"query", "info":{"client_address":host, "client_port":port}}
+        filterObject = {"type": "query", "info": {"client_address": host, "client_port": port}}
         query = self.r.db("rethinkdb").table("jobs").filter(filterObject)
 
         # - start the target query
@@ -29,8 +33,8 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
         # - watch for the query in the rethinkdb.jobs table
 
         latestError = None
-        jobsSeen    = {}
-        deadline    = time.time() + self.timeout
+        jobsSeen = {}
+        deadline = time.time() + self.timeout
         while time.time() < deadline:
             try:
                 for response in query.run(self.conn):
@@ -43,7 +47,7 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
                             self.assertEqual(response["info"]["client_port"], port)
                             self.assertEqual(response["info"]["client_address"], host)
                             self.assertEqual(response["info"]["user"], "admin")
-                            break # found what we are looking for
+                            break  # found what we are looking for
                         else:
                             continue
                         raise Exception('Did not find target query')
@@ -51,19 +55,21 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
                         latestError = e
                 else:
                     raise latestError
-                break # break if successful, leaving query running
+                break  # break if successful, leaving query running
             except Exception as e:
                 latestError = e
                 time.sleep(.01)
         else:
-            self.fail('Timed out after %.1f seconds waiting for query to appear from (%s, %s). Last error was: %s\njobs seen:\n%s' % (self.timeout, host, port, str(latestError), utils.pformat(jobsSeen.values())))
+            self.fail(
+                'Timed out after %.1f seconds waiting for query to appear from (%s, %s). Last error was: %s\njobs seen:\n%s' % (
+                self.timeout, host, port, str(latestError), utils.pformat(list(jobsSeen.values()))))
 
     def test_proxy_job_deletion(self):
         conn_server = self.r.connect(host=self.cluster[0].host, port=self.cluster[0].driver_port)
 
         # Start up a proxy server
-        proxy      = driver.ProxyProcess(cluster=self.cluster)
-        proxy_id   = proxy.uuid
+        proxy = driver.ProxyProcess(cluster=self.cluster)
+        proxy_id = proxy.uuid
         conn_proxy = self.r.connect(host=proxy.host, port=proxy.driver_port)
 
         result = None
@@ -76,7 +82,7 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
                 (_, err, _) = sys.exc_info()
             result.append(err)
 
-        result = list() # Use a list as an output parameter
+        result = list()  # Use a list as an output parameter
         worker = threading.Thread(target=query_thread, args=[result])
         worker.start()
 
@@ -107,7 +113,7 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
                 (_, err, _) = sys.exc_info()
             result.append(err)
 
-        result = list() # Use a list as an output parameter
+        result = list()  # Use a list as an output parameter
         worker = threading.Thread(target=query_thread, args=[result])
         worker.start()
 
@@ -131,14 +137,14 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
         self.assertTrue('generated_keys' in response and isinstance(response['generated_keys'], list), response)
         sampleId = response['generated_keys'][0]
 
-        writeQuery = self.r.range(100).for_each(lambda x: self.table.get(sampleId).update({'value':x}))
-        readQuery = self.r.db("rethinkdb").table("jobs").filter({"type":"disk_compaction"}).coerce_to("ARRAY")
+        writeQuery = self.r.range(100).for_each(lambda x: self.table.get(sampleId).update({'value': x}))
+        readQuery = self.r.db("rethinkdb").table("jobs").filter({"type": "disk_compaction"}).coerce_to("ARRAY")
 
         deadline = time.time() + self.timeout
         latestError = None
-        while time.time () < deadline:
+        while time.time() < deadline:
             try:
-                writeQuery.run(self.conn, noreply=True) # a reasonably fast way of triggering compaction
+                writeQuery.run(self.conn, noreply=True)  # a reasonably fast way of triggering compaction
 
                 response = readQuery.run(self.conn)
 
@@ -148,12 +154,13 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
                 self.assertEqual(response[0]["id"][0], "disk_compaction")
                 self.assertEqual(response[0]["servers"], [self.cluster[0].name])
 
-                break # break if sucessfull, leaving query running
+                break  # break if sucessfull, leaving query running
             except Exception as e:
                 latestError = e
                 time.sleep(.01)
         else:
-            self.fail('Timed out after %.1f seconds waiting for disk_compaction to appear. Last error was: %s' % (self.timeout, latestError.message))
+            self.fail('Timed out after %.1f seconds waiting for disk_compaction to appear. Last error was: %s' % (
+            self.timeout, latestError.message))
 
     def test_index_construction(self):
 
@@ -162,7 +169,8 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
         recordsToGenerate = 500
         fieldName = 'x'
 
-        filterObject = {"type":"index_construction", "info":{"db":self.dbName, "table":self.tableName, "index":fieldName}}
+        filterObject = {"type": "index_construction",
+                        "info": {"db": self.dbName, "table": self.tableName, "index": fieldName}}
         query = self.r.db("rethinkdb").table("jobs").filter(filterObject).coerce_to("ARRAY")
 
         # - generate some records
@@ -181,7 +189,7 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
         deadline = time.time() + self.timeout
         valueDropMessages = []
 
-        while time.time () < deadline:
+        while time.time() < deadline:
             response = query.run(self.conn)
 
             self.assertTrue(len(response) in (0, 1), 'Expected only one filtered job, got: %r' % response)
@@ -197,13 +205,19 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
                     self.assertEqual(len(response[0]["servers"]), 1)
 
                     self.assertTrue('info' in response[0] and isinstance(response[0]['info'], dict), response[0])
-                    self.assertTrue('db' in response[0]['info'] and response[0]['info']['db'] == self.dbName, response[0])
-                    self.assertTrue('table' in response[0]['info'] and response[0]['info']['table'] == self.tableName, response[0])
-                    self.assertTrue('index' in response[0]['info'] and response[0]['info']['index'] == fieldName, response[0])
-                    self.assertTrue('progress' in response[0]['info'] and response[0]['info']['progress'] >= 0, response[0])
+                    self.assertTrue('db' in response[0]['info'] and response[0]['info']['db'] == self.dbName,
+                                    response[0])
+                    self.assertTrue('table' in response[0]['info'] and response[0]['info']['table'] == self.tableName,
+                                    response[0])
+                    self.assertTrue('index' in response[0]['info'] and response[0]['info']['index'] == fieldName,
+                                    response[0])
+                    self.assertTrue('progress' in response[0]['info'] and response[0]['info']['progress'] >= 0,
+                                    response[0])
 
-                    self.assertTrue('duration_sec' in response[0] and 0 < response[0]["duration_sec"] <= self.timeout, response[0])
-                except Exception: pass
+                    self.assertTrue('duration_sec' in response[0] and 0 < response[0]["duration_sec"] <= self.timeout,
+                                    response[0])
+                except Exception:
+                    pass
 
                 # - ensure we are making progress
 
@@ -246,7 +260,8 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
         reconfigureResponse = self.table.reconfigure(shards=1, replicas=2).run(self.conn)
 
         primaryReplica = reconfigureResponse["config_changes"][0]["new_val"]["shards"][0]["primary_replica"]
-        seondaryReplicas = set(reconfigureResponse["config_changes"][0]["new_val"]["shards"][0]["replicas"]) - set(primaryReplica)
+        seondaryReplicas = set(reconfigureResponse["config_changes"][0]["new_val"]["shards"][0]["replicas"]) - set(
+            primaryReplica)
 
         # - watch for the entry in rethinkdb.jobs
 
@@ -258,7 +273,7 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
         deadline = time.time() + self.timeout
         valueDropMessages = []
 
-        while time.time () < deadline:
+        while time.time() < deadline:
             response = query.run(self.conn)
 
             self.assertTrue(len(response) in (0, 1), 'Expected only one backfill job, got: %r' % response)
@@ -274,15 +289,22 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
                     self.assertEqual(len(response[0]["servers"]), self.servers)
 
                     self.assertTrue('info' in response[0] and isinstance(response[0]['info'], dict), response[0])
-                    self.assertTrue('db' in response[0]['info'] and response[0]['info']['db'] == self.dbName, response[0])
-                    self.assertTrue('table' in response[0]['info'] and response[0]['info']['table'] == self.tableName, response[0])
-                    self.assertTrue('progress' in response[0]['info'] and response[0]['info']['progress'] >= 0, response[0])
+                    self.assertTrue('db' in response[0]['info'] and response[0]['info']['db'] == self.dbName,
+                                    response[0])
+                    self.assertTrue('table' in response[0]['info'] and response[0]['info']['table'] == self.tableName,
+                                    response[0])
+                    self.assertTrue('progress' in response[0]['info'] and response[0]['info']['progress'] >= 0,
+                                    response[0])
 
-                    self.assertTrue('source_server' in response[0]["info"] and response[0]["info"]['source_server'] == primaryReplica)
-                    self.assertTrue('destination_server' in response[0]["info"] and response[0]["info"]['destination_server'] in seondaryReplicas)
+                    self.assertTrue('source_server' in response[0]["info"] and response[0]["info"][
+                        'source_server'] == primaryReplica)
+                    self.assertTrue('destination_server' in response[0]["info"] and response[0]["info"][
+                        'destination_server'] in seondaryReplicas)
 
-                    self.assertTrue('duration_sec' in response[0] and 0 < response[0]["duration_sec"] <= self.timeout, response[0])
-                except Exception: pass
+                    self.assertTrue('duration_sec' in response[0] and 0 < response[0]["duration_sec"] <= self.timeout,
+                                    response[0])
+                except Exception:
+                    pass
 
                 # - ensure we are making progress
 
@@ -314,7 +336,7 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
         self.r.db("rethinkdb").table("jobs").grant("test", {"read": True}).run(self.conn)
 
         taskLength = self.timeout / 2
-        server     = self.cluster[0]
+        server = self.cluster[0]
         targetConn = self.r.connect(host=server.host, port=server.driver_port, user="test")
 
         # - start the target query
@@ -327,6 +349,7 @@ class JobsTableTests(rdb_unittest.RdbTestCase):
                 self.assertNotEqual(job["info"]["query"], 'r.js("while(true) {}", {"timeout": %d})' % taskLength)
                 self.assertEqual(job["info"]["user"], "test")
                 self.assertEqual(job["type"], "query")
+
 
 # ===== main
 
