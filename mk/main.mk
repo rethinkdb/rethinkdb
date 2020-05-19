@@ -40,9 +40,6 @@ include $(TOP)/admin/build.mk
 
 else # Windows
 
-# Clients drivers
-include $(TOP)/drivers/build.mk
-
 # Build the web assets
 include $(TOP)/admin/build.mk
 
