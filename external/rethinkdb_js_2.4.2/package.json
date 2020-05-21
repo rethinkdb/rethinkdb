@@ -1,0 +1,46 @@
+{
+    "name": "rethinkdb",
+    "version": "2.4.2",
+    "main": "rethinkdb",
+    "license": "Apache-2.0",
+    "description": "This package provides the JavaScript driver library for the RethinkDB database server for use in your node application.",
+    "scripts": {
+        "get-proto": "./scripts/prepare.sh",
+        "compile": "./scripts/compile.sh",
+        "build": "npm run get-proto && npm run compile"
+    },
+    "keywords": [
+        "database",
+        "NoSQL",
+        "reql",
+        "query language"
+    ],
+    "homepage": "https://rethinkdb.com",
+    "bugs": {
+        "url": "https://github.com/rethinkdb/rethinkdb/issues",
+        "email": "bugs@rethinkdb.com"
+    },
+    "files": [
+        "rethinkdb.js",
+        "ast.js",
+        "net.js",
+        "util.js",
+        "errors.js",
+        "cursor.js",
+        "README.md",
+        "proto-def.js"
+    ],
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/rethinkdb/rethinkdb.git"
+    },
+    "engines": {
+        "node": ">= 0.10.0"
+    },
+    "dependencies": {
+        "bluebird": "2.9.32"
+    },
+    "devDependencies": {
+        "coffeescript": "1.10.0"
+    }
+}
