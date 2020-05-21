@@ -18,6 +18,9 @@ The build dependencies are
 - Bump the version in `mk/support/pkg/admin-deps.sh` (this ensures make will download new dependencies if necessary)
 - Check in the changes to `npm-shrinkwrap.json`, `package.json` and `admin-deps.sh`
 
+### Updating the rethinkdb JS driver
+To update the rethinkdb JavaScript driver, replace the content of the external/rethinkdb_js directory.
+
 ## Organization
 - `favicon.ico`: The favicon...
 - `Makefile`: To build from `/admin`
