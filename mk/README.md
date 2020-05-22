@@ -78,24 +78,13 @@ Web assets
   `--web-static-directory` option can be used. For example:
   `build/release/rethinkdb --web-static-directory build/web_assets`
 
-Drivers
--------
-
-* `make ruby-driver`: Build the Ruby driver
-
-* `make python-driver`: Build the Python driver.
-
-* `make js-driver`: Build the JavaScript driver.
-
-* `make drivers`: Build all the drivers.
-
 Test
----
+----
 
 * `make test`: Invokes `./test/run`
 
 Dependencies
----
+------------
 
 * `make support` or `make support-<dep>`: Build the dependencies that
   have not been built yet.
@@ -114,7 +103,7 @@ Dependencies
 
 
 Installation
----
+------------
 
 * `./configure --prefix`: Set the prefix folder used by `make install`.
 
@@ -126,7 +115,7 @@ Installation
 
 
 Packaging
----
+---------
 
 Packaging is usually automated by the BuildBot instance running on
 `dr-doom:8010` in our intranet.
