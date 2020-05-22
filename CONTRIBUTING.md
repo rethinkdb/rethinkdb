@@ -8,7 +8,7 @@ Contributions are welcome, and they are greatly appreciated! Every little bit he
 
 First of all, please check that the bug is not reported yet. If that's already reported then upvote the existing bug instead of opening a new bug report.
 
-Report bugs at https://github.com//issues. If you are reporting a bug, please include:
+Report bugs at https://github.com/rethinkdb/rethinkdb/issues. If you are reporting a bug, please include:
 
 - Your operating system name and version.
 - Any details about your local setup that might be helpful in troubleshooting.
