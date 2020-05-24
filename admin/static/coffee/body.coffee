@@ -148,6 +148,7 @@ class OptionsView extends Backbone.View
         @alert_update_view.hide()
 
 class AlertUpdates extends Backbone.View
+    has_update_template: require('../handlebars/has_update.hbs')
     className: 'settings alert'
 
     events:
@@ -179,8 +180,41 @@ class AlertUpdates extends Backbone.View
         @$el.slideUp 'fast'
 
     check: =>
-        # TODO: Remove this function, or this widget entirely.
-        return
+        # If it's fail, it's fine - like if the user is just on a local network without access to the Internet.
+        $.getJSON "https://update.rethinkdb.com/update_for/#{VERSION}?callback=?", @render_updates
+
+    # Callback on the ajax request
+    render_updates: (data) =>
+        if data.status is 'need_update'
+            try
+                ignored_version = JSON.parse(window.localStorage.ignore_version)
+            catch err
+                ignored_version = null
+            if (not ignored_version) or @compare_version(ignored_version, data.last_version) < 0
+                @next_version = data.last_version # Save it so users can ignore the update
+                @$el.html @has_update_template
+                    last_version: data.last_version
+                    link_changelog: data.link_changelog
+                @$el.slideDown 'fast'
+
+    # Compare version with the format %d.%d.%d
+    compare_version: (v1, v2) =>
+        v1_array_str = v1.split('.')
+        v2_array_str = v2.split('.')
+        v1_array = []
+        for value in v1_array_str
+            v1_array.push parseInt value
+        v2_array = []
+        for value in v2_array_str
+            v2_array.push parseInt value
+
+        for value, index in v1_array
+            if value < v2_array[index]
+                return -1
+            else if value > v2_array[index]
+                return 1
+        return 0
+
 
     render: =>
         return @
