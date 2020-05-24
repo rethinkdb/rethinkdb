@@ -173,7 +173,7 @@ class AlertUpdates extends Backbone.View
     close: (event) =>
         event.preventDefault()
         if @next_version?
-            window.localStorage.ignore_version = JSON.stringify @next_version
+            window.localStorage.ignore_version = @next_version
         @hide()
 
     hide: =>
@@ -181,20 +181,19 @@ class AlertUpdates extends Backbone.View
 
     check: =>
         # If it's fail, it's fine - like if the user is just on a local network without access to the Internet.
-        $.getJSON "https://update.rethinkdb.com/update_for/#{VERSION}?callback=?", @render_updates
+        $.get "https://download.rethinkdb.com/repository/raw/latest_version.txt", @render_updates
 
     # Callback on the ajax request
-    render_updates: (data) =>
-        if data.status is 'need_update'
+    render_updates: (last_version) =>
+        if @compare_version(VERSION, last_version) < 0
             try
                 ignored_version = JSON.parse(window.localStorage.ignore_version)
             catch err
                 ignored_version = null
             if (not ignored_version) or @compare_version(ignored_version, data.last_version) < 0
-                @next_version = data.last_version # Save it so users can ignore the update
+                @next_version = last_version  # Save it so users can ignore the update
                 @$el.html @has_update_template
-                    last_version: data.last_version
-                    link_changelog: data.link_changelog
+                    last_version: last_version
                 @$el.slideDown 'fast'
 
     # Compare version with the format %d.%d.%d
