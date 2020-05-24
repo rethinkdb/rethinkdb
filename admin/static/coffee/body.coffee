@@ -25,10 +25,17 @@ class MainContainer extends Backbone.View
         @issues = new models.Issues
         @dashboard = new models.Dashboard
 
+        @alert_update_view = new AlertUpdates
+
+        @options_view = new OptionsView
+            alert_update_view: @alert_update_view
+        @options_state = 'hidden'
+
         @navbar = new navbar.NavBarView
             databases: @databases
             tables: @tables
             servers: @servers
+            options_view: @options_view
             container: @
 
         @topbar = new topbar.Container
@@ -88,14 +95,100 @@ class MainContainer extends Backbone.View
 
     render: =>
         @$el.html @template()
+        @$('#updates_container').html @alert_update_view.render().$el
+        @$('#options_container').html @options_view.render().$el
         @$('#topbar').html @topbar.render().$el
         @$('#navbar-container').html @navbar.render().$el
 
         @
 
+    hide_options: =>
+        @$('#options_container').slideUp 'fast'
+
+    toggle_options: (event) =>
+        event.preventDefault()
+
+        if @options_state is 'visible'
+            @options_state = 'hidden'
+            @hide_options event
+        else
+            @options_state = 'visible'
+            @$('#options_container').slideDown 'fast'
+
     remove: =>
         driver.stop_timer @timer
+        @alert_update_view.remove()
+        @options_view.remove()
         @navbar.remove()
+
+class OptionsView extends Backbone.View
+    className: 'options_background'
+    template: require('../handlebars/options_view.hbs')
+
+    events:
+        'click label[for=updates_yes]': 'turn_updates_on'
+        'click label[for=updates_no]': 'turn_updates_off'
+
+    initialize: (data) =>
+        @alert_update_view = data.alert_update_view
+
+    render: =>
+        @$el.html @template
+            check_update: if window.localStorage?.check_updates? then JSON.parse window.localStorage.check_updates else true
+            version: VERSION
+        @
+
+    turn_updates_on: (event) =>
+        window.localStorage.check_updates = JSON.stringify true
+        window.localStorage.removeItem('ignore_version')
+        @alert_update_view.check()
+
+    turn_updates_off: (event) =>
+        window.localStorage.check_updates = JSON.stringify false
+        @alert_update_view.hide()
+
+class AlertUpdates extends Backbone.View
+    className: 'settings alert'
+
+    events:
+        'click .no_update_btn': 'deactivate_update'
+        'click .close': 'close'
+
+    initialize: =>
+        if window.localStorage?
+            try
+                check_updates = JSON.parse window.localStorage.check_updates
+                if check_updates isnt false
+                    @check()
+            catch err
+                # Non valid json doc in check_updates. Let's reset the setting
+                window.localStorage.check_updates = JSON.stringify true
+                @check()
+        else
+            # No localstorage, let's just check for updates
+            @check()
+
+    # If the user close the alert, we hide the alert + save the version so we can ignore it
+    close: (event) =>
+        event.preventDefault()
+        if @next_version?
+            window.localStorage.ignore_version = JSON.stringify @next_version
+        @hide()
+
+    hide: =>
+        @$el.slideUp 'fast'
+
+    check: =>
+        # TODO: Remove this function, or this widget entirely.
+        return
+
+    render: =>
+        return @
+
+    deactivate_update: =>
+        @$el.slideUp 'fast'
+        if window.localStorage?
+            window.localStorage.check_updates = JSON.stringify false
 
 
 class IsDisconnected extends Backbone.View
@@ -133,4 +226,6 @@ class IsDisconnected extends Backbone.View
 
 
 exports.MainContainer = MainContainer
+exports.OptionsView = OptionsView
+exports.AlertUpdates = AlertUpdates
 exports.IsDisconnected = IsDisconnected
