@@ -10,7 +10,7 @@ def escape(string):
         return string.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 def print_anchor(obj):
-    print """<a name="obj-%d"/>""" % id(obj)
+    print("""<a name="obj-%d"/>""" % id(obj))
 
 parse_block_id = parse_uint64_t
 
@@ -56,11 +56,11 @@ class GoodChunk(Chunk):
         return """<a href="#obj-%d">0x%x</a>""" % (id(self), self.offset)
     
     def chunk_print_html(self):
-        print """<div class="block">"""
-        print """<a name="obj-%d"/>""" % id(self)
-        print """<h1>0x%x - 0x%x: %s</h1>""" % (self.offset, self.offset + self.length - 1, self.name)
+        print("""<div class="block">""")
+        print("""<a name="obj-%d"/>""" % id(self))
+        print("""<h1>0x%x - 0x%x: %s</h1>""" % (self.offset, self.offset + self.length - 1, self.name))
         self.chunk_obj.print_html()
-        print """</div>"""
+        print("""</div>""")
 
 class BadChunk(Chunk):
     
@@ -76,13 +76,13 @@ class BadChunk(Chunk):
         return """<a href="#obj-%d">0x%x</a>""" % (id(self), self.offset)
     
     def chunk_print_html(self):
-        print """<div class="block">"""
-        print """<a name="obj-%d"/>""" % id(self)
-        print """<h1>0x%x - 0x%x: %s</h1>""" % (self.offset, self.offset + self.length - 1, self.name)
-        print """<pre style="color: red">%s</pre>""" % escape(self.msg)
-        print """<div class="hexdump">%s</div>""" % \
-            " ".join(x.encode("hex") for x in self.contents)
-        print """</div>"""
+        print("""<div class="block">""")
+        print("""<a name="obj-%d"/>""" % id(self))
+        print("""<h1>0x%x - 0x%x: %s</h1>""" % (self.offset, self.offset + self.length - 1, self.name))
+        print("""<pre style="color: red">%s</pre>""" % escape(self.msg))
+        print("""<div class="hexdump">%s</div>""" % \
+            " ".join(x.encode("hex") for x in self.contents))
+        print("""</div>""")
 
 class BadChunkRef(Chunk):
     
@@ -98,8 +98,8 @@ class BadChunkRef(Chunk):
             (self.offset, escape(self.msg))
     
     def chunk_print_html(self):
-        print """<span style="color: red">Bad reference (but we're so screwed that we think it's
-inside of a block): %s</span>""" % self.msg
+        print("""<span style="color: red">Bad reference (but we're so screwed that we think it's
+inside of a block): %s</span>""" % self.msg)
 
 def try_parse(db, offset, length, name, cls, *args):
     
@@ -266,14 +266,14 @@ class Database(object):
     
     def print_html(self):
         
-        print """<h1>Database</h1>"""
+        print("""<h1>Database</h1>""")
         
-        print """<p>End of file is at 0x%x</p>""" % len(self.block)
+        print("""<p>End of file is at 0x%x</p>""" % len(self.block))
         
         if self.metablock:
-            print """<p>Most recent metablock: %s</p>""" % self.metablock.ref_as_html()
+            print("""<p>Most recent metablock: %s</p>""" % self.metablock.ref_as_html())
         else:
-            print """<p>No valid metablocks found.</p>"""
+            print("""<p>No valid metablocks found.</p>""")
         
         for i in sorted(self.extents.keys()):
             self.extents[i].chunk_print_html()
@@ -282,7 +282,7 @@ class Database(object):
 
 class UnusedExtent(object):
     def print_html(self):
-        print """<p>Nothing in this extent is reachable from the most recent metablock.</p>"""
+        print("""<p>Nothing in this extent is reachable from the most recent metablock.</p>""")
 
 
 
@@ -342,8 +342,8 @@ class StaticHeader(object):
         self.sh = sh
     
     def print_html(self):
-        print """<p>Block size: %d</p>""" % self.sh.btree_block_size
-        print """<p>Extent size: %d</p>""" % self.sh.extent_size
+        print("""<p>Block size: %d</p>""" % self.sh.btree_block_size)
+        print("""<p>Extent size: %d</p>""" % self.sh.extent_size)
 
 class Metablock(object):
     
@@ -448,40 +448,40 @@ class Metablock(object):
     
     def print_html(self):
         
-        print """<table>"""
+        print("""<table>""")
         
-        print """<tr><td>CRC</td><td>0x%.8x</td></tr>""" % self.mb.crc
-        print """<tr><td>Version</td><td>%d</td></tr>""" % self.mb.version
+        print("""<tr><td>CRC</td><td>0x%.8x</td></tr>""" % self.mb.crc)
+        print("""<tr><td>Version</td><td>%d</td></tr>""" % self.mb.version)
         
-        print """<tr><td>Last extent</td><td>0x%x</td></tr>""" % \
-            self.mb.metablock.extent_manager_part.last_extent
+        print("""<tr><td>Last extent</td><td>0x%x</td></tr>""" % \
+            self.mb.metablock.extent_manager_part.last_extent)
         
-        print """<tr><td>Last LBA extent offset</td>"""
+        print("""<tr><td>Last LBA extent offset</td>""")
         if self.chosen and self.first_lba_extent:
-            print """<td>%s</td>""" % self.first_lba_extent.ref_as_html()
+            print("""<td>%s</td>""" % self.first_lba_extent.ref_as_html())
         else:
-            print """<td>0x%x</td>""" % self.mb.metablock.lba_index_part.last_lba_extent_offset
-        print """</tr>"""
+            print("""<td>0x%x</td>""" % self.mb.metablock.lba_index_part.last_lba_extent_offset)
+        print("""</tr>""")
         
-        print """<tr><td>Last LBA extent entries count</td><td>%d</td></tr>""" % \
-            self.mb.metablock.lba_index_part.last_lba_extent_entries_count
+        print("""<tr><td>Last LBA extent entries count</td><td>%d</td></tr>""" % \
+            self.mb.metablock.lba_index_part.last_lba_extent_entries_count)
         
-        print """<tr><td>LBA superblock offset</td>"""
+        print("""<tr><td>LBA superblock offset</td>""")
         if self.chosen and self.lba_superblock:
-            print """<td>%s</td>""" % self.lba_superblock.ref_as_html()
+            print("""<td>%s</td>""" % self.lba_superblock.ref_as_html())
         else:
-            print """<td>0x%x</td>""" % self.mb.metablock.lba_index_part.lba_superblock_offset
-        print """</tr>"""
+            print("""<td>0x%x</td>""" % self.mb.metablock.lba_index_part.lba_superblock_offset)
+        print("""</tr>""")
         
-        print """<tr><td>LBA superblock entries count</td><td>%d</td></tr>""" % \
-            self.mb.metablock.lba_index_part.lba_superblock_entries_count
+        print("""<tr><td>LBA superblock entries count</td><td>%d</td></tr>""" % \
+            self.mb.metablock.lba_index_part.lba_superblock_entries_count)
         
-        print """<tr><td>Last data extent</td><td>0x%x</td></tr>""" % \
-            self.mb.metablock.data_block_manager_part.last_data_extent
-        print """<tr><td>Blocks in last data extent</td><td>%d</td></tr>""" % \
-            self.mb.metablock.data_block_manager_part.blocks_in_last_data_extent
+        print("""<tr><td>Last data extent</td><td>0x%x</td></tr>""" % \
+            self.mb.metablock.data_block_manager_part.last_data_extent)
+        print("""<tr><td>Blocks in last data extent</td><td>%d</td></tr>""" % \
+            self.mb.metablock.data_block_manager_part.blocks_in_last_data_extent)
         
-        print """</table>"""
+        print("""</table>""")
 
 
 
@@ -543,7 +543,7 @@ class LBASuperblock(object):
     
     def print_html(self):
         for extent in self.lba_extents:
-            print """<p>Extent: %s</p>""" % extent.ref_as_html()
+            print("""<p>Extent: %s</p>""" % extent.ref_as_html())
 
 class LBAExtent(object):
     
@@ -575,18 +575,18 @@ class LBAExtent(object):
         self.pairs = pairs
     
     def print_html(self):
-        print """<div style="-webkit-column-width: 310px">"""
-        print """<table>"""
-        print """<tr><th>Block ID</th><th>Offset</th></tr>"""
+        print("""<div style="-webkit-column-width: 310px">""")
+        print("""<table>""")
+        print("""<tr><th>Block ID</th><th>Offset</th></tr>""")
         for entry in self.pairs:
             entry.print_html()
-        print """</table>"""
-        print """</div>"""
+        print("""</table>""")
+        print("""</div>""")
 
 class LBAPaddingPair(object):
     
     def print_html(self):
-        print """<tr><td colspan=2><i>(padding)</i></td></tr>"""
+        print("""<tr><td colspan=2><i>(padding)</i></td></tr>""")
 
 class LBAPair(object):
     
@@ -601,19 +601,19 @@ class LBAPair(object):
         self.data_block = data_block
     
     def print_html(self):
-        print """<tr>"""
-        print """<td>%d</td>""" % self.block_id
+        print("""<tr>""")
+        print("""<td>%d</td>""" % self.block_id)
         if self.chosen:
             if self.block_offset == "delete":
-                print """<td>delete</td>"""
+                print("""<td>delete</td>""")
             else:
-                print """<td>%s</td>""" % self.data_block.ref_as_html()
+                print("""<td>%s</td>""" % self.data_block.ref_as_html())
         else:
             if self.block_offset == "delete":
-                print """<td><i>delete</i></td>"""
+                print("""<td><i>delete</i></td>""")
             else:
-                print """<td><i>0x%x</i></td>""" % self.block_offset
-        print """</tr>"""
+                print("""<td><i>0x%x</i></td>""" % self.block_offset)
+        print("""</tr>""")
 
 
 
@@ -653,8 +653,8 @@ class DataBlock(object):
         self.contents = contents
     
     def print_html(self):
-        print """<div class="hexdump">%s</div>""" % \
-            " ".join(x.encode("hex") for x in self.contents)
+        print("""<div class="hexdump">%s</div>""" % \
+            " ".join(x.encode("hex") for x in self.contents))
 
 
 
@@ -673,7 +673,7 @@ def database_to_html(db, filename):
         
         try:
         
-            print """
+            print("""
 <html>
     <head>
         <style type="text/css">
@@ -700,14 +700,14 @@ td, th {
         </style>
     </head>
     <body>
-            """
+            """)
 
             db.print_html()
             
-            print """
+            print("""
     </body>
 </html>
-            """
+            """)
             
         finally:
             sys.stdout = sys.__stdout__
@@ -730,4 +730,4 @@ if __name__ == "__main__":
     if len(sys.argv) == 3:
         database_to_html(file_to_database(sys.argv[1]), sys.argv[2])
     else:
-        print "Usage: %s data_file output.html" % sys.argv[0]
+        print("Usage: %s data_file output.html" % sys.argv[0])

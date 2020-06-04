@@ -1,12 +1,11 @@
 import subprocess
-import urllib2
-
+import urllib
 # This web application gets launched by firstrun-init
 # The form in settings.html posts to /action/set_password
 # This application then launches firstrun.sh with the given parameters
 
 def check_instance_id(pwd):
-    iid = urllib2.urlopen('http://169.254.169.254/latest/meta-data/instance-id').read()
+    iid = urllib.request.urlopen('http://169.254.169.254/latest/meta-data/instance-id').read()
     # The instance id is 'i-' followed by some hex digits
     return (          pwd == iid
             or "i-" + pwd == iid)
@@ -20,7 +19,7 @@ def application(env, reply):
         for elem in post_data.split('&'):
             pair = elem.split('=', 1)
             if len(pair) == 2:
-                query[pair[0]] = urllib2.unquote(pair[1])
+                query[pair[0]] = urllib.parse.unquote(pair[1])
 
         if 'password' not in query or 'instanceid' not in query:
             reply('302 Redirect', [('Location', '/')])
