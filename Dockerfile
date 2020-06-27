@@ -10,8 +10,9 @@ RUN apt-get upgrade -y
 RUN apt-get install -y  build-essential  protobuf-compiler python \
         libprotobuf-dev libcurl4-openssl-dev libboost-all-dev \
         libncurses5-dev libjemalloc-dev wget m4 g++ libssl-dev \
-        clang llvm
-
+        clang-3.9 llvm
+RUN ln -s /usr/bin/clang-3.9 /usr/bin/clang
+RUN ln -s /usr/bin/clang++-3.9 /usr/bin/clang++
 COPY . /rethinkdb
 WORKDIR /rethinkdb
 RUN ./configure --allow-fetch CXX=clang++ --fetch protoc --fetch npm 
