@@ -12,4 +12,5 @@ generate_test("$RETHINKDB/test/regression/issue_4383.py", name='4383')
 generate_test("$RETHINKDB/test/regression/issue_4440.py", name='4440')
 generate_test("$RETHINKDB/test/regression/issue_4533.py", name='4533')
 
-generate_test("$RETHINKDB/test/regression/known_failures/issue_1774.test", name='known_failures_1774')
+# Disabled based on #5037
+# generate_test("$RETHINKDB/test/regression/known_failures/issue_1774.test", name='known_failures_1774')

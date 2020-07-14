@@ -1,6 +1,10 @@
 #!/usr/bin/env python
 
-import os, random, sys, time
+import os
+import random
+import sys
+import time
+
 from tornado import gen, ioloop
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "common"))
@@ -8,6 +12,7 @@ import utils
 
 r = utils.import_python_driver()
 r.set_loop_type("tornado")
+
 
 @gen.coroutine
 def open_connection():
@@ -18,6 +23,7 @@ def open_connection():
 
     conn = yield r.connect(port=port)
     raise gen.Return(conn)
+
 
 @gen.coroutine
 def random_geo(conn):
@@ -48,7 +54,7 @@ def random_geo(conn):
         while True:
             shell_lat = random.uniform(-180, 180)
             shell_lon = random.uniform(-90, 90)
-            shell_radius = random.uniform(0, 100000) # 100km ought to be enough for anyone
+            shell_radius = random.uniform(0, 100000)  # 100km ought to be enough for anyone
 
             poly = r.circle(r.point(shell_lat, shell_lon), shell_radius)
             try:
@@ -77,6 +83,7 @@ def random_geo(conn):
                         break
 
             raise gen.Return(poly)
+
 
 class DatasetTracker(object):
     """
@@ -109,7 +116,9 @@ class DatasetTracker(object):
     @gen.coroutine
     def _process_query_results(self):
         # Small batch size to get more interesting interactions in the splice_stream_t.
-        cur = yield r.table(self.table).get_intersecting(self.query_geo, index='g').changes(include_initial=True, include_states=True).run(self.conn, max_batch_rows=1)
+        cur = yield r.table(self.table).get_intersecting(self.query_geo, index='g').changes(include_initial=True,
+                                                                                            include_states=True).run(
+            self.conn, max_batch_rows=1)
         self.changefeed_cursor = cur
 
         while (yield cur.fetch_next()):
@@ -117,7 +126,7 @@ class DatasetTracker(object):
             self.last_timestamp = time.time()
 
             if 'error' in value:
-                raise Exception(self.id + " Got error in cursor: "+value['error'])
+                raise Exception(self.id + " Got error in cursor: " + value['error'])
             elif 'state' in value:
                 print(self.id + " State change: " + value['state'])
                 self.state = value['state']
@@ -129,7 +138,7 @@ class DatasetTracker(object):
             if value.get('new_val') is not None:
                 print(self.id + " Change: Adding " + value['new_val']['id'])
                 if value['new_val']['id'] in self.known_objects:
-                    raise Exception(self.id + " Duplicate value for ID "+value['new_val']['id'])
+                    raise Exception(self.id + " Duplicate value for ID " + value['new_val']['id'])
                 self.known_objects[value['new_val']['id']] = value['new_val']
 
         if not self.deliberately_closed:
@@ -163,6 +172,7 @@ class DatasetTracker(object):
         if have != self.known_objects:
             raise Exception("Invalid objects. Got %r from query, %r from changefeed" % (have, self.known_objects))
 
+
 @gen.coroutine
 def make_changes(conn, table, change_count):
     """
@@ -170,7 +180,7 @@ def make_changes(conn, table, change_count):
     """
 
     ids = set()
-    
+
     cur = yield r.table(table).run(conn)
     while (yield cur.fetch_next()):
         value = yield cur.next()
@@ -182,7 +192,7 @@ def make_changes(conn, table, change_count):
         if optype_random < 0.2:
             # insert
             g = yield random_geo(conn)
-            print ("Inserting")
+            print("Inserting")
             res = yield r.table(table).insert({"g": g}).run(conn)
             if res['inserted'] != 1:
                 raise Exception("wanted inserted=1, got %r" % res)
@@ -193,7 +203,7 @@ def make_changes(conn, table, change_count):
             if len(ids) == 0:
                 break
 
-            print ("Deleting")
+            print("Deleting")
             delete_id = random.sample(ids, 1)[0]
             res = yield r.table(table).get(delete_id).delete().run(conn)
             if res['deleted'] != 1 and res['skipped'] != 1:
@@ -207,10 +217,11 @@ def make_changes(conn, table, change_count):
             # We want to do an atomic update, so we evaluate the geometry first.
             g = yield g.run(conn)
             update_id = random.sample(ids, 1)[0]
-            print ("Updating")
+            print("Updating")
             res = yield r.table(table).get(update_id).update({"g": g}).run(conn)
             if res['replaced'] != 1 and res['skipped'] != 1:
                 raise Exception("wanted replaced=1, got %r" % res)
+
 
 @gen.coroutine
 def main():
@@ -231,13 +242,14 @@ def main():
 
     for i in range(20):
         print("Making changes")
-        yield make_changes(conn, "test", random.randint(5,100))
+        yield make_changes(conn, "test", random.randint(5, 100))
         print("Validating")
         yield [v.check_validity() for v in validators]
         print("Adding new validator")
         query_geo = yield random_geo(conn)
         validators.append(DatasetTracker(conn, "test", query_geo, "late-" + str(i)))
     print("All done!")
+
 
 if __name__ == '__main__':
     ioloop.IOLoop.current().run_sync(main)

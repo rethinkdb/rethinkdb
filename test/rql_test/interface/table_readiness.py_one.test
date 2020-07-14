@@ -3,7 +3,10 @@
 
 """This test checks that waiting for a table at different levels of readiness returns at the right time."""
 
-import threading, os, sys, time
+import os
+import sys
+import threading
+import time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
@@ -17,6 +20,7 @@ _, command_prefix, serve_options = scenario_common.parse_mode_flags(op.parse(sys
 db, _ = utils.get_test_db_table()
 query_server = None
 
+
 def create_tables(conn):
     r.db(db).table_create('single').run(conn)
     r.db(db).table_create('majority').run(conn)
@@ -25,10 +29,11 @@ def create_tables(conn):
         primary_replica_tag='primary',
         nonvoting_replica_tags=['nonvoting'],
         shards=1
-        ).run(conn)
-    r.db(db).table('single').config().update({'write_acks':'single'}).run(conn)
-    r.db(db).table('majority').config().update({'write_acks':'majority'}).run(conn)
+    ).run(conn)
+    r.db(db).table('single').config().update({'write_acks': 'single'}).run(conn)
+    r.db(db).table('majority').config().update({'write_acks': 'majority'}).run(conn)
     r.db(db).wait(wait_for='all_replicas_ready').run(conn)
+
 
 def make_expected(default=False, **kwargs):
     expected = {'ready_for_outdated_reads': default,
@@ -37,11 +42,12 @@ def make_expected(default=False, **kwargs):
                 # 'ready_for_reads': default,
                 'ready_for_writes': default,
                 'all_replicas_ready': default}
-    for key,value in kwargs.items():
+    for key, value in list(kwargs.items()):
         assert key in expected, 'Unrecognized readiness state: %s' % str(key)
         assert isinstance(value, bool)
         expected[key] = value
     return expected
+
 
 def do_async_wait(query, expected_success, error_event):
     conn = r.connect('localhost', query_server.driver_port)
@@ -55,16 +61,18 @@ def do_async_wait(query, expected_success, error_event):
             error_event.set()
             raise
 
+
 def start_waits(expected_wait_result, error_event):
     threads = []
-    for table, readinesses in expected_wait_result.items():
-        for readiness, success in readinesses.items():
+    for table, readinesses in list(expected_wait_result.items()):
+        for readiness, success in list(readinesses.items()):
             threads.append(threading.Thread(target=do_async_wait,
                                             args=(r.db(db).table(table).wait(wait_for=readiness, timeout=10),
                                                   success,
                                                   error_event)))
             threads[-1].start()
     return threads
+
 
 def transition_cluster(servers, state):
     assert all((x in servers and x in state) for x in ['primary', 'replicas'])
@@ -97,6 +105,7 @@ def transition_cluster(servers, state):
     for server, server_state in zip(servers['nvrs'], state['nvrs']):
         up_down_server(server, server_state)
 
+
 # Waits for the query server to see the currently-running servers
 # This does not wait for disconnections or for reactors to reach a stable state
 def wait_for_transition(cluster):
@@ -107,6 +116,7 @@ def wait_for_transition(cluster):
     conn = r.connect(host=query_server.host, port=query_server.driver_port)
     while not all(r.expr(uuids).map(r.db('rethinkdb').table('server_status').get(r.row).ne(None)).run(conn)):
         time.sleep(0.1)
+
 
 def test_wait(cluster, servers, states, expected_wait_result):
     # Transition through each state excluding the final state
@@ -124,9 +134,11 @@ def test_wait(cluster, servers, states, expected_wait_result):
         statuses = list(r.db('rethinkdb').table('table_status').run(conn))
         assert False, 'Wait failed, table statuses: %s' % str(statuses)
 
+
 utils.print_with_time("Spinning up seven servers")
 serverNames = ['query', 'primary', 'r1', 'r2', 'nv1', 'nv2', 'nv3']
-with driver.Cluster(initial_servers=serverNames, output_folder='.', command_prefix=command_prefix, extra_options=serve_options) as cluster:
+with driver.Cluster(initial_servers=serverNames, output_folder='.', command_prefix=command_prefix,
+                    extra_options=serve_options) as cluster:
     cluster.check()
 
     query_server = cluster[0]
@@ -134,18 +146,18 @@ with driver.Cluster(initial_servers=serverNames, output_folder='.', command_pref
     table_servers = {
         'primary': cluster[1],
         'replicas': cluster[2:4],
-        'nvrs': cluster[4:] }
+        'nvrs': cluster[4:]}
 
     utils.print_with_time("Establishing ReQL connection")
 
     conn = r.connect("localhost", query_server.driver_port)
 
     # Set the server tags
-    r.db('rethinkdb').table('server_config').get(table_servers['primary'].uuid).update({'tags':['primary']}).run(conn)
+    r.db('rethinkdb').table('server_config').get(table_servers['primary'].uuid).update({'tags': ['primary']}).run(conn)
     for replica in table_servers['replicas']:
-        r.db('rethinkdb').table('server_config').get(replica.uuid).update({'tags':['replica']}).run(conn)
+        r.db('rethinkdb').table('server_config').get(replica.uuid).update({'tags': ['replica']}).run(conn)
     for nv in table_servers['nvrs']:
-        r.db('rethinkdb').table('server_config').get(nv.uuid).update({'tags':['nonvoting']}).run(conn)
+        r.db('rethinkdb').table('server_config').get(nv.uuid).update({'tags': ['nonvoting']}).run(conn)
 
     if db not in r.db_list().run(conn):
         utils.print_with_time("Creating db")
@@ -211,4 +223,3 @@ with driver.Cluster(initial_servers=serverNames, output_folder='.', command_pref
 
     utils.print_with_time("Cleaning up")
 utils.print_with_time("Done.")
-

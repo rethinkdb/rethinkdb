@@ -35,19 +35,10 @@ ifeq (Windows,$(OS))
 # Windows build
 include $(TOP)/mk/windows.mk
 
-# Python driver
-include $(TOP)/drivers/python/build.mk
-
-# JavaScript driver
-include $(TOP)/drivers/javascript/build.mk
-
 # Build the web assets
 include $(TOP)/admin/build.mk
 
 else # Windows
-
-# Clients drivers
-include $(TOP)/drivers/build.mk
 
 # Build the web assets
 include $(TOP)/admin/build.mk
@@ -71,7 +62,7 @@ ifeq (Windows,$(OS))
   all: windows-all
 else
   # Build the drivers and executable
-  all: $(TOP)/src/all $(TOP)/drivers/all
+  all: $(TOP)/src/all
 endif
 
 .PHONY: generate

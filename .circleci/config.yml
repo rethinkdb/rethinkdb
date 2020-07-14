@@ -20,7 +20,7 @@ commands:
           apt install -y git-core build-essential protobuf-compiler python \
           libprotobuf-dev libboost-all-dev python nodejs npm \
           libncurses5-dev libjemalloc-dev wget m4 clang libssl1.0-dev \
-          debhelper curl << parameters.additional_packages >>
+          debhelper curl python3.7 python3.7-dev python3.7-distutils << parameters.additional_packages >>
   configure:
     description: Configure project
     parameters:
@@ -50,17 +50,22 @@ commands:
   test:
     description: Run RethinkDB test
     parameters:
+      command:
+        type: string
+        default: test/run -H
       pattern:
         type: string
-      artifact_dst:
-        type: string
     steps:
+      - run: git clone https://github.com/rethinkdb/rethinkdb-python.git /tmp/rethinkdb-python
       - run: |
-          test/run -v -H << parameters.pattern >>
-          test -e test/results/*/test_results.html
-      - store_artifacts:
-          path: test/results/
-          destination: << parameters.artifact_dst >>
+          curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+          python3.7 get-pip.py
+          pip install -r /tmp/rethinkdb-python/requirements.txt
+      - run:
+          environment: PYTHON_DRIVER="/tmp/rethinkdb-python/rethinkdb"
+          command: |
+            << parameters.command >> << parameters.pattern >>
+
 jobs:
   build:
     docker:
@@ -95,10 +100,11 @@ jobs:
       - image: 'ubuntu:bionic'
     steps:
       - prepare
-      - run: ls -lah build/
       - test:
           pattern: unit
-          artifact_dst: unit_tests
+      - store_artifacts:
+          path: test/results/
+          destination: unit_tests
   integration_test:
     docker:
       - image: 'ubuntu:bionic'
@@ -106,7 +112,18 @@ jobs:
       - prepare
       - test:
           pattern: all '!unit' '!cpplint'
-          artifact_dst: integration_tests
+      - store_artifacts:
+          path: test/results/
+          destination: integration_tests
+  rql_python:
+    docker:
+      - image: 'ubuntu:bionic'
+    steps:
+      - prepare
+      - test:
+          command: test/rql_test/test-runner -i py3.7
+          pattern: polyglot
+
 workflows:
   version: 2
   nightly:
@@ -130,6 +147,9 @@ workflows:
       - integration_test:
           requires:
             - build
+      - rql_python:
+          requires:
+            - build
   pull_request_pipeline:
     jobs:
       - check_style
@@ -140,6 +160,9 @@ workflows:
           requires:
             - build
       - integration_test:
+          requires:
+            - build
+      - rql_python:
           requires:
             - build
 

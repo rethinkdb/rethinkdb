@@ -5,12 +5,12 @@
 efficiency of the reconfiguration logic. It's sort of like `shard_fuzzer.py` but it
 produces a specific workload instead of a random one."""
 
-from __future__ import print_function
-
-import os, string, sys
+import os
+import string
+import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
-import driver, rdb_unittest, scenario_common, utils, vcoptparse
+import rdb_unittest, scenario_common, utils, vcoptparse
 
 opts = vcoptparse.OptParser()
 scenario_common.prepare_option_parser_mode_flags(opts)
@@ -31,6 +31,7 @@ server_names = possible_server_names[:parsed_opts["num-servers"]]
 
 table_names = ["table%d" % i for i in range(parsed_opts["num-tables"])]
 
+
 def make_config_shards(phase):
     shards = []
     for i in range(parsed_opts['num-shards']):
@@ -43,17 +44,18 @@ def make_config_shards(phase):
         shards.append(shard)
     return shards
 
+
 class ReconfigureStress(rdb_unittest.RdbTestCase):
     servers = server_names
     server_command_prefix = command_prefix
     server_extra_options = server_options
-    
+
     def test_reconfigure_stress(self):
-        print("") # to move us off the unittest line
-        
+        print("")  # to move us off the unittest line
+
         # Existing tables
         existingTables = self.db.table_list().run(self.conn)
-        
+
         # Set up tables
         utils.print_with_time("\tSetting up %d table%s" % (len(table_names), "(s)" if len(table_names) > 1 else ""))
         for name in table_names:
@@ -61,14 +63,14 @@ class ReconfigureStress(rdb_unittest.RdbTestCase):
                 "name": name,
                 "db": self.dbName,
                 "shards": [{"primary_replica": "a", "replicas": ["a"]}]
-                }).run(self.conn)
+            }).run(self.conn)
         res = self.db.wait(wait_for="all_replicas_ready").run(self.conn)
-        self.assert_("ready" in res, "Key 'ready' not in result: %s" % res)
+        self.assertTrue("ready" in res, "Key 'ready' not in result: %s" % res)
         self.assertEqual(res["ready"], len(table_names) + len(existingTables))
         res = self.db.table_list().run(self.conn)
         for tableName in table_names:
-            self.assert_(tableName in table_names, 'Table "%s" is missing' % tableName)
-        
+            self.assertTrue(tableName in table_names, 'Table "%s" is missing' % tableName)
+
         # Run the phases
         for phase in range(parsed_opts['num-phases']):
             utils.print_with_time("\tBeginning reconfiguration phase %d" % (phase + 1))
@@ -83,5 +85,6 @@ class ReconfigureStress(rdb_unittest.RdbTestCase):
                 for config_shard, status_shard in zip(shards, self.db.table(name).status()["shards"].run(self.conn)):
                     # make sure issue #4265 didn't happen
                     assert status_shard["primary_replicas"] == [config_shard["primary_replica"]]
+
 
 rdb_unittest.main()

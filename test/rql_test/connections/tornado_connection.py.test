@@ -2,19 +2,16 @@
 
 '''Tests the driver API for making connections and exercizes the networking code'''
 
-from __future__ import print_function
-
 import datetime
+import functools
 import os
 import random
 import re
+import socket
 import sys
 import tempfile
 import time
 import traceback
-import unittest
-import functools
-import socket
 
 from tornado import gen, ioloop
 from tornado.concurrent import Future
@@ -85,8 +82,7 @@ def closeSharedServer():
 
 
 def just_do(coroutine, *args, **kwargs):
-    ioloop.IOLoop.instance()\
-                 .run_sync(functools.partial(coroutine, *args, **kwargs))
+    ioloop.IOLoop.instance().run_sync(functools.partial(coroutine, *args, **kwargs))
 
 
 # == Test Base Classes
@@ -222,6 +218,7 @@ class TestWithConnection(TestCaseCompatible):
                 yield closeSharedServer()
                 raise  # ToDo: figure out how to best give the server log
 
+
 # == Test Classes
 
 
@@ -277,10 +274,12 @@ class TestNoConnection(TestCaseCompatible):
     def test_empty_run(self):
         # Test the error message when we pass nothing to run and
         # didn't call `repl`
-        self.assertRaisesRegexp(r.ReqlDriverError,
-                                "RqlQuery.run must be given"
-                                " a connection to run on.",
-                                r.expr(1).run)
+        self.assertRaisesRegex(
+            r.ReqlDriverError,
+            "RqlQuery.run must be given"
+            " a connection to run on.",
+            r.expr(1).run
+        )
 
     @gen.coroutine
     def test_auth_key(self):
@@ -451,15 +450,15 @@ class TestConnection(TestWithConnection):
             # Calling .repl() should set this connection as global state
             # to be used when `run` is not otherwise passed a connection.
             c = (yield r.connect(host=sharedServerHost, port=sharedServerDriverPort)).repl()
-    
+
             yield r.expr(1).run()
-    
-            c.repl()                # is idempotent
-    
+
+            c.repl()  # is idempotent
+
             yield r.expr(1).run()
-    
+
             yield c.close()
-    
+
             yield self.asyncAssertRaisesRegexp(r.ReqlDriverError, "Connection is closed.", r.expr(1).run())
         finally:
             r.Repl.clear()
@@ -478,6 +477,7 @@ class TestConnection(TestWithConnection):
         yield self.asyncAssertRaisesRegexp(r.ReqlDriverError,
                                            "Could not convert port 'abc' to an integer.",
                                            bad_port())
+
 
 class TestShutdown(TestWithConnection):
     @gen.coroutine
@@ -533,11 +533,11 @@ class TestGetIntersectingBatching(TestWithConnection):
         sys.stdout.flush()
 
         points = []
-        for i in xrange(0, point_count):
+        for i in range(0, point_count):
             points.append({'geo': r.point(random.uniform(-180.0, 180.0),
                                           random.uniform(-90.0, 90.0))})
         polygons = []
-        for i in xrange(0, poly_count):
+        for i in range(0, poly_count):
             # A fairly big circle, so it will cover a large range in
             # the secondary index
             polygons.append({'geo': r.circle([random.uniform(-180.0, 180.0),
@@ -551,21 +551,21 @@ class TestGetIntersectingBatching(TestWithConnection):
         # high to get a lazy result at least once.
         seen_lazy = False
 
-        for i in xrange(0, get_tries):
+        for i in range(0, get_tries):
             query_circle = r.circle([random.uniform(-180.0, 180.0),
                                      random.uniform(-90.0, 90.0)], 8000000)
-            reference = yield t1.filter(r.row['geo'].intersects(query_circle))\
-                                .coerce_to("ARRAY").run(c)
-            cursor = yield t1.get_intersecting(query_circle, index='geo')\
-                             .run(c, max_batch_rows=batch_size)
+            reference = yield t1.filter(r.row['geo'].intersects(query_circle)) \
+                .coerce_to("ARRAY").run(c)
+            cursor = yield t1.get_intersecting(query_circle, index='geo') \
+                .run(c, max_batch_rows=batch_size)
             if cursor.error is None:
                 seen_lazy = True
 
             while len(reference) > 0:
-                row = yield cursor.next()
+                row = yield next(cursor)
                 self.assertEqual(reference.count(row), 1)
                 reference.remove(row)
-            yield self.asyncAssertRaises(r.ReqlCursorEmpty, cursor.next())
+            yield self.asyncAssertRaises(r.ReqlCursorEmpty, next(cursor))
 
         self.assertTrue(seen_lazy)
 
@@ -588,18 +588,18 @@ class TestBatching(TestWithConnection):
         batch_size = 3
         count = 500
 
-        ids = set(xrange(0, count))
+        ids = set(range(0, count))
 
         yield t1.insert([{'id': i} for i in ids]).run(c)
         cursor = yield t1.run(c, max_batch_rows=batch_size)
 
-        for i in xrange(0, count - 1):
-            row = yield cursor.next()
+        for i in range(0, count - 1):
+            row = yield next(cursor)
             self.assertTrue(row['id'] in ids)
             ids.remove(row['id'])
 
-        self.assertEqual((yield cursor.next())['id'], ids.pop())
-        yield self.asyncAssertRaises(r.ReqlCursorEmpty, cursor.next())
+        self.assertEqual((yield next(cursor))['id'], ids.pop())
+        yield self.asyncAssertRaises(r.ReqlCursorEmpty, next(cursor))
         yield r.db('test').table_drop('t1').run(c)
 
 
@@ -639,8 +639,6 @@ class TestSuccessAtomFeed(TestWithConnection):
         c = yield r.connect(host=sharedServerHost,
                             port=sharedServerDriverPort)
 
-        from rethinkdb import ql2_pb2 as p
-
         if 'success_atom_feed' in (yield r.db('test').table_list().run(c)):
             yield r.db('test').table_drop('success_atom_feed').run(c)
         yield r.db('test').table_create('success_atom_feed').run(c)
@@ -657,6 +655,7 @@ class TestSuccessAtomFeed(TestWithConnection):
         changes = yield t1.get(0).changes(include_initial=True).run(c)
         self.assertTrue(changes.error is None)
         self.assertEqual(len(changes.items), 1)
+
 
 class TestCursor(TestWithConnection):
     @gen.coroutine
@@ -684,11 +683,11 @@ class TestCursor(TestWithConnection):
         @gen.coroutine
         def read_cursor(cursor):
             while (yield cursor.fetch_next()):
-                yield cursor.next()
+                yield next(cursor)
                 cursor.close()
 
         yield self.asyncAssertRaisesRegexp(r.ReqlRuntimeError,
-            "Connection is closed.", read_cursor(cursor))
+                                           "Connection is closed.", read_cursor(cursor))
 
     @gen.coroutine
     def test_cursor_after_cursor_close(self):
@@ -696,7 +695,7 @@ class TestCursor(TestWithConnection):
         cursor.close()
         count = 0
         while (yield cursor.fetch_next()):
-            yield cursor.next()
+            yield next(cursor)
             count += 1
         self.assertNotEqual(count, 0, "Did not get any cursor results")
 
@@ -706,7 +705,7 @@ class TestCursor(TestWithConnection):
         count = 0
 
         while (yield cursor.fetch_next()):
-            yield cursor.next()
+            yield next(cursor)
             count += 1
             if count == 2:
                 cursor.close()
@@ -719,10 +718,10 @@ class TestCursor(TestWithConnection):
         cursor = yield r.range().limit(range_size).run(self.conn)
         count = 0
         while (yield cursor.fetch_next()):
-            yield cursor.next()
+            yield next(cursor)
             count += 1
         self.assertEqual(count, range_size,
-             "Expected %d results on the cursor, but got %d" % (range_size, count))
+                         "Expected %d results on the cursor, but got %d" % (range_size, count))
 
     @gen.coroutine
     def test_cursor_double_each(self):
@@ -731,30 +730,30 @@ class TestCursor(TestWithConnection):
         count = 0
 
         while (yield cursor.fetch_next()):
-            yield cursor.next()
+            yield next(cursor)
             count += 1
         self.assertEqual(count, range_size,
-             "Expected %d results on the cursor, but got %d" % (range_size, count))
+                         "Expected %d results on the cursor, but got %d" % (range_size, count))
 
         while (yield cursor.fetch_next()):
-            yield cursor.next()
+            yield next(cursor)
             count += 1
         self.assertEqual(count, range_size,
-             "Expected no results on the second iteration of the cursor, but got %d" % (count - range_size))
+                         "Expected no results on the second iteration of the cursor, but got %d" % (count - range_size))
 
     # Used in wait tests
-    num_cursors=3
+    num_cursors = 3
 
     @gen.coroutine
     def do_wait_test(self, wait_time):
-        cursors = [ ]
-        cursor_counts = [ ]
-        cursor_timeouts = [ ]
-        for i in xrange(self.num_cursors):
+        cursors = []
+        cursor_counts = []
+        cursor_timeouts = []
+        for i in range(self.num_cursors):
             cur = yield r.range().map(r.js("(function (row) {" +
-                                                "end = new Date(new Date().getTime() + 2);" +
-                                                "while (new Date() < end) { }" +
-                                                "return row;" +
+                                           "end = new Date(new Date().getTime() + 2);" +
+                                           "while (new Date() < end) { }" +
+                                           "return row;" +
                                            "})")).run(self.conn, max_batch_rows=500)
             cursors.append(cur)
             cursor_counts.append(0)
@@ -763,8 +762,8 @@ class TestCursor(TestWithConnection):
         @gen.coroutine
         def get_next(cursor_index):
             try:
-                if wait_time is None: # Special case to use the default
-                    yield cursors[cursor_index].next()
+                if wait_time is None:  # Special case to use the default
+                    yield next(cursors[cursor_index])
                 else:
                     yield cursors[cursor_index].next(wait=wait_time)
                 cursor_counts[cursor_index] += 1
@@ -773,8 +772,8 @@ class TestCursor(TestWithConnection):
 
         # We need to get ahead of pre-fetching for this to get the error we want
         while sum(cursor_counts) < 4000:
-            for cursor_index in xrange(self.num_cursors):
-                for read_count in xrange(random.randint(0, 10)):
+            for cursor_index in range(self.num_cursors):
+                for read_count in range(random.randint(0, 10)):
                     yield get_next(cursor_index)
 
         [cursor.close() for cursor in cursors]
@@ -785,56 +784,57 @@ class TestCursor(TestWithConnection):
     def test_false_wait(self):
         reads, timeouts = yield self.do_wait_test(False)
         self.assertNotEqual(timeouts, 0,
-            "Did not get timeouts using zero (false) wait.")
+                            "Did not get timeouts using zero (false) wait.")
 
     @gen.coroutine
     def test_zero_wait(self):
         reads, timeouts = yield self.do_wait_test(0)
         self.assertNotEqual(timeouts, 0,
-            "Did not get timeouts using zero wait.")
+                            "Did not get timeouts using zero wait.")
 
     @gen.coroutine
     def test_short_wait(self):
         reads, timeouts = yield self.do_wait_test(0.0001)
         self.assertNotEqual(timeouts, 0,
-            "Did not get timeouts using short (100 microsecond) wait.")
+                            "Did not get timeouts using short (100 microsecond) wait.")
 
     @gen.coroutine
     def test_long_wait(self):
         reads, timeouts = yield self.do_wait_test(10)
         self.assertEqual(timeouts, 0,
-            "Got timeouts using long (10 second) wait.")
+                         "Got timeouts using long (10 second) wait.")
 
     @gen.coroutine
     def test_infinite_wait(self):
         reads, timeouts = yield self.do_wait_test(True)
         self.assertEqual(timeouts, 0,
-            "Got timeouts using infinite wait.")
+                         "Got timeouts using infinite wait.")
 
     @gen.coroutine
     def test_default_wait(self):
         reads, timeouts = yield self.do_wait_test(None)
         self.assertEqual(timeouts, 0,
-            "Got timeouts using default (infinite) wait.")
+                         "Got timeouts using default (infinite) wait.")
 
     @gen.coroutine
     def test_rate_limit(self):
         '''Test that we prefetch two batches, and then don't fetch any more without consuming them'''
-        
+
         batchSize = 20
         initalSize = int(batchSize * 1.5)
-        
+
         @gen.coroutine
         def wait_until_count(cursor, count):
             while len(cursor.items) < count:
                 yield gen.sleep(0.1)
-        
-        cursor = yield r.range().run(self.conn, first_batch_scaledown_factor=2, min_batch_rows=batchSize, max_batch_rows=batchSize)
-        
+
+        cursor = yield r.range().run(self.conn, first_batch_scaledown_factor=2, min_batch_rows=batchSize,
+                                     max_batch_rows=batchSize)
+
         # wait until we have the first batch
-        yield gen.with_timeout(datetime.timedelta(seconds=2), wait_until_count(cursor, batchSize/2))
-        self.assertGreaterEqual(len(cursor.items), batchSize/2)
-        
+        yield gen.with_timeout(datetime.timedelta(seconds=2), wait_until_count(cursor, batchSize / 2))
+        self.assertGreaterEqual(len(cursor.items), batchSize / 2)
+
         # wait until we have the second batch
         yield gen.with_timeout(datetime.timedelta(seconds=2), wait_until_count(cursor, initalSize))
         self.assertEqual(
@@ -842,7 +842,7 @@ class TestCursor(TestWithConnection):
             list(range(initalSize)),
             'Did not get the expected range of %d: %s' % (initalSize, str(cursor.items))
         )
-        
+
         # wait a few seconds to make sure we don't get more items
         yield gen.sleep(2)
         self.assertEqual(
@@ -850,10 +850,10 @@ class TestCursor(TestWithConnection):
             list(range(initalSize)),
             'Got extra items after first two batches: %s' % str(cursor.items)
         )
-        
+
         # consume the first two batches and check that we get more data
         for _ in range(initalSize):
-            cursor.next()
+            next(cursor)
         cursor.next(wait=2)
 
     # Test that an error on a cursor (such as from closing the connection)
@@ -862,9 +862,9 @@ class TestCursor(TestWithConnection):
     def test_cursor_error(self):
         cursor = yield r.range() \
             .map(lambda row:
-                r.branch(row <= 5000, # High enough for multiple batches
-                         row,
-                         r.js('while(true){ }', timeout=10))) \
+                 r.branch(row <= 5000,  # High enough for multiple batches
+                          row,
+                          r.js('while(true){ }', timeout=10))) \
             .run(self.conn)
 
         @gen.coroutine
@@ -876,13 +876,13 @@ class TestCursor(TestWithConnection):
                 pass
             hanging.set_result(True)
             yield cursor_closed
-            yield cursor.next()
+            yield next(cursor)
 
         @gen.coroutine
         def read_wrapper(cursor, done, hanging, cursor_closed):
             try:
                 yield self.asyncAssertRaisesRegexp(r.ReqlRuntimeError,
-                    'Connection is closed.', read_cursor(cursor, hanging, cursor_closed))
+                                                   'Connection is closed.', read_cursor(cursor, hanging, cursor_closed))
                 done.set_result(None)
             except Exception as ex:
                 if cursor_hanging.running():
@@ -899,6 +899,7 @@ class TestCursor(TestWithConnection):
         yield self.conn.close()
         cursor_closed.set_result(True)
         yield done
+
 
 class TestChangefeeds(TestWithConnection):
     @gen.coroutine
@@ -942,7 +943,7 @@ class TestChangefeeds(TestWithConnection):
         try:
             ready.set_result(None)
             while len(needed_values) != 0 and (yield feed.fetch_next()):
-                item = yield feed.next()
+                item = yield next(feed)
                 self.assertIsNone(item['old_val'])
                 self.assertIn(item['new_val']['id'], needed_values)
                 needed_values.remove(item['new_val']['id'])
@@ -953,9 +954,9 @@ class TestChangefeeds(TestWithConnection):
     @gen.coroutine
     def test_multiple_changefeeds(self):
         loop = ioloop.IOLoop.current()
-        feeds_ready = { }
-        feeds_done = { }
-        needed_values = { 'a': set(range(20)), 'b': set(range(10)) }
+        feeds_ready = {}
+        feeds_done = {}
+        needed_values = {'a': set(range(20)), 'b': set(range(10))}
         for n in ('a', 'b'):
             feeds_ready[n] = Future()
             feeds_done[n] = Future()
@@ -966,7 +967,8 @@ class TestChangefeeds(TestWithConnection):
                self.table_a_odd_writer(),
                self.table_b_writer()]
         yield list(feeds_done.values())
-        self.assertTrue(all([len(x) == 0 for x in needed_values.values()]))
+        self.assertTrue(all([len(x) == 0 for x in list(needed_values.values())]))
+
 
 if __name__ == '__main__':
     rdb_unittest.main()

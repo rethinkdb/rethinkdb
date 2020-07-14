@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 # Copyright 2014-2015 RethinkDB, all rights reserved.
 
-import datetime, os, socket, sys, time
+import datetime
+import os
+import socket
+import sys
+import time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import driver, scenario_common, utils, vcoptparse
@@ -15,20 +19,21 @@ r = utils.import_python_driver()
 
 utils.print_with_time("Spinning up two servers")
 with driver.Cluster(output_folder='.') as cluster:
-    
-    process1 = driver.Process(cluster, name='a', server_tags=["foo"], command_prefix=command_prefix, extra_options=serve_options)
-    process2 = driver.Process(cluster, name='b', server_tags=["foo", "bar"], command_prefix=command_prefix, extra_options=serve_options + ["--cache-size", "123"])
-    
+    process1 = driver.Process(cluster, name='a', server_tags=["foo"], command_prefix=command_prefix,
+                              extra_options=serve_options)
+    process2 = driver.Process(cluster, name='b', server_tags=["foo", "bar"], command_prefix=command_prefix,
+                              extra_options=serve_options + ["--cache-size", "123"])
+
     cluster.wait_until_ready()
-    
+
     utils.print_with_time("Establishing ReQL connection")
-    
+
     conn = r.connect(process1.host, process1.driver_port)
-    
+
     # -- general assertions
-    
+
     utils.print_with_time("General status")
-    
+
     assert r.db("rethinkdb").table("server_status").count().run(conn) == 2
     assert set(r.db("rethinkdb").table("server_status")["name"].run(conn)) == set(["a", "b"])
 
@@ -43,12 +48,12 @@ with driver.Cluster(output_folder='.') as cluster:
     assert res["errors"] == 1
 
     # -- server a
-    
-    utils.print_with_time("First server info")
-    
-    st = r.db("rethinkdb").table("server_status").filter({"name":process1.name}).nth(0).run(conn)
 
-    assert isinstance(st["process"]["version"], basestring)
+    utils.print_with_time("First server info")
+
+    st = r.db("rethinkdb").table("server_status").filter({"name": process1.name}).nth(0).run(conn)
+
+    assert isinstance(st["process"]["version"], str)
     assert st["process"]["version"].startswith("rethinkdb")
 
     assert st["id"] == process1.uuid
@@ -65,35 +70,35 @@ with driver.Cluster(output_folder='.') as cluster:
     assert st["process"]["time_started"] > now - datetime.timedelta(minutes=1)
     assert st["network"]["time_connected"] <= now
     assert st["network"]["time_connected"] >= st["process"]["time_started"]
-    
+
     # -- server b
-    
+
     utils.print_with_time("Second server info")
-    
-    st2 = r.db("rethinkdb").table("server_status").filter({"name":process2.name}).nth(0).run(conn)
+
+    st2 = r.db("rethinkdb").table("server_status").filter({"name": process2.name}).nth(0).run(conn)
     assert st2["process"]["cache_size_mb"] == 123
-    
+
     assert st2["id"] == process2.uuid
     assert st2["process"]["pid"] == process2.process.pid
-    
+
     assert st2["network"]["reql_port"] == process2.driver_port
     assert st2["network"]["cluster_port"] == process2.cluster_port
     assert st2["network"]["http_admin_port"] == process2.http_port
     assert st2["network"]["canonical_addresses"][0]["port"] == process2.cluster_port
-    
+
     # -- shut down server b
-    
+
     utils.print_with_time("Shutting down second server")
-    
+
     process2.check_and_stop()
-    
+
     deadline = time.time() + 10
     while time.time() < deadline:
-        st2 = list(r.db("rethinkdb").table("server_status").filter({"name":process2.name}).run(conn))
-        if st2 == []:
+        st2 = list(r.db("rethinkdb").table("server_status").filter({"name": process2.name}).run(conn))
+        if not st2:
             break
     else:
         assert False, 'Server b did not become unavalible after 10 seconds'
-    
+
     utils.print_with_time("Cleaning up")
 utils.print_with_time("Done.")
