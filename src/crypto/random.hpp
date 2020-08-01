@@ -2,6 +2,8 @@
 #ifndef CRYPTO_RANDOM_HPP
 #define CRYPTO_RANDOM_HPP
 
+#include <stddef.h>
+
 #include <array>
 
 namespace crypto {
