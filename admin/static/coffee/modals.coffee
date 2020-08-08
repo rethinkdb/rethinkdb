@@ -41,7 +41,7 @@ class AddDatabaseModal extends ui_modals.AbstractModal
             error = true
             @$('.alert_modal').html @templates.error
                 database_is_empty: true
-        else if /^[a-zA-Z0-9_]+$/.test(@formdata.name) is false
+        else if /^[a-zA-Z0-9_-]+$/.test(@formdata.name) is false
             # Only alphanumeric char + underscore are allowed
             error = true
             @$('.alert_modal').html @templates.error
@@ -172,7 +172,7 @@ class AddTableModal extends ui_modals.AbstractModal
         if @formdata.name is '' # Need a name
             input_error = true
             template_error.table_name_empty = true
-        else if /^[a-zA-Z0-9_]+$/.test(@formdata.name) is false
+        else if /^[a-zA-Z0-9_-]+$/.test(@formdata.name) is false
             input_error = true
             template_error.special_char_detected = true
             template_error.type = 'table'

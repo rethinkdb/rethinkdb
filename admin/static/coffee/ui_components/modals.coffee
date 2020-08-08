@@ -204,7 +204,7 @@ class RenameItemModal extends AbstractModal
             no_error = false
             $('.alert_modal').html @error_template
                 empty_name: true
-        else if /^[a-zA-Z0-9_]+$/.test(@formdata.new_name) is false
+        else if /^[a-zA-Z0-9_-]+$/.test(@formdata.new_name) is false
             no_error = false
             $('.alert_modal').html @error_template
                 special_char_detected: true
