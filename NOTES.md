@@ -1,3 +1,35 @@
+# Release 2.4.1 (Night of the Living Dead)
+
+Released on 2020-08-13
+
+Bug fix release.
+
+### Compatibility ###
+
+No migration is required when upgrading from RethinkDB 2.4.x. Please read the 
+[RethinkDB 2.4.0 release notes][release-notes-2.4.0] if you're upgrading from 
+an older version.
+
+[release-notes-2.4.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.4.0
+
+RethinkDB 2.4.0 servers cannot be mixed with servers running RethinkDB 2.3.x or earlier in the same cluster.
+
+### Changes ###
+
+(Issue numbers point into the https://github.com/rethinkdb/rethinkdb
+bugtracker.)
+
+* Server
+  * Force flushing when stdout isn't on a TTY (#6819)
+  * Fix code style issues (#6842)
+  * Fix warnings about missing assignment definitions in clang 10.0.0 (commit 3ca96904)
+* Compilation
+  * Fix aarch64 builds in 2.4.x using clang++ (commit 01683d3e)
+  * Fix Linux Mint 20 build errors (commit 328ebfb)
+* Web UI
+  * Reintroduce update checker (#6879)
+  * Allow hyphens in table and database names (#6908)
+
 # Release 2.4.0 (Night of the Living Dead)
 
 Released on 2019-12-19
