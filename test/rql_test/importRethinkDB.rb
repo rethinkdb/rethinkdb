@@ -3,7 +3,7 @@
 
 # -- get the location of the driver
 
-rethinkdbDriverPath = File.expand_path(ENV['RUBY_DRIVER_DIR'] || File.join(File.dirname(__FILE__), '..', '..', 'build', 'drivers', 'ruby', 'lib'))
+rethinkdbDriverPath = File.expand_path(ENV['RUBY_DRIVER'] || File.join(File.dirname(__FILE__), '..', '..', 'build', 'drivers', 'ruby', 'lib'))
 
 # -- import the RethinkDB driver
 
