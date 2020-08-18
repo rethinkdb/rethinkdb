@@ -17,7 +17,7 @@ commands:
     steps:
       - run: |
           << parameters.pre_hook >>
-          apt install -y git-core build-essential protobuf-compiler python \
+          apt install -y git-core build-essential protobuf-compiler python ruby \
           libprotobuf-dev libboost-all-dev python nodejs npm \
           libncurses5-dev libjemalloc-dev wget m4 clang libssl1.0-dev \
           debhelper curl python3.7 python3.7-dev python3.7-distutils << parameters.additional_packages >>
@@ -57,12 +57,20 @@ commands:
         type: string
     steps:
       - run: git clone https://github.com/rethinkdb/rethinkdb-python.git /tmp/rethinkdb-python
+      - run: git clone https://github.com/rethinkdb/rethinkdb-ruby.git /tmp/rethinkdb-ruby
       - run: |
           curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
           python3.7 get-pip.py
           pip install -r /tmp/rethinkdb-python/requirements.txt
+      - run: |
+          pushd /tmp/rethinkdb-ruby
+          bundle install
+          rake protobuf
+          popd
       - run:
-          environment: PYTHON_DRIVER="/tmp/rethinkdb-python/rethinkdb"
+          environment: |
+            PYTHON_DRIVER="/tmp/rethinkdb-python/rethinkdb"
+            RUBY_DRIVER="/tmp/rethinkdb-ruby/lib"
           command: |
             << parameters.command >> << parameters.pattern >>
 
