@@ -73,8 +73,8 @@ TEST(UtilsTest, TimeLocal) {
 #endif
 
     struct timespec time = {1335301122, 1234};
-    std::string formatted = format_time(time, local_or_utc_time_t::local);
-    EXPECT_EQ("2012-04-24T13:58:42.000001234", formatted);
+    std::string formatted = format_time(time, local_or_utc_time_t::utc);
+    EXPECT_EQ("2012-04-24T20:58:42.000001234", formatted);
     struct timespec parsed;
     std::string errmsg;
     bool success = parse_time(formatted, local_or_utc_time_t::local, &parsed, &errmsg);
