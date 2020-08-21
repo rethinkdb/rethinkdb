@@ -606,8 +606,8 @@ interpreters = {
     'js': [JsLang('0.10'), JsLang('0.12'), JsLang('4.0'), JsLang('4.1'), JsLang('4.2'), JsLang('5.0'), JsLang('5.1'),
            JsLang('5.2'), JsLang('5.3')],
     'py': [PyLang('2.7'), PyLang('3.7')],
-    'rb': [RbLang('1.9'), RbLang('2.0'), RbLang('2.1'), RbLang('2.3'), RbLang('2.7'), JrbLang('9.0')],
-    'jrb': [JrbLang('9.0')],
+    'rb': [RbLang('2.5'), RbLang('2.6'), RbLang('2.7'), JrbLang('9.2')],
+    'jrb': [JrbLang('9.2')],
 
     'js0': [JsLang('0.10'), JsLang('0.12')],
     'js4': [JsLang('4.0'), JsLang('4.1'), JsLang('4.2')],
@@ -619,15 +619,12 @@ interpreters = {
     'py3': [PyLang('3.7')],
     'py3.7': [PyLang('3.7')],
 
-    'rb1': [RbLang('1.9')],
-    'rb1.9': [RbLang('1.9')],
+    'rb2': [RbLang('2.5'), RbLang('2.6'), RbLang('2.7')],
+    'rb2.5': [RbLang('2.5')],
+    'rb2.6': [RbLang('2.6')],
+    'rb2.7': [RbLang('2.7')],
 
-    'rb2': [RbLang('2.0'), RbLang('2.1'), RbLang('2.2')],
-    'rb2.0': [RbLang('2.0')],
-    'rb2.1': [RbLang('2.1')],
-    'rb2.2': [RbLang('2.2')],
-
-    'jrb9.0': [JrbLang('9.0')]
+    'jrb9.0': [JrbLang('9.2')]
 }
 
 
