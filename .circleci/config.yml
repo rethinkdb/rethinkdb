@@ -60,9 +60,12 @@ commands:
       - run: |
           curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
           python get-pip.py
-          python -m pip install -r /tmp/rethinkdb-python/requirements.txt
           python3.7 get-pip.py
-          python3.7 -m pip install -r /tmp/rethinkdb-python/requirements.txt
+          pushd /tmp/rethinkdb-python
+          python -m pip install -r requirements.txt
+          python3.7 -m pip install -r requirements.txt
+          make prepare
+          popd
       - run:
           environment:
             PYTHON_DRIVER: "/tmp/rethinkdb-python/rethinkdb"
