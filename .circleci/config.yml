@@ -62,7 +62,8 @@ commands:
           python3.7 get-pip.py
           pip install -r /tmp/rethinkdb-python/requirements.txt
       - run:
-          environment: PYTHON_DRIVER="/tmp/rethinkdb-python/rethinkdb"
+          environment:
+            PYTHON_DRIVER: "/tmp/rethinkdb-python/rethinkdb"
           command: |
             << parameters.command >> << parameters.pattern >>
 
