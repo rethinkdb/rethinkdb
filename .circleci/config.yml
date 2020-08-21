@@ -59,6 +59,8 @@ commands:
       - run: git clone https://github.com/rethinkdb/rethinkdb-python.git /tmp/rethinkdb-python
       - run: |
           curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+          python get-pip.py
+          python -m pip install -r /tmp/rethinkdb-python/requirements.txt
           python3.7 get-pip.py
           python3.7 -m pip install -r /tmp/rethinkdb-python/requirements.txt
       - run:
