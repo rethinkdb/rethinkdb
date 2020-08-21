@@ -91,7 +91,7 @@ void permissions_t::merge(ql::datum_t const &datum) {
 
     ql::datum_t connect = datum.get_field("connect", ql::NOTHROW);
     if (connect.has()) {
-        if (m_connect.has_value()) {
+        if (m_connect.has_value() && m_connect.get() == tribool::True) {
             keys.erase("connect");
             set_connect(datum_to_tribool(connect, "connect"));
         } else {
