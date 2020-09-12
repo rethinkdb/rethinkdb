@@ -44,7 +44,7 @@ Besides our four official drivers, we also have many [third-party drivers](https
 * **C#/.NET:** [RethinkDb.Driver](https://github.com/bchavez/RethinkDb.Driver), [rethinkdb-net](https://github.com/mfenniak/rethinkdb-net)
 * **C++:** [librethinkdbxx](https://github.com/AtnNn/librethinkdbxx)
 * **Clojure:** [clj-rethinkdb](https://github.com/apa512/clj-rethinkdb)
-* **Elixir:** [rethinkdb-elixir](https://github.com/hamiltop/rethinkdb-elixir)
+* **Elixir:** [rethinkdb-elixir](https://github.com/rethinkdb/rethinkdb-elixir)
 * **Go:** [GoRethink](https://github.com/dancannon/gorethink)
 * **Haskell:** [haskell-rethinkdb](https://github.com/atnnn/haskell-rethinkdb)
 * **PHP:** [php-rethink-ql](https://github.com/tbolier/php-rethink-ql)
