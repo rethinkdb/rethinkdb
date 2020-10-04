@@ -100,7 +100,7 @@
 
 // Maximum number of threads we support
 // TODO: make this dynamic where possible
-#define MAX_THREADS                               128
+#define MAX_THREADS                               260
 
 // Ticks (in milliseconds) the internal timed tasks are performed at
 #define TIMER_TICKS_IN_MS                         5
