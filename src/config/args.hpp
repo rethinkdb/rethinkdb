@@ -97,7 +97,7 @@
 
 // Maximum number of threads we support
 // TODO: make this dynamic where possible
-#define MAX_THREADS                               128
+#define MAX_THREADS                               260
 
 // How many times the page replacement algorithm tries to find an eligible page before giving up.
 // Note that (MAX_UNSAVED_DATA_LIMIT_FRACTION ** PAGE_REPL_NUM_TRIES) is the probability that the
