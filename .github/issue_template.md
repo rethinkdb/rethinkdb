@@ -1,0 +1,1 @@
+For bug reports, please remember to provide system information (e.g. Ubuntu 18.04 amd64), RethinkDB version information and/or commit hash (e.g. 2.4.1), and stack traces, logs, all other useful information.
