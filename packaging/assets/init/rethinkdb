@@ -6,12 +6,12 @@
 
 ### BEGIN INIT INFO
 # Provides:          rethinkdb
-# Required-Start: $remote_fs
-# Required-Stop: $remote_fs
+# Required-Start:    $remote_fs
+# Required-Stop:     $remote_fs
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: This starts a set of rethinkdb server instances.
-# Description:       This looks in /etc/rethinkdb/instances.d for rethinkdb config files and launches, stops, or examines each instance described there.
+# Short-Description: This starts a set of RethinkDB server instances.
+# Description:       This looks in /etc/rethinkdb/instances.d for RethinkDB config files and launches, stops, or examines each instance described there.
 ### END INIT INFO
 
 set -e -u
@@ -26,7 +26,7 @@ itask="${1:-}"
 rtdbbin=/usr/bin/rethinkdb ;
 rtdbconfigdir=/etc/rethinkdb ;
 
-# parse a line from the config file
+# Parse a line from the config file.
 conf_read_line () {
     local _val="${1#*=}"
     local _key="${1%%=*}"
@@ -44,8 +44,8 @@ EOF
     fi
 }
 
-# conf_read <file> <var>
-# read the config file file into the variable var
+# Read the config file 'file' into the variable 'var'.
+# Syntax: conf_read <file> <var>
 conf_read () {
     local _dict="#"
     local line sect key val
@@ -62,9 +62,9 @@ $_dict
 EOF
 }
 
-# get <conf> <key> [var]
-# extract the value of key from the parsed config conf
-# into the variable var or if var is not passed, into the variable key
+# Extract the value of 'key' from the parsed config 'conf' into the
+# variable 'var' or if 'var' is not passed, into the variable 'key'.
+# Syntax: get <conf> <key> [var]
 get () {
     local _valp="${1#*#$2=}"
     local _val="${_valp%%#*}"
@@ -85,8 +85,8 @@ default_cluster_port=29015
 default_http_port=8080
 default_port_offset=0
 
-# is_running <pid>
-# test if the process exists
+# Test if the process exists.
+# Syntax: is_running <pid>
 is_running () {
     ps -p "$1" > /dev/null
 }
@@ -109,7 +109,7 @@ case "$itask" in
         ;;
 esac
 
-# We check for active configurations .
+# We check for active configurations.
 if ! ls "$rtdbconfigdir"/instances.d/*.conf >/dev/null 2>/dev/null ; then
     echo "rethinkdb: No instances defined in $rtdbconfigdir/instances.d/"
     echo "rethinkdb: See http://www.rethinkdb.com/docs/guides/startup/ for more information" ;
@@ -124,7 +124,7 @@ do
 
     instance_name=`basename "$rtdbconffile" .conf`
 
-    # $@ will contain the options we pass to rethinkdb
+    # $@ will contain the options we pass to RethinkDB
     set --
     set -- --config-file "$rtdbconffile"
 
@@ -163,6 +163,7 @@ do
                 test -n "${rungroup:-}" && chgrp -- "$rungroup" "$parent_directory"
             fi
         fi
+
         set -- "$@" --directory "$rtdb_directory"
     fi
 
@@ -185,7 +186,7 @@ do
     fi
 
     if [ "$itask" = "stop" -o "$itask" = "restart" -o "$itask" = "force-restart" ] ; then
-        # stop rethinkdb
+        # Stop RethinkDB
 
         if [ ! -e "$rtdbpidfile" ] ; then
             echo "rethinkdb: $instance_name: The instance is not running (there is no pid file)"
@@ -204,7 +205,7 @@ do
     fi
 
     if [ "$itask" = "start" -o "$itask" = "restart" -o "$itask" = "force-restart" ] ; then
-        # start rethinkdb
+        # Start RethinkDB
 
         if ! get "$conf" bind x; then
             echo "rethinkdb: $instance_name: will only listen on local network interfaces."
@@ -226,7 +227,7 @@ do
     fi
 
     if [ "$itask" = "status" ] ; then
-        # show the rethinkdb status
+        # Show the RethinkDB status
 
         if [ -e "$rtdbpidfile" ] ; then
             if ! is_running "$(cat "$rtdbpidfile")"; then
