@@ -12,7 +12,7 @@
 
 ### Process options
 
-## User and group used to run rethinkdb
+## User and group used to run RethinkDB
 ## Command line default: do not change user or group
 ## Init script default: rethinkdb user and group
 # runuser=rethinkdb
