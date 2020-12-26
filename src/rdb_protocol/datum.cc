@@ -12,7 +12,7 @@
 #include <iterator>
 
 #include "errors.hpp"
-#include <boost/detail/endian.hpp>
+#include <boost/predef/other/endian.h>
 
 #include "arch/runtime/coroutines.hpp"
 #include "cjson/json.hpp"
@@ -1122,7 +1122,7 @@ std::string datum_t::encode_tag_num(uint64_t tag_num) {
             "tag_size constant is assumed to be the size of a uint64_t.");
 #if defined(__s390x__)
     tag_num = __builtin_bswap64(tag_num);
-#elif !defined(BOOST_LITTLE_ENDIAN)
+#elif !defined(BOOST_ENDIAN_LITTLE_BYTE)
     static_assert(false, "This piece of code will break on big-endian systems.");
 #endif
     return std::string(reinterpret_cast<const char *>(&tag_num), tag_size);
@@ -1251,7 +1251,7 @@ components_t parse_secondary(const std::string &key) THROWS_NOTHING {
         uint64_t t = *reinterpret_cast<const uint64_t *>(tag_str.data());
 #if defined(__s390x__)
         t = __builtin_bswap64(t);
-#elif !defined(BOOST_LITTLE_ENDIAN)
+#elif !defined(BOOST_ENDIAN_LITTLE_BYTE)
         static_assert(false, "This piece of code will break on big endian systems.");
 #endif
         tag_num.set(t);
