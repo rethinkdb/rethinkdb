@@ -260,7 +260,7 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
 #elif defined(__arm__)
     // This slot is used to store r12.
     const size_t min_frame = 1;
-#elif defined(__arm64__)
+#elif defined(__arm64__) || defined (__aarch64__)
     // The ARM64 ABI requires the stack pointer to always be 16-byte-aligned at
     // all registers.
     const size_t min_frame = 1;
@@ -457,7 +457,7 @@ void context_switch(artificial_stack_context_ref_t *current_context_out, artific
 }
 
 asm(
-#if defined(__i386__) || defined(__x86_64__) || defined(__arm__) || defined (__s390x__) || defined (__powerpc64__)
+#if defined(__i386__) || defined(__x86_64__) || defined(__arm__) || defined (__s390x__) || defined (__powerpc64__) || defined (__arm64__) || defined (__aarch64__)
 // We keep architecture-specific code interleaved in order to enforce commonality.
 #if defined(__x86_64__)
 #if defined(__LP64__) || defined(__LLP64__)

@@ -136,7 +136,7 @@ pkg_install () {
         i?86)    arch=ia32 ;;
         x86_64)  arch=x64 ;;
         arm64)   arch=arm64; arch_gypflags=$arm_gypflags ;;
-        aarch64) arch=aarch64; arch_gypflags=$arm_gypflags ;;
+        aarch64) arch=arm64; arch_gypflags=$arm_gypflags ;;
         arm*)    arch=arm; arch_gypflags=$arm_gypflags ;;
         s390x)   arch=s390x ;;
 	ppc64le*|powerpc*) arch=ppc64 ;;
