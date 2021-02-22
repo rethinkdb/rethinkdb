@@ -15,20 +15,20 @@ $ ./scripts/generate_serialize_macros.py > src/rpc/serialize_macros.hpp
 """
 
 def generate_make_serializable_macro(nfields):
-    fields = "".join(", field%d" % (i + 1) for i in xrange(nfields))
+    fields = "".join(", field%d" % (i + 1) for i in range(nfields))
     zeroarg = ("UNUSED " if nfields == 0 else "")
 
     print("#define RDB_MAKE_SERIALIZABLE_%d(type_t%s) \\" % \
         (nfields, fields))
     print("    template <cluster_version_t W> \\")
     print("    void serialize(%swrite_message_t *wm, %sconst type_t &thing) { \\" % (zeroarg, zeroarg))
-    for i in xrange(nfields):
-        print("        serialize<W>(wm, thing.field%d); \\" % (i + 1)
+    for i in range(nfields):
+        print("        serialize<W>(wm, thing.field%d); \\" % (i + 1))
     print("    } \\")
     print("    template <cluster_version_t W> \\")
     print("    archive_result_t deserialize(%sread_stream_t *s, %stype_t *thing) { \\" % (zeroarg, zeroarg))
     print("        archive_result_t res = archive_result_t::SUCCESS; \\")
-    for i in xrange(nfields):
+    for i in range(nfields):
         print("        res = deserialize<W>(s, deserialize_deref(thing->field%d)); \\" % (i + 1))
         print("        if (bad(res)) { return res; } \\")
     print("        return res; \\")
@@ -41,14 +41,14 @@ def generate_make_serializable_macro(nfields):
     print("    template <> \\")
     print("    void serialize<cluster_version_t::CLUSTER>( \\")
     print("        %swrite_message_t *wm, %sconst type_t &thing) { \\" % (zeroarg, zeroarg))
-    for i in xrange(nfields):
+    for i in range(nfields):
         print("        serialize<cluster_version_t::CLUSTER>(wm, thing.field%d); \\" % (i + 1))
     print("    } \\")
     print("    template <> \\")
     print("    archive_result_t deserialize<cluster_version_t::CLUSTER>( \\")
     print("        %sread_stream_t *s, %stype_t *thing) { \\" % (zeroarg, zeroarg))
     print("        archive_result_t res = archive_result_t::SUCCESS; \\")
-    for i in xrange(nfields):
+    for i in range(nfields):
         print("        res = deserialize<cluster_version_t::CLUSTER>( \\")
         print("            s, deserialize_deref(thing->field%d)); \\" % (i + 1))
         print("        if (bad(res)) { return res; } \\")
@@ -95,13 +95,13 @@ def generate_make_serializable_macro(nfields):
         (nfields, fields))
     print("    template <cluster_version_t W> \\")
     print("    friend void serialize(%swrite_message_t *wm, %sconst type_t &thing) { \\" % (zeroarg, zeroarg))
-    for i in xrange(nfields):
+    for i in range(nfields):
         print("        serialize<W>(wm, thing.field%d); \\" % (i + 1))
     print("    } \\")
     print("    template <cluster_version_t W> \\")
     print("    friend archive_result_t deserialize(%sread_stream_t *s, %stype_t *thing) { \\" % (zeroarg, zeroarg))
     print("        archive_result_t res = archive_result_t::SUCCESS; \\")
-    for i in xrange(nfields):
+    for i in range(nfields):
         print("        res = deserialize<W>(s, deserialize_deref(thing->field%d)); \\" % (i + 1))
         print("        if (bad(res)) { return res; } \\")
     print("        return res; \\")
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     print("#include \"version.hpp\"")
     print()
 
-    print(""")
+    print("""
 /* The purpose of these macros is to make it easier to serialize and
 unserialize data types that consist of a simple series of fields, each
 of which is serializable. Suppose we have a type "struct point_t {
@@ -150,7 +150,7 @@ functions explicitly for a certain version.
 
 We use dummy "extern int" declarations to force a compile error in
 macros that should not be used inside of class bodies. */
-    """.strip()
+    """.strip())
     print("namespace helper {")
     print()
     print("/* When a `static_assert` is used within a templated class or function,")
@@ -197,7 +197,7 @@ macros that should not be used inside of class bodies. */
     print("    friend void serialize(write_message_t *, const type_t &); \\")
     print("    template <cluster_version_t W> \\")
     print("    friend archive_result_t deserialize(read_stream_t *s, type_t *thing)")
-    for nfields in xrange(20):
+    for nfields in range(20):
         generate_make_serializable_macro(nfields)
         print()
 
