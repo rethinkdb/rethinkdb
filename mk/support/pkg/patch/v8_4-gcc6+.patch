@@ -1,0 +1,10 @@
+--- a/build/toolchain.gypi
++++ b/build/toolchain.gypi
+@@ -1082,6 +1082,7 @@
+             'cflags': [
+               '-fdata-sections',
+               '-ffunction-sections',
++              '-fno-delete-null-pointer-checks',
+               '<(wno_array_bounds)',
+             ],
+             'conditions': [
