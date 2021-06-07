@@ -154,13 +154,20 @@ std::string format_array_size_error(size_t limit);
         auto _limit = (limit);                                          \
         rcheck_datum((arr).size() <= _limit.array_size_limit(),         \
                      ql::base_exc_t::RESOURCE,                          \
-                     format_array_size_error(_limit     \
+                     ql::format_array_size_error(_limit \
                               .array_size_limit()).c_str());     \
+    } while (0)
+#define rcheck_array_size_value_datum(size, limit) do { \
+        auto _limit = (limit); \
+        rcheck_datum(size <= _limit.array_size_limit(), \
+                     ql::base_exc_t::RESOURCE, \
+                     ql::format_array_size_error(_limit \
+                          .array_size_limit()).c_str()); \
     } while (0)
 #define rcheck_array_size(arr, limit) do {                              \
         auto _limit = (limit);                                          \
         rcheck((arr).size() <= _limit.array_size_limit(), ql::base_exc_t::RESOURCE, \
-                    format_array_size_error(_limit     \
+               ql::format_array_size_error(_limit \
                         .array_size_limit()).c_str());     \
     } while (0)
 #define rcheck(pred, type, msg) rcheck_target(this, pred, type, msg)

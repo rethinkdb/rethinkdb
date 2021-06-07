@@ -68,9 +68,12 @@ void run_datum_test(const std::string &source_code, ql::datum_t *res_out) {
         js_result_t result = js_runner.eval(source_code, config);
         ASSERT_TRUE(js_runner.connected());
 
+        std::string *res_errmsg = boost::get<std::string>(&result);
+        ASSERT_TRUE(nullptr == res_errmsg) << "Error message: " << *res_errmsg;
+
         ql::datum_t *res_datum =
             boost::get<ql::datum_t>(&result);
-        ASSERT_TRUE(res_datum != nullptr);
+        ASSERT_TRUE(nullptr != res_datum);
         *res_out = *res_datum;
     });
 }

@@ -72,7 +72,6 @@ base_exc_t::type_t exc_type(const scoped_ptr_t<val_t> &v) {
     return exc_type(v.get());
 }
 std::string format_array_size_error(size_t limit) {
-    
   return "Array over size limit `" + std::to_string(limit) + "`.  To raise the number "
          "of allowed elements, modify the `array_limit` option to `.run` "
          "(not available in the Data Explorer), or use an index.";
