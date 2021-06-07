@@ -2,6 +2,7 @@
 #include "extproc/js_job.hpp"
 
 #include <duktape.h>
+#include <quickjs.h>
 
 #include <stdint.h>
 
