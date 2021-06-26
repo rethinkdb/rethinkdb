@@ -206,7 +206,7 @@ SPAWNER_TEST(JSProc, InfiniteRecursionFunction) {
 
         std::string *err_msg = boost::get<std::string>(&result);
 
-        ASSERT_EQ("RangeError: callstack limit", *err_msg);
+        ASSERT_EQ("InternalError: stack overflow", *err_msg);
     });
 }
 
@@ -280,7 +280,7 @@ void passthrough_test_internal(extproc_pool_t *pool, const ql::datum_t &arg) {
     });
 }
 
-// This test will make sure that conversion of datum_t to and from duktape types works
+// This test will make sure that conversion of datum_t to and from quickjs types works
 // correctly
 SPAWNER_TEST(JSProc, Passthrough) {
     extproc_pool_t pool(1);
