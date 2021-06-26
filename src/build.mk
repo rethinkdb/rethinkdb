@@ -404,13 +404,16 @@ $(DUKTAPE_OBJ): $(DUKTAPE_SOURCE) $(MAKEFILE_DEPENDENCY)
 	  sleep 1; touch $< \
 	)
 
-$(QUICKJS_SOURCE): | vendored
+$(BUILD_ROOT_DIR)/vendored: | vendored
+	mkdir -p $(BUILD_ROOT_DIR)/vendored
+
+$(QUICKJS_SOURCE): | $(BUILD_ROOT_DIR)/vendored
 	rm -r $(QUICKJS_SOURCE) || true
 	cp -R vendored/quickjs $(QUICKJS_SOURCE)
 
 $(QUICKJS_A): | $(QUICKJS_SOURCE)
 	$P CC
-	make -C $(QUICKJS_SOURCE) libquickjs.a
+	$(MAKE) -C $(QUICKJS_SOURCE) libquickjs.a
 
 $(QUICKJS_INCLUDE): | $(QUICKJS_SOURCE)
 	mkdir -p $(QUICKJS_INCLUDE_DIR)
@@ -446,4 +449,3 @@ vendored:
 	git clone --quiet $(VENDORED_REMOTE_REPO) vendored || true
 	git -C vendored checkout --quiet $(VENDORED_COMMIT) || \
 	  ( git -C vendored fetch --quiet && git -C vendored checkout --quiet $(VENDORED_COMMIT) )
-
