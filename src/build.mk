@@ -425,9 +425,11 @@ build-clean:
 check-syntax:
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o /dev/null $(patsubst %,$(CWD)/%,$(CHK_SOURCES))
 
-VENDORED_COMMIT := 56100102a5f584f7381b54ece71af4ff354b8605
+VENDORED_COMMIT := d664dec35d587c8b8efd456a48fc14c66b295c69
 VENDORED_REMOTE_REPO := https://github.com/srh/rethinkdb-vendored.git
 
+# Right now, rethinkdb-vendored's history is light, so we don't bother
+# with --depth and other clone params.
 vendored:
 	$P GIT clone vendored
 	git clone --quiet $(VENDORED_REMOTE_REPO) vendored || true
