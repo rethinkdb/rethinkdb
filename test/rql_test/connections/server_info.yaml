@@ -1,4 +1,0 @@
-desc: conn.server() tests
-tests:
-    - cd: conn.server()
-      ot: {"id": uuid(), "name": regex('.+'), "proxy": false}

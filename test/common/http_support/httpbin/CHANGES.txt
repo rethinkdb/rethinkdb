@@ -1,5 +1,0 @@
-This is based on revision 99bf12b (0.2.1) of httpbin from http://httpbin.org
-
-We have made two minor changes, and have contributed both back as pull requests:
-1) remove the need for the "six" module: https://github.com/Runscope/httpbin/pull/181
-2) fix problems in the digest-auth route: https://github.com/Runscope/httpbin/pull/197

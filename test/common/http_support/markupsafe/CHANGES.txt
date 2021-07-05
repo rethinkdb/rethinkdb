@@ -1,3 +1,0 @@
-This is version 0.23 of MarkupSafe from http://www.pocoo.org/projects/markupsafe/
-
-We have made no changes from that version.

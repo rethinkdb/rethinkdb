@@ -1,7 +1,0 @@
-desc: 1468 -- Empty batched_replaces_t constructed
-table_variable_name: tbl
-tests:
-  - rb: tbl.insert([{}, {}, {}])['inserted']
-    ot: (3)
-  - rb: tbl.replace(non_atomic:'true'){|row| r.js("{}")}
-    ot: ({"unchanged"=>0,"skipped"=>0,"replaced"=>0,"inserted"=>0,"first_error"=>"Cannot convert javascript `undefined` to ql::datum_t.","errors"=>3,"deleted"=>0})

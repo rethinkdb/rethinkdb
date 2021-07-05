@@ -1,5 +1,0 @@
-desc: Test eqJoin on artificial tables 
-tests:
-  - py: r.db('rethinkdb').table('table_status', identifier_format='uuid').eq_join('raft_leader', r.db('rethinkdb').table('server_status'))
-    rb: r.db('rethinkdb').table('table_status', identifier_format: 'uuid').eq_join('raft_leader', r.db('rethinkdb').table('server_status'))
-    js: r.db('rethinkdb').table('table_status', {identifier_format: 'uuid'}).eq_join('raft_leader', r.db('rethinkdb').table('server_status'))

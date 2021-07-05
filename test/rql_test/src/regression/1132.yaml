@@ -1,4 +1,0 @@
-desc: 1132 JSON duplicate key
-tests:
-  - cd: r.json('{"a":1,"a":2}')
-    ot: err("ReqlQueryLogicError", "Duplicate key \"a\" in JSON.", [])

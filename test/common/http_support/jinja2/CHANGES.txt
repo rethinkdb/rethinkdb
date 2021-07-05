@@ -1,3 +1,0 @@
-This is version 2.7.3 of Jinja2 from http://flask.pocoo.org
-
-We have made no changes from that version.

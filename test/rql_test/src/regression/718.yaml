@@ -1,7 +1,0 @@
-desc: 718 -- another lazy crashing bug -- changed as of #1328 to allow referencing external variables
-table_variable_name: tbl
-tests:
-
-  - rb: r(4).do{|x| tbl.index_create('718') {|row| row[:id] % x}}
-    ot: ({'created':1})
-

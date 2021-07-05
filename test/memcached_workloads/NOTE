@@ -1,6 +1,0 @@
-These workloads are being converted into rdb workloads.
-They are still in this directory to get better diffs.
-Removing memcache is one of the first phases of refactoring the tests.
-One of the later phase will be to reorganize the directry structure.
-
--- AtnNn

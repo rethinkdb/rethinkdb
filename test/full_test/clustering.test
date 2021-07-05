@@ -1,1 +1,0 @@
-generate_test("$RETHINKDB/test/clustering/single_server_failure.test", name='single_server_failure')

@@ -1,3 +1,0 @@
-This is version 0.10.1 of Flask downloaded from http://flask.pocoo.org
-
-We have made no changes from that version.

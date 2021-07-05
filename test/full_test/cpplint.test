@@ -1,2 +1,0 @@
-
-generate_test("$RETHINKDB/scripts/check_style.sh", name='cpplint')

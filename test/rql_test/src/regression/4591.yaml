@@ -1,4 +1,0 @@
-desc: Test that using r.args with order_by doesn't crash the server.
-tests:
-  - cd: r.expr([{"x":2},{"x":1}]).order_by(r.args(["x","y"]))
-    ot: err('ReqlQueryLogicError','r.args is not supported in an order_by or union command yet.')

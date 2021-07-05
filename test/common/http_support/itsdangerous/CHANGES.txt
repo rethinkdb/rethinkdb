@@ -1,3 +1,0 @@
-This is version 0.24 of itsdangerous from https://github.com/mitsuhiko/itsdangerous
-
-The only change from that version is the addition of __init__.py to enable the folder wrapper.

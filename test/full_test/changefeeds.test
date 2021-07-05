@@ -1,9 +1,0 @@
-generate_test("$RETHINKDB/test/changefeeds/basic.test", name="basic")
-generate_test("$RETHINKDB/test/changefeeds/change_master.test", name="change_master")
-
-generate_test("$RETHINKDB/test/changefeeds/squash_true_id.test", name="squash_true")
-generate_test("$RETHINKDB/test/changefeeds/squash_true_multi.test", name="squash_true_multi")
-generate_test("$RETHINKDB/test/changefeeds/squash_true_secondary.test", name="squash_true_secondary")
-generate_test("$RETHINKDB/test/changefeeds/squash_two_id.test", name="squash_two_id")
-generate_test("$RETHINKDB/test/changefeeds/squash_two_multi.test", name="squash_two_multi")
-generate_test("$RETHINKDB/test/changefeeds/squash_two_secondary.test", name="squash_two_secondary")

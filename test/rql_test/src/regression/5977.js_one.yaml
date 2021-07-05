@@ -1,5 +1,0 @@
-desc: 5977 -- Make sure r.literal gets stripped from merged values
-table_variable_name: tbl
-tests:
-  - js: r.expr({data: 'flat_value'}).merge({data: {nested: r.literal("a")}})
-    ot: {data: {nested: "a"}}

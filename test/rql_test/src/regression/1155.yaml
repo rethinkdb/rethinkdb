@@ -1,5 +1,0 @@
-desc: 1155 -- Empty batched_replaces_t constructed
-table_variable_name: tbl
-tests:
-  - rb: tbl.insert([{:id => '2'}, {:id => '4'}])['inserted']
-    ot: 2

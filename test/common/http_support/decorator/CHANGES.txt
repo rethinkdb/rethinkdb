@@ -1,3 +1,0 @@
-This is version 3.4.0 of the "decorator" module downloaded from https://pypi.python.org/pypi/decorator/3.4.0
-
-We have made no changes from that version other than to wrap it in a folder and include a __init__.py file.

@@ -1,3 +1,0 @@
-This is version 0.9.6 of Werkzeug from http://werkzeug.pocoo.org
-
-We have made no changes from that version.
