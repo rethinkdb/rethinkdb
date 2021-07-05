@@ -1,2 +1,0 @@
-TOP := ..
-include $(TOP)/Makefile
