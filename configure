@@ -28,9 +28,9 @@ init () {
     min_cl_version=19.0
 
     must_fetch_list='bluebird'
-    please_fetch_list="handlebars gtest $must_fetch_list"
+    please_fetch_list="handlebars $must_fetch_list"
 
-    optional_libs="gtest termcap"
+    optional_libs="termcap"
     required_libs="protobuf z curl"
     other_libs=""
     all_libs="$required_libs $optional_libs $other_libs"
@@ -171,7 +171,7 @@ configure_windows () {
     var PTHREAD_LIBS
     var CROSS_COMPILING 0
     var CXX false
-    for pkg in protobuf curl zlib gtest; do
+    for pkg in protobuf curl zlib; do
         require_dep $pkg
         fetch_lib $pkg
     done
@@ -326,8 +326,7 @@ protoc:Protobuf compiler
 npm:Node.js package manager
 protobuf:Protobuf library
 browserify:Browserify
-z:zlib
-gtest:Google Test'
+z:zlib'
 
 # Output of --help
 show_help () {
