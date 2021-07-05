@@ -52,10 +52,6 @@ endif
 
 ##### Code information
 
-analyze: $(SOURCES)
-	$P CLANG-ANALYZE
-	clang --analyze $(RT_CXXFLAGS) $(SOURCES)
-
 coffeelint:
 	$P COFFEELINT ""
 	-coffeelint -f $(TOP)/scripts/coffeelint.json -r $(TOP)/admin/

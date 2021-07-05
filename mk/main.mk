@@ -58,9 +58,6 @@ include $(TOP)/drivers/build.mk
 # Build the web assets
 include $(TOP)/admin/build.mk
 
-# Building the rethinkdb executable
-include $(TOP)/src/build.mk
-
 # Packaging for deb, osx, ...
 include $(TOP)/mk/packaging.mk
 
