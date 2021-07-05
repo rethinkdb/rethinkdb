@@ -32,18 +32,15 @@ init () {
 
     optional_libs="gtest termcap"
     required_libs="protobuf re2 z crypto ssl curl"
-    other_libs="tcmalloc jemalloc"
+    other_libs=""
     all_libs="$required_libs $optional_libs $other_libs"
-    default_static="tcmalloc jemalloc"
+    default_static=""
 
     web_assets_deps="npm coffee browserify bluebird"
     required_bin_deps="protoc python"
     optional_bin_deps="wget curl"
     bin_deps="cxx $required_bin_deps $optional_bin_deps"
     all_deps="$bin_deps $all_libs"
-
-    default_allocator_linux=jemalloc
-    default_allocator_osx=system
 
     allowed_arg_vars="CXXFLAGS LDFLAGS PLATFORM MSBUILD VCVARSALL NMAKE"
 }
@@ -89,12 +86,10 @@ configure_unixlike () {
     case "${MACHINE#*-}" in
         *apple-darwin*)
             var OS "Darwin"
-            default_allocator=$default_allocator_osx
             var PTHREAD_LIBS "" ;
             var RT_LIBS "" ;;
         *linux*)
             var OS "Linux"
-            default_allocator=$default_allocator_linux
             var PTHREAD_LIBS -pthread ;
             var RT_LIBS -lrt ;;
         *) error "unsupported operating system: $MACHINE" ;;
@@ -152,20 +147,6 @@ configure_unixlike () {
         check_lib $lib require
     done
 
-    require malloc
-    var ALLOCATOR "${custom_allocator:-$default_allocator}"
-    var DEFAULT_ALLOCATOR "$default_allocator"
-    if [[ "$ALLOCATOR" = system ]]; then
-        var MALLOC_LIBS ""
-        var MALLOC_LIBS_DEP ""
-        boolvar STATIC_MALLOC false
-    else
-        check_lib "$ALLOCATOR" require
-        boolvar STATIC_MALLOC contains "$static_libs" "$ALLOCATOR"
-        macro MALLOC_LIBS     "\$($(uc $ALLOCATOR)_LIBS)"
-        macro MALLOC_LIBS_DEP "\$($(uc $ALLOCATOR)_LIBS_DEP)"
-    fi
-
     test_protobuf
     boolvar ALLOW_FETCH $allow_fetch
     for pkg in $must_fetch_list; do
@@ -187,8 +168,6 @@ configure_windows () {
     require Platform
     check_windows_platform
     var COMPILER MSC
-    var DEFAULT_ALLOCATOR system
-    var ALLOCATOR system
     var PTHREAD_LIBS
     var CROSS_COMPILING 0
     var CXX false
@@ -268,7 +247,6 @@ read_args () {
     arg_prefix=
     arg_sysconfdir=
     arg_localstatedir=
-    custom_allocator=
     use_ccache=false
 
     while [[ $# -ne 0 ]]; do
@@ -321,9 +299,6 @@ read_args () {
                     die "Unknown library: $arg"
                 fi ;;
             --lib-path) $has_arg; lib_paths="$lib_paths $arg" ;;
-            --with-tcmalloc) $no_arg; set_custom_allocator tcmalloc ;;
-            --with-jemalloc) $no_arg; set_custom_allocator jemalloc ;;
-            --with-system-malloc) $no_arg; set_custom_allocator system ;;
             --ccache) $no_arg; use_ccache=true ;;
             --prefix) $has_arg; arg_prefix=$arg ;;
             --sysconfdir) $has_arg; arg_sysconfdir=$arg ;;
@@ -342,13 +317,6 @@ read_args () {
                fi ;;
         esac
     done
-}
-
-set_custom_allocator () {
-    if [[ -n "$custom_allocator" ]]; then
-        die "incompatible options: --with-$custom_allocator and --with-$1"
-    fi
-    custom_allocator=$1
 }
 
 # Description of some of the dependencies
@@ -393,9 +361,6 @@ EOF
   --prefix <dir>          Installation prefix. Defaults to /usr/local
   --sysconfdir <dir>      Configuration prefix. Defaults to /usr/local/etc
   --localstatedir <dir>   Runtime data prefix. Defaults to /usr/local/var
-  --with-tcmalloc         Use TCMalloc
-  --with-jemalloc         Use jemalloc (default on Linux)
-  --with-system-malloc    Use the system malloc (default on OS X)
   --ccache                Speed up the build using ccache
   --windows-platform      Windows platform: Win32 (32 bit, default) or x64 (64 bit)
 EOF
@@ -884,15 +849,6 @@ int main() {
     m.insert(std::make_pair(0, C()));
 }
 
-~jemalloc:
-
-#include <jemalloc/jemalloc.h>
-
-int main(){
-    // Jemalloc 4 fixes some bugs concerning the handling of OOM conditions
-    static_assert(JEMALLOC_VERSION_MAJOR >= 4, "jemalloc version 4 or above is required");
-}
-
 ~crypto:
 
 #include <openssl/bn.h>
@@ -919,8 +875,7 @@ int main(){
 
 # An assoc-list of possible library aliases
 lib_alias=':
-termcap:termcap tinfo ncurses
-tcmalloc:tcmalloc_minimal'
+termcap:termcap tinfo ncurses'
 
 # List the paths where static libraries can be found into the try_lib_paths variable
 build_try_lib_paths () {
@@ -1169,7 +1124,6 @@ bin_pkg_name () {
 # The support package name that contains the library
 lib_pkg_name () {
     case "$1" in
-        tcmalloc) echo gperftools ;;
         z) echo zlib ;;
         crypto) echo openssl ;;
         ssl) echo openssl ;;

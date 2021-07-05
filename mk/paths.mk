@@ -54,10 +54,6 @@ ifeq ($(BUILD_DIR),)
     BUILD_DIR += coro-prof
   endif
 
-  ifneq ($(DEFAULT_ALLOCATOR),$(ALLOCATOR))
-    BUILD_DIR += $(ALLOCATOR)
-  endif
-
   BUILD_DIR := $(subst $(space),_,$(BUILD_DIR))
 endif
 BUILD_DIR_ABS = $(realpath $(BUILD_DIR))
