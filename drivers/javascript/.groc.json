@@ -1,4 +1,0 @@
-{
-    "glob": ["*.coffee", "README.md"]
-    ,"repository-url": "https://github.com/rethinkdb/rethinkdb.git"
-}

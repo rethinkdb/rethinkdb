@@ -1,7 +1,0 @@
-build/
-.gradle/
-.#*
-*.iml
-.idea/
-test-config-override.properties
-gradle.properties

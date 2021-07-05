@@ -38,25 +38,10 @@ include $(TOP)/mk/install.mk
 # Windows build
 include $/mk/windows.mk
 
-# Python driver
-include $/drivers/python/build.mk
-
-# JavaScript driver
-include $/drivers/javascript/build.mk
-
-# Build the web assets
-include $(TOP)/admin/build.mk
-
 else # Windows
 
 # make install
 include $(TOP)/mk/install.mk
-
-# Clients drivers
-include $(TOP)/drivers/build.mk
-
-# Build the web assets
-include $(TOP)/admin/build.mk
 
 # Building the rethinkdb executable
 include $(TOP)/src/build.mk
@@ -79,9 +64,5 @@ clean: build-clean
 ifeq (Windows,$(OS))
   all: windows-all
 else
-  # Build the drivers and executable
-  all: $(TOP)/src/all $(TOP)/drivers/all
+  all: $(TOP)/src/all
 endif
-
-.PHONY: generate
-generate: generate-web-assets-cc
