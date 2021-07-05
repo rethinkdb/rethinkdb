@@ -12,7 +12,7 @@ DEBIAN_PKG_DIR := $(PACKAGING_DIR)/debian
 SUPPRESSED_LINTIAN_TAGS := new-package-should-close-itp-bug
 DEB_CONTROL_ROOT := $(DEB_PACKAGE_DIR)/DEBIAN
 
-DIST_FILE_LIST_REL := admin demos drivers mk packaging scripts src test
+DIST_FILE_LIST_REL := demos mk packaging scripts src test
 DIST_FILE_LIST_REL += configure COPYRIGHT Makefile NOTES.md README.md
 
 DIST_FILE_LIST := $(foreach x,$(DIST_FILE_LIST_REL),$/$x)
@@ -36,24 +36,10 @@ ifeq ($(BUILD_PORTABLE),1)
   endif
 endif
 
-# These are unused web-assets deps, which the configure script no
-# longer puts in FETCH_LIST (once we got pregenerated web assets).
-# Then, when building the deb package re-invokes the configure script,
-# we get a complaint that coffeescript (or npm, or some other package)
-# is unavailable.  So we just force the fetch list to contain these
-# items.  Since the build no longer depends on npm, it won't get
-# fetched.
-#
-# A better option would be to fix the configure script, or just make
-# the web assets generation be part of a different repo.  That is a
-# RebirthDB change, so to avoid redoing that work, we just hack this
-# script here.
-DIST_CONFIGURE_FORCED_FETCH = --fetch npm --fetch coffee --fetch browserify
-
 MISSING_DIST_SUPPORT_PACKAGES := $(filter-out $(FETCH_LIST), $(DIST_SUPPORT_PACKAGES))
 DIST_SUPPORT_PACKAGES := $(filter $(FETCH_LIST), $(DIST_SUPPORT_PACKAGES))
 DSC_CONFIGURE_DEFAULT = --prefix=/usr --sysconfdir=/etc --localstatedir=/var
-DIST_CONFIGURE_DEFAULT_FETCH = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), --fetch $(pkg)) $(DIST_CONFIGURE_FORCED_FETCH)
+DIST_CONFIGURE_DEFAULT_FETCH = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), --fetch $(pkg))
 DIST_SUPPORT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), $(SUPPORT_SRC_DIR)/$(pkg)_$($(pkg)_VERSION))
 
 DEB_BUILD_DEPENDS := libboost-dev, curl, m4, debhelper
