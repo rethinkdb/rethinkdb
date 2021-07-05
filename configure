@@ -27,11 +27,11 @@ init () {
     min_nmake_version=14.0
     min_cl_version=19.0
 
-    must_fetch_list='bluebird v8'
+    must_fetch_list='bluebird'
     please_fetch_list="handlebars gtest re2 $must_fetch_list"
 
-    optional_libs="gtest termcap boost_system"
-    required_libs="protobuf v8 re2 z crypto ssl curl"
+    optional_libs="gtest termcap"
+    required_libs="protobuf re2 z crypto ssl curl"
     other_libs="tcmalloc jemalloc"
     all_libs="$required_libs $optional_libs $other_libs"
     default_static="tcmalloc jemalloc"
@@ -40,7 +40,7 @@ init () {
     required_bin_deps="protoc python"
     optional_bin_deps="wget curl"
     bin_deps="cxx $required_bin_deps $optional_bin_deps"
-    all_deps="$bin_deps $all_libs boost"
+    all_deps="$bin_deps $all_libs"
 
     default_allocator_linux=jemalloc
     default_allocator_osx=system
@@ -152,8 +152,6 @@ configure_unixlike () {
         check_lib $lib require
     done
 
-    check_v8_pre_3_19
-
     require malloc
     var ALLOCATOR "${custom_allocator:-$default_allocator}"
     var DEFAULT_ALLOCATOR "$default_allocator"
@@ -169,8 +167,6 @@ configure_unixlike () {
     fi
 
     test_protobuf
-    check_boost
-    boolvar STATIC_V8 contains "$static_libs" v8
     boolvar ALLOW_FETCH $allow_fetch
     for pkg in $must_fetch_list; do
         if ! contains "$FETCH_LIST" $pkg; then
@@ -196,7 +192,7 @@ configure_windows () {
     var PTHREAD_LIBS
     var CROSS_COMPILING 0
     var CXX false
-    for pkg in protobuf curl v8 zlib re2 openssl gtest boost; do
+    for pkg in protobuf curl zlib re2 openssl gtest; do
         require_dep $pkg
         fetch_lib $pkg
     done
@@ -360,10 +356,8 @@ dep_descrs=':
 cxx:C++ Compiler
 protoc:Protobuf compiler
 npm:Node.js package manager
-v8:v8 javascript engine
 protobuf:Protobuf library
 browserify:Browserify
-v8:V8 JavaScript Engine
 re2:RE2
 z:zlib
 gtest:Google Test'
@@ -873,10 +867,6 @@ lib_test_code=':~
 #include <termcap.h>
 int main(){ tgetent(0, "xterm"); return 0; }
 
-~boost:
-#include <boost/bind.hpp>
-int main(){ return 0; }
-
 ~cxx11:
 // Verify that std::map uses the move constructor
 
@@ -1161,52 +1151,6 @@ EOF
     fi
 }
 
-# Checks what version of the v8 API is available
-check_v8_pre_3_19 () {
-    if contains "$FETCH_LIST" v8; then
-        boolvar V8_PRE_3_19 false
-        return
-    fi
-    require "Use pre-3.19 v8 API"
-    local tmpfile=$root/mk/gen/check_v8_pre_3_19
-    cat > "$tmpfile.cc" <<EOF
-#include <v8.h>
-int main() {
-    v8::Local<v8::Context> lc = v8::Context::New(v8::Isolate::GetCurrent());
-    v8::Persistent<v8::Context> ps;
-    ps.Reset(v8::Isolate::GetCurrent(), lc);
-    v8::Local<v8::Context> lh = v8::Local<v8::Context>::New(v8::Isolate::GetCurrent(), ps);
-}
-EOF
-    if
-        $CXX ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} "$tmpfile.cc" \
-            ${V8_LIBS:-} $PTHREAD_LIBS $M_LIBS $RT_LIBS -o "$tmpfile.out" 1>"$tmpfile.log" 2>&1;
-    then
-        boolvar V8_PRE_3_19 false
-    else
-        boolvar V8_PRE_3_19 true
-    fi
-}
-
-# Check for boost
-check_boost () {
-    require "Test boost"
-    if contains "$please_fetch_list" boost; then
-        fetch_lib boost
-        return
-    fi
-    check_lib_compile "" boost
-    if $can_show; then
-        if fetch_allowed boost; then
-            fetch_lib boost
-        else
-            show_no "boost"
-        fi
-    else
-        empty_deps_lib boost true
-    fi
-}
-
 # bin_pkg_name <bin>
 # The support package name that contains the application
 bin_pkg_name () {
@@ -1227,7 +1171,6 @@ lib_pkg_name () {
     case "$1" in
         tcmalloc) echo gperftools ;;
         z) echo zlib ;;
-        boost_system) echo boost ;;
         crypto) echo openssl ;;
         ssl) echo openssl ;;
         *) echo "$1" ;;
