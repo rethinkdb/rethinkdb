@@ -31,14 +31,14 @@ init () {
     please_fetch_list="handlebars $must_fetch_list"
 
     optional_libs="termcap"
-    required_libs="protobuf z curl"
+    required_libs="protobuf z"
     other_libs=""
     all_libs="$required_libs $optional_libs $other_libs"
     default_static=""
 
     web_assets_deps="npm coffee browserify bluebird"
     required_bin_deps="protoc python"
-    optional_bin_deps="wget curl"
+    optional_bin_deps="wget"
     bin_deps="cxx $required_bin_deps $optional_bin_deps"
     all_deps="$bin_deps $all_libs"
 
@@ -171,7 +171,7 @@ configure_windows () {
     var PTHREAD_LIBS
     var CROSS_COMPILING 0
     var CXX false
-    for pkg in protobuf curl zlib; do
+    for pkg in protobuf zlib; do
         require_dep $pkg
         fetch_lib $pkg
     done
@@ -1089,9 +1089,6 @@ bin_pkg_name () {
         protoc) echo protobuf ;;
         coffee) echo coffee-script ;;
         npm) echo node ;;
-        # The curl-bin package doesn't exist. It is placed here to avoid
-        # the circular dependency of curl being used to fetch curl.
-        curl) echo curl-bin ;;
         *) echo "$1" ;;
     esac
 }
@@ -1109,10 +1106,6 @@ lib_pkg_name () {
 # Find the name of a package associated with the given name
 guess_pkg_name () {
     local pkg
-    case "$1" in
-        # Assume that curl here means libcurl, not curl itself
-        curl) echo curl ; return ;;
-    esac
     pkg=$(lib_pkg_name "$1")
     if [[ "$pkg" != "$1" ]]; then
         echo "$pkg"
