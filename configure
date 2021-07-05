@@ -13,12 +13,6 @@ init () {
     min_gcc_version=$(read_version 4.7.4)
     min_clang_version=0
     min_icc_version=0
-    min_lessc_version=1.3.1
-    max_lessc_version=99.99.99
-    min_coffee_version=1.7.0
-    max_coffee_version=99.99.99
-    min_browserify_version=13.0.0
-    max_browserify_version=13.1.0
     min_python_version=2.6.0
 
     # QuickJS also has this configuration
@@ -28,8 +22,8 @@ init () {
     min_nmake_version=14.0
     min_cl_version=19.0
 
-    must_fetch_list='bluebird'
-    please_fetch_list="handlebars gtest re2 $must_fetch_list"
+    must_fetch_list=''
+    please_fetch_list="gtest re2 $must_fetch_list"
 
     optional_libs="gtest termcap boost_system"
     required_libs="protobuf re2 z crypto ssl curl"
@@ -37,7 +31,6 @@ init () {
     all_libs="$required_libs $optional_libs $other_libs"
     default_static="tcmalloc jemalloc"
 
-    web_assets_deps="npm coffee browserify bluebird"
     required_bin_deps="protoc python"
     optional_bin_deps="wget curl"
     bin_deps="cxx $required_bin_deps $optional_bin_deps"
@@ -136,11 +129,6 @@ configure_unixlike () {
         require_dep $bin
         check_bin $bin
     done
-    for bin in $web_assets_deps; do
-        require_dep $bin
-        check_bin $bin
-    done
-    check_admin_deps
     for bin in $optional_bin_deps; do
         optional_dep $bin
         check_bin $bin
@@ -199,15 +187,6 @@ configure_windows () {
         fetch_lib $pkg
     done
     fetch_bin protoc
-    require_dep npm
-    check_bin npm
-    require_dep coffee
-    fetch_bin coffee
-    require_dep bluebird
-    fetch_pkg bluebird
-    require_dep browserify
-    fetch_bin browserify
-    check_admin_deps
     optional Python
     check_bin python
 }
@@ -357,9 +336,7 @@ set_custom_allocator () {
 dep_descrs=':
 cxx:C++ Compiler
 protoc:Protobuf compiler
-npm:Node.js package manager
 protobuf:Protobuf library
-browserify:Browserify
 re2:RE2
 z:zlib
 gtest:Google Test'
@@ -1181,8 +1158,6 @@ check_boost () {
 bin_pkg_name () {
     case "$1" in
         protoc) echo protobuf ;;
-        coffee) echo coffee-script ;;
-        npm) echo node ;;
         # The curl-bin package doesn't exist. It is placed here to avoid
         # the circular dependency of curl being used to fetch curl.
         curl) echo curl-bin ;;
@@ -1229,7 +1204,7 @@ can_fetch () {
 all_fetch_deps () {
     local ret=
     local pkg
-    for dep in $all_deps $web_assets_deps; do
+    for dep in $all_deps; do
         pkg=$(guess_pkg_name "$dep")
         if can_fetch $pkg; then
             ret="$ret $pkg"
@@ -1244,15 +1219,6 @@ check_cxx11 () {
     if $can_show; then
         show_no "C++11"
     fi
-}
-
-check_admin_deps () {
-    require "web UI dependencies"
-    local version
-    version=$(pkg version admin-deps)
-    add_fetch admin-deps
-    macro "GULP"         "\$(abspath \$(SUPPORT_BUILD_DIR)/admin-deps_$version/bin/gulp)"
-    macro "GULP_BIN_DEP" "\$(SUPPORT_BUILD_DIR)/admin-deps_$version/bin/gulp"
 }
 
 check_vs_bin () {
