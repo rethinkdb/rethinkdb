@@ -39,9 +39,6 @@ include $(TOP)/drivers/build.mk
 # Build the web assets
 include $(TOP)/admin/build.mk
 
-# Packaging for deb, osx, ...
-include $(TOP)/mk/packaging.mk
-
 # Rules for tools like valgrind and code coverage report
 include $(TOP)/mk/tools.mk
 
