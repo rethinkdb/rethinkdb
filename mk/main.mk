@@ -30,25 +30,6 @@ include $(TOP)/mk/paths.mk
 # Download and build internal tools like v8 and gperf
 include $(TOP)/mk/support/build.mk
 
-ifeq (Windows,$(OS))
-
-# make install
-include $(TOP)/mk/install.mk
-
-# Windows build
-include $/mk/windows.mk
-
-# Python driver
-include $/drivers/python/build.mk
-
-# JavaScript driver
-include $/drivers/javascript/build.mk
-
-# Build the web assets
-include $(TOP)/admin/build.mk
-
-else # Windows
-
 # make install
 include $(TOP)/mk/install.mk
 
@@ -64,21 +45,12 @@ include $(TOP)/mk/packaging.mk
 # Rules for tools like valgrind and code coverage report
 include $(TOP)/mk/tools.mk
 
-# Tests
-include $(TOP)/test/build.mk
-
-endif # Windows
-
 .PHONY: clean
 clean: build-clean
 
 .PHONY: all
-ifeq (Windows,$(OS))
-  all: windows-all
-else
-  # Build the drivers and executable
-  all: $(TOP)/src/all $(TOP)/drivers/all
-endif
+# Build the drivers
+all: $(TOP)/drivers/all
 
 .PHONY: generate
 generate: generate-web-assets-cc
