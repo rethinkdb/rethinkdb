@@ -74,27 +74,23 @@ its web UI also requires the web assets.
 Web assets
 ----------
 
-* `make web-assets`: Build only the web assets.
-
-* The web assets are compiled into the executable. To speed up
-  development time and avoid rebuilding the executable, the
+* These are generated in a separate repository, named
+  "rethinkdb-old-admin", and the generated file is placed in
+  src/gen/web_assets.cc and committed.  Instructions are in that
+  repository.  The web assets are compiled into the executable. To
+  speed up development time and avoid rebuilding the executable, the
   `--web-static-directory` option can be used. For example:
-  `build/release/rethinkdb --web-static-directory build/web_assets`
+  `build/release/rethinkdb --web-static-directory ~/rethinkdb-old-admin/build/web_assets`
 
 Drivers
 -------
 
-* `make ruby-driver`: Build the Ruby driver
-
-* `make python-driver`: Build the Python driver.
-
-* `make js-driver`: Build the JavaScript driver.
-
-* `make drivers`: Build all the drivers.
-
+* Drivers have been removed from this repository.
 
 Test
 ---
+
+* These instructions are probably non-working -- you need to supply a driver.
 
 * `make unit`: Build and run the unit tests.
 
