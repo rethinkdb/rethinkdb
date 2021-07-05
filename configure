@@ -28,10 +28,10 @@ init () {
     min_cl_version=19.0
 
     must_fetch_list='bluebird'
-    please_fetch_list="handlebars gtest re2 $must_fetch_list"
+    please_fetch_list="handlebars gtest $must_fetch_list"
 
     optional_libs="gtest termcap"
-    required_libs="protobuf re2 z crypto ssl curl"
+    required_libs="protobuf z curl"
     other_libs=""
     all_libs="$required_libs $optional_libs $other_libs"
     default_static=""
@@ -171,7 +171,7 @@ configure_windows () {
     var PTHREAD_LIBS
     var CROSS_COMPILING 0
     var CXX false
-    for pkg in protobuf curl zlib re2 openssl gtest; do
+    for pkg in protobuf curl zlib gtest; do
         require_dep $pkg
         fetch_lib $pkg
     done
@@ -326,7 +326,6 @@ protoc:Protobuf compiler
 npm:Node.js package manager
 protobuf:Protobuf library
 browserify:Browserify
-re2:RE2
 z:zlib
 gtest:Google Test'
 
@@ -849,28 +848,6 @@ int main() {
     m.insert(std::make_pair(0, C()));
 }
 
-~crypto:
-
-#include <openssl/bn.h>
-#include <openssl/crypto.h>
-#include <openssl/evp.h>
-int main(){
-    CRYPTO_THREADID_set_callback([](CRYPTO_THREADID *id){ CRYPTO_THREADID_set_numeric(id, 0); });
-    unsigned char out[4];
-    PKCS5_PBKDF2_HMAC(static_cast<char const *>("pass"), 4, nullptr, 0, 1, EVP_sha256(), sizeof(out), out);
-    return 0;
-}
-
-~ssl:
-
-#include <openssl/ssl.h>
-int main(){
-    SSL_CTX_set_options(
-        SSL_CTX_new(SSLv23_method()),
-        SSL_OP_NO_SSLv2|SSL_OP_NO_SSLv3|SSL_OP_NO_TLSv1|SSL_OP_NO_TLSv1_1|SSL_OP_CIPHER_SERVER_PREFERENCE|SSL_OP_SINGLE_DH_USE|SSL_OP_SINGLE_ECDH_USE);
-    return 0;
-}
-
 ~'
 
 # An assoc-list of possible library aliases
@@ -1125,8 +1102,6 @@ bin_pkg_name () {
 lib_pkg_name () {
     case "$1" in
         z) echo zlib ;;
-        crypto) echo openssl ;;
-        ssl) echo openssl ;;
         *) echo "$1" ;;
     esac
 }
