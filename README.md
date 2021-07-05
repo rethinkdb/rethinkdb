@@ -1,100 +1,64 @@
-<img style="width:100%;" src="/github-banner.png">
+# RethinkDB Old Admin
 
-[RethinkDB](https://www.rethinkdb.com)
-======================================
+This repo has the "old" RethinkDB admin UI.  That's possibly the
+"current" admin UI, but a new one is under development.
 
+The "old" admin UI originally shared a repository with the main
+RethinkDB repository, the one at
+https://github.com/rethinkdb/rethinkdb .
 
-What is RethinkDB?
-------------------
+This repository is formed from RethinkDB's main repo, branch v2.4.x,
+by removing everything that isn't admin UI-related, while keeping the
+build system.  That means the following got removed:
 
-* **Open-source** database for building realtime web applications
-* **NoSQL** database that stores schemaless JSON documents
-* **Distributed** database that is easy to scale
-* **High availability** database with automatic failover and robust fault tolerance
+ - The C++ source code (except for src/rdb_protocol/ql2.proto)
 
-RethinkDB is the first open-source scalable database built for realtime applications. It exposes a new database access model -- instead of polling for changes, the developer can tell the database to continuously push updated query results to applications in realtime. RethinkDB allows developers to build scalable realtime apps in a fraction of the time with less effort.
+ - Some library packages in mk/support/pkg that are included in the
+   C++ executable (for example, v8, gtest, zlib, re2).
 
-To learn more, check out [rethinkdb.com](https://rethinkdb.com).
+ - Drivers other than the JavaScript driver
 
-Not sure what types of projects RethinkDB can help you build? Here are a few examples:
+ - Test code (in ./tests)
 
-* Build a [realtime liveblog](https://rethinkdb.com/blog/rethinkdb-pubnub/) with RethinkDB and PubNub
-* Create a [collaborative photo sharing whiteboard](https://www.youtube.com/watch?v=pdPRp3UxL_s)
-* Build an [IRC bot in Go](https://rethinkdb.com/blog/go-irc-bot/) with RethinkDB changefeeds
-* Look at [cats on Instagram in realtime](https://rethinkdb.com/blog/cats-of-instagram/)
-* Watch [how Platzi uses RethinkDB](https://www.youtube.com/watch?v=Nb_UzRYDB40) to educate
+ - Other miscellanea
 
+The web_assets.cc file still gets generated in the same place: In
+src/gen/web_assets.cc.
 
-Quickstart
-----------
+## Usage
 
-For a thirty-second RethinkDB quickstart, check out  [rethinkdb.com/docs/quickstart](https://www.rethinkdb.com/docs/quickstart).
+To generate src/gen/web_assets.cc, run the following:
 
-Or, get started right away with our ten-minute guide in these languages:
+    ./configure --fetch all CXX=clang++
+    make -j8 generate
 
-* [**JavaScript**](https://rethinkdb.com/docs/guide/javascript/)
-* [**Python**](https://rethinkdb.com/docs/guide/python/)
-* [**Ruby**](https://rethinkdb.com/docs/guide/ruby/)
-* [**Java**](https://rethinkdb.com/docs/guide/java/) 
+To generate a web_assets.cc for a specific RethinkDB version, you might want to try
 
-Besides our four official drivers, we also have many [third-party drivers](https://rethinkdb.com/docs/install-drivers/) supported by the RethinkDB community. Here's a few:
+    make PVERSION=<your choice> -j8 generate
 
-* **C#/.NET:** [RethinkDb.Driver](https://github.com/bchavez/RethinkDb.Driver), [rethinkdb-net](https://github.com/mfenniak/rethinkdb-net)
-* **Clojure:** [clj-rethinkdb](https://github.com/apa512/clj-rethinkdb)
-* **Elixir:** [rethinkdb-elixir](https://github.com/hamiltop/rethinkdb-elixir)
-* **Go:** [GoRethink](https://github.com/dancannon/gorethink)
-* **Haskell:** [haskell-rethinkdb](https://github.com/atnnn/haskell-rethinkdb)
-* **PHP:** [php-rql](https://github.com/danielmewes/php-rql)
-* **Scala:** [rethink-scala](https://github.com/kclay/rethink-scala)
+Once src/gen/web_assets.cc is built, you can copy the file into your
+rethinkdb repository, replacing the existing one at the same location,
+src/gen/web_assets.cc.  Then, presumably, commit that version.
 
-Looking to explore what else RethinkDB offers or the specifics of ReQL? Check out [our RethinkDB docs](https://rethinkdb.com/docs/) and [ReQL API](https://rethinkdb.com/api/).
+## Development Process
 
-Building
---------
+To develop the "old" admin UI, you just need an existing RethinkDB
+binary.  You don't have to build it yourself.  Suppose this repository
+is checked out at ~/rethinkdb-old-admin.  Then run the following:
 
-First install some dependencies.  For example, on Ubuntu or Debian:
+    cd ~/rethinkdb-old-admin
+    make web-assets
+    make web-assets-watch
 
-    sudo apt-get install build-essential protobuf-compiler python \
-        libprotobuf-dev libcurl4-openssl-dev libboost-all-dev \
-        libncurses5-dev libjemalloc-dev wget m4 g++
+That will automatically update ~/rethinkdb-old-admin/build/web_assets
+when you make changes in ~/rethinkdb-old-admin/admin.  Then, in
+another terminal, run:
 
-Generally, you will need
+    rethinkdb --web-static-directory ~/rethinkdb-old-admin/build/web_assets
 
-* GCC or Clang
-* Protocol Buffers
-* jemalloc
-* Ncurses
-* Boost
-* Python 2
-* libcurl
-* libcrypto (OpenSSL)
+Now you can work on the web UI in ~/rethinkdb-old-admin/admin/ and
+semi-instantly view the results in a web browser.
 
-Then, to build:
-
-    ./configure --allow-fetch
-    # or run ./configure --allow-fetch CXX=clang++
-
-    make -j4
-    # or run make -j4 DEBUG=1
-
-    sudo make install
-    # or run ./build/debug_clang/rethinkdb
-
-
-Need help?
-----------
-
-A great place to start is [rethinkdb.com/community](https://rethinkdb.com/community). Here you can find out how to ask us questions, reach out to us, or [report an issue](https://github.com/rethinkdb/rethinkdb/issues). You'll be able to find all the places we frequent online and at which conference or meetups you might be able to meet us next.
-
-If you need help right now, you can also find us [on Slack](http://slack.rethinkdb.com/), [Twitter](https://twitter.com/rethinkdb), or IRC at [#rethinkdb](irc://chat.freenode.net/#rethinkdb) on Freenode.
-
-**Join us now:** <a href="http://slack.rethinkdb.com/"><img valign="middle"  src="http://slack.rethinkdb.com/badge.svg"></a>
-
-Contributing
-------------
-
-RethinkDB was built by a dedicated team, but it wouldn't have been possible without the support and contributions of hundreds of people from all over the world. We could use your help too! Check out our [contributing guidelines](CONTRIBUTING.md) to get started.
-
-Where's the changelog?
-----------------------
-We keep [a list of changes and feature explanations here](NOTES.md).
+Then, once you're satisfied with your changes, interrupt the `make
+web-assets-watch` with Ctrl+C and use `make generate` to create your
+web_assets.cc, as described in the Usage section above.
