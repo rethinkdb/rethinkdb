@@ -28,6 +28,8 @@ last_tested_versions
 /src/make_filter.sh
 /src/cluster_directory_*
 
+/src/gen/web_assets.cc
+
 /packaging/ami/build-ami-files/static-web
 
 /**/rethinkdb_data

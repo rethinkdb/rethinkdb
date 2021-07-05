@@ -18,4 +18,5 @@ web-assets: $(ALL_WEB_ASSETS)
 
 .PHONY: generate-web-assets-cc
 generate-web-assets-cc: web-assets
-	$(TOP)/scripts/compile-web-assets.py $(TOP)/build/web_assets > src/gen/web_assets.cc
+	mkdir -p $(TOP)/src/gen
+	$(TOP)/scripts/compile-web-assets.py $(TOP)/build/web_assets > $(TOP)/src/gen/web_assets.cc
