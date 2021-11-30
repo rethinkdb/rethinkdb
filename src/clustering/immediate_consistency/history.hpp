@@ -4,6 +4,7 @@
 
 #include <map>
 #include <set>
+#include <stdexcept>
 
 #include "concurrency/signal.hpp"
 #include "containers/uuid.hpp"
