@@ -79,6 +79,8 @@ linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affini
     rassert(n_threads > 1);             // we want at least one non-utility thread
     rassert(n_threads <= MAX_THREADS);
 
+    init_global_coro_perfmons(n_threads);
+
     int res;
 
     res = pthread_cond_init(&shutdown_cond, nullptr);
@@ -450,6 +452,8 @@ void linux_thread_pool_t::shutdown_thread_pool() {
 }
 
 linux_thread_pool_t::~linux_thread_pool_t() {
+    destruct_global_coro_perfmons();
+
     int res;
 
     res = pthread_cond_destroy(&shutdown_cond);
