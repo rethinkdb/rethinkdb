@@ -1637,8 +1637,9 @@ options::help_section_t get_cpu_options(std::vector<options::option_t> *options_
 MUST_USE bool parse_cores_option(const std::map<std::string, options::values_t> &opts,
                                  int *num_workers_out) {
     int num_workers = get_single_int(opts, "--cores");
-    if (num_workers <= 0 || num_workers > MAX_THREADS) {
-        fprintf(stderr, "ERROR: number specified for cores to use must be between 1 and %d\n", MAX_THREADS);
+    const int max_cores = MAX_CORES;
+    if (num_workers <= 0 || num_workers > max_cores) {
+        fprintf(stderr, "ERROR: number specified for cores to use must be between 1 and %d\n", max_cores);
         return false;
     }
     *num_workers_out = num_workers;
