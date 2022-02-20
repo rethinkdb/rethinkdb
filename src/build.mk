@@ -425,7 +425,7 @@ build-clean:
 check-syntax:
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o /dev/null $(patsubst %,$(CWD)/%,$(CHK_SOURCES))
 
-VENDORED_COMMIT := e3bdd7d0419220c787132e4e9b56c84ed6d733cd
+VENDORED_COMMIT := e4fba2d11b3997c07650df150d6ff7e4d109a8ee
 VENDORED_REMOTE_REPO := https://github.com/rethinkdb/rethinkdb-vendored.git
 
 # Right now, rethinkdb-vendored's history is light, so we don't bother
