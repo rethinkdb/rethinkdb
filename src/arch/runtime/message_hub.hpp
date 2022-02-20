@@ -4,6 +4,8 @@
 
 #include <pthread.h>
 
+#include <memory>
+
 #include "arch/runtime/event_queue.hpp"
 #include "arch/runtime/runtime_utils.hpp"
 #include "arch/runtime/system_event.hpp"
@@ -71,7 +73,8 @@ private:
         /* Messages are cached here before being pushed to the global list so that we don't
         have to acquire the spinlock as often */
         msg_list_t msg_local_list;
-    } queues_[MAX_THREADS];
+    };
+    std::unique_ptr<thread_queue_t[]> queues_;
 
     // Must only be used with acquired incoming_messages_lock_
     bool check_and_set_is_woken_up();
