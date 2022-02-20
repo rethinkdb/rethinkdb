@@ -135,7 +135,7 @@ class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler_t> {
 public:
     using thread_stat_type = perfmon_sampler::stats_t;
     using combined_stat_type = perfmon_sampler::stats_t;
-    perfmon_sampler_t(ticks_t _length, bool _include_rate);
+    perfmon_sampler_t(ticks_t _length, bool _include_rate, int n_threads);
     virtual ~perfmon_sampler_t();
     void record(double value);
 };

@@ -95,12 +95,12 @@ scoped_perfmon_counter_t::~scoped_perfmon_counter_t() {
 
 /* perfmon_sampler_t */
 
-perfmon_sampler_t::perfmon_sampler_t(ticks_t _length, bool _include_rate)
+perfmon_sampler_t::perfmon_sampler_t(ticks_t _length, bool _include_rate, int n_threads)
     : perfmon_perthread_t<perfmon_sampler_t>(),
-      thread_data(new thread_info_t[MAX_THREADS]),
+      thread_data(new thread_info_t[n_threads]),
       length(_length),
       include_rate(_include_rate) {
-    for (int i = 0; i < MAX_THREADS; i++) {
+    for (int i = 0; i < n_threads; i++) {
         thread_data[i].current_interval = get_ticks() / length;
     }
 }
@@ -329,7 +329,7 @@ ql::datum_t perfmon_rate_monitor_t::output_stat(const double &stat) {
 }
 
 perfmon_duration_sampler_t::perfmon_duration_sampler_t(ticks_t length, bool _ignore_global_full_perfmon, int n_threads)
-    : stat(), active(n_threads), total(n_threads), recent(length, true),
+    : stat(), active(n_threads), total(n_threads), recent(length, true, n_threads),
       active_membership(&stat, &active, "active_count"),
       total_membership(&stat, &total, "total"),
       recent_membership(&stat, &recent, "recent_duration"),

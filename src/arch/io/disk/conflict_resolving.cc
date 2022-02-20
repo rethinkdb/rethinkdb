@@ -16,7 +16,7 @@ void debug_print(printf_buffer_t *buf,
 
 
 conflict_resolving_diskmgr_t::conflict_resolving_diskmgr_t(perfmon_collection_t *stats) :
-    conflict_sampler(secs_to_ticks(1), true),
+    conflict_sampler(secs_to_ticks(1), true, get_num_threads()),
     conflict_sampler_membership(stats, &conflict_sampler, "conflict")
 { }
 

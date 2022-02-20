@@ -146,7 +146,7 @@ connectivity_cluster_t::connection_t::connection_t(
         this->conn->flush_buffer();
     }, 1),
     pm_collection(),
-    pm_bytes_sent(secs_to_ticks(1), true),
+    pm_bytes_sent(secs_to_ticks(1), true, get_num_threads()),
     pm_collection_membership(
         &_parent->parent->connectivity_collection,
         &pm_collection,
