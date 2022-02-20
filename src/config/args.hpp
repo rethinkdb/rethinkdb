@@ -98,9 +98,14 @@
 // I/O priority of block writes in the merger_serializer_t
 #define MERGER_BLOCK_WRITE_IO_PRIORITY            64
 
-// Maximum number of threads we support
-// TODO: make this dynamic where possible
-#define MAX_THREADS                               260
+// Maximum number of cores we support.  We use MAX_CORES to allocate
+// an array only when THREADED_COROUTINES (a debugging tool) is defined.
+#ifndef THREADED_COROUTINES
+// The number has to fit within an int
+#define MAX_CORES                                 (2 * BILLION)
+#else
+#define MAX_CORES                                 1028
+#endif
 
 // Ticks (in milliseconds) the internal timed tasks are performed at
 #define TIMER_TICKS_IN_MS                         5

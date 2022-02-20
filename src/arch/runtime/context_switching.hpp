@@ -138,7 +138,7 @@ void context_switch(
  *
  * Internally, one thread is created per threaded_stack_t. To be compatible
  * with the artificial_stack_t implementation, we simulate a fixed number of
- * "virtual threads" (up to MAX_THREADS) Each threaded_stack_t has an associated
+ * "virtual threads" (up to MAX_CORES) Each threaded_stack_t has an associated
  * virtual thread and only one threaded_stack_t can be active per virtual thread
  * at any time, which is enforced through a mutex per virtual thread and a
  * condition in each threaded_stack_t.

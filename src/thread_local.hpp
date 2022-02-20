@@ -111,17 +111,17 @@
 
 #define TLS(type, name)                                                 \
     static std::vector<cache_line_padded_t<type> >                      \
-        TLS_ ## name(MAX_THREADS);                                      \
+        TLS_ ## name(MAX_CORES);                                        \
     DEFINE_TLS_ACCESSORS(type, name)
 
 #define TLS_with_get_ref(type, name)                                    \
     static std::vector<cache_line_padded_t<type> >                      \
-        TLS_ ## name(MAX_THREADS);                                      \
+        TLS_ ## name(MAX_CORES);                                        \
     DEFINE_TLS_REF_ACCESSORS(type, name)
 
 #define TLS_with_init(type, name, initial)                              \
     static std::vector<cache_line_padded_t<type> >                      \
-        TLS_ ## name(MAX_THREADS, cache_line_padded_t<type>(initial));  \
+        TLS_ ## name(MAX_CORES, cache_line_padded_t<type>(initial));    \
     DEFINE_TLS_ACCESSORS(type, name)
 
 #endif  // THREADED_COROUTINES
