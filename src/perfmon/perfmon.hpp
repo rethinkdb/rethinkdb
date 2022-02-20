@@ -50,7 +50,7 @@ class perfmon_counter_t : public perfmon_perthread_t<perfmon_counter_t> {
     friend class perfmon_counter_step_t;
 private:
     typedef cache_line_padded_t<int64_t> padded_int64_t;
-    padded_int64_t *thread_data;
+    std::unique_ptr<padded_int64_t[]> thread_data;
 
     int64_t &get();
 
@@ -121,7 +121,7 @@ class perfmon_sampler_t : public perfmon_perthread_t<perfmon_sampler_t> {
         int current_interval;
     };
 
-    thread_info_t *thread_data;
+    std::unique_ptr<thread_info_t[]> thread_data;
 
     friend class perfmon_perthread_t<perfmon_sampler_t>;
     void get_thread_stat(stats_t *);
