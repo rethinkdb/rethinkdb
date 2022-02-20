@@ -72,6 +72,9 @@ linux_thread_pool_t::linux_thread_pool_t(int worker_threads, bool _do_set_affini
       do_set_affinity(_do_set_affinity),
       pthreads(new pthread_t[n_threads]()),
       threads(new linux_thread_t *[n_threads]())
+#ifdef THREADED_COROUTINES
+      , virtual_thread_mutexes(new system_mutex_t[n_threads]())
+#endif
 {
     rassert(n_threads > 1);             // we want at least one non-utility thread
     rassert(n_threads <= MAX_THREADS);

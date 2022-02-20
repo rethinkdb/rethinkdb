@@ -149,7 +149,7 @@ private:
 
     // Would be nice if we could use one_per_thread here. However
     // that makes the construction order tricky.
-    std::array<cache_line_padded_t<per_thread_samples_t >, MAX_THREADS> per_thread_samples;
+    std::unique_ptr<cache_line_padded_t<per_thread_samples_t >[]> per_thread_samples;
 
     ticks_t ticks_at_last_report;
     /* Locking order is always:

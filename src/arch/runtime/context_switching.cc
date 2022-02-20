@@ -704,9 +704,7 @@ asm(
 
 /* Threaded version of context_switching */
 
-
-
-static system_mutex_t virtual_thread_mutexes[MAX_THREADS];
+#ifdef THREADED_CONTEXT_REF
 
 void context_switch(threaded_context_ref_t *current_context,
                     threaded_context_ref_t *dest_context) {
@@ -718,7 +716,7 @@ void context_switch(threaded_context_ref_t *current_context,
         // This must be the scheduler. We need to acquire a lock.
         is_scheduler = true;
         current_context->lock.init(new system_mutex_t::lock_t(
-            &virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
+            &linux_thread_pool_t::get_thread_pool()->virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
     }
 
     dest_context->rethread_to_current();
@@ -745,7 +743,7 @@ void threaded_context_ref_t::rethread_to_current() {
 }
 
 void threaded_context_ref_t::wait() {
-    cond.wait(&virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]);
+    cond.wait(&linux_thread_pool_t::get_thread_pool()->virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]);
     if (do_shutdown) {
         lock.reset();
         pthread_exit(nullptr);
@@ -755,7 +753,7 @@ void threaded_context_ref_t::wait() {
         // Re-lock to a different thread mutex
         lock.reset();
         lock.init(new system_mutex_t::lock_t(
-            &virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
+            &linux_thread_pool_t::get_thread_pool()->virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
         do_rethread = false;
     }
 }
@@ -782,7 +780,7 @@ threaded_stack_t::threaded_stack_t(void (*initial_fun_)(void), size_t stack_size
         // If we are not in a coroutine, we have to acquire the lock first.
         // (coroutines would already hold the lock)
         possible_lock_acq.init(new system_mutex_t::lock_t(
-            &virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
+            &linux_thread_pool_t::get_thread_pool()->virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
     }
 
     int result = pthread_create(&thread,
@@ -791,7 +789,7 @@ threaded_stack_t::threaded_stack_t(void (*initial_fun_)(void), size_t stack_size
                                 reinterpret_cast<void *>(this));
     guarantee_xerr(result == 0, result, "Could not create thread: %i", result);
     // Wait for the thread to start
-    launch_cond.wait(&virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]);
+    launch_cond.wait(&linux_thread_pool_t::get_thread_pool()->virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]);
 }
 
 threaded_stack_t::~threaded_stack_t() {
@@ -803,7 +801,7 @@ threaded_stack_t::~threaded_stack_t() {
         // If we are not in a coroutine, we have to acquire the lock first.
         // (coroutines would already hold the lock)
         possible_lock_acq.init(new system_mutex_t::lock_t(
-            &virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
+            &linux_thread_pool_t::get_thread_pool()->virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
     }
 
     // Calling this destructor is safe only if we are on the same virtual thread as
@@ -841,7 +839,7 @@ threaded_stack_t::~threaded_stack_t() {
         threaded_context_ref_t &our_context = static_cast<threaded_context_ref_t &>(
                 coro_t::self()->get_stack()->context);
         our_context.lock.init(new system_mutex_t::lock_t(
-            &virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
+            &linux_thread_pool_t::get_thread_pool()->virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
 #endif
     }
 }
@@ -852,7 +850,7 @@ void *threaded_stack_t::internal_run(void *p) {
     parent->context.restore_virtual_thread();
 
     parent->context.lock.init(new system_mutex_t::lock_t(
-        &virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
+        &linux_thread_pool_t::get_thread_pool()->virtual_thread_mutexes[linux_thread_pool_t::get_thread_id()]));
     // Notify our parent that we have been created
     parent->launch_cond.signal();
 
@@ -918,6 +916,8 @@ void threaded_stack_t::get_stack_addr_size(void **stackaddr_out,
     guarantee_xerr(res == 0, res, "Unable to destroy pthread attributes");
 #endif
 }
+
+#endif  // THREADED_CONTEXT_REF
 
 /* ^^^^ Threaded version of context_switching ^^^^ */
 
