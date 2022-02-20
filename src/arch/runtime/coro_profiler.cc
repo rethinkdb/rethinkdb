@@ -23,7 +23,7 @@ coro_profiler_t &coro_profiler_t::get_global_profiler() {
     return profiler;
 }
 
-coro_profiler_t::coro_profiler_t() : reql_output_file(nullptr) {
+coro_profiler_t::coro_profiler_t() : reql_output_file(nullptr), per_thread_samples(new per_thread_samples_t[get_num_threads()]()) {
     logINF("Coro profiler activated.");
 
     const std::string reql_output_filename =

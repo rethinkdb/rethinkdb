@@ -18,6 +18,13 @@
 #include "arch/io/timer_provider.hpp"
 #include "arch/timer.hpp"
 
+#ifdef THREADED_COROUTINES
+// In context_switching.cc, treaded_context_ref_t-related code
+// actually distinguishes between THREADED_COROUTINES and not.
+// Probably we just want to rip that dead code out.
+#define THREADED_CONTEXT_REF 1
+#endif
+
 class linux_thread_t;
 class os_signal_cond_t;
 
@@ -101,6 +108,10 @@ private:
 
 public:
     std::unique_ptr<linux_thread_t *[]> threads;
+
+#ifdef THREADED_CONTEXT_REF
+    std::unique_ptr<system_mutex_t[]> virtual_thread_mutexes;
+#endif
 
     // Cooperatively run a blocking function call using the generic_blocker_pool
     template <class Callable>
