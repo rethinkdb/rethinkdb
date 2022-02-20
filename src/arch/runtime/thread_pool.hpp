@@ -93,15 +93,18 @@ private:
     blocker_pool_t* generic_blocker_pool;
 
 public:
-    pthread_t pthreads[MAX_THREADS];
-    linux_thread_t *threads[MAX_THREADS];
+    const int n_threads;
+    const bool do_set_affinity;
+
+private:
+    std::unique_ptr<pthread_t[]> pthreads;
+
+public:
+    std::unique_ptr<linux_thread_t *[]> threads;
 
     // Cooperatively run a blocking function call using the generic_blocker_pool
     template <class Callable>
     static void run_in_blocker_pool(const Callable &);
-
-    int n_threads;
-    bool do_set_affinity;
 
 #ifdef _WIN32
     static linux_thread_pool_t *get_global_thread_pool();
