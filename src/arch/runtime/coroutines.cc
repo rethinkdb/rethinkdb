@@ -169,7 +169,7 @@ coro_t::coro_t() :
     waiting_(false),
     protected_stack_lru_entry_(this)
 #ifndef NDEBUG
-    , selfname_number(get_thread_id().threadnum + MAX_THREADS *
+    , selfname_number(get_thread_id().threadnum + linux_thread_pool_t::get_thread_pool()->n_threads *
           // The comma here is the comma operator, to implement the semantics
           // of `++coro_selfname_counter`
           (TLS_set_coro_selfname_counter(TLS_get_coro_selfname_counter()+1),
