@@ -107,7 +107,7 @@ public:
 
         run_txn_fn(false, [&](scoped_ptr_t<real_superblock_t> &&superblock){
             profile::trace_t trace;
-            btree_stats_t stats(&get_global_perfmon_collection(), "test-get");
+            btree_stats_t stats(&get_global_perfmon_collection(), "test-get", get_num_threads());
 
             keyvalue_location_t kv_location;
             find_keyvalue_location_for_read(

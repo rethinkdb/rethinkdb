@@ -137,8 +137,8 @@ std::unique_ptr<perfmon_counter_t> pm_active_coroutines, pm_allocated_coroutines
 std::unique_ptr<perfmon_multi_membership_t> pm_coroutines_membership;
 
 void init_global_coro_perfmons(int n_threads) {
-    pm_active_coroutines.reset(new perfmon_counter_t());
-    pm_allocated_coroutines.reset(new perfmon_counter_t());
+    pm_active_coroutines.reset(new perfmon_counter_t(n_threads));
+    pm_allocated_coroutines.reset(new perfmon_counter_t(n_threads));
     pm_coroutines_membership.reset(new perfmon_multi_membership_t(
         &get_global_perfmon_collection(),
         pm_active_coroutines.get(), "active_coroutines",

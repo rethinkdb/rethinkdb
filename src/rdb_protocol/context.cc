@@ -65,13 +65,16 @@ const char *rql_perfmon_name = "query_engine";
 
 rdb_context_t::stats_t::stats_t(perfmon_collection_t *global_stats)
     : qe_stats_membership(global_stats, &qe_stats_collection, rql_perfmon_name),
+      client_connections(get_num_threads()),
       client_connections_membership(&qe_stats_collection,
                                     &client_connections, "client_connections"),
+      clients_active(get_num_threads()),
       clients_active_membership(&qe_stats_collection,
                                 &clients_active, "clients_active"),
       queries_per_sec(secs_to_ticks(1)),
       queries_per_sec_membership(&qe_stats_collection,
                                  &queries_per_sec, "queries_per_sec"),
+      queries_total(get_num_threads()),
       queries_total_membership(&qe_stats_collection,
                                &queries_total, "queries_total") { }
 

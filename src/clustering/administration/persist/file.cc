@@ -300,7 +300,7 @@ metadata_file_t::metadata_file_t(
         const base_path_t &base_path,
         perfmon_collection_t *perfmon_parent,
         signal_t *interruptor) :
-    btree_stats(perfmon_parent, "metadata")
+    btree_stats(perfmon_parent, "metadata", get_num_threads())
 {
     filepath_file_opener_t file_opener(get_filename(base_path), io_backender);
     init_serializer(&file_opener, perfmon_parent);
@@ -387,7 +387,7 @@ metadata_file_t::metadata_file_t(
         perfmon_collection_t *perfmon_parent,
         const std::function<void(write_txn_t *, signal_t *)> &initializer,
         signal_t *interruptor) :
-    btree_stats(perfmon_parent, "metadata")
+    btree_stats(perfmon_parent, "metadata", get_num_threads())
 {
     filepath_file_opener_t file_opener(get_filename(base_path), io_backender);
     log_serializer_t::create(

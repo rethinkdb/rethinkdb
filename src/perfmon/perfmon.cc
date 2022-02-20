@@ -52,11 +52,11 @@ ql::datum_t perfmon_perthread_t<perfmon_type>::end_stats(void *v_data) {
 
 /* perfmon_counter_t */
 
-perfmon_counter_t::perfmon_counter_t()
+perfmon_counter_t::perfmon_counter_t(int n_threads)
     : perfmon_perthread_t<perfmon_counter_t>(),
-      thread_data(new padded_int64_t[MAX_THREADS])
+      thread_data(new padded_int64_t[n_threads]())
 {
-    for (int i = 0; i < MAX_THREADS; i++) thread_data[i].value = 0;
+    for (int i = 0; i < n_threads; i++) thread_data[i].value = 0;
 }
 
 perfmon_counter_t::~perfmon_counter_t() {
@@ -328,8 +328,8 @@ ql::datum_t perfmon_rate_monitor_t::output_stat(const double &stat) {
     return ql::datum_t(stat / ticks_to_secs(length));
 }
 
-perfmon_duration_sampler_t::perfmon_duration_sampler_t(ticks_t length, bool _ignore_global_full_perfmon)
-    : stat(), active(), total(), recent(length, true),
+perfmon_duration_sampler_t::perfmon_duration_sampler_t(ticks_t length, bool _ignore_global_full_perfmon, int n_threads)
+    : stat(), active(n_threads), total(n_threads), recent(length, true),
       active_membership(&stat, &active, "active_count"),
       total_membership(&stat, &total, "total"),
       recent_membership(&stat, &recent, "recent_duration"),

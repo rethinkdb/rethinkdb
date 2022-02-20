@@ -1,8 +1,8 @@
 #include "arch/io/disk/stats.hpp"
 
 stats_diskmgr_t::stats_diskmgr_t(perfmon_collection_t *stats, const std::string &name) :
-    read_sampler(secs_to_ticks(1)),
-    write_sampler(secs_to_ticks(1)),
+    read_sampler(secs_to_ticks(1), false, get_num_threads()),
+    write_sampler(secs_to_ticks(1), false, get_num_threads()),
     stats_membership(stats,
                      &read_sampler, (name + "_read").c_str(),
                      &write_sampler, (name + "_write").c_str()) { }
