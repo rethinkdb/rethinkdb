@@ -23,6 +23,7 @@ linux_message_hub_t::linux_message_hub_t(linux_event_queue_t *queue,
                                          threadnum_t current_thread)
     : queue_(queue),
       thread_pool_(thread_pool),
+      queues_(new thread_queue_t[thread_pool->n_threads]),
       is_woken_up_(false),
       current_thread_(current_thread) {
 
