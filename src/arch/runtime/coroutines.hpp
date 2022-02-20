@@ -27,7 +27,6 @@ threadnum_t get_thread_id();
 struct coro_globals_t;
 class coro_t;
 
-
 struct coro_profiler_mixin_t {
 #ifdef ENABLE_CORO_PROFILER
     coro_profiler_mixin_t() : last_resumed_at(0), last_sample_at(0) { }
@@ -249,6 +248,13 @@ bool is_coroutine_stack_overflow(void *addr);
 /* Returns true if at least n bytes are available on the stack of the current coroutine. */
 bool has_n_bytes_free_stack_space(size_t n);
 bool coroutines_have_been_initialized();
+
+/* We need to pass n_threads to perfmons.  (Some code pretends we can
+have multiple thread pools, but that has never been the case.  We
+_could_ do some work to make the perfmons not be globals, but we'd
+also have a name clash in global_perfmon_collection().) */
+void init_global_coro_perfmons(int n_threads);
+void destruct_global_coro_perfmons();
 
 /* Checks that there are at least n bytes of stack space available on the current
 coroutine. If that is the case, this function calls `fun` right away.
