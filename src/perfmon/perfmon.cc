@@ -59,9 +59,7 @@ perfmon_counter_t::perfmon_counter_t(int n_threads)
     for (int i = 0; i < n_threads; i++) thread_data[i].value = 0;
 }
 
-perfmon_counter_t::~perfmon_counter_t() {
-    delete[] thread_data;
-}
+perfmon_counter_t::~perfmon_counter_t() { }
 
 int64_t &perfmon_counter_t::get() {
     rassert(get_thread_id().threadnum >= 0);
@@ -105,9 +103,7 @@ perfmon_sampler_t::perfmon_sampler_t(ticks_t _length, bool _include_rate, int n_
     }
 }
 
-perfmon_sampler_t::~perfmon_sampler_t() {
-    delete[] thread_data;
-}
+perfmon_sampler_t::~perfmon_sampler_t() { }
 
 void perfmon_sampler_t::update(ticks_t now) {
     int interval = now / length;
