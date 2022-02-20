@@ -392,7 +392,7 @@ $(BUILD_ROOT_DIR)/vendored: | vendored
 	mkdir -p $(BUILD_ROOT_DIR)/vendored
 
 $(QUICKJS_SOURCE): | $(BUILD_ROOT_DIR)/vendored
-	rm -r $(QUICKJS_SOURCE) || true
+	[ -d $(QUICKJS_SOURCE) ] && rm -r $(QUICKJS_SOURCE)
 	cp -R vendored/quickjs $(QUICKJS_SOURCE)
 
 $(QUICKJS_A): | $(QUICKJS_SOURCE)
@@ -429,9 +429,10 @@ VENDORED_COMMIT := e3bdd7d0419220c787132e4e9b56c84ed6d733cd
 VENDORED_REMOTE_REPO := https://github.com/rethinkdb/rethinkdb-vendored.git
 
 # Right now, rethinkdb-vendored's history is light, so we don't bother
-# with --depth and other clone params.
-vendored:
-	$P GIT clone vendored
-	git clone --quiet $(VENDORED_REMOTE_REPO) vendored || true
+# with --depth and other clone params.  The dependency is on this
+# makefile because it carries the commit hash.
+vendored: src/build.mk
+	$P GIT checkout vendored
+	[ ! -d vendored ] && git clone --quiet $(VENDORED_REMOTE_REPO) vendored || true
 	git -C vendored checkout --quiet $(VENDORED_COMMIT) || \
 	  ( git -C vendored fetch --quiet && git -C vendored checkout --quiet $(VENDORED_COMMIT) )
