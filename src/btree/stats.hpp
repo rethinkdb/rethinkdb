@@ -9,8 +9,8 @@ public:
                            const std::string &identifier,
                            int n_threads)
         : btree_collection(),
-          pm_keys_read(secs_to_ticks(1)),
-          pm_keys_set(secs_to_ticks(1)),
+          pm_keys_read(secs_to_ticks(1), n_threads),
+          pm_keys_set(secs_to_ticks(1), n_threads),
           pm_total_keys_read(n_threads),
           pm_total_keys_set(n_threads),
           pm_keys_membership(&btree_collection,
