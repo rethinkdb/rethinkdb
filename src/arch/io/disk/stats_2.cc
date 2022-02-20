@@ -21,8 +21,8 @@ stats_diskmgr_2_t::stats_diskmgr_2_t(
     passive_producer_t<pool_diskmgr_t::action_t *>(_source->available),
     producer(this),
     source(_source),
-    read_sampler(secs_to_ticks(1)),
-    write_sampler(secs_to_ticks(1)),
+    read_sampler(secs_to_ticks(1), false, get_num_threads()),
+    write_sampler(secs_to_ticks(1), false, get_num_threads()),
     stats_membership(stats,
                      &read_sampler, (name + "_read").c_str(),
                      &write_sampler, (name + "_write").c_str()) { }

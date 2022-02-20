@@ -61,7 +61,7 @@ private:
 public:
     typedef padded_int64_t thread_stat_type;
     typedef int64_t combined_stat_type;
-    perfmon_counter_t();
+    explicit perfmon_counter_t(int n_threads);
     virtual ~perfmon_counter_t();
     void operator++() { get()++; }
     void operator+=(int64_t num) { get() += num; }
@@ -240,7 +240,7 @@ private:
 
     bool ignore_global_full_perfmon;
 public:
-    explicit perfmon_duration_sampler_t(ticks_t length, bool _ignore_global_full_perfmon = false);
+    explicit perfmon_duration_sampler_t(ticks_t length, bool _ignore_global_full_perfmon, int n_threads);
     void begin(ticks_t *v);
     void end(ticks_t *v);
 

@@ -15,6 +15,7 @@ primary_dispatcher_t::dispatchee_registration_t::dispatchee_registration_t(
     server_id(_server_id),
     priority(_priority),
     is_ready(false),
+    queue_count(get_num_threads()),
     queue_count_membership(
         &parent->perfmon_collection,
         &queue_count,
