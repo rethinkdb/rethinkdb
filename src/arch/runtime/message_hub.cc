@@ -51,6 +51,10 @@ linux_message_hub_t::~linux_message_hub_t() {
     guarantee(incoming_messages_.empty());
 }
 
+int linux_message_hub_t::get_n_threads() const {
+    return thread_pool_->n_threads;
+}
+
 void linux_message_hub_t::do_store_message(threadnum_t nthread, linux_thread_message_t *msg) {
     rassert(0 <= nthread.threadnum && nthread.threadnum < thread_pool_->n_threads);
     queues_[nthread.threadnum].msg_local_list.push_back(msg);

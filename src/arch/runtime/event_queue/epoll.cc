@@ -96,7 +96,7 @@ void epoll_event_queue_t::run() {
         // (see section 7 [CPU scheduling] in B-tree Indexes and CPU
         // Caches by Goetz Graege and Pre-Ake Larson).
 
-        block_pm_duration event_loop_timer(pm_eventloop_singleton_t::get());
+        block_pm_duration event_loop_timer(pm_eventloop_singleton_t::get(parent->get_n_threads()));
 
         for (int i = 0; i < nevents; i++) {
             if (events[i].data.ptr == nullptr) {

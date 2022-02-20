@@ -34,6 +34,8 @@ public:
     linux_message_hub_t(linux_event_queue_t *queue, linux_thread_pool_t *thread_pool,
                         threadnum_t current_thread);
 
+    int get_n_threads() const;
+
     /* For each thread, transfer messages from our msg_local_list for that thread to our
     msg_global_list for that thread */
     void push_messages();

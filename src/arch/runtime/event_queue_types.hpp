@@ -13,6 +13,7 @@ struct linux_event_callback_t {
 };
 
 struct linux_queue_parent_t {
+    virtual int get_n_threads() const = 0;
     virtual void pump() = 0;
     virtual bool should_shut_down() = 0;
     virtual ~linux_queue_parent_t() {}
