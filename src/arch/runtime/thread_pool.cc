@@ -493,6 +493,10 @@ linux_thread_t::~linux_thread_t() {
     guarantee_xerr(res == 0, res, "could not destroy do_shutdown_mutex");
 }
 
+int linux_thread_t::get_n_threads() const {
+    return message_hub.get_n_threads();
+}
+
 void linux_thread_t::pump() {
     message_hub.push_messages();
 }

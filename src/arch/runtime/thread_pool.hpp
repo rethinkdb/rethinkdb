@@ -202,6 +202,7 @@ public:
     for coroutines. */
     coro_runtime_t coro_runtime;
 
+    int get_n_threads() const;
     void pump();   // Called by the event queue
     bool should_shut_down();   // Called by the event queue
 #ifndef NDEBUG

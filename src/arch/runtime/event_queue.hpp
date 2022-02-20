@@ -18,7 +18,7 @@ std::string format_poll_event(int event);
 // would race with the initialization of coroutine globals which are accessed
 // by the constructor of `perfmon_membership_t`.
 struct pm_eventloop_singleton_t {
-    static perfmon_duration_sampler_t *get();
+    static perfmon_duration_sampler_t *get(int n_threads);
 };
 
 /* Pick the queue now*/
