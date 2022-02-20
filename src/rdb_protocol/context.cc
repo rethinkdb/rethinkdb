@@ -71,7 +71,7 @@ rdb_context_t::stats_t::stats_t(perfmon_collection_t *global_stats)
       clients_active(get_num_threads()),
       clients_active_membership(&qe_stats_collection,
                                 &clients_active, "clients_active"),
-      queries_per_sec(secs_to_ticks(1)),
+      queries_per_sec(secs_to_ticks(1), get_num_threads()),
       queries_per_sec_membership(&qe_stats_collection,
                                  &queries_per_sec, "queries_per_sec"),
       queries_total(get_num_threads()),

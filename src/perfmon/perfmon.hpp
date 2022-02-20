@@ -200,7 +200,7 @@ private:
         thread_info_t() : current_count(0), last_count(0), current_interval(1) { }
     };
 
-    cache_line_padded_t<thread_info_t> thread_data[MAX_THREADS];
+    std::unique_ptr<cache_line_padded_t<thread_info_t>[]> thread_data;
     void update(ticks_t now);
     ticks_t length;
 
@@ -211,7 +211,7 @@ private:
 public:
     using thread_stat_type = double;
     using combined_stat_type = double;
-    explicit perfmon_rate_monitor_t(ticks_t length);
+    explicit perfmon_rate_monitor_t(ticks_t length, int n_threads);
     void record(double value = 1.0);
 };
 

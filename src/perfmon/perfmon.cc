@@ -271,9 +271,11 @@ void perfmon_stddev_t::record(double value) {
 
 /* perfmon_rate_monitor_t */
 
-perfmon_rate_monitor_t::perfmon_rate_monitor_t(ticks_t _length)
-    : perfmon_perthread_t<perfmon_rate_monitor_t>(), length(_length) {
-    for (int i = 0; i < MAX_THREADS; i++) {
+perfmon_rate_monitor_t::perfmon_rate_monitor_t(ticks_t _length, int n_threads)
+    : perfmon_perthread_t<perfmon_rate_monitor_t>(),
+      thread_data(new cache_line_padded_t<thread_info_t>[n_threads]()),
+      length(_length) {
+    for (int i = 0; i < n_threads; i++) {
         thread_data[i].value.current_interval = get_ticks() / length;
     }
 }
