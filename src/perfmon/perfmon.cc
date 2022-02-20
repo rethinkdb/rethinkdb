@@ -236,7 +236,9 @@ stddev_t stddev_t::combine(size_t nelts, const stddev_t *data) {
     return stddev_t();
 }
 
-perfmon_stddev_t::perfmon_stddev_t() : perfmon_perthread_t<perfmon_stddev_t>() { }
+perfmon_stddev_t::perfmon_stddev_t(int n_threads)
+    : perfmon_perthread_t<perfmon_stddev_t>(),
+      thread_data(new cache_line_padded_t<stddev_t>[n_threads]()) { }
 
 void perfmon_stddev_t::get_thread_stat(stddev_t *stat) {
     rassert(get_thread_id().threadnum >= 0);
