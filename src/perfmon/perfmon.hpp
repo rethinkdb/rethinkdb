@@ -173,7 +173,7 @@ public:
     using combined_stat_type = stddev_t;
 
     // should be possible to make this a templated class if necessary
-    perfmon_stddev_t();
+    explicit perfmon_stddev_t(int n_threads);
     void record(double value);
 
 private:
@@ -182,7 +182,7 @@ private:
     stddev_t combine_stats(const stddev_t *);
     ql::datum_t output_stat(const stddev_t&);
 
-    cache_line_padded_t<stddev_t> thread_data[MAX_THREADS];
+    std::unique_ptr<cache_line_padded_t<stddev_t>[]> thread_data;
 };
 
 /* `perfmon_rate_monitor_t` keeps track of the number of times some event
