@@ -523,6 +523,15 @@ void set_default_opts(CURL *curl_handle,
     exc_setopt(curl_handle, CURLOPT_PROTOCOLS,
                CURLPROTO_HTTP | CURLPROTO_HTTPS, "PROTOCOLS");
 
+    // Make curl send http/1.1 requests, not http/2 or http/3.  The
+    // sole reason is because we only support parsing for http/1.1
+    // (e.g. in header_parser_singleton_t::parse, calling
+    // http_parser_execute, with old nginx code).  Specifying http
+    // version 1.1 is _less work_ than fixing the parsing code, or
+    // figuring out why we are doing our own parsing.  It isn't the
+    // "right" solution.
+    exc_setopt(curl_handle, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1, "HTTP VERSION");
+
     exc_setopt(curl_handle, CURLOPT_USERAGENT, RETHINKDB_USER_AGENT, "USER AGENT");
 
     // Setting this to an empty string makes libcurl enable all supported encodings.
