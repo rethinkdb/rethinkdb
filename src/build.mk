@@ -392,7 +392,7 @@ $(BUILD_ROOT_DIR)/vendored: | vendored
 	mkdir -p $(BUILD_ROOT_DIR)/vendored
 
 $(QUICKJS_SOURCE): | $(BUILD_ROOT_DIR)/vendored
-	[ -d $(QUICKJS_SOURCE) ] && rm -r $(QUICKJS_SOURCE)
+	if [ -d $(QUICKJS_SOURCE) ]; then rm -r $(QUICKJS_SOURCE); else true; fi
 	cp -R vendored/quickjs $(QUICKJS_SOURCE)
 
 $(QUICKJS_A): | $(QUICKJS_SOURCE)
