@@ -11,6 +11,7 @@
 #include <limits.h>         // So we can set the bounds of our types
 #include <string.h>         // for memcpy()
 #include <stdlib.h>         // for free()
+#include <sys/socket.h>     // for MSG_NOSIGNAL
 
 #if defined(__MACH__)
 #include <unistd.h>         // for getpagesize() on mac
@@ -265,8 +266,11 @@ inline size_t strnlen(const char *s, size_t maxlen) {
   return maxlen;
 }
 
-// Doesn't exist on OSX; used in google.cc for send() to mean "no flags".
+// Doesn't exist on OSX (older versions); used in google.cc for send() to mean "no
+// flags".
+#ifndef MSG_NOSIGNAL
 #define MSG_NOSIGNAL 0
+#endif
 
 // No SIGPWR on MacOSX.  SIGINFO seems suitably obscure.
 #undef GOOGLE_OBSCURE_SIGNAL
