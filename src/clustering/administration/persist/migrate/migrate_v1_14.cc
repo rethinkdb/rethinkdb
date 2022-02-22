@@ -13,7 +13,7 @@ T get_vclock_best(
     choose the most recently modified version. */
     int best_total = -1;
     T best_value;
-    for (const typename metadata_v1_14::vclock_t<T>::stamped_value_t &value : vclock.values) {
+    for (const auto &value : vclock.values) {
         int total = 0;
         for (const auto &pair : value.first) {
             total += pair.second;
