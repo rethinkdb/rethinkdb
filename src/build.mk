@@ -403,6 +403,7 @@ $(QUICKJS_INCLUDE): | $(QUICKJS_SOURCE)
 	mkdir -p $(QUICKJS_INCLUDE_DIR)
 	$P CP
 	cp $(QUICKJS_SOURCE)/quickjs.h $(QUICKJS_INCLUDE_DIR)/quickjs.h
+	cp $(QUICKJS_SOURCE)/quickjs-version.h $(QUICKJS_INCLUDE_DIR)/quickjs-version.h
 
 FORCE_ALL_DEPS := $(patsubst %,force-dep/%,$(NAMES))
 force-dep/%: $(SOURCE_DIR)/%.cc $(QL2_PROTO_HEADERS) $(ALL_INCLUDE_DEPS)
@@ -425,7 +426,7 @@ build-clean:
 check-syntax:
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o /dev/null $(patsubst %,$(CWD)/%,$(CHK_SOURCES))
 
-VENDORED_COMMIT := e4fba2d11b3997c07650df150d6ff7e4d109a8ee
+VENDORED_COMMIT := 608ccb378bd0061cf83f278e50b1c0d8fa820c71
 VENDORED_REMOTE_REPO := https://github.com/rethinkdb/rethinkdb-vendored.git
 
 # Right now, rethinkdb-vendored's history is light, so we don't bother
