@@ -74,7 +74,7 @@ void semilattice_manager_t<metadata_t>::root_view_t::join(const metadata_t &adde
     handler. */
     auto_drainer_t::lock_t parent_keepalive(parent->drainers.get());
 
-    for (const std::pair<peer_id_t, connectivity_cluster_t::connection_pair_t> &pair :
+    for (const std::pair<const peer_id_t, connectivity_cluster_t::connection_pair_t> &pair :
             parent->last_connections) {
         connectivity_cluster_t::connection_t *connection = pair.second.first;
         auto_drainer_t::lock_t connection_keepalive = pair.second.second;
