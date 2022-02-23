@@ -3370,7 +3370,7 @@ subscription_t::get_els(batcher_t *batcher,
                 user_context.require_read_permission(
                     rdb_context, table_basic_config->database, feed->get_table_id());
             }
-        } catch (auth::permission_error_t const permission_error) {
+        } catch (const auth::permission_error_t &permission_error) {
             stop(
                 std::make_exception_ptr(
                     datum_exc_t(base_exc_t::PERMISSION_ERROR, permission_error.what())),
