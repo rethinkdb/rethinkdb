@@ -232,7 +232,8 @@ std::string scram_authenticator_t::next_message(std::string const &message)
                     throw authentication_error_t(18, "Invalid username encoding");
                 }
 
-                offset += 2;
+                offset += 3;
+                break;
             default:
                 username.push_back(saslname[offset]);
                 break;
