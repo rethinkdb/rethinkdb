@@ -343,7 +343,8 @@ metadata_file_t::metadata_file_t(
 
             // The metadata is now serialized using the latest serialization version
             metadata_version = cluster_version_t::LATEST_DISK;
-        } // fallthrough intentional
+        }
+        // fallthrough
         case cluster_version_t::v2_1: // fallthrough intentional
         case cluster_version_t::v2_2: {
             if (sb_lock.has()) {
@@ -358,7 +359,8 @@ metadata_file_t::metadata_file_t(
 
             // The metadata is now serialized using the latest serialization version
             metadata_version = cluster_version_t::LATEST_DISK;
-        } // fallthrough intentional
+        }
+        // fallthrough
         case cluster_version_t::v2_3: {
             if (sb_lock.has()) {
                 update_metadata_superblock_version(sb_data);
