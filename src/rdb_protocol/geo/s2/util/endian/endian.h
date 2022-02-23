@@ -127,7 +127,7 @@ class LittleEndian {
   static uint64 Load64VariableLength(const void * const p, int len) {
     DCHECK_GE(len, 1);
     DCHECK_LE(len, 8);
-    const char * const buf = static_cast<const char * const>(p);
+    const char * const buf = static_cast<const char *>(p);
     uint64 val = 0;
     --len;
     do {
