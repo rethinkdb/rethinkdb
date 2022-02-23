@@ -468,8 +468,8 @@ optional<int> parse_node_reconnect_timeout_secs_option(
                     "ERROR: cluster-reconnect-timeout should be a number, got '%s'",
                     timeout_opt.c_str()));
         }
-        if (node_reconnect_timeout_secs > std::numeric_limits<int>::max() ||
-            node_reconnect_timeout_secs * 1000 > std::numeric_limits<int>::max()) {
+        if (node_reconnect_timeout_secs > static_cast<uint64_t>(std::numeric_limits<int>::max()) ||
+            node_reconnect_timeout_secs * 1000 > static_cast<uint64_t>(std::numeric_limits<int>::max())) {
             throw std::runtime_error(strprintf(
                 "ERROR: cluster-reconnect-timeout is too large. Must be at most %d",
                 std::numeric_limits<int>::max() / 1000));
