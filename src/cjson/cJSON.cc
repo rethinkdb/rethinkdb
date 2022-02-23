@@ -293,8 +293,11 @@ static const char *parse_string(cJSON *item,const char *str)
 
                     switch (len) {
                         case 4: *--ptr2 = ((uc | 0x80) & 0xBF); uc >>= 6;
+                            // fallthrough
                         case 3: *--ptr2 = ((uc | 0x80) & 0xBF); uc >>= 6;
+                            // fallthrough
                         case 2: *--ptr2 = ((uc | 0x80) & 0xBF); uc >>= 6;
+                            // fallthrough
                         case 1: *--ptr2 = (uc | firstByteMark[len]);
                     }
                     ptr2 += len;
