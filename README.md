@@ -54,7 +54,7 @@ Building
 
 First install some dependencies.  For example, on Ubuntu or Debian:
 
-    sudo apt-get install build-essential protobuf-compiler python \
+    sudo apt-get install build-essential protobuf-compiler python2 \
         libprotobuf-dev libcurl4-openssl-dev libboost-all-dev \
         libncurses5-dev libjemalloc-dev wget m4 g++
 
