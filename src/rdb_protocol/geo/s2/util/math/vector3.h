@@ -50,7 +50,7 @@ class Vector3 {
   // and an additional z argument.
   explicit Vector3(const Vector2<VType> &vb, VType z);
   // Create a new copy of the vector vb
-  Vector3(const Self &vb);
+  Vector3(const Self &vb) = default;
   // Keep only the three first coordinates of the 4D vector vb
   explicit Vector3(const Vector4<VType> &vb);
   // Convert from another vector type
@@ -73,7 +73,7 @@ class Vector3 {
   static int Size() { return 3; }
   // Modify the coordinates of the current vector
   void Set(const VType x, const VType y, const VType z);
-  Self& operator=(const Self& vb);
+  Self& operator=(const Self& vb) = default;
   // Add two vectors, component by component
   Self& operator+=(const Self &vb);
   // Subtract two vectors, component by component

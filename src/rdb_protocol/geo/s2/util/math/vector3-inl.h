@@ -68,13 +68,6 @@ Vector3<VType>::Vector3(const Vector2<VType> &vb, VType _z) {
 }
 
 template <typename VType>
-Vector3<VType>::Vector3(const Self &vb) {
-  c_[0] = vb.c_[0];
-  c_[1] = vb.c_[1];
-  c_[2] = vb.c_[2];
-}
-
-template <typename VType>
 Vector3<VType>::Vector3(const Vector4<VType> &vb) {
   c_[0] = vb.x();
   c_[1] = vb.y();
@@ -135,14 +128,6 @@ void Vector3<VType>::Set(const VType _x, const VType _y, const VType _z) {
   c_[0] = _x;
   c_[1] = _y;
   c_[2] = _z;
-}
-
-template <typename VType>
-Vector3<VType>& Vector3<VType>::operator=(const Self& vb) {
-  c_[0] = vb.c_[0];
-  c_[1] = vb.c_[1];
-  c_[2] = vb.c_[2];
-  return (*this);
 }
 
 template <typename VType>
