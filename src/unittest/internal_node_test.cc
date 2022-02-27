@@ -7,6 +7,15 @@
 #include "btree/internal_node.hpp"
 #include "btree/node.hpp"
 
+// Silence warnings just as in internal_node.cc
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 901)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+#endif
+
+static_assert(offsetof(internal_node_t, pair_offsets) % 2 == 0,
+              "pair_offsets must be at uint16_t alignment");
+
 namespace unittest {
 
 void verify(block_size_t block_size, const internal_node_t *buf) {
@@ -64,3 +73,6 @@ TEST(InternalNodeTest, Offsets) {
 
 }  // namespace unittest
 
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 901)
+#pragma GCC diagnostic pop
+#endif
