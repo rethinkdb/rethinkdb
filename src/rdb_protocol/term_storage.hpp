@@ -48,6 +48,7 @@ class raw_term_t {
 public:
     explicit raw_term_t(const term_variant_t &source);
     raw_term_t(const raw_term_t &) = default;
+    raw_term_t &operator=(const raw_term_t &) = default;
 
     size_t num_args() const;
     size_t num_optargs() const;
