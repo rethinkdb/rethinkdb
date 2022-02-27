@@ -24,16 +24,13 @@
 #include "perfmon/perfmon.hpp"
 
 int user_to_poll(int mode) {
-
-#ifndef __linux
-    DEBUG_VAR
-#endif
     int allowed_mode_mask = poll_event_in | poll_event_out;
 
 #ifdef __linux
     allowed_mode_mask |= poll_event_rdhup;
 #endif
 
+    (void)allowed_mode_mask;
     rassert((mode & allowed_mode_mask) == mode);
 
     int out_mode = 0;
@@ -47,16 +44,13 @@ int user_to_poll(int mode) {
 }
 
 int poll_to_user(int mode) {
-
-#ifndef __linux
-DEBUG_VAR
-#endif
     int allowed_mode_mask = POLLIN | POLLOUT | POLLERR | POLLHUP;
 
 #ifdef __linux
     allowed_mode_mask |= POLLRDHUP;
 #endif
 
+    (void)allowed_mode_mask;
     rassert((mode & allowed_mode_mask) == mode);
 
     int out_mode = 0;
