@@ -396,7 +396,6 @@ raw_stream_t rget_response_reader_t::unshard(
     // exhausted in this step.
     std::vector<pseudoshard_t> pseudoshards;
     pseudoshards.reserve(active_ranges->ranges.size() * CPU_SHARDING_FACTOR);
-    size_t n_active = 0, n_fresh = 0;
     for (auto &&pair : active_ranges->ranges) {
         bool range_active = pair.second.state() == range_state_t::ACTIVE;
         for (auto &&hash_pair : pair.second.hash_ranges) {
@@ -404,12 +403,10 @@ raw_stream_t rget_response_reader_t::unshard(
             keyed_stream_t *fresh = nullptr;
             // Active shards need their bounds updated.
             if (range_active) {
-                n_active += 1;
                 store_key_t *new_bound = nullptr;
                 auto it = stream.substreams.find(
                     region_t(hash_pair.first.beg, hash_pair.first.end, pair.first));
                 if (it != stream.substreams.end()) {
-                    n_fresh += 1;
                     fresh = &it->second;
                     new_bound = &it->second.last_key;
                 }
