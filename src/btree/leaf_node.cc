@@ -10,6 +10,20 @@
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
 
+// We comment out this warning, and static_assert that pair_offsets is
+// at an aligned offset.
+//
+// Considering we're doing arbitrary math into the node, we still
+// might have problems with unaligned pointers on some platforms.  Of
+// course, that would show itself instantly in testing.
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 901)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+#endif
+
+static_assert(offsetof(leaf_node_t, pair_offsets) % 2 == 0,
+              "pair_offsets must be at uint16_t alignment");
+
 namespace leaf {
 
 
@@ -1820,3 +1834,7 @@ leaf::reverse_iterator exclusive_upper_bound(const btree_key_t *key, const leaf_
 }
 
 }  // namespace leaf
+
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 901)
+#pragma GCC diagnostic pop
+#endif

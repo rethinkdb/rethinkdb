@@ -5,6 +5,20 @@
 
 #include "btree/node.hpp"
 
+// We comment out this warning, and static_assert that pair_offsets is
+// at an aligned offset.
+//
+// Considering we're doing arbitrary math into the node, we still
+// might have problems with unaligned pointers on some platforms.  Of
+// course, that would show itself instantly in testing.
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 901)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Waddress-of-packed-member"
+#endif
+
+static_assert(offsetof(internal_node_t, pair_offsets) % 2 == 0,
+              "pair_offsets must be at uint16_t alignment");
+
 //In this tree, less than or equal takes the left-hand branch and greater than takes the right hand branch
 
 namespace internal_node {
@@ -464,3 +478,6 @@ bool is_equal(const btree_key_t *key1, const btree_key_t *key2) {
 
 }  // namespace internal_node
 
+#if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 901)
+#pragma GCC diagnostic pop
+#endif
