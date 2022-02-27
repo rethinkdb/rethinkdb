@@ -324,9 +324,14 @@ struct GenericStringRef {
     const Ch* const s; //!< plain CharType pointer
     const SizeType length; //!< length of the string (excluding the trailing NULL terminator)
 
+    GenericStringRef(GenericStringRef &&) = default;
+    GenericStringRef &operator=(GenericStringRef &&) = delete;
+
 private:
-    //! Disallow copy-assignment
+    //! Disallow copy-assignment and copy-construction
     GenericStringRef &operator=(const GenericStringRef&) = delete;
+    GenericStringRef(const GenericStringRef&) = delete;
+
     //! Disallow construction from non-const array
     template<SizeType N>
     GenericStringRef(CharType (&str)[N]) = delete;
@@ -541,7 +546,7 @@ public:
     GenericValue(const Ch* s, SizeType length) RAPIDJSON_NOEXCEPT : data_(), flags_() { SetStringRaw(StringRef(s, length)); }
 
     //! Constructor for constant string (i.e. do not make a copy of string)
-    explicit GenericValue(StringRefType s) RAPIDJSON_NOEXCEPT : data_(), flags_() { SetStringRaw(s); }
+    explicit GenericValue(StringRefType s) RAPIDJSON_NOEXCEPT : data_(), flags_() { SetStringRaw(std::move(s)); }
 
     //! Constructor for copy-string (i.e. do make a copy of string)
     GenericValue(const Ch* s, SizeType length, Allocator& allocator) : data_(), flags_() { SetStringRaw(StringRef(s, length), allocator); }
