@@ -43,6 +43,7 @@ ql::datum_t js_to_datum(quickjs_context *ctx,
                         std::string *err_out);
 
 struct quickjs_context {
+    unsigned int task_counter;
     JSRuntime *rt;
     JSContext *ctx;
     JSAtom lengthAtom;
@@ -619,6 +620,12 @@ bool send_dummy_result(write_stream_t *stream_out) {
     return res == 0;
 }
 
+void run_other_tasks(quickjs_env *env) {
+    if ((env->ctx->task_counter & 127) == 0) {
+        JS_RunGC(env->ctx->rt);
+    }
+}
+
 bool run_eval(read_stream_t *stream_in,
               write_stream_t *stream_out,
               quickjs_env *qjs_env) {
@@ -643,6 +650,7 @@ bool run_eval(read_stream_t *stream_in,
         js_result = std::string("encountered an unknown exception");
     }
 
+    run_other_tasks(qjs_env);
     return send_js_result(stream_out, js_result);
 }
 
@@ -671,6 +679,7 @@ bool run_call(read_stream_t *stream_in,
         js_result = std::string("encountered an unknown exception");
     }
 
+    run_other_tasks(env);
     return send_js_result(stream_out, js_result);
 }
 
@@ -683,6 +692,7 @@ bool run_release(read_stream_t *stream_in,
     if (bad(res)) { return false; }
 
     qjs_release(env, id);
+    run_other_tasks(env);
     return send_dummy_result(stream_out);
 }
 
@@ -691,7 +701,6 @@ bool run_exit(write_stream_t *stream_out) {
 }
 
 bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
-    static uint64_t task_counter = 0;
     bool running = true;
 
     // We could combine these two objects quickjs_context and
@@ -701,7 +710,7 @@ bool js_job_t::worker_fn(read_stream_t *stream_in, write_stream_t *stream_out) {
     quickjs_env qjs_env(&context);
 
     while (running) {
-        task_counter += 1;
+        context.task_counter += 1;
         js_task_t task;
         int64_t read_size = sizeof(task);
         {
