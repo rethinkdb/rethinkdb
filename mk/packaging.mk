@@ -43,12 +43,12 @@ DIST_CONFIGURE_DEFAULT_FETCH = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), --fetch 
 DIST_SUPPORT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), $(SUPPORT_SRC_DIR)/$(pkg)_$($(pkg)_VERSION))
 
 DEB_BUILD_DEPENDS := libboost-dev, curl, m4, debhelper
-DEB_BUILD_DEPENDS += , fakeroot, python, libncurses5-dev, libcurl4-openssl-dev
+DEB_BUILD_DEPENDS += , fakeroot, libncurses5-dev, libcurl4-openssl-dev
 
 ifneq ($(UBUNTU_RELEASE),)
   ifneq ($(filter $(UBUNTU_RELEASE), trusty xenial),)
     # RethinkDB fails to compile with GCC 6 (#5757)
-    DEB_BUILD_DEPENDS += , g++-5, libssl-dev
+    DEB_BUILD_DEPENDS += , g++-5, libssl-dev, python
     DSC_CONFIGURE_DEFAULT += CXX=g++-5
     DPKG_JOBS := -j7
   else
@@ -61,6 +61,11 @@ ifneq ($(UBUNTU_RELEASE),)
       DEB_BUILD_DEPENDS += , libssl-dev
     endif
     DEB_BUILD_DEPENDS += , clang
+    ifneq ($(filter $(UBUNTU_RELEASE), hirsute focal bionic xenial trusty),)
+      DEB_BUILD_DEPENDS += , python
+    else
+      DEB_BUILD_DEPENDS += , python3, python-is-python3
+    endif
     DSC_CONFIGURE_DEFAULT += CXX=clang++
     DPKG_JOBS := --jobs=auto
   endif
@@ -77,6 +82,11 @@ else ifneq ($(DEB_RELEASE),)
     DEB_BUILD_DEPENDS += , libssl1.0-dev
   else
     DEB_BUILD_DEPENDS += , libssl-dev
+  endif
+  ifneq ($(filter $(DEB_RELEASE), jessie stretch buster),)
+    DEB_BUILD_DEPENDS += , python
+  else
+    DEB_BUILD_DEPENDS += , python3, python-is-python3
   endif
 endif
 
