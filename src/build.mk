@@ -435,5 +435,5 @@ VENDORED_REMOTE_REPO := https://github.com/rethinkdb/rethinkdb-vendored.git
 vendored: src/build.mk
 	$P GIT checkout vendored
 	[ ! -d vendored ] && git clone --quiet $(VENDORED_REMOTE_REPO) vendored || true
-	git -C vendored checkout --quiet $(VENDORED_COMMIT) || \
-	  ( git -C vendored fetch --quiet && git -C vendored checkout --quiet $(VENDORED_COMMIT) )
+	(cd vendored && git checkout --quiet $(VENDORED_COMMIT) && cd ..) || \
+	  ( cd vendored && git fetch --quiet && git checkout --quiet $(VENDORED_COMMIT) && cd .. )
