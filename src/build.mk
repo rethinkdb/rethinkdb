@@ -403,7 +403,6 @@ $(QUICKJS_INCLUDE): | $(QUICKJS_SOURCE)
 	mkdir -p $(QUICKJS_INCLUDE_DIR)
 	$P CP
 	cp $(QUICKJS_SOURCE)/quickjs.h $(QUICKJS_INCLUDE_DIR)/quickjs.h
-	cp $(QUICKJS_SOURCE)/quickjs-version.h $(QUICKJS_INCLUDE_DIR)/quickjs-version.h
 
 FORCE_ALL_DEPS := $(patsubst %,force-dep/%,$(NAMES))
 force-dep/%: $(SOURCE_DIR)/%.cc $(QL2_PROTO_HEADERS) $(ALL_INCLUDE_DEPS)
