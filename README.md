@@ -54,9 +54,11 @@ Building
 
 First install some dependencies.  For example, on Ubuntu or Debian:
 
-    sudo apt-get install build-essential protobuf-compiler python2 \
+    # python2 works; use "python" on older distributions
+    sudo apt-get install git build-essential protobuf-compiler \
+        python3 python3-is-python \
         libprotobuf-dev libcurl4-openssl-dev libboost-all-dev \
-        libncurses5-dev libjemalloc-dev wget m4 g++
+        libncurses5-dev libjemalloc-dev wget m4 g++ libssl-dev
 
 Generally, you will need
 
@@ -65,7 +67,7 @@ Generally, you will need
 * jemalloc
 * Ncurses
 * Boost
-* Python 2
+* Python 3 or Python 2
 * libcurl
 * libcrypto (OpenSSL)
 
@@ -74,8 +76,8 @@ Then, to build:
     ./configure --allow-fetch
     # or run ./configure --allow-fetch CXX=clang++
 
-    make -j4
-    # or run make -j4 DEBUG=1
+    make -j8
+    # or run make -j8 DEBUG=1
 
     sudo make install
     # or run ./build/debug_clang/rethinkdb
