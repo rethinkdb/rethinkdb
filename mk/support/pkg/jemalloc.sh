@@ -1,8 +1,8 @@
 
-version=4.5.0
+version=5.2.1
 
-src_url=https://github.com/jemalloc/jemalloc/releases/download/4.5.0/jemalloc-4.5.0.tar.bz2
-src_url_sha1=e7714d070c623bff9acf682e9d52c930e491acd8
+src_url=https://github.com/jemalloc/jemalloc/releases/download/$version/jemalloc-$version.tar.bz2
+src_url_sha1=9e06b5cc57fd185379d007696da153893cf73e30
 
 pkg_install () {
     configure_flags="--libdir=${install_dir}/lib"
