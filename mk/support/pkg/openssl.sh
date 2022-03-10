@@ -1,9 +1,9 @@
 
-version=1.0.2l
+version=1.1.1m
 
 src_url="https://www.openssl.org/source/openssl-$version.tar.gz"
 src_url_backup="ftp://ftp.openssl.org/source/openssl-$version.tar.gz"
-src_url_sha1="b58d5d0e9cea20e571d903aafa853e2ccd914138"
+src_url_sha1="39d424c4411e45f1570073d7a71b1830b96007ca"
 
 pkg_configure () {
     case $($CXX -dumpmachine) in
