@@ -6,11 +6,20 @@ src_url_sha1=8208c8994d8a5fde4ff5c8734998f32bdd085508
 
 pkg_configure () {
     local prefix
+    local openssl_version
+    local ssl_option
     prefix="$(niceabspath "$install_dir")"
     if [[ "$CROSS_COMPILING" = 1 ]]; then
         configure_flags="--host=$($CXX -dumpmachine)"
     fi
-    in_dir "$build_dir" ./configure --prefix="$prefix" --without-gnutls --with-ssl --without-nghttp2 --without-librtmp --disable-ldap --disable-shared ${configure_flags:-}
+    if will_fetch openssl; then
+        openssl_version=$(./mk/support/pkg/pkg.sh version openssl)
+        ssl_option="--with-openssl="$(niceabspath "$root_build_dir/external/openssl_$openssl_version")
+    else
+        ssl_option="--with-openssl"
+    fi
+
+    in_dir "$build_dir" ./configure --prefix="$prefix" --without-gnutls --without-nghttp2 "$ssl_option" --without-librtmp --disable-ldap --disable-shared ${configure_flags:-}
 }
 
 pkg_install-include () {
