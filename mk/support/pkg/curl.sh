@@ -19,7 +19,7 @@ pkg_configure () {
         ssl_option="--with-openssl"
     fi
 
-    in_dir "$build_dir" ./configure --prefix="$prefix" --without-gnutls --without-nghttp2 "$ssl_option" --without-librtmp --disable-ldap --disable-shared ${configure_flags:-}
+    in_dir "$build_dir" ./configure --prefix="$prefix" --without-gnutls --without-nghttp2 --without-ngtcp2 --without-nghttp3 "$ssl_option" --without-librtmp --disable-ldap --disable-shared ${configure_flags:-}
 }
 
 pkg_install-include () {
