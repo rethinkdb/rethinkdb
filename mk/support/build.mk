@@ -156,7 +156,7 @@ define support_include_rules
 .PHONY: support-include-$2 support-include-$2_$3
 .PRECIOUS: $3
 install-include-$2: install-include-$2_$3
-install-include-$2_% $(subst _$3/,_%/,$1): | $(SUPPORT_SRC_DIR)/$2_$3
+install-include-$2_% $(subst _$3/,_%/,$1): | $(SUPPORT_SRC_DIR)/$2_$3 $(foreach dep, $($2_DEPENDS), $(SUPPORT_BUILD_DIR)/$(dep)_$($(dep)_VERSION)/$(INSTALL_WITNESS))
 ifeq (1,$(ALWAYS_MAKE))
 	$$(warning Building $2_$3 is disabled in --always-make (-B) mode)
 else
