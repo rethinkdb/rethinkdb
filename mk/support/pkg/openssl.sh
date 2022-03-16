@@ -64,9 +64,12 @@ pkg_install-windows () {
 }
 
 pkg_link-flags () {
-    local dl_libs=''
+    local dl_libs
+    dl_libs=''
     if [[ "$OS" = "Linux" ]]; then
         dl_libs=-ldl
     fi
-    echo "$install_dir/lib64/lib$(lc $1).a" $dl_libs
+    local libdir
+    libdir="$(test -d "$install_dir/lib64" && echo lib64 || echo lib)"
+    echo "$install_dir/${libdir}/lib$(lc $1).a" $dl_libs
 }
