@@ -25,10 +25,10 @@ prepare_deb_package_dirs:
 	mkdir -p $(DEB_PACKAGE_DIR)
 	mkdir -p $(DEB_CONTROL_ROOT)
 
-DIST_SUPPORT_PACKAGES := re2 gtest jemalloc
+DIST_SUPPORT_PACKAGES := re2 gtest jemalloc boost
 DIST_CUSTOM_MK_LINES :=
 ifeq ($(BUILD_PORTABLE),1)
-  DIST_SUPPORT_PACKAGES += protobuf boost
+  DIST_SUPPORT_PACKAGES += protobuf
   DIST_CUSTOM_MK_LINES += 'BUILD_PORTABLE := 1'
 
   ifneq ($(CWD),$(TOP))
@@ -42,40 +42,33 @@ DSC_CONFIGURE_DEFAULT = --prefix=/usr --sysconfdir=/etc --localstatedir=/var
 DIST_CONFIGURE_DEFAULT_FETCH = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), --fetch $(pkg))
 DIST_SUPPORT = $(foreach pkg, $(DIST_SUPPORT_PACKAGES), $(SUPPORT_SRC_DIR)/$(pkg)_$($(pkg)_VERSION))
 
-DEB_BUILD_DEPENDS := libboost-dev, curl, m4, debhelper
+DEB_BUILD_DEPENDS := curl, m4, debhelper
 DEB_BUILD_DEPENDS += , fakeroot, libncurses5-dev, libcurl4-openssl-dev
+DEB_BUILD_DEPENDS += , g++
 
 ifneq ($(UBUNTU_RELEASE),)
   ifneq ($(filter $(UBUNTU_RELEASE), trusty xenial),)
-    # RethinkDB fails to compile with GCC 6 (#5757)
-    DEB_BUILD_DEPENDS += , g++-5, libssl-dev, python
-    DSC_CONFIGURE_DEFAULT += CXX=g++-5
+    DEB_BUILD_DEPENDS += , libssl-dev, python
     DPKG_JOBS := -j7
   else
-    # RethinkDB fails to compile with GCC 6 (#5757) -- and there is
-    # no GCC 5 in later Ubuntus.  We need to use libssl1.0-dev on
+    #  We need to use libssl1.0-dev on
     # zesty to be compatible with libcurl when linking.
     ifneq ($(filter $(UBUNTU_RELEASE), zesty),)
       DEB_BUILD_DEPENDS += , libssl1.0-dev
     else
       DEB_BUILD_DEPENDS += , libssl-dev
     endif
-    DEB_BUILD_DEPENDS += , clang
     ifneq ($(filter $(UBUNTU_RELEASE), hirsute focal bionic xenial trusty),)
       DEB_BUILD_DEPENDS += , python
     else
       DEB_BUILD_DEPENDS += , python3, python-is-python3
     endif
-    DSC_CONFIGURE_DEFAULT += CXX=clang++
     DPKG_JOBS := --jobs=auto
   endif
 else ifneq ($(DEB_RELEASE),)
   ifneq ($(filter $(DEB_RELEASE), jessie),)
-    DEB_BUILD_DEPENDS += , g++
     DPKG_JOBS := -j7
   else
-    DEB_BUILD_DEPENDS += , clang
-    DSC_CONFIGURE_DEFAULT += CXX=clang++
     DPKG_JOBS := --jobs=auto
   endif
   ifneq ($(filter $(DEB_RELEASE), stretch),)
