@@ -22,6 +22,8 @@ pkg_configure () {
     fi
 }
 
+separate_install_include=false
+
 pkg_install () {
     pkg_copy_src_to_build
 
