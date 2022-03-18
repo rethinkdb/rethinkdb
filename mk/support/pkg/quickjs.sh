@@ -4,7 +4,7 @@ src_url=https://bellard.org/quickjs/quickjs-${version}.tar.xz
 src_url_sha1=95836721cf3931a0043461db6c710415f05ed2cf
 
 pkg_configure () {
-    in_dir "$build_dir" sed -i "s!^prefix=/usr/local\$!prefix=$(niceabspath "$install_dir")!" Makefile
+    ( cd "$build_dir" && sed "s!^prefix=/usr/local\$!prefix=$(niceabspath "$install_dir")!" < Makefile > Makefile.tmp && mv Makefile.tmp Makefile )
 }
 
 pkg_link-flags () {
