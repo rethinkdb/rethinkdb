@@ -2,14 +2,10 @@
 
 ##### Build parameters
 
-QUICKJS_INCLUDE_DIR := $(BUILD_ROOT_DIR)/vendored/include
-QUICKJS_INCLUDE := -I$(QUICKJS_INCLUDE_DIR)
-QUICKJS_INCLUDE_DEP := $(QUICKJS_INCLUDE_DIR)
-
 # We assemble path directives.
 LDFLAGS ?=
 CXXFLAGS ?=
-RT_LDFLAGS = $(LDFLAGS) $(RE2_LIBS) $(TERMCAP_LIBS) $(Z_LIBS) $(CURL_LIBS) $(CRYPTO_LIBS) $(SSL_LIBS)
+RT_LDFLAGS = $(LDFLAGS) $(RE2_LIBS) $(TERMCAP_LIBS) $(Z_LIBS) $(CURL_LIBS) $(CRYPTO_LIBS) $(SSL_LIBS) $(QUICKJS_LIBS)
 RT_LDFLAGS += $(PROTOBUF_LIBS) $(PTHREAD_LIBS) $(MALLOC_LIBS)
 RT_CXXFLAGS := $(CXXFLAGS) $(RE2_INCLUDE) $(PROTOBUF_INCLUDE) $(BOOST_INCLUDE) $(Z_INCLUDE) $(CURL_INCLUDE) $(CRYPTO_INCLUDE) $(QUICKJS_INCLUDE)
 ALL_INCLUDE_DEPS := $(RE2_INCLUDE_DEP) $(PROTOBUF_INCLUDE_DEP) $(BOOST_INCLUDE_DEP) $(Z_INCLUDE_DEP) $(CURL_INCLUDE_DEP) $(CRYPTO_INCLUDE_DEP) $(SSL_INCLUDE_DEP) $(QUICKJS_INCLUDE_DEP)
@@ -249,11 +245,6 @@ SOURCES := $(shell find $(SOURCE_DIR) -name '*.cc' -not -name '\.*')
 
 SERVER_EXEC_SOURCES := $(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES))
 
-QUICKJS_SOURCE := $(BUILD_ROOT_DIR)/vendored/quickjs
-QUICKJS_A := $(QUICKJS_SOURCE)/libquickjs.a
-QUICKJS_INCLUDE := $(BUILD_ROOT_DIR)/vendored/include
-RT_CXXFLAGS += -I$(TOP)/vendored/include
-
 QL2_PROTO_NAMES := rdb_protocol/ql2
 QL2_PROTO_SOURCES := $(foreach _,$(QL2_PROTO_NAMES),$(SOURCE_DIR)/$_.proto)
 QL2_PROTO_HEADERS := $(foreach _,$(QL2_PROTO_NAMES),$(PROTO_DIR)/$_.pb.h)
@@ -274,9 +265,9 @@ NAMES := $(patsubst $(SOURCE_DIR)/%.cc,%,$(SOURCES))
 DEPS := $(patsubst %,$(DEP_DIR)/%$(DEPS_POSTFIX).d,$(NAMES))
 OBJS := $(QL2_PROTO_OBJS) $(patsubst %,$(OBJ_DIR)/%.o,$(NAMES))
 
-SERVER_EXEC_OBJS := $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(SERVER_EXEC_SOURCES)) $(QUICKJS_A)
+SERVER_EXEC_OBJS := $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(SERVER_EXEC_SOURCES))
 
-SERVER_NOMAIN_OBJS := $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(filter-out %/main.cc,$(SOURCES))) $(QUICKJS_A)
+SERVER_NOMAIN_OBJS := $(QL2_PROTO_OBJS) $(patsubst $(SOURCE_DIR)/%.cc,$(OBJ_DIR)/%.o,$(filter-out %/main.cc,$(SOURCES)))
 
 SERVER_UNIT_TEST_OBJS := $(SERVER_NOMAIN_OBJS) $(OBJ_DIR)/unittest/main.o
 
@@ -321,7 +312,7 @@ generate-headers: $(TOP)/src/rpc/semilattice/joins/macros.hpp $(TOP)/src/rpc/ser
 .PHONY: rethinkdb
 rethinkdb: $(BUILD_DIR)/$(SERVER_EXEC_NAME)
 
-RETHINKDB_DEPENDENCIES_LIBS := $(MALLOC_LIBS_DEP) $(PROTOBUF_LIBS_DEP) $(RE2_LIBS_DEP) $(Z_LIBS_DEP) $(CURL_LIBS_DEP) $(CRYPTO_LIBS_DEP) $(SSL_LIBS_DEP)
+RETHINKDB_DEPENDENCIES_LIBS := $(MALLOC_LIBS_DEP) $(PROTOBUF_LIBS_DEP) $(RE2_LIBS_DEP) $(Z_LIBS_DEP) $(CURL_LIBS_DEP) $(CRYPTO_LIBS_DEP) $(SSL_LIBS_DEP) $(QUICKJS_LIBS_DEP)
 
 MAYBE_CHECK_STATIC_MALLOC =
 ifeq ($(STATIC_MALLOC),1) # if the allocator is statically linked
@@ -388,22 +379,6 @@ $(OBJ_DIR)/%.o: $(SOURCE_DIR)/%.cc $(MAKEFILE_DEPENDENCY) $(ALL_INCLUDE_DEPS) | 
 	  sleep 1; touch $< \
 	)
 
-$(BUILD_ROOT_DIR)/vendored: | vendored
-	mkdir -p $(BUILD_ROOT_DIR)/vendored
-
-$(QUICKJS_SOURCE): | $(BUILD_ROOT_DIR)/vendored
-	if [ -d $(QUICKJS_SOURCE) ]; then rm -r $(QUICKJS_SOURCE); else true; fi
-	cp -R vendored/quickjs $(QUICKJS_SOURCE)
-
-$(QUICKJS_A): | $(QUICKJS_SOURCE)
-	$P CC
-	$(MAKE) -C $(QUICKJS_SOURCE) libquickjs.a
-
-$(QUICKJS_INCLUDE): | $(QUICKJS_SOURCE)
-	mkdir -p $(QUICKJS_INCLUDE_DIR)
-	$P CP
-	cp $(QUICKJS_SOURCE)/quickjs.h $(QUICKJS_INCLUDE_DIR)/quickjs.h
-
 FORCE_ALL_DEPS := $(patsubst %,force-dep/%,$(NAMES))
 force-dep/%: $(SOURCE_DIR)/%.cc $(QL2_PROTO_HEADERS) $(ALL_INCLUDE_DEPS)
 	$P CXX_DEPS $(DEP_DIR)/$*$(DEPS_POSTFIX).d
@@ -424,15 +399,3 @@ build-clean:
 .PHONY: check-syntax
 check-syntax:
 	$(RT_CXX) $(RT_CXXFLAGS) -c -o /dev/null $(patsubst %,$(CWD)/%,$(CHK_SOURCES))
-
-VENDORED_COMMIT := f74d69398fd8bc19eb83a29e624c66911a2d4be7
-VENDORED_REMOTE_REPO := https://github.com/rethinkdb/rethinkdb-vendored.git
-
-# Right now, rethinkdb-vendored's history is light, so we don't bother
-# with --depth and other clone params.  The dependency is on this
-# makefile because it carries the commit hash.
-vendored: src/build.mk
-	$P GIT checkout vendored
-	[ ! -d vendored ] && git clone --quiet $(VENDORED_REMOTE_REPO) vendored || true
-	(cd vendored && git checkout --quiet $(VENDORED_COMMIT) && cd ..) || \
-	  ( cd vendored && git fetch --quiet && git checkout --quiet $(VENDORED_COMMIT) && cd .. )
