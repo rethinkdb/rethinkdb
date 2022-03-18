@@ -22,11 +22,11 @@ init () {
     min_nmake_version=14.0
     min_cl_version=19.0
 
-    must_fetch_list=''
+    must_fetch_list='quickjs'
     please_fetch_list="gtest re2 $must_fetch_list"
 
     optional_libs="gtest termcap boost_system"
-    required_libs="protobuf re2 z crypto ssl curl"
+    required_libs="protobuf re2 z crypto ssl curl quickjs"
     other_libs="tcmalloc jemalloc"
     all_libs="$required_libs $optional_libs $other_libs"
     default_static="tcmalloc jemalloc"
@@ -182,7 +182,7 @@ configure_windows () {
     var PTHREAD_LIBS
     var CROSS_COMPILING 0
     var CXX false
-    for pkg in protobuf curl zlib re2 openssl gtest boost; do
+    for pkg in protobuf curl zlib re2 openssl gtest boost quickjs; do
         require_dep $pkg
         fetch_lib $pkg
     done

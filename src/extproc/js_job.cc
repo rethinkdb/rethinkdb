@@ -7,7 +7,7 @@
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #endif
 
-#include <quickjs.h>
+#include <quickjs/quickjs.h>
 
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop
