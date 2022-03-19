@@ -25,7 +25,7 @@ getent passwd rethinkdb >/dev/null || \
     --comment "RethinkDB Daemon" rethinkdb
 EOF
 
-    test -n "${NOCONFIGURE:-}" || ./configure --static all --fetch all --prefix=/usr --sysconfdir=/etc --localstatedir=/var
+    test -n "${NOCONFIGURE:-}" || ./configure --fetch jemalloc --fetch boost --fetch re2 --fetch quickjs --fetch protobuf --prefix=/usr --sysconfdir=/etc --localstatedir=/var
 
     `make command-line` install DESTDIR=$RPM_ROOT BUILD_PORTABLE=1 ALLOW_WARNINGS=1 SPLIT_SYMBOLS=1
 
