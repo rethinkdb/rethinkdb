@@ -215,7 +215,7 @@ pkg_configure () {
 }
 
 pkg_make () {
-    in_dir "$build_dir" make "$@"
+    in_dir "$build_dir" make -j8 "$@"
 }
 
 pkg_install () {
