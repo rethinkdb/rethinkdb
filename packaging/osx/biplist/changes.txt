@@ -1,3 +1,0 @@
-biplist: https://bitbucket.org/wooster/biplist
-
-This is version 1.0.1 (commit 3c0dfce) of biplist with no modifications.

@@ -1,4 +1,0 @@
-From the dmgbuild project: http://alastairs-place.net/projects/dmgbuild
-
-Based on commit f883da8, modified in the following ways:
-- changed ‘defines’ to override settings rather than provide data to the configuration file

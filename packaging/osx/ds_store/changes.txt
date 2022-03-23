@@ -1,3 +1,0 @@
-ds_store: http://alastairs-place.net/projects/ds_store
-
-We use an unchanged version of checkin c80c237
