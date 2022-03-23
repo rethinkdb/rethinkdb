@@ -31,7 +31,7 @@ init () {
     please_fetch_list="handlebars $must_fetch_list"
 
     optional_libs="termcap"
-    required_libs="protobuf"
+    required_libs=""
     other_libs=""
     all_libs="$required_libs $optional_libs $other_libs"
     default_static=""
@@ -147,7 +147,6 @@ configure_unixlike () {
         check_lib $lib require
     done
 
-    test_protobuf
     boolvar ALLOW_FETCH $allow_fetch
     for pkg in $must_fetch_list; do
         if ! contains "$FETCH_LIST" $pkg; then
@@ -171,10 +170,6 @@ configure_windows () {
     var PTHREAD_LIBS
     var CROSS_COMPILING 0
     var CXX false
-    for pkg in protobuf; do
-        require_dep $pkg
-        fetch_lib $pkg
-    done
     fetch_bin protoc
     require_dep npm
     check_bin npm
@@ -322,9 +317,7 @@ read_args () {
 # Description of some of the dependencies
 dep_descrs=':
 cxx:C++ Compiler
-protoc:Protobuf compiler
 npm:Node.js package manager
-protobuf:Protobuf library
 browserify:Browserify'
 
 # Output of --help
@@ -1010,37 +1003,6 @@ niceabspath () {
     fi
 }
 
-# Test that PROTOC and PROTOBUF_LIBS work together
-test_protobuf () {
-    require "Test protobuf"
-    if any "protoc protobuf" contains "$FETCH_LIST"; then
-        if [[ -z "${PROTOC_BIN_DEP:-}" ]]; then
-            fetch_bin protoc
-        fi
-        show fetch
-        return
-    fi
-    if ! test -e "$PROTOC"; then
-        required=false
-        error "$PROTOC does not exist"
-        return
-    fi
-    local pbdir=$root/mk/gen/protoc/
-    mkdir -p "$pbdir"
-    echo 'message Foo { enum Bar { Baz = 1; } }' > "$pbdir/test.proto"
-    echo 'int main(){ return 0; }' > "$pbdir/main.cc"
-    local out
-    if ! out=$(
-            "$PROTOC" "$pbdir/test.proto" --cpp_out=. 2>&1 &&
-            $CXX "$pbdir/test.pb.cc" "$pbdir/main.cc" -I "$root" $PROTOBUF_LIBS $PTHREAD_LIBS $M_LIBS ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} -o "$pbdir/a.out" 2>&1)
-    then
-        error_details="$out"
-        error "Unable to compile sample protobuf file. Try running ./configure with the --fetch protoc option"
-        return
-    fi
-    show ok
-}
-
 # fetch_allowed <pkg>
 # Fails if the package cannot be fetched
 fetch_allowed () {
@@ -1085,7 +1047,6 @@ EOF
 # The support package name that contains the application
 bin_pkg_name () {
     case "$1" in
-        protoc) echo protobuf ;;
         coffee) echo coffee-script ;;
         npm) echo node ;;
         *) echo "$1" ;;
