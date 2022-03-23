@@ -15,19 +15,6 @@ last_tested_versions
 /mk/gen/*
 /build
 
-/src/quickrun_rethinkdb
-/src/debug_rethinkdb
-/src/eavesdrop_rethinkdb
-/src/eavesdrop_memcache
-/src/eavesdrop
-/src/eavesdrop_debug
-/src/valgrind_rethinkdb
-/src/spin_up_clusters.py
-/src/.clang_complete
-/src/find_replace.sh
-/src/make_filter.sh
-/src/cluster_directory_*
-
 /packaging/ami/build-ami-files/static-web
 
 /**/rethinkdb_data
