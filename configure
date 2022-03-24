@@ -37,7 +37,7 @@ init () {
     default_static=""
 
     web_assets_deps="npm coffee browserify bluebird"
-    required_bin_deps="protoc python"
+    required_bin_deps="python"
     optional_bin_deps="wget"
     bin_deps="cxx $required_bin_deps $optional_bin_deps"
     all_deps="$bin_deps $all_libs"
@@ -170,7 +170,6 @@ configure_windows () {
     var PTHREAD_LIBS
     var CROSS_COMPILING 0
     var CXX false
-    fetch_bin protoc
     require_dep npm
     check_bin npm
     require_dep coffee
