@@ -29,7 +29,8 @@ src/gen/web_assets.cc.
 
 To generate src/gen/web_assets.cc, run the following:
 
-    ./configure --fetch all CXX=clang++
+    ./configure --fetch all
+    # ./configure --fetch all CXX=clang++
     make -j8 generate
 
 To generate a web_assets.cc for a specific RethinkDB version, you might want to try
@@ -62,3 +63,12 @@ semi-instantly view the results in a web browser.
 Then, once you're satisfied with your changes, interrupt the `make
 web-assets-watch` with Ctrl+C and use `make generate` to create your
 web_assets.cc, as described in the Usage section above.
+
+
+## System Requirements
+
+This is known to work on Debian Bullseye (with python-is-python3) and
+Ubuntu Focal (20.04).
+
+nodejs 6.17.1 fails to build on Ubuntu Jammy (22.04).  (It is probably
+easy to fix with a new patch file in mk/support/pkg/patch/.)
