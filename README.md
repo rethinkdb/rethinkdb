@@ -70,5 +70,10 @@ web_assets.cc, as described in the Usage section above.
 This is known to work on Debian Bullseye (with python-is-python3) and
 Ubuntu Focal (20.04).
 
-nodejs 6.17.1 fails to build on Ubuntu Jammy (22.04).  (It is probably
-easy to fix with a new patch file in mk/support/pkg/patch/.)
+On Ubuntu Jammy (22.04), you will need Python to point to python2:
+
+    mkdir ~/tmpbin
+    ln -s /usr/bin/python2 ~/tmpbin/python
+    export PATH=~/tmpbin:"$PATH"
+    ./configure --allow-fetch
+    make -j8 generate
