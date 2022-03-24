@@ -42,6 +42,12 @@ include $(TOP)/admin/build.mk
 # Rules for tools like valgrind and code coverage report
 include $(TOP)/mk/tools.mk
 
+# Moved from src/build.mk in the main RethinkDB repo
+.PHONY: build-clean
+build-clean:
+	$P RM $(BUILD_ROOT_DIR)
+	rm -rf $(BUILD_ROOT_DIR)
+
 .PHONY: clean
 clean: build-clean
 
