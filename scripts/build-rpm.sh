@@ -32,6 +32,10 @@ EOF
     ... () { command="$command $(for x in "$@"; do printf "%q " "$x"; done)"; }
 
     GLIBC_VERSION=`rpm -qa --queryformat '%{VERSION}\n' glibc | head -n1`
+    LIBSTDCPP_VERSION=`rpm -qa --queryformat '%{VERSION}\n' libstdc++ | head -n1`
+    LIBCURL_VERSION=`rpm -qa --queryformat '%{VERSION}\n' libcurl | head -n1`
+    OPENSSL_VERSION=`rpm -qa --queryformat '%{VERSION}\n' openssl-libs | head -n1`
+    ZLIB_VERSION=`rpm -qa --queryformat '%{VERSION}\n' zlib | head -n1`
 
     command=fpm
     ... -t rpm                  # Build an RPM package
@@ -43,6 +47,10 @@ EOF
     ... --version "$VERSION"
     ... --iteration "`./scripts/gen-version.sh -r`"
     ... --depends "glibc >= $GLIBC_VERSION"
+    ... --depends "libstdc++ >= $LIBSTDCPP_VERSION"
+    ... --depends "libcurl >= $LIBCURL_VERSION"
+    ... --depends "openssl-libs >= $OPENSSL_VERSION"
+    ... --depends "zlib >= $ZLIB_VERSION"
     ... --conflicts 'rethinkdb'
     ... --architecture "$ARCH"
     ... --maintainer 'RethinkDB <devops@rethinkdb.com>'
