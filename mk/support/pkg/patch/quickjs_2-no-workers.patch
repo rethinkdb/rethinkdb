@@ -1,0 +1,13 @@
+diff -ruN original ./quickjs-libc.c 
+--- original	2022-03-28 07:43:53.441856605 -0700
++++ ./quickjs-libc.c	2022-03-28 07:44:00.298255090 -0700
+@@ -59,7 +59,7 @@
+ 
+ #if !defined(_WIN32)
+ /* enable the os.Worker API. IT relies on POSIX threads */
+-#define USE_WORKER
++/* #define USE_WORKER */
+ #endif
+ 
+ #ifdef USE_WORKER
+ 
