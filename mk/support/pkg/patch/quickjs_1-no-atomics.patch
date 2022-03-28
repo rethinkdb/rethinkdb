@@ -1,0 +1,13 @@
+diff -ruN original ./quickjs.c
+--- original	2022-03-28 07:32:36.359699208 -0700
++++ ./quickjs.c	2022-03-28 07:32:49.608141930 -0700
+@@ -70,7 +70,7 @@
+ /* define to include Atomics.* operations which depend on the OS
+    threads */
+ #if !defined(EMSCRIPTEN)
+-#define CONFIG_ATOMICS
++/* #define CONFIG_ATOMICS */
+ #endif
+ 
+ #if !defined(EMSCRIPTEN)
+ 
