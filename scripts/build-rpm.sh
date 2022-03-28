@@ -55,7 +55,7 @@ EOF
     ... --architecture "$ARCH"
     ... --maintainer 'RethinkDB <devops@rethinkdb.com>'
     ... --description "$DESCRIPTION"
-    ... --url 'http://www.rethinkdb.com/'
+    ... --url 'https://www.rethinkdb.com/'
     ... --before-install "$BEFORE_INSTALL"
     ... -s dir -C $RPM_ROOT     # Directory containing the installed files
     ... usr etc var             # Directories to package in the package
