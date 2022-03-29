@@ -21,3 +21,18 @@ pkg_install-include () {
     mkdir -p "$install_dir/include/quickjs"
     cp "$src_dir"/quickjs.h "$install_dir/include/quickjs"
 }
+
+pkg_install () {
+    if ! fetched; then
+        error "cannot install package, it has not been fetched"
+    fi
+    pkg_copy_src_to_build
+    pkg_configure ${configure_flags:-}
+    # The pkg.sh pkg_install would work on newer systems (invoking
+    # "pkg_make install").  But instead, we (a) avoid building quickjs
+    # executables, and (b) we avoid linking problems that occur on
+    # older platforms with those executables.
+    pkg_make libquickjs.a
+    mkdir -p "$install_dir/lib/quickjs"
+    install -m644 "$build_dir/libquickjs.a" "$install_dir/lib/quickjs/libquickjs.a"
+}
