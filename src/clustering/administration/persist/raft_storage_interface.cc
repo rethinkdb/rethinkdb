@@ -12,7 +12,7 @@ raft_log_index_t str_to_log_index(const std::string &str) {
     guarantee(str.size() == 16);
     raft_log_index_t index = 0;
     for (size_t i = 0; i < 16; ++i) {
-        int val;
+        raft_log_index_t val;
         if (str[i] >= '0' && str[i] <= '9') {
             val = str[i] - '0';
         } else if (str[i] >= 'a' && str[i] <= 'f') {
