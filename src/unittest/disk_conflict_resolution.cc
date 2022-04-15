@@ -8,6 +8,7 @@
 #include "containers/intrusive_list.hpp"
 #include "containers/scoped.hpp"
 #include "unittest/gtest.hpp"
+#include "unittest/unittest_utils.hpp"
 
 namespace unittest {
 
@@ -221,7 +222,7 @@ struct resize_test_t {
 /* WriteWriteConflict verifies that if two writes are sent, they will be run in the correct
 order. */
 
-TEST(DiskConflictTest, WriteWriteConflict) {
+TPTEST(DiskConflictTest, WriteWriteConflict) {
     test_driver_t d;
     write_test_t w1(&d, 0, "foo");
     write_test_t w2(&d, 0, "bar");
@@ -234,7 +235,7 @@ TEST(DiskConflictTest, WriteWriteConflict) {
 /* WriteReadConflict verifies that if a write and then a read are sent, the write will happen
 before the read. */
 
-TEST(DiskConflictTest, WriteReadConflict) {
+TPTEST(DiskConflictTest, WriteReadConflict) {
     test_driver_t d;
     write_test_t initial_write(&d, 0, "initial");
     write_test_t w(&d, 0, "foo");
@@ -247,7 +248,7 @@ TEST(DiskConflictTest, WriteReadConflict) {
 /* ReadWriteConflict verifies that if a read and then a write are sent, the read will happen
 before the write. */
 
-TEST(DiskConflictTest, ReadWriteConflict) {
+TPTEST(DiskConflictTest, ReadWriteConflict) {
     test_driver_t d;
     write_test_t initial_write(&d, 0, "initial");
     read_test_t r(&d, 0, "init");
@@ -260,7 +261,7 @@ TEST(DiskConflictTest, ReadWriteConflict) {
 /* NoSpuriousConflicts verifies that if two writes that don't overlap are sent, there are
 no problems. */
 
-TEST(DiskConflictTest, NoSpuriousConflicts) {
+TPTEST(DiskConflictTest, NoSpuriousConflicts) {
     test_driver_t d;
     write_test_t w1(&d, 0, "foo");
     write_test_t w2(&d, 4096, "bar");
@@ -272,7 +273,7 @@ TEST(DiskConflictTest, NoSpuriousConflicts) {
 
 /* ReadReadPass verifies that reads do not block reads */
 
-TEST(DiskConflictTest, NoReadReadConflict) {
+TPTEST(DiskConflictTest, NoReadReadConflict) {
     test_driver_t d;
     write_test_t initial_write(&d, 0, "foo");
     read_test_t r1(&d, 0, "foo");
@@ -287,7 +288,7 @@ TEST(DiskConflictTest, NoReadReadConflict) {
 /* WriteReadSubrange verifies that if a write and then a read are sent, and the read
 is for a subrange of the write, the read gets the right value */
 
-TEST(DiskConflictTest, WriteReadSubrange) {
+TPTEST(DiskConflictTest, WriteReadSubrange) {
     test_driver_t d;
     write_test_t w(&d, 0, "abcdefghijklmnopqrstuvwxyz");
     read_test_t r(&d, 3, "defghijkl");
@@ -298,7 +299,7 @@ TEST(DiskConflictTest, WriteReadSubrange) {
 /* WriteReadSuperrange verifies that if a write and then a read are sent, and the read
 is for a superrange of the write, the read gets the right value */
 
-TEST(DiskConflictTest, WriteReadSuperrange) {
+TPTEST(DiskConflictTest, WriteReadSuperrange) {
     test_driver_t d;
     write_test_t initial_write(&d, 0, "abc____________________xyz");
     write_test_t w(&d, 3, "defghijklmnopqrstuvw");
@@ -310,7 +311,7 @@ TEST(DiskConflictTest, WriteReadSuperrange) {
 
 /* ResizeResizeConflict verifies that a resize operation waits for a previous resize */
 
-TEST(DiskConflictTest, ResizeResizeConflict) {
+TPTEST(DiskConflictTest, ResizeResizeConflict) {
     test_driver_t d;
     resize_test_t resize1(&d, 0, DEVICE_BLOCK_SIZE);
     resize_test_t resize2(&d, 0, DEVICE_BLOCK_SIZE);
@@ -324,7 +325,7 @@ TEST(DiskConflictTest, ResizeResizeConflict) {
 /* WriteResizeIncreaseNonConflict verifies that resize doesn't wait for a
 previous write if it's increasing the file size */
 
-TEST(DiskConflictTest, WriteResizeIncreaseNonConflict) {
+TPTEST(DiskConflictTest, WriteResizeIncreaseNonConflict) {
     test_driver_t d;
     write_test_t w(&d, 0, "foo");
     resize_test_t resize(&d, 0, DEVICE_BLOCK_SIZE);
@@ -337,7 +338,7 @@ TEST(DiskConflictTest, WriteResizeIncreaseNonConflict) {
 /* WriteResizeDecreaseConflict checks that if we shrink the file, we wait for
 a previous write (only) in the conflicting file region. */
 
-TEST(DiskConflictTest, WriteResizeDecreaseConflict) {
+TPTEST(DiskConflictTest, WriteResizeDecreaseConflict) {
     test_driver_t d;
     write_test_t w1(&d, 0, "foo");
     write_test_t w2(&d, DEVICE_BLOCK_SIZE, "foo");
@@ -355,7 +356,7 @@ TEST(DiskConflictTest, WriteResizeDecreaseConflict) {
 (while waiting would be ok, the current conflict_resolving queue doesn't do that
 and it is important for its implementation to work correctly) */
 
-TEST(DiskConflictTest, ReadResizeNonConflict) {
+TPTEST(DiskConflictTest, ReadResizeNonConflict) {
     test_driver_t d;
     write_test_t initial_write(&d, 0, "foo");
     initial_write.go();
@@ -369,7 +370,7 @@ TEST(DiskConflictTest, ReadResizeNonConflict) {
 
 /* ResizeWriteConflict verifies that a write waits for a previous resize */
 
-TEST(DiskConflictTest, ResizeWriteConflict) {
+TPTEST(DiskConflictTest, ResizeWriteConflict) {
     test_driver_t d;
     resize_test_t resize(&d, 0, DEVICE_BLOCK_SIZE);
     write_test_t w(&d, 0, "foo");
@@ -381,7 +382,7 @@ TEST(DiskConflictTest, ResizeWriteConflict) {
 
 /* ResizeReadConflict verifies that a read waits for a previous resize */
 
-TEST(DiskConflictTest, ResizeReadConflict) {
+TPTEST(DiskConflictTest, ResizeReadConflict) {
     test_driver_t d;
     write_test_t initial_write(&d, 0, "foo");
     initial_write.go();
@@ -396,7 +397,7 @@ TEST(DiskConflictTest, ResizeReadConflict) {
 /* ResizeSequenceConflict verifies that in case of multiple resize operations,
 all of which are size increases, writes wait exactly for all previous resizes. */
 
-TEST(DiskConflictTest, ResizeSequenceConflict) {
+TPTEST(DiskConflictTest, ResizeSequenceConflict) {
     test_driver_t d;
     resize_test_t resize1(&d, 0, DEVICE_BLOCK_SIZE);
     write_test_t w1(&d, 0, "foo");
@@ -434,11 +435,11 @@ void cause_test_failure() {
     r.go();
 }
 
-TEST(DiskConflictTest, MetaTest) {
+TPTEST(DiskConflictTest, MetaTest) {
     EXPECT_NONFATAL_FAILURE(cause_test_failure(), "Read returned wrong data.");
 }
 
-TEST(DiskConflictTest, FillBufsFromSource) {
+TPTEST(DiskConflictTest, FillBufsFromSource) {
     // A 27-element array.
     char s[] = "abcdefghijklmnopqrstuvwxyz";
 
