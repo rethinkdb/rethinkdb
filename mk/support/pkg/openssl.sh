@@ -14,11 +14,17 @@ pkg_configure () {
     # use shared instead of no-shared because curl's configure script
     # fails on some platforms if it can't find -lssl
     if [[ "$OS" = "Darwin" ]]; then
-        in_dir "$build_dir" ./Configure darwin64-x86_64-cc -shared --prefix="$(niceabspath "$install_dir")" $CFLAGS
-    elif [[ "$arch" = arm ]]; then
-        in_dir "$build_dir" ./Configure linux-armv4 -shared --prefix="$(niceabspath "$install_dir")" $CFLAGS
+        if [[ "$arch" = arm ]]; then
+            in_dir "$build_dir" ./Configure darwin64-arm64-cc -shared --prefix="$(niceabspath "$install_dir")" $CFLAGS
+        else
+            in_dir "$build_dir" ./Configure darwin64-x86_64-cc -shared --prefix="$(niceabspath "$install_dir")" $CFLAGS
+        fi
     else
-        in_dir "$build_dir" ./config shared --prefix="$(niceabspath "$install_dir")" $CFLAGS
+        if [[ "$arch" = arm ]]; then
+            in_dir "$build_dir" ./Configure linux-armv4 -shared --prefix="$(niceabspath "$install_dir")" $CFLAGS
+        else
+            in_dir "$build_dir" ./config shared --prefix="$(niceabspath "$install_dir")" $CFLAGS
+        fi
     fi
 }
 
