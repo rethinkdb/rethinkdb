@@ -114,7 +114,7 @@ void poll_event_queue_t::run() {
         // have no way of handling, and it's probably fatal.
         guarantee_err(res != -1, "Waiting for poll events failed");
 
-        block_pm_duration event_loop_timer(pm_eventloop_singleton_t::get(parent->get_n_threads()));
+        block_pm_duration event_loop_timer(pm_eventloop_singleton_t::get());
 
         int count = 0;
         for (unsigned int i = 0; i < watched_fds.size(); i++) {

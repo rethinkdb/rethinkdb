@@ -134,22 +134,32 @@ TLS_with_init(coro_globals_t *, cglobals, nullptr);
 // construction depends on coro_t::coroutines_have_been_initialized() which in turn
 // depends on cglobals.
 std::unique_ptr<perfmon_counter_t> pm_active_coroutines, pm_allocated_coroutines;
+std::unique_ptr<perfmon_duration_sampler_t> pm_eventloop_singleton;
 std::unique_ptr<perfmon_multi_membership_t> pm_coroutines_membership;
 
 void init_global_coro_perfmons(int n_threads) {
     pm_active_coroutines.reset(new perfmon_counter_t(n_threads));
     pm_allocated_coroutines.reset(new perfmon_counter_t(n_threads));
+    pm_eventloop_singleton.reset(new perfmon_duration_sampler_t(secs_to_ticks(1), false, n_threads));
     pm_coroutines_membership.reset(new perfmon_multi_membership_t(
         &get_global_perfmon_collection(),
         pm_active_coroutines.get(), "active_coroutines",
-        pm_allocated_coroutines.get(), "allocated_coroutines"));
+        pm_allocated_coroutines.get(), "allocated_coroutines",
+        pm_eventloop_singleton.get(), "eventloop"));
 }
 
 void destruct_global_coro_perfmons() {
     pm_coroutines_membership.reset();
+    pm_eventloop_singleton.reset();
     pm_allocated_coroutines.reset();
     pm_active_coroutines.reset();
 }
+
+// Declared in event_queue.hpp
+perfmon_duration_sampler_t *pm_eventloop_singleton_t::get() {
+    return pm_eventloop_singleton.get();
+}
+
 
 coro_runtime_t::coro_runtime_t() {
     rassert(!TLS_get_cglobals(), "coro runtime initialized twice on this thread");

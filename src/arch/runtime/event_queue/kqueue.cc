@@ -60,15 +60,13 @@ int call_kevent(int kq, const struct kevent *changelist, int nchanges,
 }
 
 void kqueue_event_queue_t::run() {
-    const int n_threads = parent->get_n_threads();
-
     // Now, start the loop
     while (!parent->should_shut_down()) {
         // Grab the events from the kqueue!
         nevents = call_kevent(kqueue_fd, nullptr, 0,
                               events, MAX_IO_EVENT_PROCESSING_BATCH_SIZE, nullptr);
 
-        block_pm_duration event_loop_timer(pm_eventloop_singleton_t::get(n_threads));
+        block_pm_duration event_loop_timer(pm_eventloop_singleton_t::get());
 
         for (int i = 0; i < nevents; i++) {
             if (events[i].udata == nullptr) {
