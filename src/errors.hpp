@@ -108,9 +108,13 @@ void set_errno(int new_errno);
         ::abort();                                                  \
     } while (0)
 
+// We added abort() to this -- sorry if this hurts your debug tracing
+// -- raise(SIGTRAP) is not terminating the process on MacOS anymore,
+// probably because we are blocking it in thread_pool.cc.
 #define crash_or_trap(msg, ...) do {                                \
         report_fatal_error(__FILE__, __LINE__, msg, ##__VA_ARGS__); \
         BREAKPOINT;                                                 \
+        ::abort();                                                  \
     } while (0)
 
 void report_fatal_error(const char*, int, const char*, ...) ATTR_FORMAT(printf, 3, 4);
