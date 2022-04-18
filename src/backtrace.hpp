@@ -21,7 +21,7 @@ struct demangle_failed_exc_t : public std::exception {
 };
 std::string demangle_cpp_name(const char *mangled_name);
 
-#ifndef _WIN32
+#if !defined(_WIN32) && !defined(RDB_NO_BACKTRACE)
 class address_to_line_t {
 public:
     address_to_line_t() { }
@@ -55,6 +55,7 @@ private:
 
 std::string format_backtrace(bool use_addr2line = true);
 
+#if !defined(RDB_NO_BACKTRACE)
 // An individual backtrace frame
 class backtrace_frame_t {
 public:
@@ -74,17 +75,22 @@ private:
     bool symbols_initialized;
     const void *addr;
 };
+#endif  // !defined(RDB_NO_BACKTRACE)
 
 // A backtrace, consisting of backtrace_frame_t
 class backtrace_t {
 public:
     backtrace_t();
+#if !defined(RDB_NO_BACKTRACE)
     size_t get_num_frames() const { return frames.size(); }
     const backtrace_frame_t &get_frame(const size_t i) const { return frames[i]; }
+#endif
     std::string print_frames(bool use_addr2line) const;
 private:
+#if !defined(RDB_NO_BACKTRACE)
     static const int max_frames = 100;
     std::vector<backtrace_frame_t> frames;
+#endif
 };
 
 // Stores the backtrace from when it was constructed for later printing.

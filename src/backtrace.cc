@@ -25,6 +25,7 @@
 #include "utils.hpp"
 
 #ifndef _WIN32
+#if !defined(RDB_NO_BACKTRACE)
 static bool parse_backtrace_line(char *line, char **filename, char **function, char **offset, char **address) {
     /*
     backtrace() gives us lines in one of the following two forms:
@@ -68,6 +69,7 @@ static bool parse_backtrace_line(char *line, char **filename, char **function, c
 
     return true;
 }
+#endif  // !defined(RDB_NO_BACKTRACE)
 
 /* There has been some trouble with abi::__cxa_demangle.
 
@@ -106,6 +108,7 @@ std::string demangle_cpp_name(const char *mangled_name) {
     }
 }
 
+#if !defined(RDB_NO_BACKTRACE)
 int set_o_cloexec(int fd) {
     int flags = fcntl(fd, F_GETFD);
     if (flags < 0) {
@@ -201,7 +204,8 @@ std::string address_to_line_t::address_to_line(const std::string &executable, co
         return std::string(line);
     }
 }
-#endif
+#endif  // !defined(RDB_NO_BACKTRACE)
+#endif  // _WIN32
 
 std::string format_backtrace(bool use_addr2line) {
     lazy_backtrace_formatter_t bt;
@@ -209,6 +213,7 @@ std::string format_backtrace(bool use_addr2line) {
 }
 
 backtrace_t::backtrace_t() {
+#if !defined(RDB_NO_BACKTRACE)
     scoped_array_t<void *> stack_frames(new void*[max_frames], max_frames); // Allocate on heap in case stack space is scarce
     int size = rethinkdb_backtrace(stack_frames.data(), max_frames);
 
@@ -220,13 +225,15 @@ backtrace_t::backtrace_t() {
                                                      space_remaining);
     }
 #endif
-
     frames.reserve(static_cast<size_t>(size));
     for (int i = 0; i < size; ++i) {
         frames.push_back(backtrace_frame_t(stack_frames[i]));
     }
+#endif
 }
 
+
+#if !defined(RDB_NO_BACKTRACE)
 backtrace_frame_t::backtrace_frame_t(const void* _addr) :
     symbols_initialized(false),
     addr(_addr) {
@@ -256,7 +263,7 @@ void backtrace_frame_t::initialize_symbols() {
         }
         free(symbols);
     }
-#endif
+#endif  // ifndef _WIN32
     symbols_initialized = true;
 }
 
@@ -292,6 +299,8 @@ std::string backtrace_frame_t::get_offset() const {
 const void *backtrace_frame_t::get_addr() const {
     return addr;
 }
+
+#endif  // !defined(RDB_NO_BACKTRACE)
 
 lazy_backtrace_formatter_t::lazy_backtrace_formatter_t() :
     backtrace_t(),
