@@ -58,8 +58,10 @@ Building
 
 First install some dependencies.  For example, on Ubuntu or Debian:
 
-    sudo apt-get install build-essential protobuf-compiler python \
-        libprotobuf-dev libcurl4-openssl-dev libboost-all-dev \
+    sudo apt-get install build-essential protobuf-compiler \
+        # python \  # for older distros
+        python3 python-is-python3 \
+        libprotobuf-dev libcurl4-openssl-dev \
         libncurses5-dev libjemalloc-dev wget m4 g++ libssl-dev
 
 Generally, you will need
@@ -68,8 +70,7 @@ Generally, you will need
 * Protocol Buffers
 * jemalloc
 * Ncurses
-* Boost
-* Python 2
+* Python 2 or Python 3
 * libcurl
 * libcrypto (OpenSSL)
 * libssl-dev
