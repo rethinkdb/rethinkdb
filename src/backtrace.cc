@@ -332,7 +332,10 @@ void initialize_dbghelp() {
 #endif
 
 std::string backtrace_t::print_frames(bool use_addr2line) const {
-#ifdef _WIN32
+#if defined(RDB_NO_BACKTRACE)
+    (void)use_addr2line;
+    return "backtrace not supported by this binary\n";
+#elif defined(_WIN32)
     initialize_dbghelp();
 
     std::string output;

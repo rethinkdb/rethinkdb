@@ -1,6 +1,14 @@
 #include "rethinkdb_backtrace.hpp"
 
-#ifdef __MACH__
+#if defined(RDB_NO_BACKTRACE)
+
+int rethinkdb_backtrace(void **buffer, int size) {
+    (void)buffer;
+    (void)size;
+    return 0;
+}
+
+#elif defined(__MACH__)
 
 #include <execinfo.h>
 #include <pthread.h>
