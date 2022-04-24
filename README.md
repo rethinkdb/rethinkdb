@@ -14,7 +14,12 @@ What is RethinkDB?
 * **Distributed** database that is easy to scale
 * **High availability** database with automatic failover and robust fault tolerance
 
-RethinkDB is the first open-source scalable database built for realtime applications. It exposes a new database access model, in which the developer can tell the database to continuously push updated query results to applications without polling for changes.  RethinkDB allows developers to build scalable realtime apps in a fraction of the time with less effort.
+RethinkDB is the first open-source scalable database built for
+realtime applications. It exposes a new database access model, in
+which the developer can tell the database to continuously push updated
+query results to applications without polling for changes.  RethinkDB
+allows developers to build scalable realtime apps in a fraction of the
+time with less effort.
 
 To learn more, check out [rethinkdb.com](https://rethinkdb.com).
 
@@ -30,7 +35,8 @@ Not sure what types of projects RethinkDB can help you build? Here are a few exa
 Quickstart
 ----------
 
-For a thirty-second RethinkDB quickstart, check out  [rethinkdb.com/docs/quickstart](https://www.rethinkdb.com/docs/quickstart).
+For a thirty-second RethinkDB quickstart, check out
+[rethinkdb.com/docs/quickstart](https://www.rethinkdb.com/docs/quickstart).
 
 Or, get started right away with our ten-minute guide in these languages:
 
@@ -51,7 +57,9 @@ Besides our four official drivers, we also have many [third-party drivers](https
 * **Rust:** [reql](https://github.com/rust-rethinkdb/reql)
 * **Scala:** [rethink-scala](https://github.com/kclay/rethink-scala)
 
-Looking to explore what else RethinkDB offers or the specifics of ReQL? Check out [our RethinkDB docs](https://rethinkdb.com/docs/) and [ReQL API](https://rethinkdb.com/api/).
+Looking to explore what else RethinkDB offers or the specifics of
+ReQL? Check out [our RethinkDB docs](https://rethinkdb.com/docs/) and
+[ReQL API](https://rethinkdb.com/api/).
 
 Building
 --------
@@ -90,14 +98,25 @@ Then, to build:
 Need help?
 ----------
 
-A great place to start is [rethinkdb.com/community](https://rethinkdb.com/community). Here you can find out how to ask us questions, reach out to us, or [report an issue](https://github.com/rethinkdb/rethinkdb/issues). You'll be able to find all the places we frequent online and at which conference or meetups you might be able to meet us next.
+A great place to start is
+[rethinkdb.com/community](https://rethinkdb.com/community). Here you
+can find out how to ask us questions, reach out to us, or [report an
+issue](https://github.com/rethinkdb/rethinkdb/issues). You'll be able
+to find all the places we frequent online and at which conference or
+meetups you might be able to meet us next.
 
-If you need help right now, you can also find us [on Slack](https://join.slack.com/t/rethinkdb/shared_invite/enQtNzAxOTUzNTk1NzMzLWY5ZTA0OTNmMWJiOWFmOGVhNTUxZjQzODQyZjIzNjgzZjdjZDFjNDg1NDY3MjFhYmNhOTY1MDVkNDgzMWZiZWM), [Twitter](https://twitter.com/rethinkdb), or IRC at [#rethinkdb](irc://chat.freenode.net/#rethinkdb) on Freenode.
+If you need help right now, you can also find us [on
+Slack](https://join.slack.com/t/rethinkdb/shared_invite/enQtNzAxOTUzNTk1NzMzLWY5ZTA0OTNmMWJiOWFmOGVhNTUxZjQzODQyZjIzNjgzZjdjZDFjNDg1NDY3MjFhYmNhOTY1MDVkNDgzMWZiZWM),
+[Twitter](https://twitter.com/rethinkdb), or IRC at
+[#rethinkdb](irc://chat.freenode.net/#rethinkdb) on Freenode.
 
 Contributing
 ------------
 
-RethinkDB was built by a dedicated team, but it wouldn't have been possible without the support and contributions of hundreds of people from all over the world. We could use your help too! Check out our [contributing guidelines](CONTRIBUTING.md) to get started.
+RethinkDB was built by a dedicated team, but it wouldn't have been
+possible without the support and contributions of hundreds of people
+from all over the world. We could use your help too! Check out our
+[contributing guidelines](CONTRIBUTING.md) to get started.
 
 Donors
 ------
@@ -112,7 +131,10 @@ Donors
 Licensing
 ---------
 
-RethinkDB is licensed by the Linux Foundation under the open-source Apache 2.0 license. Portions of the software are licensed by Google and others and used with permission or subject to their respective license agreements.
+RethinkDB is licensed by the Linux Foundation under the open-source
+Apache 2.0 license. Portions of the software are licensed by Google
+and others and used with permission or subject to their respective
+license agreements.
 
 Where's the changelog?
 ----------------------
