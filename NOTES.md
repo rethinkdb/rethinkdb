@@ -1,3 +1,79 @@
+# Release 2.4.2 (Night of the Living Dead)
+
+Released on 2022-04-24
+
+Bitrot, futureproofing, and bug fix release.
+
+### Compatibility ###
+
+No migration is required when upgrading from RethinkDB 2.4.x. Please read the
+[RethinkDB 2.4.0 release notes][release-notes-2.4.0] if you're upgrading from
+an older version.
+
+[release-notes-2.4.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.4.0
+
+RethinkDB 2.4.x servers cannot be mixed with servers running RethinkDB
+2.3.x or earlier in the same cluster.
+
+### API-breaking changes ###
+
+The `r.js` ReQL command now uses QuickJS to run instead of v8.
+Because RethinkDB's v8 version was old, this will allow you to use
+newer JavaScript features.  However, performance and the results of
+your JavaScript code may differ.
+
+### Substantive Changes ###
+
+(Issue numbers point into the https://github.com/rethinkdb/rethinkdb
+bugtracker.  For a completionist list of changes, run `git log
+v2.4.1..v2.4.2`.)
+
+* Server
+  * Fix 32-bit overflow bug with Raft log indexes (#7036)
+  * Make `r.http` requests use HTTP/1.1 (#7012).  This works around
+    `r.http`'s inability to parse HTTP/2 responses.
+  * Fix saslname decode logic (#7016)
+  * The limit of 127 threads has been removed (#6895)
+  * On newer MacOSes, make assertion failures abort the process (#7049)
+  * On newer MacOS builds, upon assertion failures, generate backtraces correctly (#7049)
+  * Fix an O(1) memory leak (#7010)
+  * Fix some newer MacOS warnings and compilation errors (#7014)
+  * Fix some other GCC warnings (various commits)
+  * Update curl dependency to 7.82.0
+  * Update jemalloc dependency to 5.2.1
+  * Update libidn dependency to 1.38
+  * Update openssl dependency (if fetched) to 3.0.1
+  * Get Apple M1 building working
+* Compilation
+  * Split out web assets code and its build dependency chain to the
+    `old_admin` branch (#6979)
+  * Package generation updates for Ubuntu 21.10, 22.04, and Debian Bullseye (#7021)
+  * More package generation updates for Debian (commit da34c2f)
+  * Make install-include depend on dependency install witness (commit 79c6857)
+  * Make RPM building explicitly name fetched dependencies and dynamically link (#7035)
+  * Add RDB_NO_BACKTRACE flag for musl users (#7052)
+  * A patch for wider boost compatibility was supplied (#6934)
+* Web UI
+  * The web UI was excised to the branch
+    https://github.com/rethinkdb/rethinkdb/tree/old_admin (#6979)
+
+## Contributors ##
+
+Many thanks to the following contributors whose patches made it into
+the RethinkDB 2.4.2 server release:
+
+* Rui Chen (@chenrui333)
+* Mathieu Schroeter (@Skywalker13)
+* Yong-Hao Zou (@zouyonghao)
+* zadcha (@zadsza)
+* Leo Arias (@elopio)
+
+And many thanks go to the driver committers, alternative admin console
+client developers, bug reporters, and other helpful people who are not
+listed here.
+
+--
+
 # Release 2.4.1 (Night of the Living Dead)
 
 Released on 2020-08-13
@@ -6,13 +82,14 @@ Bug fix release.
 
 ### Compatibility ###
 
-No migration is required when upgrading from RethinkDB 2.4.x. Please read the 
-[RethinkDB 2.4.0 release notes][release-notes-2.4.0] if you're upgrading from 
+No migration is required when upgrading from RethinkDB 2.4.x. Please read the
+[RethinkDB 2.4.0 release notes][release-notes-2.4.0] if you're upgrading from
 an older version.
 
 [release-notes-2.4.0]: https://github.com/rethinkdb/rethinkdb/releases/tag/v2.4.0
 
-RethinkDB 2.4.0 servers cannot be mixed with servers running RethinkDB 2.3.x or earlier in the same cluster.
+RethinkDB 2.4.0 servers cannot be mixed with servers running RethinkDB
+2.3.x or earlier in the same cluster.
 
 ### Changes ###
 
