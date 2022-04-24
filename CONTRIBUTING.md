@@ -22,6 +22,15 @@ need to sign our [Contributor License Agreement][5].
 [4]: https://github.com/rethinkdb/rethinkdb/compare/
 [5]: http://rethinkdb.com/community/cla/
 
+## Building the admin UI
+
+The code for the admin UI is now in a separate branch,
+[`old_admin`][1].  It is used to generate the file
+`src/gen/web_assets.cc`, which contains the static content served by
+RethinkDB's admin UI.  Development instructions are in that repo.
+
+[1]: https://github.com/rethinkdb/rethinkdb/tree/old_admin
+
 ## Resources
 
 Some useful resources to get started:
