@@ -1,0 +1,56 @@
+name: "Build"
+
+on:
+  push:
+    branches: [ v2.4.x ]
+  pull_request:
+    branches: [ v2.4.x ]
+  schedule:
+    - cron: '00 8 * * 1'
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '2.x'
+
+      - name: apt install
+        run: |
+          sudo apt update && DEBIAN_FRONTEND=noninteractive sudo apt install -y tzdata \
+              && sudo ln -fs /usr/share/zoneinfo/UTC /etc/localtime \
+              && sudo dpkg-reconfigure --frontend noninteractive tzdata
+          sudo  apt update && sudo apt install -y \
+              libc6 libcurl4 \
+              git build-essential protobuf-compiler \
+              libprotobuf-dev libcurl4-openssl-dev \
+              libncurses5-dev m4 g++ libssl-dev \
+              debhelper curl
+
+      - name: configure
+        run: ./configure --fetch boost --fetch gtest --fetch re2 --fetch jemalloc --fetch quickjs
+
+      - name: check style
+        run: ./scripts/check_style.sh
+
+      - name: make support
+        run: make support
+
+      - name: make DEBUG=1
+        run: make DEBUG=1
+
+      - name: prepare build dir for upload
+        run: tar -cvzf build.tar.gz build
+
+      - name: upload build artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: build.tar.gz
+          path: build.tar.gz
+
+      - name: run unit tests
+        run: exec $(find build -name rethinkdb-unittest)
