@@ -37,7 +37,7 @@ int remove_directory_helper(const char *path) {
     } else {
         res = DeleteFile(path);
     }
-    if(res != 0) {
+    if (res != 0) {
         fail_due_to_user_error("failed to remove: '%s': %s", path, winerr_string(GetLastError()).c_str());
     }
     return 0;
@@ -48,7 +48,7 @@ int remove_directory_helper(const char *path) {
 int remove_directory_helper(const char *path, UNUSED const struct stat *, UNUSED int, UNUSED struct FTW *) {
     logNTC("In recursion: removing file '%s'\n", path);
     int res = ::remove(path);
-    if(res != 0) {
+    if (res != 0) {
         fail_due_to_user_error("Fatal error: failed to delete '%s'.", path);
     }
     return 0;

@@ -1,9 +1,10 @@
 // Copyright 2010-2016 RethinkDB, all rights reserved.
 #include "random.hpp"
 
+#include <memory>
+
 #include "containers/scoped.hpp"
 #include "thread_local.hpp"
-#include <memory>
 
 rng_t::rng_t()
     : m_mt19937(std::random_device{}()) {
