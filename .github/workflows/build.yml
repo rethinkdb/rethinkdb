@@ -1,5 +1,10 @@
 name: "Build"
 
+# NOTE: Although it is deprecated, we use Python 2, because all python scripts
+#  are targeting that in the repository. To drop Python 2, we would need to
+#  update every script, which is a big effort. Also, this locks us into a
+#  given Python driver version (rethinkdb-python < 2.5).
+
 on:
   push:
     branches: [ v2.4.x ]
@@ -9,22 +14,40 @@ on:
     - cron: '00 8 * * 1'
 
 jobs:
-  build:
 
+  # Preflight runs every test and assertion that has no dependency on the build
+  # directory.
+  preflight:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v3
+      - name: cpplint
+        uses: ./.github/actions/tests
+        with:
+          kind: cpplint
+          command: ./scripts/check_style.sh
+          download_artifacts: false
+          upload_artifacts: false
 
+  # Build job runs after the preflight finished successfully. It configures the
+  # build system, then builds the DB.
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    needs: preflight
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
         with:
-          python-version: '2.x'
+          python-version: '2.7'
 
       - name: apt install
         run: |
           sudo apt update && DEBIAN_FRONTEND=noninteractive sudo apt install -y tzdata \
               && sudo ln -fs /usr/share/zoneinfo/UTC /etc/localtime \
               && sudo dpkg-reconfigure --frontend noninteractive tzdata
-          sudo  apt update && sudo apt install -y \
+          sudo apt update && sudo apt install -y \
               libc6 libcurl4 \
               git build-essential protobuf-compiler \
               libprotobuf-dev libcurl4-openssl-dev \
@@ -34,23 +57,156 @@ jobs:
       - name: configure
         run: ./configure --fetch boost --fetch gtest --fetch re2 --fetch jemalloc --fetch quickjs
 
-      - name: check style
-        run: ./scripts/check_style.sh
-
       - name: make support
-        run: make support
+        run: make support -j $(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
 
       - name: make DEBUG=1
-        run: make DEBUG=1
+        run: make DEBUG=1 -j $(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
 
-      - name: prepare build dir for upload
+      - name: compress build artifacts for upload
         run: tar -cvzf build.tar.gz build
 
       - name: upload build artifact
         uses: actions/upload-artifact@v3
         with:
-          name: build.tar.gz
-          path: build.tar.gz
+          name: build-artifacts
+          path: |
+            config.mk
+            build.tar.gz
+          if-no-files-found: error
 
-      - name: run unit tests
-        run: exec $(find build -name rethinkdb-unittest)
+  # Execute the test runner for unit tests.
+  unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: build
+    steps:
+      - uses: actions/checkout@v3
+      - name: unit tests
+        uses: ./.github/actions/tests
+        with:
+          kind: unit
+          command: |
+            export MAX_JOBS=$(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
+            test/run --verbose --jobs "${MAX_JOBS}" -H unit
+
+  # Execute the test runner for integration tests.
+  # NOTE: integration tests are using the Python driver, hence we have to setup the
+  #  driver and checkout the exact same commit hash as we do for other tests.
+  integration-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v3
+      - name: integration tests
+        uses: ./.github/actions/driver-tests
+        with:
+          driver_name: python
+          driver_dist_dir: /tmp/python-driver/rethinkdb
+          test_command: |
+            export PYTHON_DRIVER=/tmp/python-driver/rethinkdb
+            export MAX_JOBS=$(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
+            test/run --timeout 300 --jobs "${MAX_JOBS}" -H all '!unit' '!cpplint' '!long'
+          upload_artifacts: true
+          upload_artifacts_dir: test/results
+
+  long-running-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: unit-tests
+    steps:
+      - uses: actions/checkout@v3
+      - name: integration tests
+        uses: ./.github/actions/driver-tests
+        with:
+          driver_name: python
+          driver_dist_dir: /tmp/python-driver/rethinkdb
+          test_command: |
+            export PYTHON_DRIVER=/tmp/python-driver/rethinkdb
+            export MAX_JOBS=$(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
+            test/run --timeout 300 --jobs "${MAX_JOBS}" -H long
+          upload_artifacts: true
+          upload_artifacts_dir: test/results
+
+  # Execute the test runner for polyglot tests.
+  # NOTE: We are not running "language group" tests (like `py`, `rb`, or `js`) because
+  #  those interpreter versions listed in the groups are way deprecated. Instead, we
+  #  are running one test per language as a sanity check. We should run language groups
+  #  when we ensured that drivers are supporting never interpreter versions.
+  polyglot-tests-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs:
+      - unit-tests
+      - integration-tests
+      - long-running-tests
+    steps:
+      - uses: actions/checkout@v3
+      - name: polyglot tests for python
+        uses: ./.github/actions/driver-tests
+        with:
+          driver_name: python
+          driver_dist_dir: /tmp/python-driver/rethinkdb
+          interpreter: py2.7
+          test_target: polyglot
+
+  polyglot-tests-javascript:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs:
+      - unit-tests
+      - integration-tests
+      - long-running-tests
+    steps:
+      - uses: actions/checkout@v3
+      - name: install nvm and node
+        run: |
+          curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
+          source $HOME/.nvm/nvm.sh
+          nvm install 5.12
+
+      - name: polyglot tests for javascript
+        uses: ./.github/actions/driver-tests
+        with:
+          driver_name: javascript
+          driver_dist_dir: /tmp/driver/dist
+          repo_url: https://github.com/rethinkdb/rethinkdb-javascript.git
+          # TODO: This commit is pointing after driver extraction, hence it should be the baseline.
+          #  When all tests are passing using this commit hash, update the hash to the latest and
+          #  fix the newly raised issues.
+          commit_hash: c717cb9e2bdab77b55b7a31a5d780ba293c5fadf
+          interpreter: js5
+          test_target: polyglot
+          env_activate: source $HOME/.nvm/nvm.sh && nvm use 5.12
+          install_command: npm install && npm run build
+
+  polyglot-tests-ruby:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs:
+      - unit-tests
+      - integration-tests
+      - long-running-tests
+    steps:
+      - uses: actions/checkout@v3
+      - name: install rvm and ruby
+        run: |
+          sudo apt update && DEBIAN_FRONTEND=noninteractive sudo apt install -y software-properties-common
+          sudo apt-add-repository -y ppa:rael-gc/rvm
+          sudo apt update && sudo apt install -y rvm
+          source /etc/profile.d/rvm.sh
+          rvm install 2.5 && rvm use 2.5
+          gem install bundler
+
+      - name: polyglot tests for ruby
+        uses: ./.github/actions/driver-tests
+        with:
+          driver_name: ruby
+          driver_dist_dir: /tmp/driver/lib
+          repo_url: https://github.com/rethinkdb/rethinkdb-ruby.git
+          commit_hash: 25781763f1af4e85116c80fd0cc988927e9c6829
+          interpreter: rb2.5
+          test_target: polyglot
+          env_activate: source /etc/profile.d/rvm.sh && rvm use 2.5
+          install_command: bundle install && rake build
