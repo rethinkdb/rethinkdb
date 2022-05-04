@@ -5,7 +5,7 @@ var fs = require('fs');
 
 // -- load rethinkdb from the proper location
 
-rethinkdbLocation = process.env.JAVASCRIPT_DRIVER_DIR || path.join(__dirname, '..', '..', 'build', 'packages', 'js');
+rethinkdbLocation = process.env.JAVASCRIPT_DRIVER || path.join(__dirname, '..', '..', 'build', 'packages', 'js');
 if (fs.existsSync(path.resolve(rethinkdbLocation, 'rethinkdb.js')) == false) {
     process.stdout.write('Could not locate the javascript drivers at the expected location: ' + rethinkdbLocation);
     process.exit(1);
@@ -47,4 +47,3 @@ if (require.main === module) {
     module.exports.r = r;
     module.exports.protodef = protodef;
 }
-    

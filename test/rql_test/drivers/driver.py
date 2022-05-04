@@ -26,7 +26,10 @@ start_time=time.time()
 # -- import driver
 
 r = utils.import_python_driver()
-print('Using RethinkDB client from: %s' % r.__file__)
+print(
+    'Using RethinkDB client from:',
+    inspect.getfile(r.__class__) if inspect.isclass(r) else r.__file__
+)
 
 # -- get settings
 

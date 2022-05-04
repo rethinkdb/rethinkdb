@@ -4,6 +4,7 @@
 from __future__ import print_function
 
 import atexit, collections, fcntl, os, pprint, platform, random, re, shutil, signal
+import inspect
 import socket, string, subprocess, sys, tempfile, threading, time, warnings
 
 import test_exceptions
@@ -180,8 +181,7 @@ def import_python_driver():
         return __loadedPythonDriver
     
     # --
-    
-    loadedDriver = None
+
     driverPath =  driverPaths['Python']['driverPath']
     sourcePath =  driverPaths['Python']['sourcePath']
     
@@ -193,7 +193,7 @@ def import_python_driver():
             loadedDriver = __import__('rethinkdb')
             driverPaths['Python']['driverPath'] = os.path.dirname(loadedDriver.__file__)
             os.environ['PYTHON_DRIVER'] = driverPaths['Python']['driverPath']
-            return loadedDriver
+            return loadedDriver.r if inspect.isclass(loadedDriver) else loadedDriver
         except ImportError as e:
             raise ImportError('Unable to load system-installed `rethinkdb` module - %s' % str(e))
     
@@ -227,8 +227,8 @@ def import_python_driver():
         raise ImportError('Loaded Python driver was %s, rather than the expected one from %s' % (loadedDriver.__file__, driverPath))
     
     # -- return the loaded module
-    
-    __loadedPythonDriver = loadedDriver
+
+    __loadedPythonDriver = loadedDriver.r if inspect.isclass(loadedDriver) else loadedDriver
     return __loadedPythonDriver
 
 class PerformContinuousAction(threading.Thread):
