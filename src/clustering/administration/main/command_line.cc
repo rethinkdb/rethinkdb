@@ -381,8 +381,58 @@ bool exists_option(const std::map<std::string, options::values_t> &opts, const s
     return it != opts.end() && !it->second.values.empty();
 }
 
+#ifdef _WIN32
+std::string windows_version_string() {
+    // TODO WINDOWS: the return value of GetVersion may be capped,
+    // see https://msdn.microsoft.com/en-us/library/dn481241(v=vs.85).aspx
+    DWORD version = GetVersion();
+    int major = LOBYTE(LOWORD(version));
+    int minor = HIBYTE(LOWORD(version));
+    int build = version < 0x80000000 ?  HIWORD(version) : 0;
+    std::string name;
+    switch (LOWORD(version)) {
+    case 0x000A: name ="Windows 10, Server 2016"; break;
+    case 0x0306: name ="Windows 8.1, Server 2012"; break;
+    case 0x0206: name ="Windows 8, Server 2012"; break;
+    case 0x0106: name ="Windows 7, Server 2008 R2"; break;
+    case 0x0006: name ="Windows Vista, Server 2008"; break;
+    case 0x0205: name ="Windows XP 64-bit, Server 2003"; break;
+    case 0x0105: name ="Windows XP"; break;
+    case 0x0005: name ="Windows 2000"; break;
+    default: name = "Unknown";
+    }
+    return strprintf("%d.%d.%d (%s)", major, minor, build, name.c_str());
+}
+#else
+// WARNING WARNING WARNING blocking
+// if in doubt, DO NOT USE.
+std::string run_uname(const std::string &flags) {
+    char buf[1024];
+    static const std::string unknown = "unknown operating system\n";
+    const std::string combined = "uname -" + flags;
+    FILE *out = popen(combined.c_str(), "r");
+    if (!out) return unknown;
+    if (!fgets(buf, sizeof(buf), out)) {
+        pclose(out);
+        return unknown;
+    }
+    pclose(out);
+    return buf;
+}
+
+std::string uname_msr() {
+    return run_uname("msr");
+}
+#endif
+
 void print_version_message() {
     printf("%s\n", RETHINKDB_VERSION_STR);
+
+#ifdef _WIN32
+    printf("%s", windows_version_string().c_str());
+#else
+    printf("%s", uname_msr().c_str());
+#endif
 }
 
 bool handle_help_or_version_option(const std::map<std::string, options::values_t> &opts,
@@ -1088,50 +1138,6 @@ void run_rethinkdb_create(const base_path_t &base_path,
         *result_out = false;
     }
 }
-
-#ifdef _WIN32
-std::string windows_version_string() {
-    // TODO WINDOWS: the return value of GetVersion may be capped,
-    // see https://msdn.microsoft.com/en-us/library/dn481241(v=vs.85).aspx
-    DWORD version = GetVersion();
-    int major = LOBYTE(LOWORD(version));
-    int minor = HIBYTE(LOWORD(version));
-    int build = version < 0x80000000 ?  HIWORD(version) : 0;
-    std::string name;
-    switch (LOWORD(version)) {
-    case 0x000A: name ="Windows 10, Server 2016"; break;
-    case 0x0306: name ="Windows 8.1, Server 2012"; break;
-    case 0x0206: name ="Windows 8, Server 2012"; break;
-    case 0x0106: name ="Windows 7, Server 2008 R2"; break;
-    case 0x0006: name ="Windows Vista, Server 2008"; break;
-    case 0x0205: name ="Windows XP 64-bit, Server 2003"; break;
-    case 0x0105: name ="Windows XP"; break;
-    case 0x0005: name ="Windows 2000"; break;
-    default: name = "Unknown";
-    }
-    return strprintf("%d.%d.%d (%s)", major, minor, build, name.c_str());
-}
-#else
-// WARNING WARNING WARNING blocking
-// if in doubt, DO NOT USE.
-std::string run_uname(const std::string &flags) {
-    char buf[1024];
-    static const std::string unknown = "unknown operating system\n";
-    const std::string combined = "uname -" + flags;
-    FILE *out = popen(combined.c_str(), "r");
-    if (!out) return unknown;
-    if (!fgets(buf, sizeof(buf), out)) {
-        pclose(out);
-        return unknown;
-    }
-    pclose(out);
-    return buf;
-}
-
-std::string uname_msr() {
-    return run_uname("msr");
-}
-#endif
 
 void run_rethinkdb_serve(const base_path_t &base_path,
                          serve_info_t *serve_info,
