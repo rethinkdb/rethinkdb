@@ -63,13 +63,13 @@ jobs:
 
       - name: compress build artifacts for upload
         if: always()
-        run: tar -czf ${{ github.job_id }}.tar.gz build
+        run: tar -czf ${{ github.job }}.tar.gz build
 
       - name: upload build artifact
         uses: actions/upload-artifact@v3
         if: always()
         with:
-          name: ${{ github.job_id }}-artifacts
+          name: ${{ github.job }}-artifacts
           path: |
             config.mk
             build.tar.gz
@@ -110,14 +110,14 @@ jobs:
       - name: compress test artifacts for upload
         if: always()
         shell: bash
-        run: tar -czf ${{ github.job_id }}.tar.gz test/results
+        run: tar -czf ${{ github.job }}.tar.gz test/results
 
       - name: upload test artifacts
         if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ github.job_id }}.tar.gz
-          path: ${{ github.job_id }}.tar.gz
+          name: ${{ github.job }}.tar.gz
+          path: ${{ github.job }}.tar.gz
 
   long-running-tests:
     runs-on: ubuntu-latest
@@ -138,14 +138,14 @@ jobs:
       - name: compress test artifacts for upload
         if: always()
         shell: bash
-        run: tar -czf ${{ github.job_id }}.tar.gz test/results
+        run: tar -czf ${{ github.job }}.tar.gz test/results
 
       - name: upload test artifacts
         if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ github.job_id }}.tar.gz
-          path: ${{ github.job_id }}.tar.gz
+          name: ${{ github.job }}.tar.gz
+          path: ${{ github.job }}.tar.gz
 
   # Execute the test runner for polyglot tests.
   # NOTE: We are not running "language group" tests (like `py`, `rb`, or `js`) because
@@ -172,14 +172,14 @@ jobs:
       - name: compress test artifacts for upload
         if: always()
         shell: bash
-        run: tar -czf ${{ github.job_id }}.tar.gz test/rql_test/build
+        run: tar -czf ${{ github.job }}.tar.gz test/rql_test/build
 
       - name: upload test artifacts
         if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ github.job_id }}.tar.gz
-          path: ${{ github.job_id }}.tar.gz
+          name: ${{ github.job }}.tar.gz
+          path: ${{ github.job }}.tar.gz
 
   polyglot-tests-javascript:
     runs-on: ubuntu-latest
@@ -214,14 +214,14 @@ jobs:
       - name: compress test artifacts for upload
         if: always()
         shell: bash
-        run: tar -czf ${{ github.job_id }}.tar.gz test/rql_test/build
+        run: tar -czf ${{ github.job }}.tar.gz test/rql_test/build
 
       - name: upload test artifacts
         if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ github.job_id }}.tar.gz
-          path: ${{ github.job_id }}.tar.gz
+          name: ${{ github.job }}.tar.gz
+          path: ${{ github.job }}.tar.gz
 
   polyglot-tests-ruby:
     runs-on: ubuntu-latest
@@ -256,11 +256,11 @@ jobs:
       - name: compress test artifacts for upload
         if: always()
         shell: bash
-        run: tar -czf ${{ github.job_id }}.tar.gz test/rql_test/build
+        run: tar -czf ${{ github.job }}.tar.gz test/rql_test/build
 
       - name: upload test artifacts
         if: always()
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ github.job_id }}.tar.gz
-          path: ${{ github.job_id }}.tar.gz
+          name: ${{ github.job }}.tar.gz
+          path: ${{ github.job }}.tar.gz
