@@ -84,7 +84,6 @@ jobs:
       - name: unit tests
         uses: ./.github/actions/tests
         with:
-          kind: unit
           command: |
             export MAX_JOBS=$(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
             test/run --verbose --jobs "${MAX_JOBS}" -H unit
