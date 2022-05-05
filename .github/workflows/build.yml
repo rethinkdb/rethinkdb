@@ -88,6 +88,18 @@ jobs:
             export MAX_JOBS=$(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
             test/run --verbose --jobs "${MAX_JOBS}" -H unit
 
+      - name: compress test artifacts for upload
+        if: always()
+        shell: bash
+        run: tar -czf ${{ github.job }}.tar.gz test/results
+
+      - name: upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.job }}.tar.gz
+          path: ${{ github.job }}.tar.gz
+
   # Execute the test runner for integration tests.
   # NOTE: integration tests are using the Python driver, hence we have to setup the
   #  driver and checkout the exact same commit hash as we do for other tests.
