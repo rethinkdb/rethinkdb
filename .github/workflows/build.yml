@@ -127,7 +127,7 @@ jobs:
           test_command: |
             export PYTHON_DRIVER=/tmp/python-driver/rethinkdb
             export MAX_JOBS=$(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
-            test/run --timeout 300 --jobs "${MAX_JOBS}" -H long '!disabled'
+            test/run --timeout 900 --jobs "${MAX_JOBS}" -H long '!disabled'
           upload_artifacts: true
           upload_artifacts_dir: test/results
 
