@@ -162,7 +162,7 @@ tests:
       ot: err("ReqlQueryLogicError", "Query result must be of type DATUM, GROUPED_DATA, or STREAM (got FUNCTION).", [0])
 
     - cd: r.js('function() { return 1; }')
-      ot: err("ReqlQueryLogicError", "SyntaxError: Unexpected token (", [0])
+      ot: err("ReqlQueryLogicError", "SyntaxError: function name expected")
 
     # Play with the number of arguments in the JS function
     - cd: r.do(1, 2, r.js('(function(a) { return a; })'))
