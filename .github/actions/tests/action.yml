@@ -5,20 +5,9 @@ inputs:
   command:
     description: The test runner command to execute.
     required: true
-  kind:
-    description: The kind of tests.
-    required: true
   download_artifacts:
     description: Download and decompress build artifacts.
     default: "true"
-    required: false
-  upload_artifacts:
-    description: Upload test artifacts.
-    default: "true"
-    required: false
-  upload_artifacts_dir:
-    description: Artifacts directory to upload.
-    default: "test/results"
     required: false
 
 # Composite step for using the test runner with multiple parameters.
@@ -49,16 +38,3 @@ runs:
     - name: run tests
       shell: bash
       run: ${{ inputs.command }}
-
-    - name: compress test artifacts for upload
-      if: ${{ inputs.upload_artifacts == 'true' }}
-      shell: bash
-      run: tar -cvzf ${{ inputs.kind }}-tests.tar.gz ${{ inputs.upload_artifacts_dir }}
-
-    - name: upload ${{ inputs.kind }} test artifact
-      if: ${{ inputs.upload_artifacts == 'true' }}
-      uses: actions/upload-artifact@v3
-      with:
-        name: ${{ inputs.kind }}-tests.tar.gz
-        path: ${{ inputs.kind }}-tests.tar.gz
-        if-no-files-found: error

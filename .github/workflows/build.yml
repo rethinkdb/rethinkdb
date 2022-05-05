@@ -25,10 +25,8 @@ jobs:
       - name: cpplint
         uses: ./.github/actions/tests
         with:
-          kind: cpplint
           command: ./scripts/check_style.sh
           download_artifacts: false
-          upload_artifacts: false
 
   # Build job runs after the preflight finished successfully. It configures the
   # build system, then builds the DB.
@@ -64,16 +62,17 @@ jobs:
         run: make DEBUG=1 -j $(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
 
       - name: compress build artifacts for upload
-        run: tar -cvzf build.tar.gz build
+        if: always()
+        run: tar -czf ${{ github.job_id }}.tar.gz build
 
       - name: upload build artifact
         uses: actions/upload-artifact@v3
+        if: always()
         with:
-          name: build-artifacts
+          name: ${{ github.job_id }}-artifacts
           path: |
             config.mk
             build.tar.gz
-          if-no-files-found: error
 
   # Execute the test runner for unit tests.
   unit-tests:
@@ -102,15 +101,24 @@ jobs:
       - name: integration tests
         uses: ./.github/actions/driver-tests
         with:
-          kind: integration-tests
           driver_name: python
           driver_dist_dir: /tmp/python-driver/rethinkdb
           test_command: |
             export PYTHON_DRIVER=/tmp/python-driver/rethinkdb
             export MAX_JOBS=$(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
             test/run --timeout 300 --jobs "${MAX_JOBS}" -H all '!unit' '!cpplint' '!long' '!disabled'
-          upload_artifacts: true
-          upload_artifacts_dir: test/results
+
+      - name: compress test artifacts for upload
+        if: always()
+        shell: bash
+        run: tar -czf ${{ github.job_id }}.tar.gz test/results
+
+      - name: upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.job_id }}.tar.gz
+          path: ${{ github.job_id }}.tar.gz
 
   long-running-tests:
     runs-on: ubuntu-latest
@@ -121,15 +129,24 @@ jobs:
       - name: long running tests
         uses: ./.github/actions/driver-tests
         with:
-          kind: long-running-tests
           driver_name: python
           driver_dist_dir: /tmp/python-driver/rethinkdb
           test_command: |
             export PYTHON_DRIVER=/tmp/python-driver/rethinkdb
             export MAX_JOBS=$(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
             test/run --timeout 900 --jobs "${MAX_JOBS}" -H long '!disabled'
-          upload_artifacts: true
-          upload_artifacts_dir: test/results
+
+      - name: compress test artifacts for upload
+        if: always()
+        shell: bash
+        run: tar -czf ${{ github.job_id }}.tar.gz test/results
+
+      - name: upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.job_id }}.tar.gz
+          path: ${{ github.job_id }}.tar.gz
 
   # Execute the test runner for polyglot tests.
   # NOTE: We are not running "language group" tests (like `py`, `rb`, or `js`) because
@@ -152,6 +169,18 @@ jobs:
           driver_dist_dir: /tmp/python-driver/rethinkdb
           interpreter: py2.7
           test_target: polyglot
+
+      - name: compress test artifacts for upload
+        if: always()
+        shell: bash
+        run: tar -czf ${{ github.job_id }}.tar.gz test/rql_test/build
+
+      - name: upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.job_id }}.tar.gz
+          path: ${{ github.job_id }}.tar.gz
 
   polyglot-tests-javascript:
     runs-on: ubuntu-latest
@@ -183,6 +212,18 @@ jobs:
           env_activate: source $HOME/.nvm/nvm.sh && nvm use 5.12
           install_command: npm install && npm run build
 
+      - name: compress test artifacts for upload
+        if: always()
+        shell: bash
+        run: tar -czf ${{ github.job_id }}.tar.gz test/rql_test/build
+
+      - name: upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.job_id }}.tar.gz
+          path: ${{ github.job_id }}.tar.gz
+
   polyglot-tests-ruby:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -212,3 +253,15 @@ jobs:
           test_target: polyglot
           env_activate: source /etc/profile.d/rvm.sh && rvm use 2.5
           install_command: bundle install && rake build
+
+      - name: compress test artifacts for upload
+        if: always()
+        shell: bash
+        run: tar -czf ${{ github.job_id }}.tar.gz test/rql_test/build
+
+      - name: upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ github.job_id }}.tar.gz
+          path: ${{ github.job_id }}.tar.gz

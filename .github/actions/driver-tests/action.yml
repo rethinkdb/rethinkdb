@@ -2,9 +2,6 @@ name: Driver tests
 description: Base action for running driver tests with the test runner
 
 inputs:
-  kind:
-    description: Unique name of the test suite.
-    required: true
   driver_name:
     description: Name of the driver.
     required: true
@@ -48,14 +45,6 @@ inputs:
     description: Test target name, like "polyglot".
     default: ""
     required: false
-  upload_artifacts:
-    description: Upload test artifacts.
-    default: "false"
-    required: false
-  upload_artifacts_dir:
-    description: Artifacts directory to upload.
-    default: "test/rql_test/build"
-    required: false
 
 # Composite step for using driver-related test, like polyglot.
 runs:
@@ -95,10 +84,7 @@ runs:
 
     - uses: ./.github/actions/tests
       with:
-        kind: ${{ inputs.kind }}
         command: ${{ inputs.test_command }}
-        upload_artifacts: ${{ inputs.upload_artifacts }}
-        upload_artifacts_dir: ${{ inputs.upload_artifacts_dir }}
       env:
         DEFAULT_PYTHON_DRIVER: /tmp/default-python-driver/rethinkdb
         DRIVER_NAME: ${{ inputs.driver_name }}
