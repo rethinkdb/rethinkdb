@@ -168,7 +168,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs:
-      - unit-tests
       - integration-tests
       - long-running-tests
     steps:
@@ -197,7 +196,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs:
-      - unit-tests
       - integration-tests
       - long-running-tests
     steps:
@@ -239,7 +237,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     needs:
-      - unit-tests
       - integration-tests
       - long-running-tests
     steps:
