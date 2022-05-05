@@ -2,6 +2,9 @@ name: Driver tests
 description: Base action for running driver tests with the test runner
 
 inputs:
+  kind:
+    description: Unique name of the test suite.
+    required: true
   driver_name:
     description: Name of the driver.
     required: true
@@ -92,7 +95,7 @@ runs:
 
     - uses: ./.github/actions/tests
       with:
-        kind: ${{ inputs.driver_name }}
+        kind: ${{ inputs.kind }}
         command: ${{ inputs.test_command }}
         upload_artifacts: ${{ inputs.upload_artifacts }}
         upload_artifacts_dir: ${{ inputs.upload_artifacts_dir }}

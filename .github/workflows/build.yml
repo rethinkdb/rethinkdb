@@ -102,12 +102,13 @@ jobs:
       - name: integration tests
         uses: ./.github/actions/driver-tests
         with:
+          kind: integration-tests
           driver_name: python
           driver_dist_dir: /tmp/python-driver/rethinkdb
           test_command: |
             export PYTHON_DRIVER=/tmp/python-driver/rethinkdb
             export MAX_JOBS=$(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
-            test/run --timeout 300 --jobs "${MAX_JOBS}" -H all '!unit' '!cpplint' '!long'
+            test/run --timeout 300 --jobs "${MAX_JOBS}" -H all '!unit' '!cpplint' '!long' '!disabled'
           upload_artifacts: true
           upload_artifacts_dir: test/results
 
@@ -117,15 +118,16 @@ jobs:
     needs: unit-tests
     steps:
       - uses: actions/checkout@v3
-      - name: integration tests
+      - name: long running tests
         uses: ./.github/actions/driver-tests
         with:
+          kind: long-running-tests
           driver_name: python
           driver_dist_dir: /tmp/python-driver/rethinkdb
           test_command: |
             export PYTHON_DRIVER=/tmp/python-driver/rethinkdb
             export MAX_JOBS=$(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
-            test/run --timeout 300 --jobs "${MAX_JOBS}" -H long
+            test/run --timeout 300 --jobs "${MAX_JOBS}" -H long '!disabled'
           upload_artifacts: true
           upload_artifacts_dir: test/results
 
