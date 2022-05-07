@@ -1377,7 +1377,10 @@ options::help_section_t get_auth_options(std::vector<options::option_t> *options
                                              options::OPTIONAL));
     help.add("--initial-password {auto | password}",
              "sets an initial password for the \"admin\" user on a new server.  If set "
-             "to auto, a random password will be generated.");
+             "to auto, a random password will be generated. Care should be taken when "
+             "using values other than auto as your password can be leaked into system logs "
+             "and process monitors. As a safer alternative, create a file with the content "
+             "initial-password=Y0urP4$$woRd and load it using the --config-file option.");
 
     return help;
 }
