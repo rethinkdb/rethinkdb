@@ -194,6 +194,7 @@ class AlertUpdates extends Backbone.View
                 @next_version = last_version  # Save it so users can ignore the update
                 @$el.html @has_update_template
                     last_version: last_version
+                    link_changelog: "https://github.com/rethinkdb/rethinkdb/blob/v#{last_version}/NOTES.md"
                 @$el.slideDown 'fast'
 
     # Compare version with the format %d.%d.%d
