@@ -1,0 +1,94 @@
+name: Driver tests
+description: Base action for running driver tests with the test runner
+
+inputs:
+  driver_name:
+    description: Name of the driver.
+    required: true
+  driver_dist_dir:
+    description: The directory which contains the driver's distribution code.
+    required: true
+  repo_url:
+    description: Public git repository URL.
+    required: false
+  commit_hash:
+    description: The commit hash to use at checkout.
+    required: false
+  # TODO: This commit is pointing after driver extraction, hence it should be the baseline.
+  #  When all tests are passing using this commit hash, update the hash to the latest and
+  #  fix the newly raised issues.
+  default_python_driver_commit_hash:
+    description: The commit hash to use at checkout for the default Python driver.
+    default: f0bf3b7e5279d23b72ffc8d8d3ae7e26dd5384e4
+    required: false
+  install_command:
+    description: The test runner command to execute.
+    required: false
+  interpreter:
+    description: Name of the interpreter version.
+    default: ""
+    required: false
+  env_activate:
+    description: Activate the environment for the interpreter if needed
+    default: echo "no activate command set"
+    required: true
+  test_command:
+    description: Test command to call
+    default: |
+      export PYTHON_DRIVER=/tmp/python-driver/rethinkdb
+      export "${DRIVER_NAME^^}_DRIVER=${DRIVER_DIST_DIR}"
+      export MAX_JOBS=$(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
+      eval "${ENV_ACTIVATION_COMMAND}"
+      test/rql_test/test-runner --jobs "${MAX_JOBS}" --interpreter ${INTERPRETER} ${TEST_TARGET}
+    required: true
+  test_target:
+    description: Test target name, like "polyglot".
+    default: ""
+    required: false
+
+# Composite step for using driver-related test, like polyglot.
+runs:
+  using: composite
+  steps:
+    - name: download ${{ inputs.driver_name }} driver
+      if: ${{ inputs.driver_name != 'python' }}
+      shell: bash
+      run: |
+        git clone "${DRIVER_REPOSITORY_URL}" /tmp/driver
+        cd /tmp/driver
+        git checkout "${DRIVER_COMMIT_HASH}"
+        cd -
+      env:
+        DRIVER_REPOSITORY_URL: ${{ inputs.repo_url }}
+        DRIVER_COMMIT_HASH: ${{ inputs.commit_hash }}
+
+    - name: download and setup python driver
+      shell: bash
+      run: |
+        git clone https://github.com/rethinkdb/rethinkdb-python /tmp/python-driver
+        cd /tmp/python-driver
+        git checkout ${{ inputs.default_python_driver_commit_hash }}
+        sudo apt install -y rsync
+        pip install -r requirements.txt
+        make prepare
+        cd -
+
+    - name: setup ${{ inputs.driver_name }} driver
+      if: ${{ inputs.driver_name != 'python' }}
+      shell: bash
+      run: |
+        cd /tmp/driver
+        eval "${{ inputs.env_activate }}"
+        ${{ inputs.install_command }}
+        cd -
+
+    - uses: ./.github/actions/tests
+      with:
+        command: ${{ inputs.test_command }}
+      env:
+        DEFAULT_PYTHON_DRIVER: /tmp/default-python-driver/rethinkdb
+        DRIVER_NAME: ${{ inputs.driver_name }}
+        DRIVER_DIST_DIR: ${{ inputs.driver_dist_dir }}
+        INTERPRETER: ${{ inputs.interpreter }}
+        TEST_TARGET: ${{ inputs.test_target }}
+        ENV_ACTIVATION_COMMAND: ${{ inputs.env_activate }}

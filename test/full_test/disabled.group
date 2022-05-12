@@ -1,1 +1,3 @@
 # List tests here to disable them in `default` runs
+regression.known_failures_1774
+interface.artificial_table

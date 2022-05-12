@@ -548,36 +548,27 @@ class JrbLang(RbLang):
         self.interpreter_name_exe_names.append('jruby')
 
 interpreters = {
-    'js':     [JsLang('0.10'), JsLang('0.12'), JsLang('4.0'), JsLang('4.1'), JsLang('4.2'), JsLang('5.0'), JsLang('5.1'), JsLang('5.2'), JsLang('5.3')],
-    'py':     [PyLang('2.6'), PyLang('2.7'), PyLang('3.0'), PyLang('3.1'), PyLang('3.2'), PyLang('3.3'), PyLang('3.4'), PyLang('3.5')],
-    'rb':     [RbLang('1.9'), RbLang('2.0'), RbLang('2.1'), RbLang('2.3'), JrbLang('9.0')],
+    'js':     [JsLang('5.12'), JsLang('16.14')],
+    'py':     [PyLang('2.7'), PyLang('3.6'), PyLang('3.8')],
+    'rb':     [RbLang('2.5'), RbLang('2.6'), RbLang('2.7'), JrbLang('9.2')],
     'jrb':    [JrbLang('9.0')],
+
+    'js5':    [JsLang('5.12')],
+    'js16':    [JsLang('16.14')],
     
-    'js0':    [JsLang('0.10'), JsLang('0.12')],
-    'js4':    [JsLang('4.0'), JsLang('4.1'), JsLang('4.2')],
-    'js5':    [JsLang('5.0'), JsLang('5.1'), JsLang('5.2'), JsLang('5.3')],
-    
-    'py2':    [PyLang('2.6'), PyLang('2.7')],
-    'py2.6':  [PyLang('2.6')],
+    'py2':    [PyLang('2.7')],
     'py2.7':  [PyLang('2.7')],
     
-    'py3':    [PyLang('3.0'), PyLang('3.1'), PyLang('3.2'), PyLang('3.3'), PyLang('3.4'), PyLang('3.5')],
-    'py3.0':  [PyLang('3.0')],
-    'py3.1':  [PyLang('3.1')],
-    'py3.2':  [PyLang('3.2')],
-    'py3.3':  [PyLang('3.3')],
-    'py3.4':  [PyLang('3.4')],
-    'py3.5':  [PyLang('3.5')],
+    'py3':    [PyLang('3.6'), PyLang('3.8')],
+    'py3.6':  [PyLang('3.6')],
+    'py3.8':  [PyLang('3.8')],
     
-    'rb1':    [RbLang('1.9')],
-    'rb1.9':  [RbLang('1.9')],
+    'rb2':    [RbLang('2.5'), RbLang('2.6'), RbLang('2.7'), JrbLang('9.2')],
+    'rb2.5':  [RbLang('2.5')],
+    'rb2.6':  [RbLang('2.6')],
+    'rb2.7':  [RbLang('2.7')],
     
-    'rb2':    [RbLang('2.0'), RbLang('2.1'), RbLang('2.2')],
-    'rb2.0':  [RbLang('2.0')],
-    'rb2.1':  [RbLang('2.1')],
-    'rb2.2':  [RbLang('2.2')],
-    
-    'jrb9.0': [JrbLang('9.0')]
+    'jrb9.2': [JrbLang('9.2')]
 }
 
 # Abstracts a set of tests given in a single file

@@ -1,0 +1,40 @@
+name: Test base
+description: Base action for running steps
+
+inputs:
+  command:
+    description: The test runner command to execute.
+    required: true
+  download_artifacts:
+    description: Download and decompress build artifacts.
+    default: "true"
+    required: false
+
+# Composite step for using the test runner with multiple parameters.
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v3
+      with:
+        python-version: '2.7'
+
+    - name: install prerequisites
+      shell: bash
+      run: |
+        sudo apt update && sudo apt install -y curl make git ca-certificates gnupg2
+        curl https://bootstrap.pypa.io/pip/2.7/get-pip.py | python
+
+    - name: download build artifacts
+      uses: actions/download-artifact@v3
+      if: ${{ inputs.download_artifacts == 'true' }}
+      with:
+        name: build-artifacts
+
+    - name: decompress build dir
+      if: ${{ inputs.download_artifacts == 'true' }}
+      shell: bash
+      run: tar -xzf build.tar.gz
+
+    - name: run tests
+      shell: bash
+      run: ${{ inputs.command }}
