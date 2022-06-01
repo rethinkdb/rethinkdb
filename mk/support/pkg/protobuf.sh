@@ -5,7 +5,7 @@ src_url=https://github.com/google/protobuf/releases/download/v$version/protobuf-
 src_url_sha1=5d438d5a072d3039416ba0732e92262395d2c904
 
 pkg_install-include () {
-    in_dir "$src_dir/src" find . -name \*.h | while read -r file; do
+    in_dir "$src_dir/src" find . \( -name "*.h" -o -name "*.inc" \) | while read -r file; do
         mkdir -p "$install_dir/include/$(dirname "$file")"
         cp -af "$src_dir/src/$file" "$install_dir/include/$file"
     done
@@ -40,11 +40,18 @@ pkg_install () (
 pkg_install-windows () {
     pkg_copy_src_to_build
 
-    for project in libprotobuf libprotoc protoc; do
-        in_dir "$build_dir" "$MSBUILD" /nologo /maxcpucount /p:Configuration=$CONFIGURATION /p:Platform=$PLATFORM vsprojects\\$project.vcxproj
-    done
+    rm -rf "$build_dir/cmake"/{CMakeCache.txt,CMakeFiles}
+    in_dir "$build_dir/cmake" with_vs_env cmake -G "Visual Studio 17 2022" -T "v141" -A "$PLATFORM" -DCMAKE_INSTALL_PREFIX=../out -DCMAKE_BUILD_TYPE="$CONFIGURATION" -Dprotobuf_BUILD_TESTS=OFF
+    in_dir "$build_dir/cmake" cmake --build . --config "$CONFIGURATION"
+    in_dir "$build_dir/cmake" cmake --build . --config "$CONFIGURATION" --target install
 
-    cp "$build_dir/vsprojects/$VS_OUTPUT_DIR/libprotobuf.lib" "$windows_deps_libs/"
+    local out
+    out=libprotobuf.lib
+    if [[ "$DEBUG" = 1 ]]; then
+        out=libprotobufd.lib
+    fi
+
+    cp "$build_dir/out/lib/$out" "$windows_deps_libs/libprotobuf.lib"
     mkdir -p "$install_dir/bin"
-    cp "$build_dir/vsprojects/$VS_OUTPUT_DIR/protoc.exe" "$install_dir/bin/"
+    cp "$build_dir/out/bin/protoc.exe" "$install_dir/bin/"
 }

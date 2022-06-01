@@ -2,7 +2,7 @@
         RethinkDBVersion="RETHINKDB_VERSION"
         PreprocessToFile="no"
         ShowIncludes="no" >
-  <target version="8.1" toolset="v140" winver="0x600" />
+  <target version="10.0.19041.0" toolset="v141" winver="0x0A00" />
 
   <build configuration="Debug"   platform="x64" />
   <build configuration="Release" platform="x64" />

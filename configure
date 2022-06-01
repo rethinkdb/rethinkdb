@@ -18,7 +18,7 @@ init () {
     # QuickJS also has this configuration
     osx_min_version=10.9
 
-    min_msbuild_version=14.0
+    min_msbuild_version=15.0
     min_nmake_version=14.0
     min_cl_version=19.0
 
@@ -1226,7 +1226,7 @@ check_vs_bin () {
     local exe=${!ucname:-}
     if [[ -z "$exe" ]] || ! lookup "$arg_vars" $ucname exe; then
         # TODO: what is a better way to find these?
-        for it in /cygdrive/*/Program\ Files*/{MSBuild/14.0,Microsoft\ Visual\ Studio\ 14.0/VC,CMake*}{,/bin}/$1.{exe,bat}; do
+        for it in /cygdrive/*/Program\ Files*/Microsoft\ Visual\ Studio/2022/*/{MSBuild/Current,VC/Auxiliary/Build,Common7/IDE/CommonExtensions/Microsoft/CMake/CMake}{,/Bin}/$1.{exe,bat}; do
             case "$it" in
                 *\**) ;;
                 *) exe=$it; break;;
