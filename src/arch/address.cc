@@ -19,6 +19,7 @@
 #include "arch/io/network.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "logger.hpp"
+#include "utils.hpp"
 
 host_lookup_exc_t::host_lookup_exc_t(const std::string &_host,
                                      int _res, int _errno_res)

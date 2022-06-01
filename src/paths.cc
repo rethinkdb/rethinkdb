@@ -37,7 +37,7 @@ int remove_directory_helper(const char *path) {
     } else {
         res = DeleteFile(path);
     }
-    if (res != 0) {
+    if (res == 0) {
         fail_due_to_user_error("failed to remove: '%s': %s", path, winerr_string(GetLastError()).c_str());
     }
     return 0;
