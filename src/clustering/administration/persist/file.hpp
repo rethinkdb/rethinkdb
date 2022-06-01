@@ -23,6 +23,8 @@ public:
     }
 };
 
+class metadata_file_t;
+
 namespace metadata {
 class read_txn_t;
 class write_txn_t;
@@ -39,7 +41,7 @@ public:
         return copy;
     }
 private:
-    friend class metadata_file_t;
+    friend class ::metadata_file_t;
     friend class read_txn_t;
     friend class write_txn_t;
     store_key_t key;

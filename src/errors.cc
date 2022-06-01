@@ -13,13 +13,14 @@
 
 #include <typeinfo>
 
-#include "logger.hpp"
-#include "utils.hpp"
-#include "backtrace.hpp"
-#include "thread_local.hpp"
-#include "clustering/administration/logs/log_writer.hpp"
-#include "arch/timing.hpp"
 #include "arch/runtime/thread_pool.hpp"
+#include "arch/timing.hpp"
+#include "arch/types.hpp"
+#include "backtrace.hpp"
+#include "clustering/administration/logs/log_writer.hpp"
+#include "logger.hpp"
+#include "thread_local.hpp"
+#include "utils.hpp"
 
 TLS_with_init(bool, crashed, false); // to prevent crashing within crashes
 

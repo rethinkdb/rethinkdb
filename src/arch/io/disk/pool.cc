@@ -7,6 +7,8 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
+#include <algorithm>
+
 #include "arch/io/disk.hpp"
 #include "config/args.hpp"
 #include "containers/printf_buffer.hpp"

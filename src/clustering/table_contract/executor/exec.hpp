@@ -5,6 +5,7 @@
 #include "clustering/id_types.hpp"
 #include "clustering/immediate_consistency/backfill_metadata.hpp"
 #include "clustering/immediate_consistency/remote_replicator_metadata.hpp"
+#include "clustering/query_routing/metadata.hpp"
 #include "paths.hpp"
 #include "store_view.hpp"
 
