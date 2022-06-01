@@ -86,6 +86,8 @@
               RAPIDJSON_HAS_STDSTRING;
               RAPIDJSON_PARSE_DEFAULT_FLAGS=kParseFullPrecisionFlag;
               BOOST_DATE_TIME_NO_LIB;
+              JS_STRICT_NAN_BOXING;
+              CURL_STATICLIB;
               <xsl:if test="@configuration = 'Release'">
                 NDEBUG;
               </xsl:if>
@@ -145,17 +147,7 @@
           <Link>
             <GenerateDebugInformation>true</GenerateDebugInformation>
             <SubSystem>Console</SubSystem>
-            <AdditionalDependencies>
-              dbghelp.lib; iphlpapi.lib; WS2_32.lib; winmm.lib;
-              curl.lib;
-              libprotobuf.lib;
-              re2.lib;
-              zlib.lib;
-              ssleay32.lib; libeay32.lib;
-              <xsl:if test="@configuration = 'Debug'">
-                gtest.lib;
-              </xsl:if>
-              %(AdditionalDependencies);
+            <AdditionalDependencies>dbghelp.lib;iphlpapi.lib;WS2_32.lib;winmm.lib;curl.lib;libprotobuf.lib;re2.lib;zlib.lib;libcrypto.lib;libssl.lib;quickjs.lib;Crypt32.lib;Wldap32.lib;Normaliz.lib;<xsl:if test="@configuration = 'Debug'">gtest.lib;</xsl:if>%(AdditionalDependencies);
             </AdditionalDependencies>
             <EntryPointSymbol>mainCRTStartup</EntryPointSymbol>
             <AdditionalOptions>

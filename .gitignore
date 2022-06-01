@@ -35,9 +35,8 @@ last_tested_versions
 /windows_deps/
 /x64/
 /RethinkDB.sdf
-/RethinkDB.vcxproj.filters
-/RethinkDB.vcxproj.user
-/RethinkDB.vcxproj.xml
+/RethinkDB*.vcxproj*
 *.xml
 *.iml
 /.vscode
+/.vs
