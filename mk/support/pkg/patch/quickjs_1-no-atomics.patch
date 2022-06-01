@@ -1,13 +1,12 @@
-diff -ruN original ./quickjs.c
---- original	2022-03-28 07:32:36.359699208 -0700
-+++ ./quickjs.c	2022-03-28 07:32:49.608141930 -0700
-@@ -70,7 +70,7 @@
+diff -ruN quickjs-o.c ./quickjs.c
+--- quickjs-o.c 2022-02-23 06:27:03.000000000 +0100
++++ ./quickjs.c 2022-05-24 16:08:01.589115800 +0200
+@@ -72,7 +72,7 @@
  /* define to include Atomics.* operations which depend on the OS
     threads */
- #if !defined(EMSCRIPTEN)
+ #if !defined(EMSCRIPTEN) && !defined(_MSC_VER)
 -#define CONFIG_ATOMICS
 +/* #define CONFIG_ATOMICS */
  #endif
- 
- #if !defined(EMSCRIPTEN)
- 
+
+ #if !defined(EMSCRIPTEN) && !defined(_MSC_VER)
