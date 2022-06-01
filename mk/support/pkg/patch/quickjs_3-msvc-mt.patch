@@ -1,0 +1,10 @@
+--- premake5-orig.lua	2022-02-23 06:27:03.000000000 +0100
++++ ./premake5.lua	2022-05-28 20:07:02.647473100 +0200
+@@ -83,6 +83,7 @@
+ 
+ project "quickjs"
+ 	language "C"
++	staticruntime "on"
+ 	kind "StaticLib"
+ 	files {
+     "cutils.h",
