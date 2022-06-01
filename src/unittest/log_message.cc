@@ -3,6 +3,7 @@
 #include "clustering/administration/logs/log_writer.hpp"
 #include "unittest/gtest.hpp"
 #include "unittest/unittest_utils.hpp"
+#include "random.hpp"
 
 namespace unittest {
 

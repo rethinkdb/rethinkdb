@@ -159,7 +159,9 @@ public:
     }
 };
 
-metadata_file_t::read_txn_t::read_txn_t(
+namespace metadata {
+
+read_txn_t::read_txn_t(
         metadata_file_t *f,
         signal_t *interruptor) :
     file(f),
@@ -167,7 +169,7 @@ metadata_file_t::read_txn_t::read_txn_t(
     rwlock_acq(&file->rwlock, access_t::read, interruptor)
     { }
 
-metadata_file_t::read_txn_t::read_txn_t(
+read_txn_t::read_txn_t(
         metadata_file_t *f,
         write_access_t,
         signal_t *interruptor) :
@@ -176,7 +178,7 @@ metadata_file_t::read_txn_t::read_txn_t(
     rwlock_acq(&file->rwlock, access_t::write, interruptor)
     { }
 
-void metadata_file_t::read_txn_t::blob_to_stream(
+void read_txn_t::blob_to_stream(
         buf_parent_t parent,
         const void *ref,
         const std::function<void(read_stream_t *)> &callback) {
@@ -194,7 +196,7 @@ void metadata_file_t::read_txn_t::blob_to_stream(
     callback(&read_stream);
 }
 
-void metadata_file_t::read_txn_t::read_bin(
+void read_txn_t::read_bin(
         const store_key_t &key,
         const std::function<void(read_stream_t *)> &callback,
         signal_t *interruptor) {
@@ -215,7 +217,7 @@ void metadata_file_t::read_txn_t::read_bin(
     }
 }
 
-void metadata_file_t::read_txn_t::read_many_bin(
+void read_txn_t::read_many_bin(
         const store_key_t &key_prefix,
         const std::function<void(const std::string &key_suffix, read_stream_t *)> &cb,
         signal_t *interruptor) {
@@ -254,13 +256,13 @@ void metadata_file_t::read_txn_t::read_many_bin(
         interruptor);
 }
 
-metadata_file_t::write_txn_t::write_txn_t(
+write_txn_t::write_txn_t(
         metadata_file_t *_file,
         signal_t *interruptor) :
     read_txn_t(_file, write_access_t::write, interruptor)
     { }
 
-void metadata_file_t::write_txn_t::write_bin(
+void write_txn_t::write_bin(
         const store_key_t &key,
         const write_message_t *msg,
         signal_t *interruptor) {
@@ -293,6 +295,8 @@ void metadata_file_t::write_txn_t::write_bin(
     }
     apply_keyvalue_change(&sizer, &kvloc, key.btree_key(), repli_timestamp_t::invalid,
         &detacher, delete_mode_t::ERASE);
+}
+
 }
 
 metadata_file_t::metadata_file_t(
