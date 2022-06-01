@@ -17,7 +17,7 @@ pkg_install () {
 pkg_install-windows () {
     pkg_copy_src_to_build
 
-    in_dir "$build_dir" "$MSBUILD" /nologo /maxcpucount /p:Configuration=$CONFIGURATION /p:Platform=$PLATFORM re2.vcxproj
+    in_dir "$build_dir" "$MSBUILD" /nologo /maxcpucount /p:Configuration=$CONFIGURATION /p:Platform=$PLATFORM /p:PlatformToolset=v141 /p:WindowsTargetPlatformVersion=10.0.19041.0 re2.vcxproj 
 
-    cp "$build_dir/$VS_OUTPUT_DIR/re2.lib" "$windows_deps_libs/"
+    cp "$build_dir/$PLATFORM/$CONFIGURATION/re2.lib" "$windows_deps_libs/"
 }
