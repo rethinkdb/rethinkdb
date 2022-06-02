@@ -270,7 +270,7 @@ with_vs_env () {
     # GNU make sets $MAKE and $MAKEFLAGS to values that are not
     # compatible with Windows' nmake
 
-    env -u MAKE -u MAKEFLAGS cmd /c "$vcvarsall" "$machine" "&&" "$@"
+    env -u MAKE -u MAKEFLAGS cmd /c "$vcvarsall" "$machine" "--vcvars_ver=14.1" "&&" "$@"
 }
 
 error () {
