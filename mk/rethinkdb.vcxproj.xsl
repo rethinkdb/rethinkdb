@@ -239,6 +239,9 @@
 
     <Target Name="UNDUPOBJ">
       <!-- see stackoverflow topics for discussion on why we need to do some loopy copying stuff here -->
+	<ItemGroup>
+		<Manifest Include="./mk/rethinkdb.exe.manifest" />
+	</ItemGroup>
       <ItemGroup>
         <ClCompileCopy Include="@(ClCompile)"/>
         <ClCompile Remove="@(ClCompile)"/>
