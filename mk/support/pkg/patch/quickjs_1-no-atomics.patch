@@ -10,3 +10,4 @@ diff -ruN quickjs-o.c ./quickjs.c
  #endif
 
  #if !defined(EMSCRIPTEN) && !defined(_MSC_VER)
+ 

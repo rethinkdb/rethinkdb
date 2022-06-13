@@ -11,7 +11,7 @@
 #include <limits.h>         // So we can set the bounds of our types
 #include <string.h>         // for memcpy()
 #include <stdlib.h>         // for free()
-//#include <sys/socket.h>     // for MSG_NOSIGNAL
+// for MSG_NOSIGNAL
 #ifdef _WIN32
 #include <winsock2.h>
 #else
