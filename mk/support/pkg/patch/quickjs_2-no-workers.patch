@@ -10,3 +10,4 @@ diff -ruN quickjs-libc-orig.c ./quickjs-libc.c
  #endif
 
  #ifdef USE_WORKER
+ 
