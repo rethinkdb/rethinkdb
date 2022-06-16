@@ -791,7 +791,7 @@ bool load_tls_key_and_cert(
         return false;
     }
 
-    if(SSL_CTX_use_certificate_file(tls_ctx, cert_file.c_str(), SSL_FILETYPE_PEM) <= 0) {
+    if(SSL_CTX_use_certificate_chain_file(tls_ctx, cert_file.c_str()) <= 0) {
         ERR_print_errors_fp(stderr);
         return false;
     }
