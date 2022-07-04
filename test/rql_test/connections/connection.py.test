@@ -33,18 +33,18 @@ class TestWithConnection(rdb_unittest.TestCaseCompatible):
     conn    = None
     host    = None
     port    = None
-    
+
     admin_pass     = None
     private_server = False
     use_tls        = False
-    
+
     def setUp(self):
         global sharedServer
-        
+
         if self.private_server or self.use_tls or self.admin_pass:
             if self.server and self.server == sharedServer:
                 self.__class__.server = None
-            
+
             # - validate running server
             if self.server:
                 try:
@@ -63,13 +63,13 @@ class TestWithConnection(rdb_unittest.TestCaseCompatible):
                     except Exception: pass
                     self.__class__.server = None
                     self.__class__.conn   = None
-            
+
             # - setup private server
             if self.server is None:
                 sys.stdout.write('new private server... ')
                 sys.stdout.flush()
                 self.__class__.server = driver.Process(executable_path=rethinkdb_exe, console_output=self.__class__.__name__ + '_server_console.txt', wait_until_ready=True, tls=self.use_tls)
-                
+
                 if self.admin_pass is not None:
                     sslOption = {'ca_certs':self.server.tlsCertPath} if self.server.tlsCertPath else None
                     conn = r.connect(host=self.server.host, port=self.server.driver_port, ssl=sslOption)
@@ -77,14 +77,14 @@ class TestWithConnection(rdb_unittest.TestCaseCompatible):
                     if result != {'skipped': 0, 'deleted': 0, 'unchanged': 0, 'errors': 0, 'replaced': 1, 'inserted': 0}:
                         self.__class__.server = None
                         raise Exception('Unable to set admin password, got: %s' % str(result))
-            
+
             self.__class__.host   = self.server.host
             self.__class__.port   = self.server.driver_port
-        
+
         elif not any([externalServerHost, externalServerPort]):
             if self.server and self.server != sharedServer:
                 self.__class__.server = None
-            
+
             # - validate running server
             if sharedServer is not None:
                 try:
@@ -104,26 +104,26 @@ class TestWithConnection(rdb_unittest.TestCaseCompatible):
                     sharedServer = None
                     self.__class__.server = None
                     self.__class__.conn   = None
-            
+
             # - setup shared server
             if sharedServer is None:
                 sys.stdout.write('new shared server... ')
                 sys.stdout.flush()
                 sharedServer = driver.Process(executable_path=rethinkdb_exe, console_output=False, wait_until_ready=True, tls=self.use_tls)
-                
+
             self.__class__.server = sharedServer
             self.__class__.host   = self.server.host
             self.__class__.port   = self.server.driver_port
-        
+
         else:
             # - use external server
-            
+
             self.__class__.server = None
             self.__class__.host   = externalServerHost or 'localhost'
             self.__class__.port   = externalServerPort or r.DEFAULT_PORT
-        
+
         # - establish a connection
-        
+
         if self.conn:
             try:
                 r.expr(1).run(self.conn)
@@ -132,9 +132,9 @@ class TestWithConnection(rdb_unittest.TestCaseCompatible):
         if not self.conn:
             sslOption = {'ca_certs':self.server.tlsCertPath} if self.server and self.server.tlsCertPath else None
             self.__class__.conn = r.connect(host=self.host, port=self.port, ssl=sslOption, password=self.admin_pass or '')
-        
+
         # - ensure `test` db exists and is empty
-        
+
         r.expr(['test']).set_difference(r.db_list()).for_each(r.db_create(r.row)).run(self.conn)
         r.db('test').table_list().for_each(r.db('test').table_drop(r.row)).run(self.conn)
 
@@ -144,7 +144,7 @@ class TestNoConnection(rdb_unittest.TestCaseCompatible):
     def test_connect_port(self):
         port = utils.get_avalible_port()
         self.assertRaisesRegexp(r.ReqlDriverError, "Could not connect to localhost:%d." % port, r.connect, port=port)
-    
+
     def test_connect_timeout(self):
         '''Test that we get a ReQL error if we connect to a non-responsive port'''
         useSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -172,7 +172,7 @@ class TestConnectionDefaults(TestWithConnection):
         def test_connect_default_port(self):
             conn = r.connect(host=self.host)
             conn.reconnect()
-        
+
         def test_connect_default_port_wrong_auth(self):
             self.assertRaisesRegexp(r.ReqlAuthError, "Could not connect to %s:%d: Wrong password" % (self.host, self.port), r.connect, host=self.host, password="hunter2")
 
@@ -180,15 +180,15 @@ class TestConnectionDefaults(TestWithConnection):
         def test_connect_default_host(self):
             conn = r.connect(port=self.port)
             conn.reconnect()
-        
+
         def test_connect_default_host_wrong_auth(self):
             self.assertRaisesRegexp(r.ReqlAuthError, "Could not connect to %s:%d: Wrong password" % (self.host, self.port), r.connect, port=self.port, password="hunter2")
-    
+
     if USE_DEFAULT_PORT and USE_DEFAULT_HOST:
         def test_connect_default_host_port(self):
             conn = r.connect()
             conn.reconnect()
-        
+
         def test_connect_wrong_auth(self):
             self.assertRaisesRegexp(r.ReqlAuthError, "Could not connect to %s:%d: Wrong password" % (self.host, self.port), r.connect, password="hunter2")
 
@@ -196,15 +196,15 @@ class TestConnectionDefaults(TestWithConnection):
 class TestAuthConnection(TestWithConnection):
     incorrectAuthMessage = "Could not connect to %s:%d: Wrong password"
     admin_pass = 'hunter2'
-    
+
     def test_connect_no_auth(self):
         self.assertRaisesRegexp(r.ReqlAuthError, self.incorrectAuthMessage % (self.host, self.port), r.connect, host=self.host, port=self.port)
-    
+
     def test_connect_wrong_auth(self):
         self.assertRaisesRegexp(r.ReqlAuthError, self.incorrectAuthMessage % (self.host, self.port), r.connect, host=self.host, port=self.port, auth_key="")
         self.assertRaisesRegexp(r.ReqlAuthError, self.incorrectAuthMessage % (self.host, self.port), r.connect, host=self.host, port=self.port, auth_key="hunter3")
         self.assertRaisesRegexp(r.ReqlAuthError, self.incorrectAuthMessage % (self.host, self.port), r.connect, host=self.host, port=self.port, auth_key="hunter22")
-    
+
     def test_connect_correct_auth(self):
         conn = r.connect(port=self.port, auth_key="hunter2")
         conn.reconnect()
@@ -270,13 +270,13 @@ class TestConnection(TestWithConnection):
     def test_db(self):
         sslOption = {'ca_certs':self.server.tlsCertPath} if self.server and self.server.tlsCertPath else None
         c = r.connect(host=self.host, port=self.port, ssl=sslOption, password=self.admin_pass or '')
-        
+
         r.db('test').table_create('t1').run(c)
 
         r.expr(['db2']).set_difference(r.db_list()).for_each(r.db_create(r.row)).run(c)
         r.expr(['t2']).set_intersection(r.db('db2').table_list()).for_each(r.db('db2').table_drop(r.row)).run(c)
         r.db('db2').table_create('t2').run(c)
-        
+
         # Default db should be 'test' so this will work
         r.table('t1').run(c)
 
@@ -318,30 +318,30 @@ class TestConnection(TestWithConnection):
             c = r.connect(host=self.host, port=self.port, ssl=sslOption, password=self.admin_pass or '')
             c.repl()
             r.expr(1).run()
-            
+
             c.repl() # is idempotent
             r.expr(1).run()
-            
+
             c.close()
             self.assertRaisesRegexp(r.ReqlDriverError, "Connection is closed", r.expr(1).run)
         finally:
             r.Repl.clear()
-    
+
     def test_port_conversion(self):
         self.assertRaisesRegexp(r.ReqlDriverError, "Could not convert port 'abc' to an integer.", r.connect, port='abc', host=self.port)
-    
+
     def test_shutdown(self):
         # use our own server for simplicity
         with driver.Process(executable_path=rethinkdb_exe, console_output=False, wait_until_ready=True, tls=self.use_tls) as server:
             sslOption = {'ca_certs':server.tlsCertPath} if server and server.tlsCertPath else None
             c = r.connect(host=server.host, port=server.driver_port, ssl=sslOption, password=self.admin_pass or '')
             r.expr(1).run(c)
-    
+
             server.stop()
             time.sleep(0.2)
 
             self.assertRaisesRegexp(r.ReqlDriverError, "Connection is closed.", r.expr(1).run, c)
-            
+
             c.close(noreply_wait=False)
 
 
@@ -350,29 +350,29 @@ class TestTLSConnection(TestConnection):
 
 class TestMisc(TestWithConnection):
     # These don't really have anything to do with connections but this is as good a place as any.
-        
+
     def test_prety_print(self):
         '''Simple prety-printing works'''
         # An exhaustive test of the pretty printer would be, well, exhausting.
-        
+
         output = str(r.db('db1').table('tbl1').map(lambda x: x))
         if not re.match(r"r\.db\('db1'\)\.table\('tbl1'\)\.map\(lambda var_(\d+): var_\1\)", output):
             self.fail('Printing query did not have the expected output, rather: %s' % output)
 
     def test_pickling(self):
         '''Test the queries can be pickled'''
-        
+
         import pickle
         conn = self.conn
-        
+
         # we need a db and table to run a query against to verify round-trip to the server
         r.expr(['test']).set_difference(r.db_list()).for_each(r.db_create(r.row)).run(conn)
         r.expr(['test']).set_difference(r.db('test').table_list()).for_each(r.db('test').table_create(r.row)).run(conn)
-        
+
         query = r.db('test').table('test').between(r.maxval, r.maxval).limit(2).count()
         expected = query.run(conn)
         self.assertLessEqual(expected, 2) # sanity check
-        
+
         pickled = pickle.dumps(query)
         unpickled = pickle.loads(pickled)
         self.assertEqual(str(unpickled), str(query))
@@ -382,7 +382,7 @@ class TestBatching(TestWithConnection):
 
     def test_get_intersecting_batching(self):
         '''Test that get_intersecting() batching works properly'''
-        
+
         r.db('test').table_create('t1').run(self.conn)
         t1 = r.db('test').table('t1')
 
@@ -405,7 +405,7 @@ class TestBatching(TestWithConnection):
         t1.insert(
             [{'geo': r.point(random.uniform(-180.0, 180.0), random.uniform(-90.0, 90.0))} for _ in range(point_count)]
         ).run(self.conn)
-        
+
         t1.insert(
             [{'geo': r.circle([random.uniform(-180.0, 180.0), random.uniform(-90.0, 90.0)], 1000000)} for _ in range(poly_count)]
         ).run(self.conn)
@@ -428,10 +428,10 @@ class TestBatching(TestWithConnection):
             self.assertRaises(r.ReqlCursorEmpty, cursor.next)
 
         self.assertTrue(seen_lazy)
-    
+
     def test_batching(self):
         '''Test the cursor API when there is exactly mod batch size elements in the result stream'''
-        
+
         r.db('test').table_create('t1').run(self.conn)
         t1 = r.table('t1')
 
@@ -455,13 +455,13 @@ class TestBatching(TestWithConnection):
 class TestGroupWithTimeKey(TestWithConnection):
     def runTest(self):
         r.db('test').table_create('times').run(self.conn)
-        
+
         time1 = 1375115782.24
         rt1 = r.epoch_time(time1).in_timezone('+00:00')
-        dt1 = datetime.datetime.fromtimestamp(time1, r.ast.RqlTzinfo('+00:00'))
+        dt1 = datetime.datetime.fromtimestamp(time1, r.ast.ReqlTzinfo('+00:00'))
         time2 = 1375147296.68
         rt2 = r.epoch_time(time2).in_timezone('+00:00')
-        dt2 = datetime.datetime.fromtimestamp(time2, r.ast.RqlTzinfo('+00:00'))
+        dt2 = datetime.datetime.fromtimestamp(time2, r.ast.ReqlTzinfo('+00:00'))
 
         res = r.table('times').insert({'id':0, 'time':rt1}).run(self.conn)
         self.assertEqual(res['inserted'], 1)

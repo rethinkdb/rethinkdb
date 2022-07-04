@@ -469,7 +469,7 @@ class TermView(TextView):
         self.show_status()
 
     def clear_status(self):
-        self.buffer += self.clear_line
+        self.buffer += self.clear_line.decode()
 
     def show_status(self):
         if self.running_list:
