@@ -10,7 +10,7 @@
 * MSVC v141
 * Windows 10 SDK 10.0.19041.0
 * CMake tool
-    
+
 ### [Cygwin](https://cygwin.com/install.html)
 > **Warning**
 > Make sure that `perl` package IS NOT installed in cygwin!
