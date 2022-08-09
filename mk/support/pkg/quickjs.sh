@@ -1,7 +1,8 @@
-version=a2ce903e66fd642c8323aa9542aa5df20ed02abe
+github_user=srh
+version=892b1e3cd5e6c2025c6fc58fa4dbaac734b85d72
 
-src_url=https://github.com/c-smile/quickjspp/archive/${version}.tar.gz
-src_url_sha1=53355a6e495330f10fded79a6de25a79704cacd6
+src_url=https://github.com/${github_user}/quickjspp/archive/${version}.tar.gz
+src_url_sha1=a7da6b2d89624135f1e6c1292855fa85dc84deb6
 
 pkg_configure () {
     ( cd "$build_dir" && sed "s!^prefix=/usr/local\$!prefix=$(niceabspath "$install_dir")!" < Makefile > Makefile.tmp && mv Makefile.tmp Makefile )
