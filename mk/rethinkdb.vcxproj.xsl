@@ -81,6 +81,7 @@
               WINVER=<xsl:value-of select="/config/target/@winver" />;
               _WIN32_WINNT=<xsl:value-of select="/config/target/@winver" />;
               RETHINKDB_VERSION="<xsl:value-of select="/config/@RethinkDBVersion" />";
+              BUILD_MACHINE="Windows";
               _USE_MATH_DEFINES;
               COMPILER_MSVC;
               RAPIDJSON_HAS_STDSTRING;
