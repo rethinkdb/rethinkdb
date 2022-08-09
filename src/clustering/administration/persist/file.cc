@@ -297,7 +297,7 @@ void write_txn_t::write_bin(
         &detacher, delete_mode_t::ERASE);
 }
 
-}
+}  // namespace metadata
 
 metadata_file_t::metadata_file_t(
         io_backender_t *io_backender,
