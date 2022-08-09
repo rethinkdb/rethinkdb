@@ -1,8 +1,8 @@
-github_user=srh
-version=892b1e3cd5e6c2025c6fc58fa4dbaac734b85d72
+github_user=rethinkdb
+version=a1397dc5731abeeecaee0c5ee598817f48a0c8f5
 
 src_url=https://github.com/${github_user}/quickjspp/archive/${version}.tar.gz
-src_url_sha1=a7da6b2d89624135f1e6c1292855fa85dc84deb6
+src_url_sha1=472d5211f9f9d5b5966d037214b8a4aec269e808
 
 pkg_configure () {
     ( cd "$build_dir" && sed "s!^prefix=/usr/local\$!prefix=$(niceabspath "$install_dir")!" < Makefile > Makefile.tmp && mv Makefile.tmp Makefile )
