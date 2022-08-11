@@ -71,7 +71,7 @@ configure () {
 }
 
 configure_unixlike () {
-#    var LIB_SEARCH_PATHS $(for path in $lib_paths; do echo " -L$path"; done)
+    var LIB_SEARCH_PATHS $(for path in $lib_paths; do echo " -L$path"; done)
     require "Use ccache"
     boolvar USE_CCACHE $use_ccache
     check_cxx
@@ -465,7 +465,7 @@ write () {
 # A call to show will complete the line
 show_descr () {
     if ${can_show:-false}; then
-        show_no
+        show no
     fi
     local padded="$*:                               "
     echo -n "${padded:0:32}"

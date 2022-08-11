@@ -31,7 +31,7 @@ static inline int _KEVENT(int kq,
     return kevent64(kq, changelist, nchanges, eventlist, nevents, 0, timeout);
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const _KEVENT_S& event) {
+void debug_print(printf_buffer_t *buf, const _KEVENT_S& event) {
     buf->appendf("kevent64_s{ident=%" PRIu64 ", filter=%" PRIi16
                  ", flags=%" PRIu16 ", fflags=%" PRIu32
                  ", data=%" PRIi64 ", udata=%" PRIu64
@@ -58,7 +58,7 @@ static inline int _KEVENT(int kq,
     return kevent(kq, changelist, nchanges, eventlist, nevents, timeout);
 }
 
-void debug_print(append_only_printf_buffer_t *buf, const _KEVENT_S& event) {
+void debug_print(printf_buffer_t *buf, const _KEVENT_S& event) {
     buf->appendf("kevent{ident=%lu, filter=%" PRIi16 ", flags=%" PRIu16
                  ", fflags=%" PRIu32 ", data=%ld, udata=%p",
                  event.ident, event.filter, event.flags,

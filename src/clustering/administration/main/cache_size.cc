@@ -19,6 +19,11 @@
 #include <sys/sysctl.h>
 #endif
 
+#if defined(__FreeBSD__)
+#include <sys/types.h>
+#include <sys/sysctl.h>
+#endif
+
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/types.hpp"
 #include "logger.hpp"
@@ -309,9 +314,19 @@ uint64_t get_avail_mem_size() {
 #error "We don't support Mach kernels other than OS X, sorry."
 #endif // __MAC_OS_X_VERSION_MIN_REQUIRED
     return ret;
-#else
-	uint64_t page_size = sysconf(_SC_PAGESIZE);
-	{
+#elif defined(__FreeBSD__)  // defined(_WIN32)/defined(__MACH__)/...
+    uint64_t page_size = sysconf(_SC_PAGESIZE);
+    u_int v_free_count;
+    size_t len;
+    if (0 != sysctlbyname("vm.stats.vm.v_free_count", &v_free_count, &len, nullptr, 0)) {
+        logERR("Could not determine v_free_count value.  Falling back to all physical pages.");
+        uint64_t phys_pages = sysconf(_SC_PHYS_PAGES);
+        return phys_pages * page_size;
+    }
+    return v_free_count * page_size;
+#else  // defined(_WIN32)/defined(__MACH__)/defined(__FreeBSD__)/...
+    uint64_t page_size = sysconf(_SC_PAGESIZE);
+    {
         uint64_t memory;
         if (get_proc_meminfo_available_memory_size(&memory)) {
             return memory;
@@ -321,10 +336,11 @@ uint64_t get_avail_mem_size() {
 
             // This just returns what /proc/meminfo would report as "MemFree".
             uint64_t avail_mem_pages = sysconf(_SC_AVPHYS_PAGES);
+
             return avail_mem_pages * page_size;
         }
     }
-#endif
+#endif  // defined(_WIN32)/defined(__MACH__)/defined(__FreeBSD__)/...
 }
 
 uint64_t get_max_total_cache_size() {

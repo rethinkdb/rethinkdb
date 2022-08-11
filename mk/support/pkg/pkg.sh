@@ -28,6 +28,13 @@ set -eu
 
 unset DESTDIR
 
+if [[ "$OS" = FreeBSD ]]; then
+    EXTERN_MAKE=gmake
+else
+    EXTERN_MAKE=make
+fi
+
+
 # Print the version number of the package
 pkg_version () {
     echo $version
@@ -215,7 +222,7 @@ pkg_configure () {
 }
 
 pkg_make () {
-    in_dir "$build_dir" make "$@"
+    in_dir "$build_dir" $EXTERN_MAKE "$@"
 }
 
 pkg_install () {
@@ -269,6 +276,9 @@ with_vs_env () {
 
     # GNU make sets $MAKE and $MAKEFLAGS to values that are not
     # compatible with Windows' nmake
+    #
+    # ^^ Afaict GNU make is not setting anything that is seen by this
+    # shell script (but I haven't tested on Windows).  Just saying.
 
     env -u MAKE -u MAKEFLAGS cmd /c "$vcvarsall" "$machine" "--vcvars_ver=14.1" "&&" "$@"
 }

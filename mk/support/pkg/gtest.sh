@@ -12,7 +12,7 @@ pkg_install-include () {
 
 pkg_install () {
     pkg_copy_src_to_build
-    make -C "$build_dir/googletest/make" gtest.a
+    $EXTERN_MAKE -C "$build_dir/googletest/make" gtest.a
     mkdir -p "$install_dir/lib"
     cp "$build_dir/googletest/make/gtest.a" "$install_dir/lib/libgtest.a"
 }
