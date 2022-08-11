@@ -85,6 +85,10 @@ class LittleEndian {
 
   static bool IsLittleEndian() { return false; }
 
+#else
+
+#error "IS_LITTLE_ENDIAN and IS_BIG_ENDIAN are not defined"
+
 #endif /* ENDIAN */
 
   // Functions to do unaligned loads and stores in little-endian order.

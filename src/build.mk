@@ -59,10 +59,6 @@ else ifeq ($(COMPILER),GCC)
     endif
   endif
 
-  ifeq ($(OS),FreeBSD)
-    RT_LDFLAGS += -lstdc++
-  endif
-
   ifeq ($(STATICFORCE),1)
     # TODO(OSX)
     ifeq ($(OS),Linux)
@@ -79,7 +75,10 @@ ifeq ($(OS),FreeBSD)
   RT_CXXFLAGS += -I/usr/local/include
   RT_CXXFLAGS += -D__STDC_LIMIT_MACROS
   RT_LDFLAGS += -L/usr/local/lib
+  RT_LDFLAGS += -lstdc++
+  RT_LDFLAGS += -lexecinfo
 endif
+
 
 ifeq ($(STATICFORCE),1)
   # TODO(OSX)

@@ -115,13 +115,6 @@ endif
 ##### Make recursive make less error-prone
 
 JUST_SCAN_MAKEFILES ?= 0
-ifeq (1,$(JUST_SCAN_MAKEFILES))
-  # do not run recursive make
-  EXTERN_MAKE := \#
-else
-  # unset MAKEFLAGS to avoid some confusion
-  EXTERN_MAKE := MAKEFLAGS= $(MAKE) --no-print-directory
-endif
 
 ##### Test for certain make command line flags
 

@@ -81,7 +81,7 @@ void remove_directory_recursive(const char *dirpath) {
     // must check path existence before using nftw.
 #ifdef __FreeBSD__
     const int max_openfd = OPEN_MAX;
-    if (::access(path, 0) != 0) return;
+    if (::access(dirpath, 0) != 0) return;
 #else
     const int max_openfd = 128;
 #endif
