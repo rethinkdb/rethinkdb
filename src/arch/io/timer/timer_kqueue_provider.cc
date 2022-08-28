@@ -47,7 +47,7 @@ typedef struct kevent _KEVENT_S;
 
 static void _EV_SET_NANO(_KEVENT_S *kev, int ident, int filter,
                         int flags, int64_t nano_seconds) {
-    int32_t milli_seconds = nano_seconds / (double)MILLION;
+    int32_t milli_seconds = nano_seconds / MILLION;
     EV_SET(kev, ident, filter, flags, 0, milli_seconds, NULL);
 }
 

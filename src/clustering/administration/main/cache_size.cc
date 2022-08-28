@@ -21,7 +21,7 @@
 
 #if defined(__FreeBSD__)
 #include <sys/types.h>
-#include <sys/sysctl.h>
+#include <sys/sysctl.h>  // NOLINT(build/include)
 #endif
 
 #include "arch/runtime/thread_pool.hpp"

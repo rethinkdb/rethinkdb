@@ -2,9 +2,10 @@
 #ifndef LOGGER_HPP_
 #define LOGGER_HPP_
 
-#include <stdio.h>
-#include <string>
 #include <stdarg.h>
+#include <stdio.h>
+
+#include <string>
 
 #include "arch/compiler.hpp"
 
