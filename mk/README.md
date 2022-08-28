@@ -180,3 +180,19 @@ OVERRIDE_GOALS ?= default-goal=<default target for this directory>
 TOP := <relative path to the top of the rethinkdb source tree>
 include $(TOP)/Makefile
 ```
+
+FreeBSD
+-------
+
+To build on FreeBSD (these instructions tested on FreeBSD 13), run
+
+```
+pkg install git gcc gmake python
+./configure --allow-fetch CXX=g++
+gmake
+```
+
+Note that despite the CXX=g++ parameter, the QuickJS dependency is
+hard-coded to build with Clang, out of laziness.  If you try
+CXX=clang++, the executable is improperly linked.  Some fixes to
+improve this are welcome.

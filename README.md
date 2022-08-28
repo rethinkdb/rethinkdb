@@ -94,6 +94,8 @@ Then, to build:
     sudo make install
     # or run ./build/debug_clang/rethinkdb
 
+See WINDOWS.md and mk/README.md for build instructions for Windows and
+FreeBSD.
 
 Need help?
 ----------
