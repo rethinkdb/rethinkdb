@@ -42,7 +42,7 @@ else
 	
 	-- run the uninstall
 	if the button returned of result is "Uninstall" then
-		do shell script "set -e; /usr/sbin/pkgutil --files '" & packageIdentifier & "' | sort -r | sed 's/^/" & escapePath(installedPath) & "/' | egrep -vx '/usr|/usr/local|/usr/local/[^/]*' | while read FILE; do rm -fd \"$FILE\"; done && pkgutil --forget '" & packageIdentifier & "'" with administrator privileges
+		do shell script "set -e; /usr/sbin/pkgutil --files '" & packageIdentifier & "' | sort -r | sed 's/^/" & escapePath(installedPath) & "/' | grep -E -vx '/usr|/usr/local|/usr/local/[^/]*' | while read FILE; do rm -fd \"$FILE\"; done && pkgutil --forget '" & packageIdentifier & "'" with administrator privileges
 		display alert "RethinkDB " & installedVersion & " sucessfully removed from:" & return & displayPath giving up after 10
 	end if
 end if

@@ -579,7 +579,7 @@ check_cxx () {
     fi
     local description=$($CXX --version 2>/dev/null)$($CXX --help 2>/dev/null)
     local version_string=$(echo "$description" | extract_version_string)
-    local type=$(echo "$description" | egrep -io 'gcc|g\+\+|clang|icc' | head -n 1)
+    local type=$(echo "$description" | grep -E -io 'gcc|g\+\+|clang|icc' | head -n 1)
     case "$(uc $type)" in
         GCC|G++) min_version=$min_gcc_version
                  type=GCC ;;
@@ -606,7 +606,7 @@ check_cxx () {
 # foo --version | extract_version_string
 # find a version string in the output of foo --version
 extract_version_string () {
-    sed 's/([^)]*)//g' | egrep -o '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n 1
+    sed 's/([^)]*)//g' | grep -E -o '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -n 1
 }
 
 # read_version "1.2.3" -> 10203

@@ -99,8 +99,8 @@ endif
 # Build the list of phony targets
 $(TOP)/mk/gen/phony-list.mk: $(CONFIG)
 	+@MAKEFLAGS= $(MAKE_CMD_LINE) --print-data-base var-MAKEFILE_LIST JUST_SCAN_MAKEFILES=1 \
-	  | egrep '^.PHONY: |^MAKEFILE_LIST = ' \
-	  | egrep -v '\$$' \
+	  | grep -E '^.PHONY: |^MAKEFILE_LIST = ' \
+	  | grep -E -v '\$$' \
 	  | sed 's/^.PHONY:/PHONY_LIST +=/' \
 	  | sed 's|^MAKEFILE_LIST =|$$(TOP)/mk/gen/phony-list.mk: $$(patsubst $(TOP)/%,$$(TOP)/%,$$(filter-out %.d,|;s|$$|))|' \
 	  > $@ 2>/dev/null
