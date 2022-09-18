@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/translator.hpp"
 
+#include <time.h>
+
 #include "concurrency/new_mutex.hpp"
 #include "concurrency/pmap.hpp"
 #include "debug.hpp"

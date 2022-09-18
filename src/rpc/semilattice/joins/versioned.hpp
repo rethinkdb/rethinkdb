@@ -2,6 +2,8 @@
 #ifndef RPC_SEMILATTICE_JOINS_VERSIONED_HPP_
 #define RPC_SEMILATTICE_JOINS_VERSIONED_HPP_
 
+#include <time.h>
+
 #include <algorithm>
 #include <limits>
 
