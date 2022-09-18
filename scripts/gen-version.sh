@@ -79,7 +79,7 @@ git_is_dirty () {
 }
 
 release_notes_version () {
-    grep Release "$root/NOTES.md" | egrep -o '[0-9]+(\.[0-9]+)+' | head -n 1
+    grep Release "$root/NOTES.md" | grep -E -o '[0-9]+(\.[0-9]+)+' | head -n 1
 }
 
 main "$@"

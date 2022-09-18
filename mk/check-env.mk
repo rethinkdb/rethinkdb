@@ -8,7 +8,7 @@
 # Generate the list of variables defined in mk/defaults.mk
 # All variables that can be set by users should be listed and documented in mk/defaults.mk
 $(TOP)/mk/gen/allowed-variables.mk: $(TOP)/mk/defaults.mk
-	-@echo "allowed-variables :=" `cat $< | egrep -o '[ \t]*[A-Z_0-9]+[ \t]*[:?+]?=' | egrep -o '[A-Z_0-9]+'` > $@
+	-@echo "allowed-variables :=" `cat $< | grep -E -o '[ \t]*[A-Z_0-9]+[ \t]*[:?+]?=' | grep -E -o '[A-Z_0-9]+'` > $@
 
 allowed-variables :=
 -include $(TOP)/mk/gen/allowed-variables.mk
