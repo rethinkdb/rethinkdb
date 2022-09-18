@@ -2,6 +2,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_METADATA_HPP_
 #define CLUSTERING_ADMINISTRATION_METADATA_HPP_
 
+#include <time.h>
+
 #include <map>
 #include <string>
 #include <vector>
