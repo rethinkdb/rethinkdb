@@ -60,6 +60,12 @@ another terminal, run:
 Now you can work on the web UI in ~/rethinkdb-old-admin/admin/ and
 semi-instantly view the results in a web browser.
 
+Beware: RethinkDB's server won't serve any file outside of the
+whitelist of files that were listed in its generated `web_assets.cc`.
+You will see console log messages if that occurs.  If you add new
+files, you will need to regenerate web_assets.cc and recompile the
+RethinkDB server.
+
 Then, once you're satisfied with your changes, interrupt the `make
 web-assets-watch` with Ctrl+C and use `make generate` to create your
 web_assets.cc, as described in the Usage section above.
