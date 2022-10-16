@@ -427,18 +427,8 @@ std::vector<std::string> word_wrap(const std::string &s, const size_t width) {
 }
 
 std::string format_help(const std::vector<help_section_t> &help) {
-    size_t max_syntax_description_length = 0;
-    for (auto section = help.begin(); section != help.end(); ++section) {
-        for (auto line = section->help_lines.begin(); line != section->help_lines.end(); ++line) {
-            max_syntax_description_length = std::max(max_syntax_description_length,
-                                                     line->syntax_description.size());
-        }
-    }
-
-    const size_t summary_width = std::max<ssize_t>(30, 79 - static_cast<ssize_t>(max_syntax_description_length));
-
-    // Two spaces before summary description, two spaces after.  2 + 2 = 4.
-    const size_t indent_width = 4 + max_syntax_description_length;
+    constexpr size_t indent_width = 28;
+    constexpr size_t summary_width = 79 - indent_width;
 
     std::string ret;
     for (auto section = help.begin(); section != help.end(); ++section) {
@@ -452,7 +442,12 @@ std::string format_help(const std::vector<help_section_t> &help) {
                 if (i == 0) {
                     ret += "  ";  // 2 spaces
                     ret += line->syntax_description;
-                    ret += std::string(indent_width - (2 + line->syntax_description.size()), ' ');
+                    if (2 + line->syntax_description.size() + 2 > indent_width) {
+                        ret += "\n";
+                        ret += std::string(indent_width, ' ');
+                    } else {
+                        ret += std::string(indent_width - (2 + line->syntax_description.size()), ' ');
+                    }
                 } else {
                     ret += std::string(indent_width, ' ');
                 }
