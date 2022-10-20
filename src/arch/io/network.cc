@@ -4,6 +4,7 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
 #include <string.h>
 #include <sys/types.h>
 
@@ -20,6 +21,7 @@
 #include <sys/socket.h>
 #endif
 
+#include "arch/io/openssl.hpp"
 #include "arch/runtime/runtime.hpp"
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/timing.hpp"

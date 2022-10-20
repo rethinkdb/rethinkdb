@@ -2,6 +2,8 @@
 #include "extproc/http_job.hpp"
 
 #include <ctype.h>
+#include <string.h>
+
 #include <re2/re2.h>
 
 #ifdef _WIN32
@@ -9,7 +11,13 @@
 #endif
 #include <curl/curl.h>
 
+#include <algorithm>
+#include <exception>
+#include <map>
 #include <limits>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"

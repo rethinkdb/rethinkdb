@@ -1,6 +1,10 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved
 #include "clustering/table_manager/sindex_manager.hpp"
 
+#include <functional>
+#include <set>
+#include <type_traits>
+
 #include "clustering/administration/issues/outdated_index.hpp"
 
 #include "concurrency/cross_thread_signal.hpp"

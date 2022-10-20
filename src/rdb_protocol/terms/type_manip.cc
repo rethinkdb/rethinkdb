@@ -1,6 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
+#include <ctype.h>
+#include <stdio.h>
+
 #include <algorithm>
 #include <map>
 #include <string>

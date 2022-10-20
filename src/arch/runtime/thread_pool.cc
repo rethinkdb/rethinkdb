@@ -2,6 +2,7 @@
 #include "arch/runtime/thread_pool.hpp"
 
 #include <errno.h>
+#include <sched.h>
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>

@@ -1,6 +1,11 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/executor/exec_erase.hpp"
 
+#include <functional>
+#include <map>
+#include <set>
+#include <utility>
+
 #include "concurrency/cross_thread_signal.hpp"
 
 erase_execution_t::erase_execution_t(

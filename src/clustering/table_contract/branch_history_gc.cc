@@ -1,6 +1,11 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/branch_history_gc.hpp"
 
+#include <map>
+#include <string>
+#include <type_traits>
+#include <utility>
+
 #include "logger.hpp"
 
 void copy_branch_history_for_branch(

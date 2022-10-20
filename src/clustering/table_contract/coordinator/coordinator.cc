@@ -1,6 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/coordinator/coordinator.hpp"
 
+#include <set>
+
 #include "clustering/generic/raft_core.tcc"
 #include "clustering/table_contract/branch_history_gc.hpp"
 #include "clustering/table_contract/coordinator/calculate_contracts.hpp"

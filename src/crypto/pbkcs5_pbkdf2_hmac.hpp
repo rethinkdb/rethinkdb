@@ -3,6 +3,8 @@
 #define CRYPTO_PKCS5_PBKDF2_HMAC_HPP
 
 #include <openssl/sha.h>
+#include <stddef.h>
+#include <stdint.h>
 
 #include <array>
 #include <string>

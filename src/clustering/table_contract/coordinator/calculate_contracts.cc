@@ -1,6 +1,12 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/coordinator/calculate_contracts.hpp"
 
+#include <algorithm>
+#include <list>
+#include <memory>
+#include <type_traits>
+#include <vector>
+
 #include "clustering/table_contract/branch_history_gc.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"
 #include "logger.hpp"

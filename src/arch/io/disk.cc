@@ -1,7 +1,10 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/io/disk.hpp"
 
+#include <errno.h>
+#include <inttypes.h>
 #include <fcntl.h>
+#include <stdlib.h>
 
 #ifndef _WIN32
 #include <sys/ioctl.h>

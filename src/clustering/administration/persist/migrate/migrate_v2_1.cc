@@ -1,6 +1,14 @@
 // Copyright 2010-2016 RethinkDB, all rights reserved.
 #include "clustering/administration/persist/migrate/migrate_v2_1.hpp"
 
+#include <time.h>
+
+#include <limits>
+#include <map>
+#include <string>
+#include <type_traits>
+#include <utility>
+
 #include "clustering/administration/metadata.hpp"
 #include "clustering/administration/persist/file_keys.hpp"
 #include "clustering/administration/persist/migrate/metadata_v2_1.hpp"

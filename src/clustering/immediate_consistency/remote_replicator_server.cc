@@ -1,6 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/remote_replicator_server.hpp"
 
+#include <functional>
+
 remote_replicator_server_t::remote_replicator_server_t(
         mailbox_manager_t *_mailbox_manager,
         primary_dispatcher_t *_primary) :

@@ -1,5 +1,16 @@
 #include "clustering/administration/tables/split_points.hpp"
 
+#include <math.h>
+#include <string.h>
+
+#include <algorithm>
+#include <cstdint>
+#include <limits>
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
 #include "clustering/administration/real_reql_cluster_interface.hpp"
 #include "math.hpp"   /* for `clamp()` */
 #include "rdb_protocol/real_table.hpp"

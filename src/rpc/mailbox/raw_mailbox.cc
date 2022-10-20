@@ -1,5 +1,7 @@
 #include "rpc/mailbox/raw_mailbox.hpp"
 
+#include <inttypes.h>
+
 #include "rpc/mailbox/mailbox.hpp"
 #include "utils.hpp"
 

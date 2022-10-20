@@ -1,5 +1,7 @@
 #include "serializer/buf_ptr.hpp"
 
+#include <string.h>
+
 #include <algorithm>
 
 #include "math.hpp"

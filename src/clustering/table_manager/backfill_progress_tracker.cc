@@ -2,6 +2,9 @@
 
 #include "clustering/table_manager/backfill_progress_tracker.hpp"
 
+#include <type_traits>
+#include <utility>
+
 backfill_progress_tracker_t::progress_tracker_t *
 backfill_progress_tracker_t::insert_progress_tracker(const region_t &region) {
     return &progress_trackers.get()->insert(

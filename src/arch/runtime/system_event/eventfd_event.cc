@@ -3,9 +3,11 @@
 
 #include "arch/runtime/system_event/eventfd_event.hpp"
 
+#include <errno.h>
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/eventfd.h>
 
 #include "errors.hpp"
 #include "arch/runtime/system_event/eventfd.hpp"

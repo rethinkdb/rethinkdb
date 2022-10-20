@@ -2,6 +2,10 @@
 
 #include "clustering/table_manager/server_name_cache_updater.hpp"
 
+#include <functional>
+#include <map>
+#include <utility>
+
 #include "clustering/generic/raft_core.tcc"
 #include "clustering/table_contract/contract_metadata.hpp"
 

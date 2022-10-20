@@ -16,8 +16,15 @@
 #include <stdint.h>
 #include <limits.h>
 
+#include <algorithm>
+#include <exception>
 #include <limits>
+#include <type_traits>
 #include <unordered_map>
+#include <utility>
+
+#include "errors.hpp"
+#include <boost/variant.hpp>
 
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/stl_types.hpp"

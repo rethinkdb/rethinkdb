@@ -1,6 +1,9 @@
 // Copyright 2010-2016 RethinkDB, all rights reserved.
 #include "crypto/base64.hpp"
 
+#include <stddef.h>
+#include <stdint.h>
+
 #include "crypto/error.hpp"
 
 namespace crypto {

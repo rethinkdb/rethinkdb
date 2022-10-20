@@ -1,7 +1,11 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "http/http.hpp"
 
+#include <errno.h>
+#include <inttypes.h>
 #include <math.h>
+#include <stdlib.h>
+#include <string.h>
 #include <zlib.h>
 
 #include <exception>

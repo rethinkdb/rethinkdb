@@ -1,6 +1,10 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/cluster_config.hpp"
 
+#include <algorithm>
+#include <type_traits>
+#include <utility>
+
 #include "clustering/administration/admin_op_exc.hpp"
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/metadata.hpp"

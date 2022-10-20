@@ -1,6 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "arch/io/blocker_pool.hpp"
 
+#include <signal.h>
 #include <string.h>
 
 #include "arch/compiler.hpp"

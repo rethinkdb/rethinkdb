@@ -2,6 +2,7 @@
 #include "rdb_protocol/datum.hpp"
 
 #include <float.h>
+#include <inttypes.h>
 #include <math.h>
 #include <stdint.h>
 #include <stdlib.h>

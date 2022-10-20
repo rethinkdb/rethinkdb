@@ -1,6 +1,7 @@
 #include "clustering/generic/multi_client_client.hpp"
 
 #include <functional>
+#include <utility>
 
 #include "clustering/generic/registrant.hpp"
 #include "containers/archive/boost_types.hpp"

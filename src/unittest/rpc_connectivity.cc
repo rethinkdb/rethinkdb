@@ -1,4 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
+#include "unittest/gtest.hpp"
+
+#include <limits.h>
+
 #include <functional>
 
 #ifdef _WIN32
@@ -14,7 +18,6 @@
 #include "unittest/clustering_utils.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rpc/connectivity/cluster.hpp"
-#include "unittest/gtest.hpp"
 
 namespace unittest {
 

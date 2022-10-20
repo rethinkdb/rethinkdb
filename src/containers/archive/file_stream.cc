@@ -2,6 +2,7 @@
 
 #include "containers/archive/file_stream.hpp"
 
+#include <errno.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>

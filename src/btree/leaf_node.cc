@@ -2,6 +2,8 @@
 #include "btree/leaf_node.hpp"
 
 #include <inttypes.h>
+#include <stddef.h>
+#include <string.h>
 
 #include <algorithm>
 #include <set>

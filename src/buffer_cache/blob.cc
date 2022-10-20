@@ -2,6 +2,7 @@
 #include "buffer_cache/blob.hpp"
 
 #include <stdint.h>
+#include <string.h>
 
 #include <algorithm>
 #include <limits>

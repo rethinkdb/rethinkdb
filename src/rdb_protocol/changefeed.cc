@@ -1,6 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/changefeed.hpp"
 
+#include <inttypes.h>
+
 #include <queue>
 
 #include "btree/reql_specific.hpp"

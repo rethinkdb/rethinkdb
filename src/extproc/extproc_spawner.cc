@@ -7,8 +7,10 @@
 #include <atomic>
 #endif  // _WIN32
 
-#include <sys/types.h>
+#include <errno.h>
 #include <signal.h>
+#include <stdlib.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 #include "arch/process.hpp"

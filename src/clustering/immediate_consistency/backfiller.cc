@@ -1,6 +1,11 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/backfiller.hpp"
 
+#include <algorithm>
+#include <functional>
+#include <type_traits>
+#include <utility>
+
 #include "assignment_sentry.hpp"
 #include "clustering/immediate_consistency/history.hpp"
 #include "rdb_protocol/distribution_progress.hpp"

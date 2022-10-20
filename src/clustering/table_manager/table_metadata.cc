@@ -1,6 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_manager/table_metadata.hpp"
 
+#include <algorithm>
+#include <type_traits>
+
 #include "clustering/administration/datum_adapter.hpp"
 
 RDB_IMPL_SERIALIZABLE_2_SINCE_v2_1(

@@ -1,8 +1,14 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/jobs/manager.hpp"
 
+#include <algorithm>
 #include <functional>
 #include <iterator>
+#include <map>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include "concurrency/watchable.hpp"
 #include "pprint/js_pprint.hpp"
