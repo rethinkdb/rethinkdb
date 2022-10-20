@@ -1,6 +1,17 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "clustering/administration/logs/logs_backend.hpp"
 
+#include <time.h>
+
+#include <algorithm>
+#include <limits>
+#include <map>
+#include <memory>
+#include <set>
+#include <type_traits>
+#include <utility>
+
+
 #include "clustering/administration/datum_adapter.hpp"
 #include "clustering/administration/logs/log_writer.hpp"
 #include "clustering/administration/logs/log_transfer.hpp"

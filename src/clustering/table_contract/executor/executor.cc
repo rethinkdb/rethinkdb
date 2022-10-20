@@ -1,6 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/executor/executor.hpp"
 
+#include <functional>
+
 #include "clustering/table_contract/branch_history_gc.hpp"
 #include "clustering/table_contract/executor/exec_erase.hpp"
 #include "clustering/table_contract/executor/exec_primary.hpp"

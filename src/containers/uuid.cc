@@ -4,6 +4,7 @@
 
 #include <unistd.h>
 #include <sys/stat.h>
+#include <ctype.h>
 #include <string.h>
 #include <fcntl.h>
 

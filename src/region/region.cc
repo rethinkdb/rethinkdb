@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "region/region.hpp"
 
+#include <inttypes.h>
+
 #include <algorithm>
 
 void debug_print(printf_buffer_t *buf, const hash_range_t &hr) {

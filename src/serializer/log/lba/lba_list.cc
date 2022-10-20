@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/log/lba/lba_list.hpp"
 
+#include <string.h>
+
 #include "utils.hpp"
 #include "serializer/log/lba/disk_format.hpp"
 #include "arch/arch.hpp"

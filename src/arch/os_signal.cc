@@ -2,6 +2,8 @@
 
 #include "arch/os_signal.hpp"
 
+#include <signal.h>
+
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/types.hpp"
 #include "do_on_thread.hpp"

@@ -10,9 +10,11 @@
 #include <errno.h>
 #include <poll.h>
 #include <string.h>
+#include <strings.h>
 
-#include <new>
 #include <algorithm>
+#include <new>
+#include <memory>
 #include <string>
 
 

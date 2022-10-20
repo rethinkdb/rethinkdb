@@ -1,6 +1,12 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/remote_replicator_client.hpp"
 
+#include <deque>
+#include <functional>
+#include <memory>
+#include <string>
+#include <utility>
+
 #include "clustering/immediate_consistency/backfill_throttler.hpp"
 #include "clustering/immediate_consistency/backfillee.hpp"
 #include "clustering/table_manager/backfill_progress_tracker.hpp"

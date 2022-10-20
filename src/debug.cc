@@ -2,6 +2,9 @@
 #include "debug.hpp"
 
 #include <inttypes.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <time.h>
 
 #include "arch/runtime/runtime.hpp"
 #include "rdb_protocol/ql2proto.hpp"

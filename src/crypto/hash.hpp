@@ -3,6 +3,7 @@
 #define CRYPTO_HASH_HPP
 
 #include <openssl/sha.h>
+#include <stddef.h>
 
 #include <array>
 #include <string>

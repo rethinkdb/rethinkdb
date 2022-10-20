@@ -1,6 +1,7 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "pprint/js_pprint.hpp"
 
+#include <ctype.h>
 #include <math.h>
 
 #include <vector>

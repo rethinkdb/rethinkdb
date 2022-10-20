@@ -1,7 +1,10 @@
+#include "arch/io/disk/filestat.hpp"
+
+#include <sys/types.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include "errors.hpp"
-#include "arch/io/disk/filestat.hpp"
 
 int64_t get_file_size(fd_t fd) {
     guarantee(fd != INVALID_FD);

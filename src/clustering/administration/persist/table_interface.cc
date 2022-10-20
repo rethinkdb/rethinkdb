@@ -1,8 +1,14 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/persist/table_interface.hpp"
 
+#include <errno.h>
+#include <unistd.h>
+
 #include <algorithm>
 #include <array>
+#include <string>
+#include <type_traits>
+#include <vector>
 
 #include "clustering/administration/persist/branch_history_manager.hpp"
 #include "clustering/administration/persist/file_keys.hpp"

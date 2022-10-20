@@ -1,6 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/query_cache.hpp"
 
+#include <inttypes.h>
+
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/pseudo_time.hpp"

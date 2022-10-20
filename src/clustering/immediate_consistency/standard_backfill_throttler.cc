@@ -1,6 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/standard_backfill_throttler.hpp"
 
+#include <iterator>
+
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/wait_any.hpp"
 

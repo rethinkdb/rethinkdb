@@ -1,6 +1,18 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/persist/migrate/migrate_v1_16.hpp"
 
+#include <time.h>
+
+#include <algorithm>
+#include <deque>
+#include <functional>
+#include <map>
+#include <set>
+#include <string>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
 #include "buffer_cache/alt.hpp"
 #include "buffer_cache/blob.hpp"
 #include "buffer_cache/cache_balancer.hpp"

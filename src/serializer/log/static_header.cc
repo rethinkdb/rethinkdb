@@ -1,6 +1,8 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "serializer/log/static_header.hpp"
 
+#include <string.h>
+
 #include <functional>
 #include <vector>
 

@@ -1,6 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/coordinator/calculate_misc.hpp"
 
+#include <vector>
+
 /* `calculate_server_names()` figures out what changes need to be made to the server
 names stored in the Raft state. When a contract is added that refers to a new server, it
 will copy the server name from the table config; when the last contract that refers to a

@@ -1,7 +1,12 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/log/lba/disk_structure.hpp"
 
+#include <stddef.h>
+#include <stdlib.h>
+#include <string.h>
+
 #include <algorithm>
+#include <vector>
 
 #include "containers/scoped.hpp"
 #include "math.hpp"

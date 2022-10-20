@@ -1,6 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/immediate_consistency/replica.hpp"
 
+#include <functional>
+#include <utility>
+
 #include "rdb_protocol/protocol.hpp"
 #include "store_view.hpp"
 

@@ -1,6 +1,10 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include <unistd.h>
 
+#include <sys/types.h>
+#include <signal.h>
+#include <stdlib.h>
+
 #include "logger.hpp"
 
 #include "extproc/extproc_worker.hpp"

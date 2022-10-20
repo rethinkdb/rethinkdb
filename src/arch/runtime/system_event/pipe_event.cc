@@ -3,6 +3,7 @@
 
 #include "arch/runtime/system_event/pipe_event.hpp"
 
+#include <errno.h>
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>

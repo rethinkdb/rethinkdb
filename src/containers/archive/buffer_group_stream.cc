@@ -1,6 +1,8 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "containers/buffer_group.hpp"
 
+#include <string.h>
+
 #include <algorithm>
 
 #include "containers/archive/buffer_group_stream.hpp"

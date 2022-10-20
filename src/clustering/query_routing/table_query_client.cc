@@ -1,7 +1,11 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/query_routing/table_query_client.hpp"
 
+#include <algorithm>
 #include <functional>
+#include <iterator>
+#include <memory>
+#include <type_traits>
 
 #include "clustering/query_routing/primary_query_client.hpp"
 #include "clustering/table_contract/cpu_sharding.hpp"

@@ -1,6 +1,8 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "concurrency/fifo_checker.hpp"
 
+#include <inttypes.h>
+
 #include <vector>
 
 #include "arch/runtime/runtime.hpp"

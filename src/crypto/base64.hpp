@@ -2,6 +2,8 @@
 #ifndef CRYPTO_BASE64_HPP
 #define CRYPTO_BASE64_HPP
 
+#include <stddef.h>
+
 #include <array>
 #include <string>
 

@@ -1,5 +1,7 @@
 #include "buffer_cache/alt.hpp"
 
+#include <inttypes.h>
+
 #include <stack>
 
 #include "arch/types.hpp"

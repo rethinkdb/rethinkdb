@@ -1,6 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/executor/exec_secondary.hpp"
 
+#include <functional>
+#include <map>
+#include <set>
 #include <utility>
 
 #include "clustering/immediate_consistency/remote_replicator_client.hpp"

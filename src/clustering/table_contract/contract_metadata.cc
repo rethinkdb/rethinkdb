@@ -1,6 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/contract_metadata.hpp"
 
+#include <type_traits>
+#include <vector>
+
 #include "clustering/table_contract/cpu_sharding.hpp"
 #include "stl_utils.hpp"
 

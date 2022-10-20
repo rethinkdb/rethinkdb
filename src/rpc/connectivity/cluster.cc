@@ -5,6 +5,8 @@
 #include <netinet/in.h>
 #endif
 
+#include <inttypes.h>
+
 #include <algorithm>
 #include <functional>
 

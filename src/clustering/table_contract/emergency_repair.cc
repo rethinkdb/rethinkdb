@@ -1,6 +1,14 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_contract/emergency_repair.hpp"
 
+#include <algorithm>
+#include <map>
+#include <string>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
+
 /* Returns `true` if `servers` is a subset of `dead`. */
 bool all_dead(
         const std::set<server_id_t> &servers, const std::set<server_id_t> &dead) {

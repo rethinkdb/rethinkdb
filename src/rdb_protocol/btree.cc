@@ -1,6 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/btree.hpp"
 
+#include <stdlib.h>
+#include <string.h>
+
 #include <algorithm>
 #include <functional>
 #include <iterator>

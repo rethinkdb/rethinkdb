@@ -1,7 +1,11 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "serializer/log/log_serializer.hpp"
 
+#include <errno.h>
 #include <fcntl.h>
+#include <inttypes.h>
+#include <stdio.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>

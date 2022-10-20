@@ -1,6 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "clustering/administration/logs/log_writer.hpp"
 
+#include <errno.h>
 #include <math.h>
 #include <fcntl.h>
 #include <pthread.h>
@@ -11,6 +12,10 @@
 #ifdef _WIN32
 #include <io.h>
 #endif
+
+#include <functional>
+#include <limits>
+#include <utility>
 
 #include "arch/runtime/thread_pool.hpp"
 #include "arch/io/disk/filestat.hpp"

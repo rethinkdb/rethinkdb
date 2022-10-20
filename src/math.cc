@@ -2,6 +2,9 @@
 
 #include <math.h>
 
+// For std.
+#include <iosfwd>
+
 #include "errors.hpp"
 
 int64_t int64_round_up_to_power_of_two(int64_t x) {

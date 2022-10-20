@@ -1,5 +1,7 @@
 #include "arch/types.hpp"
 
+#include <errno.h>
+
 #include "utils.hpp"
 
 tcp_socket_exc_t::tcp_socket_exc_t(int errsv, int port) {

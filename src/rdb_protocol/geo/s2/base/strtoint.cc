@@ -5,6 +5,7 @@
 //
 
 #include <errno.h>
+#include <limits.h>
 
 #include "rdb_protocol/geo/s2/base/port.h"
 #include "rdb_protocol/geo/s2/base/basictypes.h"

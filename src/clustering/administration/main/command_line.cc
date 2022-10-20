@@ -1,6 +1,8 @@
 // Copyright 2010-2016 RethinkDB, all rights reserved.
 #include "clustering/administration/main/command_line.hpp"
 
+#include <errno.h>
+#include <inttypes.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,8 +35,19 @@
 #include <sys/sysctl.h>
 #endif
 
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <exception>
 #include <functional>
 #include <limits>
+#include <map>
+#include <memory>
+#include <set>
+#include <stdexcept>
+#include <string>
+#include <utility>
+#include <vector>
 
 #include <re2/re2.h>
 

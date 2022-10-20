@@ -2,6 +2,7 @@
 #include "clustering/administration/main/serve.hpp"
 
 #include <stdio.h>
+#include <unistd.h>
 
 #include "arch/arch.hpp"
 #include "arch/io/network.hpp"

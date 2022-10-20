@@ -1,6 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "btree/reql_specific.hpp"
 
+#include <string.h>
+
 #include "btree/secondary_operations.hpp"
 #include "buffer_cache/blob.hpp"
 #include "containers/binary_blob.hpp"

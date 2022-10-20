@@ -1,6 +1,10 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "extproc/http_runner.hpp"
 
+#include <inttypes.h>
+
+#include <utility>
+
 #include "arch/timing.hpp"
 #include "containers/archive/stl_types.hpp"
 #include "extproc/http_job.hpp"

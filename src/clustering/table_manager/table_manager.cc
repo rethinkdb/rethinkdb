@@ -1,6 +1,10 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_manager/table_manager.hpp"
 
+#include <functional>
+#include <set>
+#include <string>
+
 #include "clustering/generic/minidir.tcc"
 #include "clustering/generic/raft_core.tcc"
 #include "clustering/generic/raft_network.tcc"

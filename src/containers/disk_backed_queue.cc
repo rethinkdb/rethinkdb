@@ -1,6 +1,11 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "containers/disk_backed_queue.hpp"
 
+#include <string.h>
+
+#include <string>
+#include <vector>
+
 #include "arch/io/disk.hpp"
 #include "buffer_cache/alt.hpp"
 #include "buffer_cache/blob.hpp"

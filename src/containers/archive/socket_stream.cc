@@ -84,16 +84,19 @@ void socket_stream_t::wait_for_pipe_client(signal_t *interruptor) {
     }
 }
 
-#else
+#else  // WIN32
 
 #include "containers/archive/socket_stream.hpp"
 
+#include <errno.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
 
 #include <cstring>
+#include <string>
+#include <utility>
 
 #include "arch/fd_send_recv.hpp"
 #include "arch/runtime/event_queue.hpp" // format_poll_event
@@ -103,6 +106,7 @@ void socket_stream_t::wait_for_pipe_client(signal_t *interruptor) {
 #include "logger.hpp"  // logERR
 
 // -------------------- blocking_fd_watcher_t --------------------
+
 blocking_fd_watcher_t::blocking_fd_watcher_t()
     : read_open_(true), write_open_(true) {}
 

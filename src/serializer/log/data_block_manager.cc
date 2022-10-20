@@ -2,6 +2,8 @@
 #include "serializer/log/data_block_manager.hpp"
 
 #include <inttypes.h>
+#include <limits.h>
+#include <string.h>
 #include <sys/uio.h>
 
 #include <functional>

@@ -1,6 +1,7 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "arch/runtime/runtime_utils.hpp"
 
+#include <string.h>
 #include <unistd.h>
 
 #include "arch/runtime/context_switching.hpp"

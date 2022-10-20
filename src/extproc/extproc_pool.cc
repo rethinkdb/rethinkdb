@@ -1,6 +1,9 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
-#include "containers/object_buffer.hpp"
 #include "extproc/extproc_pool.hpp"
+
+#include <functional>
+
+#include "containers/object_buffer.hpp"
 #include "extproc/extproc_spawner.hpp"
 
 extproc_pool_t::extproc_pool_t(size_t worker_count) :

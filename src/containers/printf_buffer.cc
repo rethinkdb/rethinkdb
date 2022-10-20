@@ -1,5 +1,9 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
 #include "containers/printf_buffer.hpp"
+
+#include <stdio.h>
+#include <string.h>
+
 #include "math.hpp"
 
 printf_buffer_t::printf_buffer_t() : length_(0), ptr_(data_) {

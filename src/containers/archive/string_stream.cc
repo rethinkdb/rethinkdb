@@ -1,6 +1,10 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "containers/archive/string_stream.hpp"
 
+#include <string.h>
+
+#include <utility>
+
 string_stream_t::string_stream_t() { }
 
 string_stream_t::~string_stream_t() { }

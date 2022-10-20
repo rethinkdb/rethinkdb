@@ -1,9 +1,14 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "extproc/js_runner.hpp"
 
-#include <inttypes.h>   // For PRIu64
+#include <inttypes.h>
 
 #include <map>
+#include <set>
+#include <utility>
+
+#include "errors.hpp"
+#include <boost/variant/get.hpp>
 
 #include "extproc/js_job.hpp"
 #include "time.hpp"

@@ -1,6 +1,9 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/table_manager/multi_table_manager.hpp"
 
+#include <functional>
+#include <string>
+
 #include "clustering/generic/raft_core.tcc"
 #include "clustering/query_routing/metadata.hpp"
 #include "clustering/table_manager/table_manager.hpp"

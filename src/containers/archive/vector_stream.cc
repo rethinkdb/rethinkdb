@@ -3,6 +3,8 @@
 
 #include <string.h>
 
+#include <utility>
+
 vector_stream_t::vector_stream_t() { }
 
 vector_stream_t::~vector_stream_t() { }

@@ -1,6 +1,10 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/persist/file.hpp"
 
+#include <stdlib.h>
+
+#include <utility>
+
 #include "btree/depth_first_traversal.hpp"
 #include "btree/operations.hpp"
 #include "btree/types.hpp"

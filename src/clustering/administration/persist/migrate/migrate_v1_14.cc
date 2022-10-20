@@ -1,6 +1,17 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/persist/migrate/migrate_v1_14.hpp"
 
+#include <time.h>
+
+#include <algorithm>
+#include <functional>
+#include <limits>
+#include <map>
+#include <set>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "logger.hpp"
 
 template<class T>
