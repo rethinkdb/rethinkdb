@@ -1,9 +1,9 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "unittest/gtest.hpp"
 
-#include <limits.h>
+#include <limits.h>  // NOLINT(build/include_order)
 
-#include <functional>
+#include <functional>  // NOLINT(build/include_order)
 
 #ifdef _WIN32
 #include "windows.hpp"
