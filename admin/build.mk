@@ -20,3 +20,4 @@ web-assets: $(ALL_WEB_ASSETS)
 generate-web-assets-cc: web-assets
 	mkdir -p $(TOP)/src/gen
 	$(TOP)/scripts/compile-web-assets.py $(TOP)/build/web_assets > $(TOP)/src/gen/web_assets.cc
+	grep -A 2 '\\"rethinkdb-version\\":\[' $(TOP)/src/gen/web_assets.cc | grep 'module\.exports' | xargs -0 echo -n 'Double-check version:'

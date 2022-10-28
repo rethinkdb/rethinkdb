@@ -30,12 +30,20 @@ src/gen/web_assets.cc.
 To generate src/gen/web_assets.cc, run the following:
 
     ./configure --fetch all
-    # ./configure --fetch all CXX=clang++
+
+    make clean
     make -j8 generate
 
-To generate a web_assets.cc for a specific RethinkDB version, you might want to try
+To generate a web_assets.cc for a specific RethinkDB version like
+1.2.3, you might want to try
 
-    make PVERSION=<your choice> -j8 generate
+    make clean
+    make PVERSION=1.2.3 -j8 generate
+
+It is IMPORTANT that you clean *and* double-check the
+rethinkdb-version value in src/gen/web_assets.cc after generating.
+(The build system now greps the web_assets.cc file for you so you can
+visually inspect the generated value.)
 
 Once src/gen/web_assets.cc is built, you can copy the file into your
 rethinkdb repository, replacing the existing one at the same location,
@@ -73,13 +81,5 @@ web_assets.cc, as described in the Usage section above.
 
 ## System Requirements
 
-This is known to work on Debian Bullseye (with python-is-python3) and
-Ubuntu Focal (20.04).
-
-On Ubuntu Jammy (22.04), you will need Python to point to python2:
-
-    mkdir ~/tmpbin
-    ln -s /usr/bin/python2 ~/tmpbin/python
-    export PATH=~/tmpbin:"$PATH"
-    ./configure --allow-fetch
-    make -j8 generate
+This is known to work on Debian Bullseye (with python-is-python3),
+Ubuntu Focal (20.04), and Ubuntu Jammy (22.04).
