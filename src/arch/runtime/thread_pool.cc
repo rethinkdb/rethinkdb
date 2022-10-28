@@ -2,12 +2,12 @@
 #include "arch/runtime/thread_pool.hpp"
 
 #include <errno.h>
-#include <sched.h>
 #include <signal.h>
 #include <string.h>
 #include <unistd.h>
 
 #ifndef _WIN32
+#include <sched.h>
 #include <sys/time.h>
 #endif
 
