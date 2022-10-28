@@ -9,7 +9,7 @@
 
 #include "client_protocol/server.hpp" // NOLINT(build/include_order)
 
-#include <time.h>
+#include <time.h> // NOLINT(build/include_order)
 
 #include <google/protobuf/stubs/common.h> // NOLINT(build/include_order)
 
