@@ -2,7 +2,7 @@
 version=3.19.4
 
 src_url=https://github.com/google/protobuf/releases/download/v$version/protobuf-cpp-$version.tar.gz
-src_url_sha1=5d438d5a072d3039416ba0732e92262395d2c904
+src_url_sha256=89ac31a93832e204db6d73b1e80f39f142d5747b290f17340adce5be5b122f94
 
 pkg_install-include () {
     in_dir "$src_dir/src" find . \( -name "*.h" -o -name "*.inc" \) | while read -r file; do

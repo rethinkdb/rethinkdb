@@ -2,7 +2,7 @@
 version=1.38
 
 src_url=http://ftp.gnu.org/gnu/libidn/libidn-$version.tar.gz
-src_url_sha1=f59995a07e06864b1f385dc91bd4b08bb5ea88cc
+src_url_sha256=de00b840f757cd3bb14dd9a20d5936473235ddcba06d4bc2da804654b8bbf0f6
 
 pkg_configure () {
     if [[ "$CROSS_COMPILING" = 1 ]]; then

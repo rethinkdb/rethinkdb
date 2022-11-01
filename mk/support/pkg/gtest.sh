@@ -1,6 +1,6 @@
 version=1.8.1
 src_url=https://github.com/google/googletest/archive/release-$version.tar.gz
-src_url_sha1=152b849610d91a9dfa1401293f43230c2e0c33f8
+src_url_sha256=9bf1fe5182a604b4135edc1a425ae356c9ad15e9b23f9f12a02e80184c3a249c
 
 pkg_install-include () {
     test -e "$install_dir/include" && rm -rf "$install_dir/include"

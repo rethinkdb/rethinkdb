@@ -71,12 +71,12 @@ pkg_fetch_archive () {
 
     local archive_name="${src_url##*/}"
     local archive="$cache_dir/$archive_name"
-    local actual_sha1
+    local actual_sha256
 
     if [[ -e "$archive" && "$VERIFY_FETCH_HASH" = 1 ]]; then
-        actual_sha1=`getsha1 "$archive"`
-        if [[ "$actual_sha1" != "$src_url_sha1" ]]; then
-            echo "warning: cached file has wrong hash, deleting. (Expected $src_url_sha1, actual $actual_sha1)."
+        actual_sha256=`getsha256 "$archive"`
+        if [[ "$actual_sha256" != "$src_url_sha256" ]]; then
+            echo "warning: cached file has wrong hash, deleting. (Expected $src_url_sha256, actual $actual_sha256)."
             rm "$archive"
         fi
     fi
@@ -97,9 +97,9 @@ pkg_fetch_archive () {
         fi
 
         if [[ "$VERIFY_FETCH_HASH" = 1 ]]; then
-            actual_sha1=`getsha1 "$archive"`
-            if [[ "$actual_sha1" != "$src_url_sha1" ]]; then
-                error "downloaded file has wrong hash: expected '$src_url_sha1' but found '$actual_sha1' for $url ($archive)." \
+            actual_sha256=`getsha256 "$archive"`
+            if [[ "$actual_sha256" != "$src_url_sha256" ]]; then
+                error "downloaded file has wrong hash: expected '$src_url_sha256' but found '$actual_sha256' for $url ($archive)." \
                       "Disable this check with VERIFY_FETCH_HASH=0 or add correct hash to '$pkg_dir/$pkg.sh'"
             fi
         fi
@@ -378,17 +378,17 @@ geturl () {
     fi
 }
 
-getsha1 () {
+getsha256 () {
     if hash openssl 1>/dev/null 2>/dev/null; then
-        openssl sha1 "$1" | awk '{print $NF}'
-    elif hash sha1sum 1>/dev/null 2>/dev/null; then
-        sha1sum "$1" | awk '{print $1}'
+        openssl sha256 "$1" | awk '{print $NF}'
+    elif hash sha256sum 1>/dev/null 2>/dev/null; then
+        sha256sum "$1" | awk '{print $1}'
     elif hash shasum 1>/dev/null 2>/dev/null; then
-        shasum -a 1 "$1" | awk '{print $NF}'
-    elif hash sha1 1>/dev/null 2>/dev/null; then
-        sha1 -q "$1"
+        shasum -a 256 "$1" | awk '{print $NF}'
+    elif hash sha256 1>/dev/null 2>/dev/null; then
+        sha256 -q "$1"
     else
-        error "Unable to get the sha1 checksum of $pkg, build with VERIFY_FETCH_HASH=0 or install one of these tools: openssl, sha1sum, shasum, sha1"
+        error "Unable to get the sha256 checksum of $pkg, build with VERIFY_FETCH_HASH=0 or install one of these tools: openssl, sha256sum, shasum, sha256"
     fi
 }
 

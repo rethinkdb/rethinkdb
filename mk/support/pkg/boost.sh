@@ -2,7 +2,7 @@
 version=1.60.0
 
 src_url=http://sourceforge.net/projects/boost/files/boost/${version}/boost_${version//./_}.tar.bz2
-src_url_sha1=7f56ab507d3258610391b47fef6b11635861175a
+src_url_sha256=686affff989ac2488f79a97b9479efb9f2abae035b5ed4d8226de6857933fd3b
 
 pkg_install-include () {
     mkdir -p "$install_dir/include/boost"
