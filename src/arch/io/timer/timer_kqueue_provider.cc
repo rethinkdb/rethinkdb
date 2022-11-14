@@ -70,7 +70,7 @@ void debug_print(printf_buffer_t *buf, const _KEVENT_S& event) {
 timer_kqueue_provider_t::timer_kqueue_provider_t(linux_event_queue_t *queue)
     : queue_(queue), kq_fd_(-1), callback_(NULL) {
     const int fd = kqueue();
-    guarantee_err(fd != -1, "kqueue() call falied");
+    guarantee_err(fd != -1, "kqueue() call failed");
     kq_fd_ = fd;
     queue_->watch_resource(kq_fd_, poll_event_in, this);
 }

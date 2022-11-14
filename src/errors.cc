@@ -119,7 +119,7 @@ MUST_USE const std::string winerr_string(DWORD winerr) {
         LocalFree(errmsg);
         return ret;
     } else {
-        return strprintf("Unkown error 0x%x (error formatting the error: 0x%x)", winerr, GetLastError());
+        return strprintf("Unknown error 0x%x (error formatting the error: 0x%x)", winerr, GetLastError());
     }
 }
 #endif
@@ -245,7 +245,7 @@ LONG WINAPI windows_crash_handler(EXCEPTION_POINTERS *exception) {
         message = "STACK_OVERFLOW: The thread used up its stack.";
         break;
     default:
-        message = "Unkown exception.";
+        message = "Unknown exception.";
     }
 
     logERR("Windows exception 0x%x: %s", exception->ExceptionRecord->ExceptionCode, message.c_str());

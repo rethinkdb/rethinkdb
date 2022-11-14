@@ -31,7 +31,7 @@ with driver.Process(console_output=True, name='.', command_prefix=command_prefix
     r.db(dbName).table_create(tableName).run(conn)
     
     utils.print_with_time("Collecting metadata for first run")
-    initalMetadata = r.db('rethinkdb').table('server_config').get(server.uuid).run(conn)
+    initialMetadata = r.db('rethinkdb').table('server_config').get(server.uuid).run(conn)
     
     for i in range(1, cycles + 1):
         utils.print_with_time('Starting recycle %d' % i)
@@ -39,5 +39,5 @@ with driver.Process(console_output=True, name='.', command_prefix=command_prefix
         server.start()
         conn = r.connect(host=server.host, port=server.driver_port)
         metaData = r.db('rethinkdb').table('server_config').get(server.uuid).run(conn)
-        assert metaData == initalMetadata, "The server metadata did not match between runs:\n%s\nvs. inital:\n%s" % (pprint.pformat(beforeMetaData), pprint.pformat(afterMetaData))
+        assert metaData == initialMetadata, "The server metadata did not match between runs:\n%s\nvs. initial:\n%s" % (pprint.pformat(beforeMetaData), pprint.pformat(afterMetaData))
 utils.print_with_time("Done.")

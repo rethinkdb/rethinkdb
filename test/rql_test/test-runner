@@ -1800,7 +1800,7 @@ class WorkerThread(threading.Thread):
                 self.server.stop() # just cleans for external servers
         except Exception as e:
             debug(traceback.format_exc())
-            sys.stdout.write('Server issue while stoping worker: %s' % str(e))
+            sys.stdout.write('Server issue while stopping worker: %s' % str(e))
         self.server = None
 
 # ==== Main

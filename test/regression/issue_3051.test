@@ -37,9 +37,9 @@ except r.ReqlRuntimeError as e:
 		str(e)
 	except UnicodeEncodeError:
 		traceback.print_exc()
-		sys.exit('Error: got a UnicodeEncodeError when printing an error with Unicode characters.')	
+		sys.exit('Error: got a UnicodeEncodeError when printing an error with Unicode characters.')
 	else:
-		print('Got expectd exception: %s' % str(e))
+		print('Got expected exception: %s' % str(e))
 		sys.exit()
 else:
 	sys.exit('Error: should have gotten an error about the unicode table name')

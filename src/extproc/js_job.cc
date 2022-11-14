@@ -381,7 +381,7 @@ ql::datum_t js_make_datum(quickjs_context *qjs_ctx,
             } else if (0 != JS_ToUint32(ctx, &length32, length_value)) {
                 // Quickjs JS_ToUint32 actually converts non-integral floats to integers.
                 // As well as negative values.
-                err_out->assign("Array length is not convertable to a small integer");
+                err_out->assign("Array length is not convertible to a small integer");
             } else {
                 rcheck_array_size_value_datum(length32, limits);
                 std::vector<ql::datum_t> datum_array;

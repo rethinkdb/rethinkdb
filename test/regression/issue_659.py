@@ -55,7 +55,7 @@ class ReplicaChangeRegrssion(rdb_unittest.RdbTestCase):
             if not os.path.exists(slaveDataPath):
                 break
         else:
-            raise Exception('File deletion had not happend after 5 seconds, file still exists at: %s' % slaveDataPath)
+            raise Exception('File deletion had not happened after 5 seconds, file still exists at: %s' % slaveDataPath)
         
         utils.print_with_time("Increasing replication factor again")
         self.table.reconfigure(shards=1, replicas=2).run(self.conn, noreply=True)

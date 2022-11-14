@@ -56,7 +56,7 @@ with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
                              left_bound='open').run(conn))
     check_results(res, foo_count - 1)
 
-    print "Checking that between works when the boundares are not real keys"
+    print "Checking that between works when the boundaries are not real keys"
     res = list(table.between(gen_key('a', 0), gen_key('fop', 0)).run(conn))
     check_results(res, foo_count)
 

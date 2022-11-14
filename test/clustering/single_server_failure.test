@@ -110,7 +110,7 @@ class SingleServerFailure(rdb_unittest.RdbTestCase):
                 thisTableInfo['shards'][0]['nonvoting_replicas'] = table['nonvoting_replicas']
             newTableInfo.append(thisTableInfo)
         res = self.r.db("rethinkdb").table("table_config").insert(newTableInfo).run(self.conn)
-        self.assertEqual(res['inserted'], len(tables), 'Table creation was not sucessfull:\n%sFor config:\n%s' % (pprint.pformat(res), pprint.pformat(newTableInfo)))
+        self.assertEqual(res['inserted'], len(tables), 'Table creation was not sucessful:\n%sFor config:\n%s' % (pprint.pformat(res), pprint.pformat(newTableInfo)))
         self.db.wait(wait_for="all_replicas_ready").run(self.conn)
         
         # - fill each with a small amount of data
@@ -161,32 +161,32 @@ class SingleServerFailure(rdb_unittest.RdbTestCase):
             # - normal read
             try:
                 result = self.db.table(table['name']).limit(1).run(self.conn)
-                self.assertTrue(table['status']['ready_for_reads'], 'Table %s should not have been avalible for normal reads but was: %r' % (table['name'], result))
+                self.assertTrue(table['status']['ready_for_reads'], 'Table %s should not have been available for normal reads but was: %r' % (table['name'], result))
             except self.r.RqlError as result:
-                self.assertFalse(table['status']['ready_for_reads'], 'Table %s should have been avalible for normal reads but got error: %s' % (table['name'], str(result)))
+                self.assertFalse(table['status']['ready_for_reads'], 'Table %s should have been available for normal reads but got error: %s' % (table['name'], str(result)))
             
             # - outdated read
             try:
                 result = self.db.table(table['name']).limit(1).run(self.conn, read_mode='outdated')
-                self.assertTrue(table['status']['ready_for_outdated_reads'], 'Table %s should not have been avalible for normal reads but was: %r' % (table['name'], result))
+                self.assertTrue(table['status']['ready_for_outdated_reads'], 'Table %s should not have been available for normal reads but was: %r' % (table['name'], result))
             except self.r.RqlError as result:
-                self.assertFalse(table['status']['ready_for_outdated_reads'], 'Table %s should have been avalible for normal reads but got error: %s' % (table['name'], str(result)))
+                self.assertFalse(table['status']['ready_for_outdated_reads'], 'Table %s should have been available for normal reads but got error: %s' % (table['name'], str(result)))
             
             # - write
             try:
                 result = self.db.table(table['name']).insert({}).run(self.conn)
-                self.assertTrue(table['status']['ready_for_writes'], 'Table %s should not have been avalible for normal reads but was: %r' % (table['name'], result))
+                self.assertTrue(table['status']['ready_for_writes'], 'Table %s should not have been available for normal reads but was: %r' % (table['name'], result))
             except self.r.RqlError as result:
-                self.assertFalse(table['status']['ready_for_writes'], 'Table %s should have been avalible for normal reads but got error: %s' % (table['name'], str(result)))
+                self.assertFalse(table['status']['ready_for_writes'], 'Table %s should have been available for normal reads but got error: %s' % (table['name'], str(result)))
         
         # - expected primary (or change)
         tableStatus = dict((x['name'], x) for x in self.r.db('rethinkdb').table('table_status').filter({'db':'test'}).run(self.conn))
         for table in tables:
             self.assertTrue(table['name'] in tableStatus, 'table %s was unexpectedly not in table_status: %r' % (table['name'], tableStatus))
             if table['primaryEffect'] == 'same':
-                self.assertEqual(tableStatus[table['name']]['shards'][0]['primary_replicas'][0], table['primary'], 'table %s was not using the inital priamry: %r' % (table['name'], tableStatus[table['name']]))
+                self.assertEqual(tableStatus[table['name']]['shards'][0]['primary_replicas'][0], table['primary'], 'table %s was not using the initial priamry: %r' % (table['name'], tableStatus[table['name']]))
             elif table['primaryEffect'] == 'changed':
-                self.assertNotEqual(tableStatus[table['name']]['shards'][0]['primary_replicas'][0], table['primary'], 'table %s was unexpectedly still using the inital priamry: %r' % (table['name'], tableStatus[table['name']]))
+                self.assertNotEqual(tableStatus[table['name']]['shards'][0]['primary_replicas'][0], table['primary'], 'table %s was unexpectedly still using the initial priamry: %r' % (table['name'], tableStatus[table['name']]))
             elif table['primaryEffect'] == 'none':
                 if 'shards' in tableStatus[table['name']] and tableStatus[table['name']]['shards']: # unavailable_* does not show anything because we have no observers
                     self.assertEqual(tableStatus[table['name']]['shards'][0]['primary_replicas'], [])
@@ -222,7 +222,7 @@ class SingleServerFailure(rdb_unittest.RdbTestCase):
         
         tableStatus = dict((x['name'], x) for x in self.r.db('rethinkdb').table('table_status').filter({'db':'test'}).run(self.conn))
         for table in tables:
-            self.assertEqual(tableStatus[table['name']]['shards'][0]['primary_replicas'][0], table['primary'], 'table %s was not using the inital priamry: %r' % (table['name'], tableStatus[table['name']]))
+            self.assertEqual(tableStatus[table['name']]['shards'][0]['primary_replicas'][0], table['primary'], 'table %s was not using the initial priamry: %r' % (table['name'], tableStatus[table['name']]))
         
         # - expected number of records
         

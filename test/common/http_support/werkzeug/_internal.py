@@ -337,8 +337,8 @@ def _make_cookie_domain(domain):
     if b'.' in domain:
         return domain
     raise ValueError(
-        'Setting \'domain\' for a cookie on a server running localy (ex: '
-        'localhost) is not supportted by complying browsers. You should '
+        'Setting \'domain\' for a cookie on a server running locally (ex: '
+        'localhost) is not supported by complying browsers. You should '
         'have something like: \'127.0.0.1 localhost dev.localhost\' on '
         'your hosts file and then point your server to run on '
         '\'dev.localhost\' and also set \'domain\' for \'dev.localhost\''

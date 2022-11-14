@@ -54,7 +54,7 @@ with driver.Process(name="./the_server") as server:
     res = r.db("rethinkdb").table("logs").insert({}).run(conn)
     assert res["errors"] == 1, res
 
-    utils.print_with_time("Veryify that the table is able to handle invalid lines")
+    utils.print_with_time("Verify that the table is able to handle invalid lines")
 
     log_1 = list(r.db("rethinkdb").table("logs").order_by("timestamp").run(conn))
     with open(server.logfile_path, "a") as log_file:
