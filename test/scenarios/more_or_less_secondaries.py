@@ -59,7 +59,7 @@ with driver.Cluster(output_folder='.', initial_servers=numReplicas + 1, console_
         r.db(dbName).table_drop(tableName).run(conn)
     r.db(dbName).table_create(tableName).run(conn)
     
-    utils.print_with_time('Setting inital table replication settings')
+    utils.print_with_time('Setting initial table replication settings')
     res = r.db(dbName).table(tableName).config()\
         .update({'shards':[{'primary_replica':primary.name, 'replicas':[primary.name, replicaPool[0].name]}
         ]}).run(conn)

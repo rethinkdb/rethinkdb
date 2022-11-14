@@ -85,7 +85,7 @@ def main():
             try:
                 os.mkdir(options.output_dir)
             except Exception as e:
-                parser.error('Unable to create ouput dir: %s' % e)
+                parser.error('Unable to create output dir: %s' % e)
     
     # - command prefix
     

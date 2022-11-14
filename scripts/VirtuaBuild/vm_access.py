@@ -61,7 +61,7 @@ vm_list = {"suse2": suse2, "suse": suse, "redhat5_1": redhat5_1, "ubuntu": ubunt
 
 def help():
     print "VM Access:"
-    print "       Runs a command on a remote virtual machine. Starts the virtual machine if necessary, and shuts it down on completion. If the command fails or if the virtual machine is inaccessible, then this script will throw an exception. Before commands are run, the curent directory is compressed and sent over. The command is run in a temporary directory and all its resulting contents are copied back."
+    print "       Runs a command on a remote virtual machine. Starts the virtual machine if necessary, and shuts it down on completion. If the command fails or if the virtual machine is inaccessible, then this script will throw an exception. Before commands are run, the current directory is compressed and sent over. The command is run in a temporary directory and all its resulting contents are copied back."
     print "       --help      Print this help."
     print "       --vm-name   The target virtual machine to run the command on. Options are:"
     print "                   ", vm_list.keys()

@@ -889,7 +889,7 @@ class Process(object):
         
         utils.kill_process_group(self, timeout=0)
         self.returncode = self.process.wait()
-        self.processs = None
+        self.process = None
         self.killed = True
         self.stop()
     

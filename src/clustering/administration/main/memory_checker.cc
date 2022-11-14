@@ -51,13 +51,12 @@ void memory_checker_t::do_check(UNUSED auto_drainer_t::lock_t keepalive) {
 
     const std::string error_message =
         "RethinkDB has been accessing a lot of swap memory in the past ten"
-        " minutes. This may impact performace.";
+        " minutes. This may impact performance.";
 
     if (new_swap_usage > swap_usage + 200 && practice_runs_remaining == 0) {
         // We've started using more swap
         if (print_log_message) {
-            logWRN("RethinkDB has been accessing a lot of swap memory in the past ten"
-                   " minutes. This may impact performace.");
+            logWRN(error_message.c_str());
 
             print_log_message = false;
         }

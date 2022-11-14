@@ -215,7 +215,7 @@ void dispatch_http(env_t *env,
     } catch (const interrupted_exc_t &ex) {
         res_out->error.assign("interrupted");
     } catch (const std::exception &ex) {
-        res_out->error = std::string("encounted an exception - ") + ex.what();
+        res_out->error = std::string("encountered an exception - ") + ex.what();
     } catch (...) {
         res_out->error.assign("encountered an unknown exception");
     }

@@ -118,7 +118,7 @@ try:
 	print('Success: conection is still valid')
 except r.errors.ReqlDriverError:
 	allPassed = False
-	sys.stderr.write('Failure: The database connnection went stale\n')
+	sys.stderr.write('Failure: The database connection went stale\n')
 	r.connect(host=server.host, port=server.driver_port)
 
 # - everything made it to the database that we expected
