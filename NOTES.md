@@ -1,3 +1,46 @@
+# Release 2.4.3 (Night of the Living Dead)
+
+Windows release, FreeBSD 13 compilation, certificate chain support,
+no update checker complaint.
+
+### API-breaking changes ###
+
+None.  Some console output is altered, though.
+
+### Changes ###
+
+* Server
+  * Fail correctly when failing to remove directory (#4647)
+  * Improve --initial-password help text (#7064)
+  * Add machine arch and uname to rethinkdb version output (#7060)
+  * Improve general help formatting (#7095)
+  * Update OpenSSL version (if fetched and statically linked) to 3.0.7 (#7099)
+  * Make TLS configuration support certificate chains (#6969)
+  * Regenerate the version correctly (eliminating update checker annoyance) (#7100)
+* Compilation
+  * Get the Windows build working (#7074, #7075, #7082, #7083)
+    * Switch from QuickJS to QuickJSpp (our fork hosted at
+      https://github.com/rethinkdb/quickjspp )
+  * Include <time.h> in files using time function (#7091)
+    * and add more explicit includes for future-proofing (#7098)
+  * Get FreeBSD build working (#7088, #7098)
+  * Avoid some uses of egrep (#7092)
+* Web UI
+  * Update jQuery to 3.6.1 (#6937)
+
+### Contributors ###
+
+* Mariano Rodríguez (@MarianoRD)
+* Hung-Te Lin (@hungte)
+* Antoni Mróz (@MrBoombastic)
+* unx (@unxcepted)
+* Russel Beswick (@besworks)
+* Sam Hughes (@srh)
+* Gábor Boros (@gabor-boros)
+
+Special thanks are due to Antoni Mróz and unx for getting the Windows
+release working.
+
 # Release 2.4.2 (Night of the Living Dead)
 
 Released on 2022-04-24
