@@ -1101,7 +1101,7 @@ reql_docs = {
   }, 
   "api/javascript/index_create/": {
     "body": "table.indexCreate(indexName[, indexFunction][, {multi: false, geo: false}]) &rarr; object", 
-    "description": "<p>Create a new secondary index on a table. Secondary indexes improve the speed of many read queries at the slight cost of increased storage space and decreased write performance. For more information about secondary indexes, read the article \"<a href=\"/docs/secondary-indexes/\">Using secondary indexes in RethinkDB</a>.\"</p>", 
+    "description": "<p>Create a new secondary index on a table. Secondary indexes improve the speed of many read queries at the slight cost of increased storage space and decreased write performance. For more information about secondary indexes, read the article \"<a href=\"https://rethinkdb.com/docs/secondary-indexes/\">Using secondary indexes in RethinkDB</a>.\"</p>", 
     "example": "<p><strong>Example:</strong> Create a simple index based on the field <code>postId</code>.</p>\n<pre><code>r.table('comments').indexCreate('postId').run(conn, callback)\n</code></pre>", 
     "io": [
       [
@@ -1312,7 +1312,7 @@ reql_docs = {
   }, 
   "api/javascript/keys/": {
     "body": "singleSelection.keys() &rarr; arrayobject.keys() &rarr; array", 
-    "description": "<p>Return an array containing all of an object's keys. Note that the keys will be sorted as described in <a href=\"/docs/data-types/#sorting-order\">ReQL data types</a> (for strings, lexicographically).</p>", 
+    "description": "<p>Return an array containing all of an object's keys. Note that the keys will be sorted as described in <a href=\"https://rethinkdb.com/docs/data-types/#sorting-order\">ReQL data types</a> (for strings, lexicographically).</p>", 
     "example": "<p><strong>Example:</strong> Get all the keys from a table row.</p>\n<pre><code>// row: { id: 1, mail: \"fred@example.com\", name: \"fred\" }\n\nr.table('users').get(1).keys().run(conn, callback);\n// Result passed to callback\n[ \"id\", \"mail\", \"name\" ]\n</code></pre>", 
     "io": [
       [
@@ -1715,7 +1715,7 @@ reql_docs = {
   }, 
   "api/javascript/point/": {
     "body": "r.point(longitude, latitude) &rarr; point", 
-    "description": "<p>Construct a geometry object of type Point. The point is specified by two floating point numbers, the longitude (&minus;180 to 180) and latitude (&minus;90 to 90) of the point on a perfect sphere. See <a href=\"/docs/geo-support/\">Geospatial support</a> for more information on ReQL's coordinate system.</p>", 
+    "description": "<p>Construct a geometry object of type Point. The point is specified by two floating point numbers, the longitude (&minus;180 to 180) and latitude (&minus;90 to 90) of the point on a perfect sphere. See <a href=\"https://rethinkdb.com/docs/geo-support/\">Geospatial support</a> for more information on ReQL's coordinate system.</p>", 
     "example": "<p><strong>Example:</strong> Define a point.</p>\n<pre><code>r.table('geo').insert({\n    id: 1,\n    name: 'San Francisco',\n    location: r.point(-122.423246,37.779388)\n}).run(conn, callback);\n</code></pre>", 
     "io": [
       [
