@@ -2,6 +2,8 @@
 #ifndef CLUSTERING_ADMINISTRATION_AUTH_AUTHENTICATION_ERROR_HPP
 #define CLUSTERING_ADMINISTRATION_AUTH_AUTHENTICATION_ERROR_HPP
 
+#include <stdint.h>
+
 #include <stdexcept>
 #include <string>
 

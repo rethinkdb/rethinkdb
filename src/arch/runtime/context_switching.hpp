@@ -35,9 +35,10 @@ void context_switch(fiber_context_ref_t *current_context_out, fiber_context_ref_
 typedef fiber_stack_t coro_stack_t;
 typedef fiber_context_ref_t coro_context_ref_t;
 
-#else
+#else  // _WIN32
 
 #include <pthread.h>
+#include <stdint.h>
 
 #include "errors.hpp"
 
