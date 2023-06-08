@@ -2,6 +2,7 @@
 #ifndef UTILS_HPP_
 #define UTILS_HPP_
 
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
