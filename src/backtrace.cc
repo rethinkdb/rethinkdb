@@ -5,11 +5,15 @@
 #define OPTIONAL // This macro is undefined in "windows.hpp" but necessary for <DbgHelp.h>
 #include <DbgHelp.h>
 #include <atomic>
-#else
+#else  // _WIN32
 #include <cxxabi.h>
+
+#if !defined(RDB_NO_BACKTRACE)
 #include <execinfo.h>
-#include <sys/wait.h>
 #endif
+
+#include <sys/wait.h>
+#endif  // _WIN32
 
 #include <stdio.h>
 #include <stdlib.h>
