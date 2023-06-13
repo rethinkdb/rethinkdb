@@ -1,8 +1,7 @@
 
 version=1.2.11
 
-src_url=http://zlib.net/zlib-$version.tar.gz
-src_url_backup=http://zlib.net/fossils/zlib-$version.tar.gz
+src_url=https://zlib.net/fossils/zlib-$version.tar.gz
 src_url_sha256=c3e5e9fdd5004dcb542feda5ee4f0ff0744628baf8ed2dd5d66f8ca1197cb1a1
 
 pkg_install-include () {
