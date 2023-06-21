@@ -325,7 +325,9 @@ public:
     bool operator>=(const datum_t &rhs) const;
 
     NORETURN void runtime_fail(base_exc_t::type_t exc_type,
+#ifdef RQL_ERROR_BT
                                const char *test, const char *file, int line,
+#endif
                                std::string msg) const;
 
     static size_t max_trunc_size();

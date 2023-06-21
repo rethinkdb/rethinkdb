@@ -16,23 +16,28 @@ namespace ql {
 #endif
 
 void runtime_fail(base_exc_t::type_t type,
+#ifdef RQL_ERROR_BT
                   RQL_ERROR_VAR const char *test, RQL_ERROR_VAR const char *file,
                   RQL_ERROR_VAR int line,
-                  std::string msg, backtrace_id_t bt) {
+#endif
+                  std::string&& msg, backtrace_id_t bt) {
 #ifdef RQL_ERROR_BT
     msg = strprintf("%s\nFailed assertion: %s\nAt: %s:%d",
                     msg.c_str(), test, file, line);
 #endif
-    throw exc_t(type, msg, bt);
+    throw exc_t(type, std::move(msg), bt);
 }
 void runtime_fail(base_exc_t::type_t type,
+#ifdef RQL_ERROR_BT
                   RQL_ERROR_VAR const char *test, RQL_ERROR_VAR const char *file,
-                  RQL_ERROR_VAR int line, std::string msg) {
+                  RQL_ERROR_VAR int line,
+#endif
+                  std::string&& msg) {
 #ifdef RQL_ERROR_BT
     msg = strprintf("%s\nFailed assertion: %s\nAt: %s:%d",
                     msg.c_str(), test, file, line);
 #endif
-    throw datum_exc_t(type, msg);
+    throw datum_exc_t(type, std::move(msg));
 }
 
 void runtime_sanity_check_failed(const char *file, int line, const char *test,

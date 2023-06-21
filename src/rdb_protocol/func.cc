@@ -418,7 +418,7 @@ counted_t<const func_t> new_page_func(datum_t method, backtrace_id_t bt) {
         } else {
             std::string msg = strprintf("`page` method '%s' not recognized, "
                                         "only 'link-next' is available.", name.c_str());
-            rcheck_src(bt, false, base_exc_t::LOGIC, msg);
+            rcheck_src(bt, false, base_exc_t::LOGIC, std::move(msg));
         }
     }
     return counted_t<const func_t>();

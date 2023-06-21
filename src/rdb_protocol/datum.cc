@@ -1408,9 +1408,15 @@ int64_t checked_convert_to_int(const rcheckable_t *target, double d) {
 struct datum_rcheckable_t : public rcheckable_t {
     explicit datum_rcheckable_t(const datum_t *_datum) : datum(_datum) { }
     void runtime_fail(base_exc_t::type_t type,
+#ifdef RQL_ERROR_BT
                       const char *test, const char *file, int line,
+#endif
                       std::string msg) const {
-        datum->runtime_fail(type, test, file, line, msg);
+        datum->runtime_fail(type,
+#ifdef RQL_ERROR_BT
+            test, file, line,
+#endif
+            msg);
     }
     const datum_t *datum;
 };
@@ -1813,9 +1819,15 @@ bool datum_t::operator>(const datum_t &rhs) const { return cmp(rhs) > 0; }
 bool datum_t::operator>=(const datum_t &rhs) const { return cmp(rhs) >= 0; }
 
 void datum_t::runtime_fail(base_exc_t::type_t exc_type,
+#ifdef RQL_ERROR_BT
                            const char *test, const char *file, int line,
+#endif
                            std::string msg) const {
-    ql::runtime_fail(exc_type, test, file, line, msg);
+    ql::runtime_fail(exc_type,
+#ifdef RQL_ERROR_BT
+        test, file, line,
+#endif
+        std::move(msg));
 }
 
 datum_t to_datum(const Datum *d, const configured_limits_t &limits,

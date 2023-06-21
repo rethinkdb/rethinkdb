@@ -74,13 +74,18 @@ ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
 // NOTE: you usually want to inherit from `rcheckable_t` instead of calling this
 // directly.
 NORETURN void runtime_fail(base_exc_t::type_t type,
+#ifdef RQL_ERROR_BT
                            const char *test, const char *file, int line,
-                           std::string msg, backtrace_id_t bt);
+#endif
+                           std::string&& msg, backtrace_id_t bt);
 NORETURN void runtime_fail(base_exc_t::type_t type,
+#ifdef RQL_ERROR_BT
                            const char *test, const char *file, int line,
-                           std::string msg);
+#endif
+                           std::string&& msg);
 NORETURN void runtime_sanity_check_failed(
-                   const char *file, int line, const char *test, const std::string &msg);
+                   const char *file, int line, const char *test,
+                   const std::string &msg);
 
 // Inherit from this in classes that wish to use `rcheck`.  If a class is
 // rcheckable, it means that you can call `rcheck` from within it or use it as a
@@ -89,7 +94,9 @@ class rcheckable_t {
 public:
     virtual ~rcheckable_t() { }
     virtual void runtime_fail(base_exc_t::type_t type,
+#ifdef RQL_ERROR_BT
                               const char *test, const char *file, int line,
+#endif
                               std::string msg) const = 0;
 };
 
@@ -101,9 +108,15 @@ public:
 class bt_rcheckable_t : public rcheckable_t {
 public:
     virtual void runtime_fail(base_exc_t::type_t type,
+#ifdef RQL_ERROR_BT
                               const char *test, const char *file, int line,
+#endif
                               std::string msg) const {
-        ql::runtime_fail(type, test, file, line, msg, bt);
+        ql::runtime_fail(type,
+#ifdef RQL_ERROR_BT
+            test, file, line,
+#endif
+            std::move(msg), bt);
     }
 
     backtrace_id_t backtrace() const { return bt; }
@@ -124,31 +137,37 @@ private:
 // Helper function for formatting array over size error message.
 std::string format_array_size_error(size_t limit);
 
+#ifdef RQL_ERROR_BT
+#define error_bt_params(test, file, line) test, file, line,
+#else
+#define error_bt_params(test, file, line)
+#endif
+
 // Use these macros to return errors to users.
 // TODO: all these arguments should be in parentheses inside the expansion.
 #define rcheck_target(target, pred, type, msg) do {                  \
         (pred)                                                       \
         ? (void)0                                                    \
-        : (target)->runtime_fail(type, stringify(pred),              \
-                                 __FILE__, __LINE__, (msg));         \
+        : (target)->runtime_fail(type, error_bt_params(stringify(pred), \
+                __FILE__, __LINE__) (msg));                          \
     } while (0)
 #define rcheck_typed_target(target, pred, msg) do {                     \
         (pred)                                                          \
         ? (void)0                                                       \
-        : (target)->runtime_fail(exc_type(target), stringify(pred),     \
-                                 __FILE__, __LINE__, (msg));            \
+        : (target)->runtime_fail(exc_type(target), error_bt_params(stringify(pred), \
+                __FILE__, __LINE__) (msg));                             \
     } while (0)
 #define rcheck_src(src, pred, type, msg) do {                         \
         (pred)                                                        \
         ? (void)0                                                     \
-        : ql::runtime_fail(type, stringify(pred),                     \
-                           __FILE__, __LINE__, (msg), (src));         \
+        : ql::runtime_fail(type, error_bt_params(stringify(pred),     \
+                __FILE__, __LINE__) (msg), (src));                    \
     } while (0)
 #define rcheck_datum(pred, type, msg) do {                            \
         (pred)                                                        \
         ? (void)0                                                     \
-        : ql::runtime_fail(type, stringify(pred),                     \
-                           __FILE__, __LINE__, (msg));                \
+        : ql::runtime_fail(type, error_bt_params(stringify(pred),     \
+                __FILE__, __LINE__) (msg));                           \
     } while (0)
 #define rcheck_array_size_datum(arr, limit) do {                        \
         auto _limit = (limit);                                          \
@@ -202,7 +221,6 @@ std::string format_array_size_error(size_t limit);
         r_sanity_check(false);             \
         unreachable();                     \
     } while (0)
-
 
 class datum_t;
 class val_t;
