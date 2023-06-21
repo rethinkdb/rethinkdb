@@ -43,7 +43,7 @@ build_comparison(const term_t *target,
 }
 
 std::vector<std::pair<order_direction_t, counted_t<const func_t> > >
-build_comparisons_from_raw_term(const term_t *target,
+build_comparisons_from_raw_term(eval_error *err_out, const term_t *target,
                                 scope_env_t *env,
                                 args_t *args,
                                 const raw_term_t &raw_term) {
@@ -53,8 +53,10 @@ build_comparisons_from_raw_term(const term_t *target,
     // For order by, first argument is the stream
     for (size_t i = 1; i < raw_term.num_args(); ++i) {
         raw_term_t item = raw_term.arg(i);
+        auto v_i = args->arg(err_out, env, i);
+        if (err_out->has()) { return comparisons; }
         comparisons.push_back(build_comparison(target,
-                                               args->arg(env, i),
+                                               std::move(v_i),
                                                item));
     }
     return comparisons;

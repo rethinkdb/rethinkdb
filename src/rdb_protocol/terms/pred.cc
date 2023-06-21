@@ -64,11 +64,15 @@ public:
         guarantee(namestr && pred);
     }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(
-        scope_env_t *env, args_t *args, eval_flags_t) const {
-        datum_t lhs = args->arg(env, 0)->as_datum();
+    scoped_ptr_t<val_t> eval_impl(
+        eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const override {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        datum_t lhs = v0->as_datum();
         for (size_t i = 1; i < args->num_args(); ++i) {
-            datum_t rhs = args->arg(env, i)->as_datum();
+            auto v_i = args->arg(err_out, env, i);
+            if (err_out->has()) { return noval(); }
+            datum_t rhs = v_i->as_datum();
             if (!(pred)(lhs, rhs)) {
                 return new_val_bool(static_cast<bool>(false ^ invert));
             }
@@ -87,8 +91,10 @@ public:
     not_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        return new_val_bool(!args->arg(env, 0)->as_bool());
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const override {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        return new_val_bool(!v0->as_bool());
     }
     virtual const char *name() const { return "not"; }
 };

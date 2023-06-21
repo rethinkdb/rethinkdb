@@ -239,8 +239,8 @@ bool contains(datum_t datum,
     try {
         bool res = true;
         if (const datum_string_t *str = pathspec.as_str()) {
-            if (!(res &= (datum.get_field(*str, NOTHROW).has() &&
-                          datum.get_field(*str).get_type() != datum_t::R_NULL))) {
+            datum_t field = datum.get_field(*str, NOTHROW);
+            if (!(res &= (field.has() && field.get_type() != datum_t::R_NULL))) {
                 return res;
             }
         } else if (const std::vector<pathspec_t> *vec = pathspec.as_vec()) {
