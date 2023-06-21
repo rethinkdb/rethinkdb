@@ -216,7 +216,7 @@ public:
 private:
     virtual void accumulate_captures(var_captures_t *captures) const;
     virtual deterministic_t is_deterministic() const;
-    virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, eval_flags_t flags) const;
+    scoped_ptr_t<val_t> term_eval(eval_error *err_out, scope_env_t *env, eval_flags_t flags) const override;
     virtual const char *name() const { return "func"; }
 
     std::vector<sym_t> arg_names;

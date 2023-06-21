@@ -19,10 +19,11 @@ public:
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-        scope_env_t *env, args_t *args, eval_flags_t) const {
+        eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
         scoped_ptr_t<val_t> v = new_val_bool(true);
         for (size_t i = 0; i < args->num_args(); ++i) {
-            v = args->arg(env, i);
+            v = args->arg(err_out, env, i);
+            if (err_out->has()) { return noval(); }
             if (!v->as_bool()) break;
         }
         return v;
@@ -36,10 +37,11 @@ public:
         : op_term_t(env, term, argspec_t(0, -1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-        scope_env_t *env, args_t *args, eval_flags_t) const {
+        eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
         scoped_ptr_t<val_t> v = new_val_bool(false);
         for (size_t i = 0; i < args->num_args(); ++i) {
-            v = args->arg(env, i);
+            v = args->arg(err_out, env, i);
+            if (err_out->has()) { return noval(); }
             if (v->as_bool()) break;
         }
         return v;
@@ -52,19 +54,20 @@ public:
     branch_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(3, -1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
         rcheck(args->num_args() % 2 == 1,
                base_exc_t::LOGIC,
                "Cannot call `branch` term with an even number of arguments.");
 
         for (size_t i = 0; i < args->num_args()-1; i += 2) {
-            scoped_ptr_t<val_t> v = args->arg(env, i);
+            scoped_ptr_t<val_t> v = args->arg(err_out, env, i);
+            if (err_out->has()) { return noval(); }
             if (v->as_bool()) {
-                return args->arg(env, i+1);
+                return args->arg(err_out, env, i+1);
             }
         }
 
-        return args->arg(env, args->num_args()-1);
+        return args->arg(err_out, env, args->num_args()-1);
     }
     virtual const char *name() const { return "branch"; }
 };
@@ -76,15 +79,22 @@ public:
         : op_term_t(env, term, argspec_t(1, -1),
           optargspec_t({"_SHORTCUT_", "_EVAL_FLAGS_"})) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
         function_shortcut_t shortcut = CONSTANT_SHORTCUT;
         eval_flags_t flags = NO_FLAGS;
-        if (scoped_ptr_t<val_t> v = args->optarg(env, "_SHORTCUT_")) {
-            shortcut = static_cast<function_shortcut_t>(v->as_int());
+        {
+            scoped_ptr_t<val_t> v = args->optarg(err_out, env, "_SHORTCUT_");
+            if (err_out->has()) { return noval(); }
+            if (v) {
+                shortcut = static_cast<function_shortcut_t>(v->as_int());
+            }
         }
-
-        if (scoped_ptr_t<val_t> v = args->optarg(env, "_EVAL_FLAGS_")) {
-            flags = static_cast<eval_flags_t>(v->as_int());
+        {
+            scoped_ptr_t<val_t> v = args->optarg(err_out, env, "_EVAL_FLAGS_");
+            if (err_out->has()) { return noval(); }
+            if (v) {
+                flags = static_cast<eval_flags_t>(v->as_int());
+            }
         }
 
         /* This switch exists just to make sure that we don't get a bogus value
@@ -100,8 +110,10 @@ private:
                 rfail(base_exc_t::INTERNAL,
                       "Unrecognized value `%d` for _SHORTCUT_ argument.", shortcut);
         }
+        auto v0 = args->arg(err_out, env, 0, flags);
+        if (err_out->has()) { return noval(); }
         counted_t<const func_t> f =
-            args->arg(env, 0, flags)->as_func(shortcut);
+            v0->as_func(shortcut);
 
         // We need specialized logic for `grouped_data` here because `funcall`
         // needs to be polymorphic on its second argument rather than its first.
@@ -110,11 +122,15 @@ private:
         if (args->num_args() == 1) {
             return f->call(env->env, flags);
         } else {
-            scoped_ptr_t<val_t> arg1 = args->arg(env, 1, flags);
+            scoped_ptr_t<val_t> arg1 = args->arg(err_out, env, 1, flags);
+            if (err_out->has()) { return noval(); }
+
             std::vector<datum_t> arg_datums(1);
             arg_datums.reserve(args->num_args() - 1);
             for (size_t i = 2; i < args->num_args(); ++i) {
-                arg_datums.push_back(args->arg(env, i, flags)->as_datum());
+                auto v_i = args->arg(err_out, env, i, flags);
+                if (err_out->has()) { return noval(); }
+                arg_datums.push_back(v_i->as_datum());
             }
             r_sanity_check(!arg_datums[0].has());
             counted_t<grouped_data_t> gd

@@ -47,9 +47,10 @@ obj_or_seq_op_impl_t::obj_or_seq_op_impl_t(
       acceptable_ptypes(std::move(_acceptable_ptypes)) { }
 
 scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
-        const term_t *target, scope_env_t *env, args_t *args,
+        eval_error *err_out, const term_t *target, scope_env_t *env, args_t *args,
         const scoped_ptr_t<val_t> &v0,
-        std::function<scoped_ptr_t<val_t>()> helper) const {
+        std::function<scoped_ptr_t<val_t>(eval_error *)> helper) const {
+    using noval = scoped_ptr_t<val_t>;
     datum_t d;
 
     if (v0->get_type().is_convertible(val_t::type_t::DATUM)) {
@@ -63,13 +64,15 @@ scoped_ptr_t<val_t> obj_or_seq_op_impl_t::eval_impl_dereferenced(
                          "Cannot call `%s` on objects of type `%s`.",
                          parent->name(), d.get_type_name().c_str());
         }
-        return helper();
+        return helper(err_out);
     } else if ((d.has() && d.get_type() == datum_t::R_ARRAY) ||
                (!d.has()
                 && v0->get_type().is_convertible(val_t::type_t::SEQUENCE))) {
         // The above if statement is complicated because it produces better
         // error messages on e.g. strings.
-        if (scoped_ptr_t<val_t> no_recurse = args->optarg(env, "_NO_RECURSE_")) {
+        auto no_recurse = args->optarg(err_out, env, "_NO_RECURSE_");
+        if (err_out->has()) { return noval(); }
+        if (no_recurse) {
             rcheck_target(target,
                           no_recurse->as_bool() == false,
                           base_exc_t::LOGIC,
@@ -134,11 +137,12 @@ obj_or_seq_op_term_t::obj_or_seq_op_term_t(
       impl(this, _poly_type, std::move(ptypes)) {
 }
 
-scoped_ptr_t<val_t> obj_or_seq_op_term_t::eval_impl(scope_env_t *env, args_t *args,
+scoped_ptr_t<val_t> obj_or_seq_op_term_t::eval_impl(eval_error *err_out, scope_env_t *env, args_t *args,
                                                     eval_flags_t) const {
-    scoped_ptr_t<val_t> v0 = args->arg(env, 0);
-    return impl.eval_impl_dereferenced(this, env, args, v0,
-                                       [&]{ return this->obj_eval(env, args, v0); });
+    scoped_ptr_t<val_t> v0 = args->arg(err_out, env, 0);
+    if (err_out->has()) { return noval(); }
+    return impl.eval_impl_dereferenced(err_out, this, env, args, v0,
+        [&](eval_error *err_out_){ return this->obj_eval(err_out_, env, args, v0); });
 }
 
 class pluck_term_t : public obj_or_seq_op_term_t {
@@ -147,7 +151,7 @@ public:
         : obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
     virtual scoped_ptr_t<val_t> obj_eval(
-        scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
+        eval_error *err_out, scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t obj = v0->as_datum();
         r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
 
@@ -155,7 +159,9 @@ private:
         std::vector<datum_t> paths;
         paths.reserve(n - 1);
         for (size_t i = 1; i < n; ++i) {
-            paths.push_back(args->arg(env, i)->as_datum());
+            auto v_i = args->arg(err_out, env, i);
+            if (err_out->has()) { return noval(); }
+            paths.push_back(v_i->as_datum());
         }
         pathspec_t pathspec(datum_t(std::move(paths), env->env->limits()), this);
         return new_val(project(obj, pathspec, DONT_RECURSE, env->env->limits()));
@@ -169,7 +175,7 @@ public:
         : obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1)) { }
 private:
     virtual scoped_ptr_t<val_t> obj_eval(
-        scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
+        eval_error *err_out, scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t obj = v0->as_datum();
         r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
 
@@ -177,7 +183,9 @@ private:
         const size_t n = args->num_args();
         paths.reserve(n - 1);
         for (size_t i = 1; i < n; ++i) {
-            paths.push_back(args->arg(env, i)->as_datum());
+            auto v_i = args->arg(err_out, env, i);
+            if (err_out->has()) { return noval(); }
+            paths.push_back(v_i->as_datum());
         }
         pathspec_t pathspec(datum_t(std::move(paths), env->env->limits()), this);
         return new_val(unproject(obj, pathspec, DONT_RECURSE, env->env->limits()));
@@ -191,7 +199,7 @@ public:
         : op_term_t(env, term, argspec_t(0, 1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-        scope_env_t *env, args_t *args, eval_flags_t flags) const {
+        eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t flags) const {
         rcheck(flags & LITERAL_OK, base_exc_t::LOGIC,
                "Stray literal keyword found: literal is only legal inside of "
                "the object passed to merge or update and cannot nest inside "
@@ -200,7 +208,9 @@ private:
         bool clobber = res.add(datum_t::reql_type_string,
                                datum_t(pseudo::literal_string));
         if (args->num_args() == 1) {
-            clobber |= res.add(pseudo::value_key, args->arg(env, 0)->as_datum());
+            auto v0 = args->arg(err_out, env, 0);
+            if (err_out->has()) { return noval(); }
+            clobber |= res.add(pseudo::value_key, v0->as_datum());
         }
 
         r_sanity_check(!clobber);
@@ -217,10 +227,11 @@ public:
         : obj_or_seq_op_term_t(env, term, MAP, argspec_t(1, -1, LITERAL_OK)) { }
 private:
     virtual scoped_ptr_t<val_t> obj_eval(
-        scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
+        eval_error *err_out, scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t d = v0->as_datum();
         for (size_t i = 1; i < args->num_args(); ++i) {
-            scoped_ptr_t<val_t> v = args->arg(env, i, LITERAL_OK);
+            scoped_ptr_t<val_t> v = args->arg(err_out, env, i, LITERAL_OK);
+            if (err_out->has()) { return noval(); }
 
             // We branch here because compiling functions is expensive, and
             // `obj_eval` may be called many many times.
@@ -258,14 +269,17 @@ public:
         : obj_or_seq_op_term_t(env, term, FILTER, argspec_t(1, -1)) { }
 private:
     virtual scoped_ptr_t<val_t> obj_eval(
-        scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
+        eval_error *err_out, scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t obj = v0->as_datum();
         r_sanity_check(obj.get_type() == datum_t::R_OBJECT);
         std::vector<datum_t> paths;
         const size_t n = args->num_args();
         paths.reserve(n - 1);
         for (size_t i = 1; i < n; ++i) {
-            paths.push_back(args->arg(env, i)->as_datum());
+            auto v_i = args->arg(err_out, env, i);
+            if (err_out->has()) { return noval(); }
+
+            paths.push_back(v_i->as_datum());
         }
         pathspec_t pathspec(datum_t(std::move(paths), env->env->limits()), this);
         return new_val_bool(contains(obj, pathspec));
@@ -284,9 +298,13 @@ public:
 
 private:
     virtual scoped_ptr_t<val_t> obj_eval(
-        scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
+        eval_error *err_out, scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         datum_t d = v0->as_datum();
-        return new_val(d.get_field(args->arg(env, 1)->as_str()));
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        datum_t d_field = d.get_field_with_err(err_out, v1->as_str());
+        if (err_out->has()) { return noval(); }
+        return new_val(std::move(d_field));
     }
     virtual const char *name() const { return "get_field"; }
 };
@@ -304,14 +322,20 @@ public:
 
 private:
     scoped_ptr_t<val_t> obj_eval_dereferenced(
-        const scoped_ptr_t<val_t> &v0, const scoped_ptr_t<val_t> &v1) const {
+        eval_error *err_out, const scoped_ptr_t<val_t> &v0, const scoped_ptr_t<val_t> &v1) const {
         datum_t d = v0->as_datum();
-        return new_val(d.get_field(v1->as_str()));
+        datum_t d_field = d.get_field_with_err(err_out, v1->as_str());
+        if (err_out->has()) { return noval(); }
+        return new_val(std::move(d_field));
     }
     virtual scoped_ptr_t<val_t> eval_impl(
-        scope_env_t *env, args_t *args, eval_flags_t) const {
-        scoped_ptr_t<val_t> v0 = args->arg(env, 0);
-        scoped_ptr_t<val_t> v1 = args->arg(env, 1);
+        eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+
+        scoped_ptr_t<val_t> v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+
         datum_t d = v1->as_datum();
         r_sanity_check(d.has());
 
@@ -321,8 +345,8 @@ private:
         }
         case datum_t::R_STR:
             return impl.eval_impl_dereferenced(
-                this, env, args, v0,
-                [&]{ return this->obj_eval_dereferenced(v0, v1); });
+                err_out, this, env, args, v0,
+                [&](eval_error *err_out) { return this->obj_eval_dereferenced(err_out, v0, v1); });
         case datum_t::MINVAL:
         case datum_t::R_ARRAY:
         case datum_t::R_BINARY:

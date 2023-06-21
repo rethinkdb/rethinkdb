@@ -20,11 +20,13 @@ public:
         : op_term_t(env, term, argspec_t(0, 1)) { }
 
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
         uuid_u id;
 
         if (args->num_args() == 1) {
-            std::string root = args->arg(env, 0)->as_str().to_std();
+            auto v0 = args->arg(err_out, env, 0);
+            if (err_out->has()) { return noval(); }
+            std::string root = v0->as_str().to_std();
             id = uuid_u::from_hash(base_key_id, root);
         } else {
             id = generate_uuid();
