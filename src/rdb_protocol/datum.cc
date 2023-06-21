@@ -1411,12 +1411,12 @@ struct datum_rcheckable_t : public rcheckable_t {
 #ifdef RQL_ERROR_BT
                       const char *test, const char *file, int line,
 #endif
-                      std::string msg) const {
+                      std::string&& msg) const {
         datum->runtime_fail(type,
 #ifdef RQL_ERROR_BT
             test, file, line,
 #endif
-            msg);
+            std::move(msg));
     }
     const datum_t *datum;
 };
