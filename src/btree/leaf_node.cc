@@ -14,10 +14,6 @@
 
 // We comment out this warning, and static_assert that pair_offsets is
 // at an aligned offset.
-//
-// Considering we're doing arbitrary math into the node, we still
-// might have problems with unaligned pointers on some platforms.  Of
-// course, that would show itself instantly in testing.
 #if defined(__GNUC__) && (100 * __GNUC__ + __GNUC_MINOR__ >= 901)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
@@ -25,6 +21,10 @@
 
 static_assert(offsetof(leaf_node_t, pair_offsets) % 2 == 0,
               "pair_offsets must be at uint16_t alignment");
+
+// An insane sanity check, or, documentation of exactly what we expect from the type.
+static_assert(alignof(unaligned<uint16_t>) == 1, "expecting unaligned struct to have 1 byte alignment");
+static_assert(offsetof(unaligned<uint16_t>, value) == 0, "expecting unaligned<>::value to have 0 offset");
 
 namespace leaf {
 
@@ -143,7 +143,7 @@ int entry_size(value_sizer_t *sizer, const entry_t *p) {
     case SKIP_ENTRY_CODE_TWO:
         return 2;
     case SKIP_ENTRY_CODE_MANY:
-        return 3 + *reinterpret_cast<const uint16_t *>(1 + reinterpret_cast<const char *>(p));
+        return 3 + reinterpret_cast<const unaligned<uint16_t> *>(1 + reinterpret_cast<const char *>(p))->value;
     default:
         rassert(code <= MAX_KEY_SIZE);
         return entry_key(p)->full_size() + sizer->size(entry_value(p));
@@ -163,7 +163,7 @@ char *get_at_offset(leaf_node_t *node, int offset) {
 }
 
 repli_timestamp_t get_timestamp(const leaf_node_t *node, int offset) {
-    return *reinterpret_cast<const repli_timestamp_t *>(reinterpret_cast<const char *>(node) + offset);
+    return reinterpret_cast<const unaligned<repli_timestamp_t> *>(reinterpret_cast<const char *>(node) + offset)->value;
 }
 
 struct entry_iter_t {
@@ -699,7 +699,7 @@ void clean_entry(void *p, int sz) {
     } else if (sz > 2) {
         q[0] = SKIP_ENTRY_CODE_MANY;
         rassert(sz < 65536);
-        *reinterpret_cast<uint16_t *>(q + 1) = sz - 3;
+        reinterpret_cast<unaligned<uint16_t> *>(q + 1)->value = sz - 3;
 
         // Some  memset implementations are broken for nonzero values.
         for (int i = 3; i < sz; ++i) {
@@ -1490,7 +1490,7 @@ MUST_USE bool prepare_space_for_new_entry(
 
     uint16_t start_of_where_new_entry_should_go = end_of_where_new_entry_should_go - total_space_for_new_entry;
     if (new_entry_should_have_timestamp) {
-        *reinterpret_cast<repli_timestamp_t *>(get_at_offset(node, start_of_where_new_entry_should_go)) = tstamp;
+        reinterpret_cast<unaligned<repli_timestamp_t> *>(get_at_offset(node, start_of_where_new_entry_should_go))->value = tstamp;
     } else {
         rassert(end_of_where_new_entry_should_go == node->tstamp_cutpoint);
         node->tstamp_cutpoint = start_of_where_new_entry_should_go;
