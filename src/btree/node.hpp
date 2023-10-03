@@ -89,4 +89,9 @@ inline void keycpy(btree_key_t *dest, const btree_key_t *src) {
     memcpy(dest, src, sizeof(btree_key_t) + src->size);
 }
 
+template <class T>
+ATTR_PACKED(struct alignas(1) unaligned {
+    T value;
+});
+
 #endif // BTREE_NODE_HPP_
