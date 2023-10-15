@@ -6,6 +6,7 @@
 #include <algorithm>
 
 #include "btree/node.hpp"
+#include "containers/unaligned.hpp"
 
 // We comment out this warning, and static_assert that pair_offsets is
 // at an aligned offset.

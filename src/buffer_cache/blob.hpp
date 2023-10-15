@@ -14,6 +14,7 @@
 #include "containers/buffer_group.hpp"
 #include "errors.hpp"
 #include "serializer/types.hpp"
+#include "utils.hpp"
 
 class buffer_group_t;
 
@@ -113,9 +114,6 @@ int maxreflen_from_blockid_count(int count);
 // The step size of a blob.
 int64_t stepsize(max_block_size_t block_size, int levels);
 
-// The internal node block ids of an internal node.
-const block_id_t *internal_node_block_ids(const void *buf);
-
 // Returns offset and size, clamped to and relative to the index'th subtree.
 void shrink(max_block_size_t block_size, int levels, int64_t offset, int64_t size, int index, int64_t *suboffset_out, int64_t *subsize_out);
 
@@ -133,9 +131,6 @@ struct ref_info_t {
     int levels;
 };
 ref_info_t ref_info(max_block_size_t block_size, const char *ref, int maxreflen);
-
-// Returns the internal block ids of a non-inlined blob ref.
-const block_id_t *block_ids(const char *ref, int maxreflen);
 
 // Returns the char bytes of a leaf node.
 const char *leaf_node_data(const void *buf);
