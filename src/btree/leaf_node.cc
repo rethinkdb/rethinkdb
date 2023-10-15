@@ -9,6 +9,7 @@
 #include <set>
 
 #include "btree/node.hpp"
+#include "containers/unaligned.hpp"
 #include "repli_timestamp.hpp"
 #include "utils.hpp"
 

@@ -10,6 +10,7 @@
 #include "buffer_cache/alt.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/buffer_group.hpp"
+#include "containers/unaligned.hpp"
 #include "containers/scoped.hpp"
 #include "math.hpp"
 #include "serializer/types.hpp"
@@ -19,6 +20,7 @@
 // Roughly equivalent to the maximal number of coroutines that loading a blob
 // can allocate.
 const int64_t BLOB_TRAVERSAL_CONCURRENCY = 8;
+
 
 template <class T>
 void clear_and_delete(std::vector<T *> *vec) {
@@ -37,6 +39,12 @@ blob_acq_t::~blob_acq_t() {
 
 namespace blob {
 
+// The internal node block ids of an internal node.
+const unaligned<block_id_t> *internal_node_block_ids(const void *buf);
+
+// Returns the internal block ids of a non-inlined blob ref.
+const unaligned<block_id_t> *block_ids(const char *ref, int maxreflen);
+
 int big_size_offset(int maxreflen) {
     return maxreflen <= 255 ? 1 : 2;
 }
@@ -47,7 +55,7 @@ int block_ids_offset(int maxreflen) {
 
 temporary_acq_tree_node_t *
 make_tree_from_block_ids(buf_parent_t parent, access_t mode, int levels,
-                         int64_t offset, int64_t size, const block_id_t *block_ids);
+                         int64_t offset, int64_t size, const unaligned<block_id_t> *block_ids);
 
 // touches_end_t specifies whether the [offset, offset + size) region given to
 // expose_tree_from_block_ids touches the end of the data in the blob.
@@ -66,7 +74,7 @@ int small_size(const char *ref, int maxreflen) {
     if (maxreflen <= 255) {
         return *reinterpret_cast<const uint8_t *>(ref);
     } else {
-        return *reinterpret_cast<const uint16_t *>(ref);
+        return reinterpret_cast<const unaligned<uint16_t> *>(ref)->value;
     }
 }
 
@@ -78,7 +86,7 @@ void set_small_size_field(char *ref, int maxreflen, int64_t size) {
     if (maxreflen <= 255) {
         *reinterpret_cast<uint8_t *>(ref) = size;
     } else {
-        *reinterpret_cast<uint16_t *>(ref) = size;
+        reinterpret_cast<unaligned<uint16_t> *>(ref)->value = size;
     }
 }
 
@@ -96,19 +104,19 @@ char *small_buffer(char *ref, int maxreflen) {
 }
 
 int64_t big_size(const char *ref, int maxreflen) {
-    return *reinterpret_cast<const int64_t *>(ref + big_size_offset(maxreflen));
+    return reinterpret_cast<const unaligned<int64_t> *>(ref + big_size_offset(maxreflen))->value;
 }
 
 void set_big_size(char *ref, int maxreflen, int64_t new_size) {
-    *reinterpret_cast<int64_t *>(ref + big_size_offset(maxreflen)) = new_size;
+    reinterpret_cast<unaligned<int64_t> *>(ref + big_size_offset(maxreflen))->value = new_size;
 }
 
-const block_id_t *block_ids(const char *ref, int maxreflen) {
-    return reinterpret_cast<const block_id_t *>(ref + block_ids_offset(maxreflen));
+const unaligned<block_id_t> *block_ids(const char *ref, int maxreflen) {
+    return reinterpret_cast<const unaligned<block_id_t> *>(ref + block_ids_offset(maxreflen));
 }
 
-block_id_t *block_ids(char *ref, int maxreflen) {
-    return reinterpret_cast<block_id_t *>(ref + block_ids_offset(maxreflen));
+unaligned<block_id_t> *block_ids(char *ref, int maxreflen) {
+    return reinterpret_cast<unaligned<block_id_t> *>(ref + block_ids_offset(maxreflen));
 }
 
 int64_t leaf_size(max_block_size_t block_size) {
@@ -133,12 +141,14 @@ int64_t internal_node_count(max_block_size_t block_size) {
     return internal_node_bytesize(block_size) / sizeof(block_id_t);
 }
 
-const block_id_t *internal_node_block_ids(const void *buf) {
-    return reinterpret_cast<const block_id_t *>(reinterpret_cast<const char *>(buf) + sizeof(block_magic_t));
+// These actually are unaligned -- block_magic_t is 4 bytes, and
+// blob internal node block ids are 64 bits wide.
+const unaligned<block_id_t> *internal_node_block_ids(const void *buf) {
+    return reinterpret_cast<const unaligned<block_id_t> *>(reinterpret_cast<const char *>(buf) + sizeof(block_magic_t));
 }
 
-block_id_t *internal_node_block_ids(void *buf) {
-    return reinterpret_cast<block_id_t *>(reinterpret_cast<char *>(buf) + sizeof(block_magic_t));
+unaligned<block_id_t> *internal_node_block_ids(void *buf) {
+    return reinterpret_cast<unaligned<block_id_t> *>(reinterpret_cast<char *>(buf) + sizeof(block_magic_t));
 }
 
 ref_info_t big_ref_info(max_block_size_t block_size, int64_t size,
@@ -305,10 +315,10 @@ void blob_t::detach_subtrees(buf_parent_t root) {
                        maxreflen_,
                        &blockid_count);
 
-    const block_id_t *ids = blob::block_ids(ref_, maxreflen_);
+    const unaligned<block_id_t> *ids = blob::block_ids(ref_, maxreflen_);
 
     for (int64_t i = 0; i < blockid_count; ++i) {
-        root.detach_child(ids[i]);
+        root.detach_child(ids[i].copy());
     }
 }
 
@@ -373,15 +383,16 @@ struct region_tree_filler_t {
     access_t mode;
     int levels;
     int64_t offset, size;
-    const block_id_t *block_ids;
+    const unaligned<block_id_t> *block_ids;
     int lo, hi;
     temporary_acq_tree_node_t *nodes;
 
     void operator()(int i) const {
+	block_id_t block_i = block_ids[lo + i].value;
         if (levels > 1) {
-            buf_lock_t lock(parent, block_ids[lo + i], mode);
+            buf_lock_t lock(parent, block_i, mode);
             buf_read_t buf_read(&lock);
-            const block_id_t *sub_ids
+            const unaligned<block_id_t> *sub_ids
                 = blob::internal_node_block_ids(buf_read.get_data_read());
 
             int64_t suboffset, subsize;
@@ -391,7 +402,7 @@ struct region_tree_filler_t {
                                                             suboffset, subsize,
                                                             sub_ids);
         } else {
-            nodes[i].buf = new buf_lock_t(parent, block_ids[lo + i], mode);
+            nodes[i].buf = new buf_lock_t(parent, block_i, mode);
         }
     }
 };
@@ -411,7 +422,7 @@ int64_t choose_concurrency(int levels) {
 
 temporary_acq_tree_node_t *
 make_tree_from_block_ids(buf_parent_t parent, access_t mode, int levels,
-                         int64_t offset, int64_t size, const block_id_t *block_ids) {
+                         int64_t offset, int64_t size, const unaligned<block_id_t> *block_ids) {
     rassert(size > 0);
 
     region_tree_filler_t filler(parent);
@@ -567,17 +578,17 @@ namespace blob {
 
 struct traverse_helper_t {
     virtual buf_lock_t preprocess(buf_parent_t parent, int levels,
-                                  block_id_t *block_id) = 0;
+                                  unaligned<block_id_t> *block_id) = 0;
     virtual void postprocess(buf_lock_t *lock) = 0;
     virtual ~traverse_helper_t() { }
 };
 
 void traverse_recursively(buf_parent_t parent, int levels,
-                          block_id_t *block_ids,
+                          unaligned<block_id_t> *block_ids,
                           int64_t smaller_size, int64_t bigger_size,
                           traverse_helper_t *helper);
 
-void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
+void traverse_index(buf_parent_t parent, int levels, unaligned<block_id_t> *block_ids,
                     int index, int64_t smaller_size, int64_t bigger_size,
                     traverse_helper_t *helper) {
     const max_block_size_t block_size = parent.cache()->max_block_size();
@@ -587,11 +598,11 @@ void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
 
     if (sub_smaller_size > 0) {
         if (levels > 1) {
-            buf_lock_t lock(parent, block_ids[index], access_t::write);
+            buf_lock_t lock(parent, block_ids[index].copy(), access_t::write);
             buf_write_t write(&lock);
             void *b = write.get_data_write();
 
-            block_id_t *subids = blob::internal_node_block_ids(b);
+            unaligned<block_id_t> *subids = blob::internal_node_block_ids(b);
             traverse_recursively(buf_parent_t(&lock), levels - 1, subids,
                                  sub_smaller_size, sub_bigger_size,
                                  helper);
@@ -603,7 +614,7 @@ void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
         if (levels > 1) {
             buf_write_t write(&lock);
             void *b = write.get_data_write();
-            block_id_t *subids = blob::internal_node_block_ids(b);
+            unaligned<block_id_t> *subids = blob::internal_node_block_ids(b);
             traverse_recursively(buf_parent_t(&lock), levels - 1, subids,
                                  sub_smaller_size, sub_bigger_size,
                                  helper);
@@ -613,7 +624,7 @@ void traverse_index(buf_parent_t parent, int levels, block_id_t *block_ids,
     }
 }
 
-void traverse_recursively(buf_parent_t parent, int levels, block_id_t *block_ids,
+void traverse_recursively(buf_parent_t parent, int levels, unaligned<block_id_t> *block_ids,
                           int64_t smaller_size, int64_t bigger_size,
                           traverse_helper_t *helper) {
     const max_block_size_t block_size = parent.cache()->max_block_size();
@@ -657,9 +668,9 @@ bool blob_t::traverse_to_dimensions(buf_parent_t parent, int levels,
 
 struct allocate_helper_t : public blob::traverse_helper_t {
     buf_lock_t preprocess(buf_parent_t parent, int levels,
-                          block_id_t *block_id) {
+                          unaligned<block_id_t> *block_id) {
         buf_lock_t temp_lock(parent, alt_create_t::create, block_type_t::aux);
-        *block_id = temp_lock.block_id();
+        block_id->value = temp_lock.block_id();
         {
             buf_write_t lock_write(&temp_lock);
             void *b = lock_write.get_data_write();
@@ -683,8 +694,8 @@ bool blob_t::allocate_to_dimensions(buf_parent_t parent, int levels,
 
 struct deallocate_helper_t : public blob::traverse_helper_t {
     buf_lock_t preprocess(buf_parent_t parent, UNUSED int levels,
-                          block_id_t *block_id) {
-        return buf_lock_t(parent, *block_id, access_t::write);
+                          unaligned<block_id_t> *block_id) {
+        return buf_lock_t(parent, block_id->copy(), access_t::write);
     }
 
     void postprocess(buf_lock_t *lock) {
@@ -724,7 +735,7 @@ int blob_t::add_level(buf_parent_t parent, int levels) {
 
         blob::set_small_size_field(ref_, maxreflen_, maxreflen_);
         blob::set_big_size(ref_, maxreflen_, sz);
-        blob::block_ids(ref_, maxreflen_)[0] = lock.block_id();
+        blob::block_ids(ref_, maxreflen_)[0].value = lock.block_id();
     } else {
         *reinterpret_cast<block_magic_t *>(b) = blob::internal_node_magic;
 
@@ -733,7 +744,7 @@ int blob_t::add_level(buf_parent_t parent, int levels) {
         int sz = maxreflen_ - blob::block_ids_offset(maxreflen_);
 
         memcpy(blob::internal_node_block_ids(b), blob::block_ids(ref_, maxreflen_), sz);
-        blob::block_ids(ref_, maxreflen_)[0] = lock.block_id();
+        blob::block_ids(ref_, maxreflen_)[0].value = lock.block_id();
     }
 
     return levels + 1;
@@ -759,7 +770,7 @@ bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
     rassert(bigsize != 0);
     if (bigsize != 0) {
 
-        buf_lock_t lock(parent, blob::block_ids(ref_, maxreflen_)[0],
+        buf_lock_t lock(parent, blob::block_ids(ref_, maxreflen_)[0].copy(),
                         access_t::write);
         if (levels == 1) {
             buf_read_t lock_read(&lock);
@@ -770,7 +781,7 @@ bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
             blob::set_small_size(ref_, maxreflen_, bigsize);
         } else {
             buf_read_t lock_read(&lock);
-            const block_id_t *b = blob::internal_node_block_ids(lock_read.get_data_read());
+            const unaligned<block_id_t> *b = blob::internal_node_block_ids(lock_read.get_data_read());
 
             // Detach children: they're getting reattached to `parent`.
             int lo;
@@ -783,9 +794,9 @@ bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
             // processing it a second time when `remove_level` gets called again.
             guarantee(lo == 0 && hi > 0);
 
-            block_id_t *block_ids = blob::block_ids(ref_, maxreflen_);
+            unaligned<block_id_t> *block_ids = blob::block_ids(ref_, maxreflen_);
             for (int i = lo; i < hi; ++i) {
-                lock.detach_child(b[i]);
+                lock.detach_child(b[i].copy());
                 block_ids[i] = b[i];
             }
         }
