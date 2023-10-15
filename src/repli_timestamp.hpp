@@ -25,13 +25,6 @@ class repli_timestamp_t {
 public:
     uint64_t longtime;
 
-    bool operator==(repli_timestamp_t t) const { return longtime == t.longtime; }
-    bool operator!=(repli_timestamp_t t) const { return longtime != t.longtime; }
-    bool operator<(repli_timestamp_t t) const { return longtime < t.longtime; }
-    bool operator>(repli_timestamp_t t) const { return longtime > t.longtime; }
-    bool operator<=(repli_timestamp_t t) const { return longtime <= t.longtime; }
-    bool operator>=(repli_timestamp_t t) const { return longtime >= t.longtime; }
-
     repli_timestamp_t next() const {
         repli_timestamp_t t;
         t.longtime = longtime + 1;
@@ -41,6 +34,15 @@ public:
     static const repli_timestamp_t distant_past;
     static const repli_timestamp_t invalid;
 };
+
+// These functions specifically make a point of passing by value, because
+// repli_timestamp_t is often used in packed or misaligned structures.
+inline bool operator==(repli_timestamp_t s, repli_timestamp_t t) { return s.longtime == t.longtime; }
+inline bool operator!=(repli_timestamp_t s, repli_timestamp_t t) { return s.longtime != t.longtime; }
+inline bool operator<(repli_timestamp_t s, repli_timestamp_t t) { return s.longtime < t.longtime; }
+inline bool operator>(repli_timestamp_t s, repli_timestamp_t t) { return s.longtime > t.longtime; }
+inline bool operator<=(repli_timestamp_t s, repli_timestamp_t t) { return s.longtime <= t.longtime; }
+inline bool operator>=(repli_timestamp_t s, repli_timestamp_t t) { return s.longtime >= t.longtime; }
 
 // Returns the max of x and y, treating invalid as a negative infinity value.
 repli_timestamp_t superceding_recency(repli_timestamp_t x, repli_timestamp_t y);
