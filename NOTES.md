@@ -1,3 +1,28 @@
+# Release 2.4.4 (Night of the Living Dead)
+
+Fixes for Data Explorer autocomplete, compilation fixes, other small
+fixes.
+
+### API-breaking changes ###
+
+None.
+
+### Changes ###
+
+* Server
+  * Avoid unaligned memory accesses and bus errors on 32-bit ARM (#7128)
+* Compilation
+  * Replace bad zlib URL with working one (#7121)
+  * Fix new include errors (#7119)
+* Web UI
+  * Fix data explorer auto-complete (#7111, #7113)
+  * Update ReQL documentation link (#7112, #7114)
+
+### Contributors ###
+
+* @sg5506844
+* Sam Hughes (@srh)
+
 # Release 2.4.3 (Night of the Living Dead)
 
 Windows release, FreeBSD 13 compilation, certificate chain support,
