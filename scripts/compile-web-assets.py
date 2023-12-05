@@ -40,7 +40,8 @@ prelude = """
 #include <string>
 """
 
-def write_assets(asset_root, assets):
+def write_assets(asset_root, unsorted_assets):
+    assets = sorted(unsorted_assets)
 
     print('std::map<std::string, const std::string> static_web_assets = {')
     for i, asset in enumerate(assets):
