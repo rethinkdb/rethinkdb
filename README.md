@@ -37,6 +37,7 @@ To generate src/gen/web_assets.cc, run the following:
 To generate a web_assets.cc for a specific RethinkDB version like
 1.2.3, you might want to try
 
+    cd /rethinkdb    # see "canonical location" instructions below
     make clean
     make PVERSION=1.2.3 -j8 generate
 
@@ -47,7 +48,14 @@ visually inspect the generated value.)
 
 Once src/gen/web_assets.cc is built, you can copy the file into your
 rethinkdb repository, replacing the existing one at the same location,
-src/gen/web_assets.cc.  Then, presumably, commit that version.
+src/gen/web_assets.cc.  Then, if appropriate, commit that version.
+
+If committing, your web assets should be generated from a repo located
+at the "canonical location", which is `/rethinkdb`.  The generation
+process emits some absolute paths; hence this minimizes diffs and
+avoids leaking your personal directory information.  See
+https://github.com/rethinkdb/rethinkdb/issues/7136 .  A fix for this
+problem is welcome; this is a lazy workaround.
 
 ## Development Process
 
