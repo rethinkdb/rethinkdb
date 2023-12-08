@@ -14,6 +14,7 @@ None.
 * Compilation
   * Replace bad zlib URL with working one (#7121)
   * Fix new include errors (#7119)
+  * Avoid using deprecated `fstat64` function (#7141)
 * Web UI
   * Fix data explorer auto-complete (#7111, #7113)
   * Update ReQL documentation link (#7112, #7114)
