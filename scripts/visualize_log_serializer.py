@@ -660,15 +660,14 @@ class DataBlock(object):
 
 def file_to_database(filename):
     
-    with file(filename) as f:
+    with open(filename) as f:
         text = f.read()
     
     return Database(text)
 
 def database_to_html(db, filename):
     
-    with file(filename, "w") as f:
-        
+    with open(filename, "w") as f:
         sys.stdout = f
         
         try:

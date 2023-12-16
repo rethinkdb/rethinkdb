@@ -22,6 +22,10 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '2.7'
+
       - name: cpplint
         uses: ./.github/actions/tests
         with:
@@ -38,7 +42,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
         with:
-          python-version: '2.7'
+          python-version: '3.8'
 
       - name: apt install
         run: |
@@ -81,6 +85,10 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '2.7'
+
       - name: unit tests
         uses: ./.github/actions/tests
         with:
@@ -109,6 +117,10 @@ jobs:
     needs: unit-tests
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '3.8'
+
       - name: integration tests
         uses: ./.github/actions/driver-tests
         with:
@@ -137,6 +149,10 @@ jobs:
     needs: unit-tests
     steps:
       - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: '3.8'
+
       - name: long running tests
         uses: ./.github/actions/driver-tests
         with:
@@ -177,7 +193,7 @@ jobs:
         with:
           driver_name: python
           driver_dist_dir: /tmp/python-driver/rethinkdb
-          interpreter: py2.7
+          interpreter: py3.8
           test_target: polyglot
 
       - name: compress test artifacts for upload
@@ -204,7 +220,7 @@ jobs:
         run: |
           curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
           source $HOME/.nvm/nvm.sh
-          nvm install 5.12
+          nvm install 16.14
 
       - name: polyglot tests for javascript
         uses: ./.github/actions/driver-tests
@@ -212,13 +228,10 @@ jobs:
           driver_name: javascript
           driver_dist_dir: /tmp/driver/dist
           repo_url: https://github.com/rethinkdb/rethinkdb-javascript.git
-          # TODO: This commit is pointing after driver extraction, hence it should be the baseline.
-          #  When all tests are passing using this commit hash, update the hash to the latest and
-          #  fix the newly raised issues.
-          commit_hash: c717cb9e2bdab77b55b7a31a5d780ba293c5fadf
-          interpreter: js5
+          commit_hash: 9e3aa0a229d2f5759a5215844317dae4e7d58d10
+          interpreter: js16
           test_target: polyglot
-          env_activate: source $HOME/.nvm/nvm.sh && nvm use 5.12
+          env_activate: source $HOME/.nvm/nvm.sh && nvm use 16.14
           install_command: npm install && npm run build
 
       - name: compress test artifacts for upload
@@ -256,7 +269,7 @@ jobs:
           driver_name: ruby
           driver_dist_dir: /tmp/driver/lib
           repo_url: https://github.com/rethinkdb/rethinkdb-ruby.git
-          commit_hash: 25781763f1af4e85116c80fd0cc988927e9c6829
+          commit_hash: 002f5476b760b696ed83213eba9f5d2e565ca488
           interpreter: rb2.5
           test_target: polyglot
           env_activate: source /etc/profile.d/rvm.sh && rvm use 2.5

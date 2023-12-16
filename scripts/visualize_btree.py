@@ -371,7 +371,7 @@ def btree_to_html(btree, filename):
     
     superblock, values = btree
     
-    with file(filename, "w") as f:
+    with open(filename, "w") as f:
         sys.stdout = f
         try:
             print """

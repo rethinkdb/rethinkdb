@@ -95,7 +95,7 @@ def print_with_time(*args, **kwargs): # add timing information to print statemen
     sys.stdout.flush()
 
 def guess_is_text_file(name):
-    with file(name, 'rb') as f:
+    with open(name, 'rb') as f:
         data = f.read(100)
     for byte in data:
         if ord(byte) in non_text_bytes:
@@ -207,7 +207,7 @@ def import_python_driver():
     
     # -- validate the built driver
     
-    if not all(map(lambda x: os.path.isfile(os.path.join(driverPath, x)), ['__init__.py', 'ast.py', 'docs.py'])):
+    if not all(map(lambda x: os.path.isfile(os.path.join(driverPath, x)), ['__init__.py', 'ast.py'])):
         raise ValueError('Invalid Python driver: %s' % driverPath)
     
     # -- load the driver
@@ -228,8 +228,7 @@ def import_python_driver():
     
     # -- return the loaded module
 
-    __loadedPythonDriver = loadedDriver.r if inspect.isclass(loadedDriver) else loadedDriver
-    return __loadedPythonDriver
+    return loadedDriver.r if inspect.ismodule(loadedDriver) else loadedDriver
 
 class PerformContinuousAction(threading.Thread):
     '''Use to continuously perform an action on a table. Either provide an action (reql command without run) on instantiation, or subclass and override runAction'''
@@ -298,11 +297,11 @@ class PerformContinuousAction(threading.Thread):
     def stop(self):
         self.stopSignal = True
         self.join(timeout=.5)
-        if self.isAlive():
+        if self.is_alive():
           raise Warning('performContinuousAction failed to stop when asked to, results might not be trustable')
     
     def errorSummary(self):
-        if self.isAlive():
+        if self.is_alive():
             self.stop()
         
         return self.recordedErrors
@@ -661,7 +660,7 @@ def nonblocking_readline(source, seek=0):
         if not os.path.isfile(source):
             raise ValueError('can not find the source file: %s' % str(source))
         try:
-            source = open(source, 'rU')
+            source = open(source, 'r')
         except Exception as e:
             raise ValueError('bad source file: %s got error: %s' % (str(source), str(e)))
     

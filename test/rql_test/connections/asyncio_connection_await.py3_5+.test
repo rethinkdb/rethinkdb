@@ -557,10 +557,10 @@ class TestGroupWithTimeKey(TestWithConnection):
 
         time1 = 1375115782.24
         rt1 = r.epoch_time(time1).in_timezone('+00:00')
-        dt1 = datetime.datetime.fromtimestamp(time1, r.ast.RqlTzinfo('+00:00'))
+        dt1 = datetime.datetime.fromtimestamp(time1, r.ast.ReqlTzinfo('+00:00'))
         time2 = 1375147296.68
         rt2 = r.epoch_time(time2).in_timezone('+00:00')
-        dt2 = datetime.datetime.fromtimestamp(time2, r.ast.RqlTzinfo('+00:00'))
+        dt2 = datetime.datetime.fromtimestamp(time2, r.ast.ReqlTzinfo('+00:00'))
 
         res = await r.table('times').insert({'id': 0, 'time': rt1}).run(c)
         self.assertEqual(res['inserted'], 1)

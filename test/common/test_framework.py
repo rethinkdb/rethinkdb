@@ -465,7 +465,7 @@ class TermView(TextView):
         self.show_status()
 
     def clear_status(self):
-        self.buffer += self.clear_line
+        self.buffer += self.clear_line.decode()
 
     def show_status(self):
         if self.running_list:
@@ -756,7 +756,8 @@ class TestFilter(object):
         return filter
 
     def combine(self, type, other):
-        for name in set(self.tree.keys() + other.tree.keys()):
+        combined_keys = set(list(self.tree.keys()) + list(other.tree.keys()))
+        for name in combined_keys:
             self.zoom(name, create=True).combine(type, other.zoom(name))
         if other.default == self.INCLUDE:
             self.default = type
@@ -961,7 +962,7 @@ class OldTest(Test):
         return os.path.exists(join(self.dir, "killed"))
 
     def dump_file(self, name):
-        with file(join(self.dir, name)) as f:
+        with open(join(self.dir, name)) as f:
             for line in f:
                 print(line, end=' ')
 

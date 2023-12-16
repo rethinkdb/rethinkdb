@@ -14,10 +14,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/setup-python@v3
-      with:
-        python-version: '2.7'
-
     - name: install prerequisites
       shell: bash
       run: |

@@ -1,4 +1,4 @@
-// Copyright 2010-2015 RethinkDB, all rights reserved.
+// Copyright 2010-2022 RethinkDB, all rights reserved.
 #include "rdb_protocol/terms/terms.hpp"
 
 #include <re2/re2.h>
@@ -6,7 +6,9 @@
 #include <algorithm>
 
 #include "parsing/utf8.hpp"
+#include "rdb_protocol/datum_string.hpp"
 #include "rdb_protocol/error.hpp"
+#include "rdb_protocol/minidriver.hpp"
 #include "rdb_protocol/op.hpp"
 
 namespace ql {
@@ -123,6 +125,75 @@ private:
         }
     }
     virtual const char *name() const { return "match"; }
+};
+
+class format_term_t : public op_term_t {
+public:
+    format_term_t(compile_env_t *env, const raw_term_t &term)
+            : op_term_t{env, term, argspec_t{2}}, compile_env{env} {}
+private:
+    virtual scoped_ptr_t <val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+        const std::string templ = args->arg(env, 0)->as_str().to_std();
+        const datum_t datum = args->arg(env, 1)->as_datum();
+
+        const size_t template_length = templ.size();
+        std::string formatted{};
+
+        for (size_t pos = 0; pos < template_length; ++pos) {
+            rcheck(templ[pos] != '}',
+                   base_exc_t::LOGIC,
+                   "No parameter tags to close");
+
+            if (templ[pos] == '{') {
+                size_t param_end_pos {1};
+                std::string param_name {};
+
+                while (pos + param_end_pos < template_length && templ[pos + param_end_pos] != '}') {
+                    char next_char{templ[pos + param_end_pos]};
+
+                    rcheck(next_char != '{',
+                           base_exc_t::LOGIC,
+                           "Nested template parameters are not allowed");
+
+                    // Reserve ":" for later use to implement formatting, "\\" for escaping.
+                    rcheck(next_char != ':',
+                           base_exc_t::LOGIC,
+                           strprintf("Formatting separator `%c` is not allowed in parameter name", next_char));
+                    rcheck(next_char != '\\',
+                           base_exc_t::LOGIC,
+                           strprintf("Reserved escape character `%c` is not allowed in parameter name", next_char));
+
+
+                    param_name.push_back(next_char);
+                    ++param_end_pos;
+                }
+
+                rcheck(pos + param_end_pos != template_length,
+                       base_exc_t::LOGIC,
+                       "Parameter tag must be closed");
+
+                datum_t field{datum.get_field(datum_string_t{param_name})};
+
+                minidriver_t r{backtrace()};
+                counted_t<const term_t> term = compile_term(
+                        compile_env,
+                        r.expr(std::move(field)).coerce_to("STRING").root_term());
+
+                const datum_string_t result{term->eval(env)->as_str()};
+
+                formatted.append(result.data(), result.size());
+                pos += param_end_pos;
+            } else {
+                formatted += templ[pos];
+            }
+        }
+
+        return new_val(datum_t(formatted));
+    }
+
+    virtual const char *name() const { return "format"; }
+
+    compile_env_t *compile_env;
 };
 
 template <typename It>
@@ -303,6 +374,10 @@ counted_t<term_t> make_match_term(
 counted_t<term_t> make_split_term(
         compile_env_t *env, const raw_term_t &term) {
     return make_counted<split_term_t>(env, term);
+}
+counted_t<term_t> make_format_term(
+        compile_env_t *env, const raw_term_t &term) {
+    return make_counted<format_term_t>(env, term);
 }
 
 }  // namespace ql
