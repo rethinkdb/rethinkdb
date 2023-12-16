@@ -274,7 +274,11 @@ void query_cache_t::ref_t::fill_response(response_t *res) {
 
 void query_cache_t::ref_t::run(env_t *env, response_t *res) {
     scope_env_t scope_env(env, var_scope_t());
-    scoped_ptr_t<val_t> val = entry->term_tree->eval(&scope_env);
+    eval_error err;
+    scoped_ptr_t<val_t> val = entry->term_tree->eval(&err, &scope_env);
+    if (err.has()) {
+        err.throw_exc();
+    }
 
     if (val->get_type().is_convertible(val_t::type_t::DATUM)) {
         res->set_type(Response::SUCCESS_ATOM);
