@@ -144,48 +144,49 @@ private:
                    base_exc_t::LOGIC,
                    "No parameter tags to close");
 
-            if (templ[pos] == '{') {
-                size_t param_end_pos {1};
-                std::string param_name {};
-
-                while (pos + param_end_pos < template_length && templ[pos + param_end_pos] != '}') {
-                    char next_char{templ[pos + param_end_pos]};
-
-                    rcheck(next_char != '{',
-                           base_exc_t::LOGIC,
-                           "Nested template parameters are not allowed");
-
-                    // Reserve ":" for later use to implement formatting, "\\" for escaping.
-                    rcheck(next_char != ':',
-                           base_exc_t::LOGIC,
-                           strprintf("Formatting separator `%c` is not allowed in parameter name", next_char));
-                    rcheck(next_char != '\\',
-                           base_exc_t::LOGIC,
-                           strprintf("Reserved escape character `%c` is not allowed in parameter name", next_char));
-
-
-                    param_name.push_back(next_char);
-                    ++param_end_pos;
-                }
-
-                rcheck(pos + param_end_pos != template_length,
-                       base_exc_t::LOGIC,
-                       "Parameter tag must be closed");
-
-                datum_t field{datum.get_field(datum_string_t{param_name})};
-
-                minidriver_t r{backtrace()};
-                counted_t<const term_t> term = compile_term(
-                        compile_env,
-                        r.expr(std::move(field)).coerce_to("STRING").root_term());
-
-                const datum_string_t result{term->eval(env)->as_str()};
-
-                formatted.append(result.data(), result.size());
-                pos += param_end_pos;
-            } else {
+            if (templ[pos] != '{') {
                 formatted += templ[pos];
+                continue;
             }
+
+            size_t param_end_pos {1};
+            std::string param_name {};
+
+            while (pos + param_end_pos < template_length && templ[pos + param_end_pos] != '}') {
+                char next_char{templ[pos + param_end_pos]};
+
+                rcheck(next_char != '{',
+                       base_exc_t::LOGIC,
+                       "Nested template parameters are not allowed");
+
+                // Reserve "," for later use to implement formatting, "\\" for escaping.
+                rcheck(next_char != ',',
+                       base_exc_t::LOGIC,
+                       strprintf("Formatting separator `%c` is not allowed in parameter name", next_char));
+                rcheck(next_char != '\\',
+                       base_exc_t::LOGIC,
+                       strprintf("Reserved escape character `%c` is not allowed in parameter name", next_char));
+
+
+                param_name.push_back(next_char);
+                ++param_end_pos;
+            }
+
+            rcheck(pos + param_end_pos != template_length,
+                   base_exc_t::LOGIC,
+                   "Parameter tag must be closed");
+
+            datum_t field{datum.get_field(datum_string_t{param_name})};
+
+            minidriver_t r{backtrace()};
+            counted_t<const term_t> term = compile_term(
+                compile_env,
+                r.expr(std::move(field)).coerce_to("STRING").root_term());
+
+            const datum_string_t result{term->eval(env)->as_str()};
+
+            formatted.append(result.data(), result.size());
+            pos += param_end_pos;
         }
 
         return new_val(datum_t(formatted));
