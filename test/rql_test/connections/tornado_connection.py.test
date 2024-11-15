@@ -451,15 +451,15 @@ class TestConnection(TestWithConnection):
             # Calling .repl() should set this connection as global state
             # to be used when `run` is not otherwise passed a connection.
             c = (yield r.connect(host=sharedServerHost, port=sharedServerDriverPort)).repl()
-    
+
             yield r.expr(1).run()
-    
+
             c.repl()                # is idempotent
-    
+
             yield r.expr(1).run()
-    
+
             yield c.close()
-    
+
             yield self.asyncAssertRaisesRegexp(r.ReqlDriverError, "Connection is closed.", r.expr(1).run())
         finally:
             r.Repl.clear()
@@ -615,10 +615,10 @@ class TestGroupWithTimeKey(TestWithConnection):
 
         time1 = 1375115782.24
         rt1 = r.epoch_time(time1).in_timezone('+00:00')
-        dt1 = datetime.datetime.fromtimestamp(time1, r.ast.RqlTzinfo('+00:00'))
+        dt1 = datetime.datetime.fromtimestamp(time1, r.ast.ReqlTzinfo('+00:00'))
         time2 = 1375147296.68
         rt2 = r.epoch_time(time2).in_timezone('+00:00')
-        dt2 = datetime.datetime.fromtimestamp(time2, r.ast.RqlTzinfo('+00:00'))
+        dt2 = datetime.datetime.fromtimestamp(time2, r.ast.ReqlTzinfo('+00:00'))
 
         res = yield r.table('times').insert({'id': 0, 'time': rt1}).run(c)
         self.assertEqual(res['inserted'], 1)
@@ -820,21 +820,21 @@ class TestCursor(TestWithConnection):
     @gen.coroutine
     def test_rate_limit(self):
         '''Test that we prefetch two batches, and then don't fetch any more without consuming them'''
-        
+
         batchSize = 20
         initalSize = int(batchSize * 1.5)
-        
+
         @gen.coroutine
         def wait_until_count(cursor, count):
             while len(cursor.items) < count:
                 yield gen.sleep(0.1)
-        
+
         cursor = yield r.range().run(self.conn, first_batch_scaledown_factor=2, min_batch_rows=batchSize, max_batch_rows=batchSize)
-        
+
         # wait until we have the first batch
         yield gen.with_timeout(datetime.timedelta(seconds=2), wait_until_count(cursor, batchSize/2))
         self.assertGreaterEqual(len(cursor.items), batchSize/2)
-        
+
         # wait until we have the second batch
         yield gen.with_timeout(datetime.timedelta(seconds=2), wait_until_count(cursor, initalSize))
         self.assertEqual(
@@ -842,7 +842,7 @@ class TestCursor(TestWithConnection):
             list(range(initalSize)),
             'Did not get the expected range of %d: %s' % (initalSize, str(cursor.items))
         )
-        
+
         # wait a few seconds to make sure we don't get more items
         yield gen.sleep(2)
         self.assertEqual(
@@ -850,7 +850,7 @@ class TestCursor(TestWithConnection):
             list(range(initalSize)),
             'Got extra items after first two batches: %s' % str(cursor.items)
         )
-        
+
         # consume the first two batches and check that we get more data
         for _ in range(initalSize):
             cursor.next()

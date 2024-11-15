@@ -230,8 +230,8 @@ class SrcLang(object):
     @property
     def polyglot_language_header(self):
         if self.__polyglot_language_header is None:
-            with open(self._polyglot_language_header_path, 'rU') as headerFile:
-                self.__class__.__polyglot_language_header = headerFile.read().decode('utf-8')
+            with open(self._polyglot_language_header_path, 'r') as headerFile:
+                self.__class__.__polyglot_language_header = headerFile.read()
         return self.__polyglot_language_header
 
 class PyLang(SrcLang):
@@ -548,19 +548,14 @@ class JrbLang(RbLang):
         self.interpreter_name_exe_names.append('jruby')
 
 interpreters = {
-    'js':     [JsLang('5.12'), JsLang('16.14')],
-    'py':     [PyLang('2.7'), PyLang('3.6'), PyLang('3.8')],
+    'js':     [JsLang('16.14')],
+    'py':     [PyLang('3.8')],
     'rb':     [RbLang('2.5'), RbLang('2.6'), RbLang('2.7'), JrbLang('9.2')],
     'jrb':    [JrbLang('9.0')],
 
-    'js5':    [JsLang('5.12')],
     'js16':    [JsLang('16.14')],
     
-    'py2':    [PyLang('2.7')],
-    'py2.7':  [PyLang('2.7')],
-    
-    'py3':    [PyLang('3.6'), PyLang('3.8')],
-    'py3.6':  [PyLang('3.6')],
+    'py3':    [PyLang('3.8')],
     'py3.8':  [PyLang('3.8')],
     
     'rb2':    [RbLang('2.5'), RbLang('2.6'), RbLang('2.7'), JrbLang('9.2')],
@@ -831,7 +826,11 @@ class TestGroup(object):
         
         # combine them, keeping any non-None entries from right
         returnDict = {}
-        for key in set(right.keys() + left.keys()): # should be the same, but...
+
+        # should be the same, but...
+        combined_keys = set(list(right.keys()) + list(left.keys()))
+
+        for key in combined_keys:
             val = right.get(key)
             if val in (None, [], {}):
                 val = left.get(key)
@@ -2156,7 +2155,7 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
         
         # - reap dead worker threads
         for worker in copy.copy(workerThreads):
-            if not worker.isAlive():
+            if not worker.is_alive():
                 worker.join(.01) # should never timeout, but just in case
                 workerThreads.remove(worker)
         

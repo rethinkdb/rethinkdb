@@ -77,7 +77,7 @@ try:
 
     if stuck or failed:
         for id in stuck + failed:
-            with file(os.path.join(tester_log_dir, str(id) + ".txt")) as f:
+            with open(os.path.join(tester_log_dir, str(id) + ".txt"), "w") as f:
                 for line in f:
                     sys.stdout.write(line)
         if len(stuck) == opts["num_testers"]:
