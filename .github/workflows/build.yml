@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: cpplint
         uses: ./.github/actions/tests
         with:
@@ -35,8 +35,8 @@ jobs:
     timeout-minutes: 35
     needs: preflight
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '2.7'
 
@@ -66,7 +66,7 @@ jobs:
         run: tar -czf ${{ github.job }}.tar.gz build
 
       - name: upload build artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ${{ github.job }}-artifacts
@@ -80,7 +80,7 @@ jobs:
     timeout-minutes: 15
     needs: build
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: unit tests
         uses: ./.github/actions/tests
         with:
@@ -95,7 +95,7 @@ jobs:
 
       - name: upload test artifacts
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ github.job }}.tar.gz
           path: ${{ github.job }}.tar.gz
@@ -108,7 +108,7 @@ jobs:
     timeout-minutes: 45
     needs: unit-tests
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: integration tests
         uses: ./.github/actions/driver-tests
         with:
@@ -126,7 +126,7 @@ jobs:
 
       - name: upload test artifacts
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ github.job }}.tar.gz
           path: ${{ github.job }}.tar.gz
@@ -136,7 +136,7 @@ jobs:
     timeout-minutes: 60
     needs: unit-tests
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: long running tests
         uses: ./.github/actions/driver-tests
         with:
@@ -154,7 +154,7 @@ jobs:
 
       - name: upload test artifacts
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ github.job }}.tar.gz
           path: ${{ github.job }}.tar.gz
@@ -171,7 +171,7 @@ jobs:
       - integration-tests
       - long-running-tests
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: polyglot tests for python
         uses: ./.github/actions/driver-tests
         with:
@@ -187,7 +187,7 @@ jobs:
 
       - name: upload test artifacts
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ github.job }}.tar.gz
           path: ${{ github.job }}.tar.gz
@@ -199,7 +199,7 @@ jobs:
       - integration-tests
       - long-running-tests
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: install nvm and node
         run: |
           curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
@@ -228,7 +228,7 @@ jobs:
 
       - name: upload test artifacts
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ github.job }}.tar.gz
           path: ${{ github.job }}.tar.gz
@@ -240,7 +240,7 @@ jobs:
       - integration-tests
       - long-running-tests
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: install rvm and ruby
         run: |
           sudo apt update && DEBIAN_FRONTEND=noninteractive sudo apt install -y software-properties-common
@@ -269,7 +269,7 @@ jobs:
 
       - name: upload test artifacts
         if: always()
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ github.job }}.tar.gz
           path: ${{ github.job }}.tar.gz
