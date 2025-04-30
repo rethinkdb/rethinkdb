@@ -1,6 +1,6 @@
 // Copyright 2010-2016 RethinkDB, all rights reserved.
-#ifndef CRYPTO_ERROR_HPP
-#define CRYPTO_ERROR_HPP
+#ifndef CRYPTO_ERROR_HPP_
+#define CRYPTO_ERROR_HPP_
 
 #include <openssl/err.h>
 
@@ -35,4 +35,4 @@ public:
 
 }  // namespace crypto
 
-#endif  // CRYPTO_ERROR_HPP
+#endif  // CRYPTO_ERROR_HPP_

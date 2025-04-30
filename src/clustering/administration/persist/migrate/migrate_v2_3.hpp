@@ -12,4 +12,4 @@ void migrate_metadata_v2_3_to_v2_4(cluster_version_t serialization_version,
                                    metadata_file_t::write_txn_t *txn,
                                    signal_t *interruptor);
 
-#endif /* CLUSTERING_ADMINISTRATION_PERSIST_MIGRATE_MIGRATE_V2_3_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_PERSIST_MIGRATE_MIGRATE_V2_3_HPP_

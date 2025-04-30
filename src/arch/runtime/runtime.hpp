@@ -45,4 +45,4 @@ at the time it didn't seem worth rewriting it, so call_later_on_this_thread()
 was added to make it easy to simulate the old semantics. */
 
 
-#endif /* ARCH_RUNTIME_RUNTIME_HPP_ */
+#endif // ARCH_RUNTIME_RUNTIME_HPP_

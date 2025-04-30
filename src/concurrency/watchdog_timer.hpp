@@ -53,5 +53,5 @@ private:
     auto_drainer_t drainer;
 };
 
-#endif /* CONCURRENCY_WATCHDOG_TIMER_HPP_ */
+#endif // CONCURRENCY_WATCHDOG_TIMER_HPP_
 

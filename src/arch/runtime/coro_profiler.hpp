@@ -194,4 +194,4 @@ private:
 
 #endif /* not ENABLE_CORO_PROFILER */
 
-#endif /* ARCH_RUNTIME_CORO_PROFILER_HPP_ */
+#endif // ARCH_RUNTIME_CORO_PROFILER_HPP_

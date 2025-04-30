@@ -23,4 +23,4 @@ void semilattice_join(std::map<key_t, value_t> *a, const std::map<key_t, value_t
 
 }   /* namespace std */
 
-#endif /* RPC_SEMILATTICE_JOINS_MAP_HPP_ */
+#endif // RPC_SEMILATTICE_JOINS_MAP_HPP_

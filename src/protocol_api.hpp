@@ -216,4 +216,4 @@ private:
     bool had_at_least_one_item;
 };
 
-#endif /* PROTOCOL_API_HPP_ */
+#endif // PROTOCOL_API_HPP_

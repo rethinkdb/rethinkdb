@@ -59,5 +59,5 @@ void calculate_split_points_intelligently(
         table_shard_scheme_t *split_points_out)
         THROWS_ONLY(interrupted_exc_t, failed_table_op_exc_t, no_such_table_exc_t);
 
-#endif /* CLUSTERING_ADMINISTRATION_TABLES_SPLIT_POINTS_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_TABLES_SPLIT_POINTS_HPP_
 

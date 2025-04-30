@@ -63,5 +63,5 @@ private:
     real_reql_cluster_interface_t *reql_cluster_interface;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_TABLES_DB_CONFIG_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_TABLES_DB_CONFIG_HPP_
 

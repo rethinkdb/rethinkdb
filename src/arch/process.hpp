@@ -27,4 +27,4 @@ inline process_id_t current_process() {
 
 #endif
 
-#endif
+#endif  // ARCH_PROCESS_HPP_

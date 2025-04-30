@@ -71,7 +71,7 @@ private:
 static uint64_t canonicalize(const term_t *t, int64_t index, size_t size, bool *oob_out = 0) {
     CT_ASSERT(sizeof(size_t) <= sizeof(uint64_t));
     if (index >= 0) return index;
-    if (uint64_t(index * -1) > size) {
+    if (static_cast<uint64_t>(index * -1) > size) {
         if (oob_out) {
             *oob_out = true;
         } else {
@@ -80,7 +80,7 @@ static uint64_t canonicalize(const term_t *t, int64_t index, size_t size, bool *
         }
         return 0;
     }
-    return uint64_t(size) + index;
+    return static_cast<uint64_t>(size) + index;
 }
 
 // needed because nth_term_impl may need to recurse over its contents to deal with
@@ -111,7 +111,7 @@ scoped_ptr_t<val_t> nth_term_direct_impl(const term_t *term,
 
         batchspec_t batchspec = batchspec_t::user(batch_type_t::TERMINAL, env->env);
         if (n != -1) {
-            batchspec = batchspec.with_at_most(int64_t(n)+1);
+            batchspec = batchspec.with_at_most(static_cast<int64_t>(n)+1);
         }
 
         datum_t last_d;

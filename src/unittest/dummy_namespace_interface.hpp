@@ -120,4 +120,4 @@ private:
 
 }   /* namespace unittest */
 
-#endif /* UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP_ */
+#endif // UNITTEST_DUMMY_NAMESPACE_INTERFACE_HPP_

@@ -69,4 +69,4 @@ void debug_print(printf_buffer_t *buf, const deletable_t<T> &x);
 
 #include "rpc/semilattice/joins/deletable.tcc"
 
-#endif /* RPC_SEMILATTICE_JOINS_DELETABLE_HPP_ */
+#endif // RPC_SEMILATTICE_JOINS_DELETABLE_HPP_

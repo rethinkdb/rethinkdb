@@ -74,4 +74,4 @@ private:
     DISABLE_COPYING(js_runner_t);
 };
 
-#endif /* EXTPROC_JS_RUNNER_HPP_ */
+#endif // EXTPROC_JS_RUNNER_HPP_

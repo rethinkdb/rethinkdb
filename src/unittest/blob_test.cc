@@ -66,14 +66,14 @@ public:
             ASSERT_EQ(sizesize + size, rs);
         } else if (size <= static_cast<size_t>(size_after_magic)) {
             ASSERT_EQ(sizesize + 8 + sizeof(block_id_t), rs);
-        } else if (size <= int64_t(size_after_magic * ((250 - 8) / sizeof(block_id_t)))) {
+        } else if (size <= static_cast<int64_t>(size_after_magic * ((250 - 8) / sizeof(block_id_t)))) {
             if (rs != sizesize + 8 + sizeof(block_id_t)) {
                 ASSERT_LE(sizesize + 8 + sizeof(block_id_t) * ceil_divide(size, size_after_magic), rs);
                 ASSERT_GE(sizesize + 8 + sizeof(block_id_t) * (1 + ceil_divide(size - 1, size_after_magic)), rs);
             } else {
                 ASSERT_GT(size, size_after_magic * ((250 - 8) / sizeof(block_id_t)) - size_after_magic + 1);
             }
-        } else if (size <= int64_t(size_after_magic * (size_after_magic / sizeof(block_id_t)) * ((250 - 8) / sizeof(block_id_t)))) {
+        } else if (size <= static_cast<int64_t>(size_after_magic * (size_after_magic / sizeof(block_id_t)) * ((250 - 8) / sizeof(block_id_t)))) {
             ASSERT_LE(sizesize + 8 + sizeof(block_id_t) * ceil_divide(size, size_after_magic * (size_after_magic / sizeof(block_id_t))), rs);
             ASSERT_GE(sizesize + 8 + sizeof(block_id_t) * (1 + ceil_divide(size - 1, size_after_magic * (size_after_magic / sizeof(block_id_t)))), rs);
         } else {

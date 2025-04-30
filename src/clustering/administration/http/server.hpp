@@ -44,4 +44,4 @@ private:
     DISABLE_COPYING(administrative_http_server_manager_t);  // kind of redundant with the scoped_ptrs but too bad.
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_HTTP_SERVER_HPP_

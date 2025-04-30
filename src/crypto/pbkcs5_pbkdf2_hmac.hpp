@@ -1,6 +1,6 @@
 // Copyright 2010-2016 RethinkDB, all rights reserved.
-#ifndef CRYPTO_PKCS5_PBKDF2_HMAC_HPP
-#define CRYPTO_PKCS5_PBKDF2_HMAC_HPP
+#ifndef CRYPTO_PBKCS5_PBKDF2_HMAC_HPP_
+#define CRYPTO_PBKCS5_PBKDF2_HMAC_HPP_
 
 #include <openssl/sha.h>
 #include <stddef.h>
@@ -50,4 +50,4 @@ inline std::array<unsigned char, SHA256_DIGEST_LENGTH> pbkcs5_pbkdf2_hmac_sha256
 
 }  // namespace crypto
 
-#endif  // CRYPTO_PKCS5_PBKDF2_HMAC_HPP
+#endif // CRYPTO_PBKCS5_PBKDF2_HMAC_HPP_

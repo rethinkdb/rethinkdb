@@ -128,4 +128,4 @@ private:
     }
 };
 
-#endif /* CONCURRENCY_QUEUE_ACCOUNTING_HPP_ */
+#endif // CONCURRENCY_QUEUE_ACCOUNTING_HPP_

@@ -47,5 +47,5 @@ private:
     new_mutex_t write_mutex;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_SERVERS_SERVER_CONFIG_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_SERVERS_SERVER_CONFIG_HPP_
 

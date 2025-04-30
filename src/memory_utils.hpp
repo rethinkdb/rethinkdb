@@ -1,5 +1,5 @@
-#ifndef MEMORY_HPP_
-#define MEMORY_HPP_
+#ifndef MEMORY_UTILS_HPP_
+#define MEMORY_UTILS_HPP_
 
 #include <stddef.h>
 
@@ -15,4 +15,4 @@ void *rmalloc(size_t size);
 /* Calls `realloc()` and checks its return value to crash if the allocation fails. */
 void *rrealloc(void *ptr, size_t size);
 
-#endif  // MEMORY_HPP_
+#endif  // MEMORY_UTILS_HPP_

@@ -40,5 +40,5 @@ private:
     region_map_t<binary_blob_t> cache;
 };
 
-#endif /* RDB_PROTOCOL_STORE_METAINFO_HPP_ */
+#endif // RDB_PROTOCOL_STORE_METAINFO_HPP_
 

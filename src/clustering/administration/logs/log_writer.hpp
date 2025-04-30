@@ -107,4 +107,4 @@ public:
     ~thread_log_writer_disabler_t();
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_LOGS_LOG_WRITER_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_LOGS_LOG_WRITER_HPP_

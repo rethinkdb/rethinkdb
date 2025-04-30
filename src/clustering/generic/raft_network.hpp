@@ -78,5 +78,4 @@ private:
     watchable_variable_t<raft_business_card_t<state_t> > business_card;
 };
 
-#endif   /* CLUSTERING_GENERIC_RAFT_NETWORK_HPP_ */
-
+#endif   // CLUSTERING_GENERIC_RAFT_NETWORK_HPP_

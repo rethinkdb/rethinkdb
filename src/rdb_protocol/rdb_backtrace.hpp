@@ -65,4 +65,4 @@ private:
 
 } // namespace ql
 
-#endif // RDB_PROTOCOL_BACKTRACE_HPP_
+#endif // RDB_PROTOCOL_RDB_BACKTRACE_HPP_

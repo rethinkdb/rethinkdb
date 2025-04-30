@@ -97,4 +97,4 @@ private:
     one_per_thread_t<auto_drainer_t> per_thread_drainers;
 };
 
-#endif /* RPC_DIRECTORY_READ_MANAGER_HPP_ */
+#endif // RPC_DIRECTORY_READ_MANAGER_HPP_

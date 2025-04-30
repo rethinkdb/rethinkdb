@@ -109,4 +109,4 @@ private:
     perfmon_membership_t conflict_sampler_membership;
 };
 
-#endif /* ARCH_IO_DISK_CONFLICT_RESOLVING_HPP_ */
+#endif // ARCH_IO_DISK_CONFLICT_RESOLVING_HPP_

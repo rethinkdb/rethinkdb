@@ -60,4 +60,4 @@ void fill_bufs_from_source(iovec *dest_vecs, const size_t dest_size,
                            const size_t offset_into_source);
 
 
-#endif /* ARCH_IO_IO_UTILS_HPP_ */
+#endif // ARCH_IO_IO_UTILS_HPP_

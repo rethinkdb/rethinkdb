@@ -271,4 +271,4 @@ struct block_pm_duration {
     }
 };
 
-#endif /* PERFMON_PERFMON_HPP_ */
+#endif // PERFMON_PERFMON_HPP_

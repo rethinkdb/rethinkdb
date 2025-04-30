@@ -267,7 +267,7 @@ private:
         int64_t n = -1; // -1 means unlimited
         if (args->num_args() > 2) {
             n = args->arg(env, 2)->as_int();
-            rcheck(n >= -1 && n <= int64_t(env->env->limits().array_size_limit()) - 1,
+            rcheck(n >= -1 && n <= static_cast<int64_t>(env->env->limits().array_size_limit()) - 1,
                    base_exc_t::LOGIC,
                    strprintf("Error: `split` size argument must be in range [-1, %zu].",
                              env->env->limits().array_size_limit() - 1));

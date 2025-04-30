@@ -1011,5 +1011,5 @@ private:
         ::all_subs_t> connected_members_subs;
 };
 
-#endif /* CLUSTERING_GENERIC_RAFT_CORE_HPP_ */
+#endif // CLUSTERING_GENERIC_RAFT_CORE_HPP_
 

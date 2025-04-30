@@ -115,4 +115,4 @@ private:
     DISABLE_COPYING(accounting_diskmgr_t);
 };
 
-#endif /* ARCH_IO_DISK_ACCOUNTING_HPP_ */
+#endif // ARCH_IO_DISK_ACCOUNTING_HPP_

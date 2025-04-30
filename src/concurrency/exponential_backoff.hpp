@@ -39,5 +39,5 @@ private:
     uint64_t backoff_ms;
 };
 
-#endif /* CONCURRENCY_EXPONENTIAL_BACKOFF_HPP_ */
+#endif // CONCURRENCY_EXPONENTIAL_BACKOFF_HPP_
 

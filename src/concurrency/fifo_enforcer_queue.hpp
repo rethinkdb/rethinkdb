@@ -57,4 +57,4 @@ private:
 
 #include "concurrency/fifo_enforcer_queue.tcc"
 
-#endif /* CONCURRENCY_FIFO_ENFORCER_QUEUE_HPP_ */
+#endif // CONCURRENCY_FIFO_ENFORCER_QUEUE_HPP_

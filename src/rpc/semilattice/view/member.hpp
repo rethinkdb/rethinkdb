@@ -33,4 +33,4 @@ std::shared_ptr<semilattice_readwrite_view_t<value_t> > metadata_new_member(
 
 #include "rpc/semilattice/view/member.tcc"
 
-#endif /* RPC_SEMILATTICE_VIEW_MEMBER_HPP_ */
+#endif // RPC_SEMILATTICE_VIEW_MEMBER_HPP_

@@ -438,5 +438,5 @@ private:
     const connectivity_cluster_t::message_tag_t tag;
 };
 
-#endif /* RPC_CONNECTIVITY_CLUSTER_HPP_ */
+#endif // RPC_CONNECTIVITY_CLUSTER_HPP_
 

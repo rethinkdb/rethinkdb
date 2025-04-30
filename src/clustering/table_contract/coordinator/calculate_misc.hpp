@@ -17,5 +17,5 @@ void calculate_member_ids_and_raft_config(
         std::map<server_id_t, raft_member_id_t> *add_member_ids_out,
         raft_config_t *new_config_out);
 
-#endif /* CLUSTERING_TABLE_CONTRACT_COORDINATOR_CALCULATE_MISC_HPP_ */
+#endif // CLUSTERING_TABLE_CONTRACT_COORDINATOR_CALCULATE_MISC_HPP_
 

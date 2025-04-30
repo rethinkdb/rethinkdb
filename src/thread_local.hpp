@@ -135,4 +135,4 @@ using std::is_trivially_destructible;
 #define is_trivially_destructible std::has_trivial_destructor
 #endif
 
-#endif /* THREAD_LOCAL_HPP_ */
+#endif // THREAD_LOCAL_HPP_

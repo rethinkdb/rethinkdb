@@ -58,4 +58,4 @@ std::vector<std::string> split_string(const std::string &s, char sep);
 
 #include "stl_utils.tcc"
 
-#endif /* STL_UTILS_HPP_ */
+#endif // STL_UTILS_HPP_

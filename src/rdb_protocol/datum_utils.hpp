@@ -17,4 +17,4 @@ public:
     }
 };
 
-#endif /* RDB_PROTOCOL_DATUM_UTILS_HPP_ */
+#endif // RDB_PROTOCOL_DATUM_UTILS_HPP_

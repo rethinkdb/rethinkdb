@@ -50,5 +50,5 @@ private:
     watchable_map_t<peer_id_t, cluster_directory_metadata_t>::all_subs_t directory_subs;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_SERVERS_SERVER_STATUS_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_SERVERS_SERVER_STATUS_HPP_
 

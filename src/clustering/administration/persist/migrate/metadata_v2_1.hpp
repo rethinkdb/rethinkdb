@@ -15,4 +15,4 @@ metadata_file_t::key_t<metadata_v1_16::auth_semilattice_metadata_t> mdkey_auth_s
 
 } // namespace metadata_v2_1
 
-#endif /* CLUSTERING_ADMINISTRATION_PERSIST_MIGRATE_METADATA_V2_1_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_PERSIST_MIGRATE_METADATA_V2_1_HPP_

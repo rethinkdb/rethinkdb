@@ -210,5 +210,5 @@ private:
     std::set<datum_string_t> extra_keys;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_DATUM_ADAPTER_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_DATUM_ADAPTER_HPP_
 

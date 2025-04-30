@@ -33,4 +33,4 @@ template <class business_card_t>
 RDB_MAKE_EQUALITY_COMPARABLE_2(registrar_business_card_t<business_card_t>,
     create_mailbox, delete_mailbox);
 
-#endif /* CLUSTERING_GENERIC_REGISTRATION_METADATA_HPP_ */
+#endif // CLUSTERING_GENERIC_REGISTRATION_METADATA_HPP_

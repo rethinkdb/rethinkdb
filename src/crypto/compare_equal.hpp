@@ -1,6 +1,6 @@
 // Copyright 2010-2016 RethinkDB, all rights reserved.
-#ifndef CRYPTO_COMPARE_HPP
-#define CRYPTO_COMPARE_HPP
+#ifndef CRYPTO_COMPARE_EQUAL_HPP_
+#define CRYPTO_COMPARE_EQUAL_HPP_
 
 #include <openssl/crypto.h>
 
@@ -17,4 +17,4 @@ inline bool compare_equal(
 
 }  // namespace crypto
 
-#endif  // CRYPTO_COMPARE_HPP
+#endif // CRYPTO_COMPARE_EQUAL_HPP_

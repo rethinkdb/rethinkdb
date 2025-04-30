@@ -9,4 +9,4 @@
 
 extern std::map<std::string, const std::string > static_web_assets;
 
-#endif /* HTTP_WEB_ASSETS_HPP_ */
+#endif // HTTP_WEB_ASSETS_HPP_

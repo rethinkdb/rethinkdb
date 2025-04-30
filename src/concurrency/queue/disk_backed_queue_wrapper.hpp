@@ -161,4 +161,4 @@ private:
     bool restart_copy_coro;
 };
 
-#endif /* CONCURRENCY_QUEUE_DISK_BACKED_QUEUE_WRAPPER_HPP_ */
+#endif // CONCURRENCY_QUEUE_DISK_BACKED_QUEUE_WRAPPER_HPP_

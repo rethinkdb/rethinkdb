@@ -44,4 +44,4 @@ typedef SSIZE_T ssize_t;
 const int PATH_MAX = MAX_PATH;
 #endif
 
-#endif
+#endif  // WINDOWS_HPP_

@@ -26,4 +26,4 @@ private:
     DISABLE_COPYING(http_job_t);
 };
 
-#endif /* EXTPROC_HTTP_JOB_HPP_ */
+#endif // EXTPROC_HTTP_JOB_HPP_

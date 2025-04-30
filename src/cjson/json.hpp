@@ -129,5 +129,5 @@ public:
 };
 
 
-#endif /* CJSON_JSON_HPP_ */
+#endif // CJSON_JSON_HPP_
 

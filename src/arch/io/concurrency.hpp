@@ -96,5 +96,5 @@ private:
     DISABLE_COPYING(system_rwlock_t);
 };
 
-#endif /* ARCH_IO_CONCURRENCY_HPP_ */
+#endif // ARCH_IO_CONCURRENCY_HPP_
 

@@ -276,4 +276,4 @@ private:
 
 #include "concurrency/watchable.tcc"
 
-#endif /* CONCURRENCY_WATCHABLE_HPP_ */
+#endif // CONCURRENCY_WATCHABLE_HPP_

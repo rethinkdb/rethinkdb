@@ -1,6 +1,6 @@
 // Copyright 2010-2016 RethinkDB, all rights reserved.
-#ifndef CLIENT_PROTOCOL_ERROR_HPP
-#define CLIENT_PROTOCOL_ERROR_HPP
+#ifndef CLIENT_PROTOCOL_CLIENT_SERVER_ERROR_HPP_
+#define CLIENT_PROTOCOL_CLIENT_SERVER_ERROR_HPP_
 
 #include <stdexcept>
 
@@ -23,4 +23,4 @@ private:
 
 }  // namespace client_protocol
 
-#endif  // CLIENT_PROTOCOL_ERROR_HPP
+#endif  // CLIENT_PROTOCOL_CLIENT_SERVER_ERROR_HPP_

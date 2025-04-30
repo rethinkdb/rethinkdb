@@ -46,5 +46,5 @@ private:
     server_config_business_card_t::set_config_mailbox_t set_config_mailbox;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_SERVERS_CONFIG_SERVER_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_SERVERS_CONFIG_SERVER_HPP_
 

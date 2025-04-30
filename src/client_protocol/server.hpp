@@ -142,4 +142,4 @@ private:
     int next_thread;
 };
 
-#endif /* CLIENT_PROTOCOL_SERVER_HPP_ */
+#endif // CLIENT_PROTOCOL_SERVER_HPP_

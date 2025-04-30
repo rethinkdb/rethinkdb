@@ -54,4 +54,4 @@ private:
     DISABLE_COPYING(multi_client_client_t);
 };
 
-#endif /* CLUSTERING_GENERIC_MULTI_CLIENT_CLIENT_HPP_ */
+#endif // CLUSTERING_GENERIC_MULTI_CLIENT_CLIENT_HPP_

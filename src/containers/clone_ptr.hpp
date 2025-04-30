@@ -57,4 +57,4 @@ private:
 
 #include "containers/clone_ptr.tcc"
 
-#endif /* CONTAINERS_CLONE_PTR_HPP_ */
+#endif // CONTAINERS_CLONE_PTR_HPP_

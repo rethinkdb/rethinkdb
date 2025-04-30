@@ -33,4 +33,4 @@ public:
     RDB_MAKE_ME_EQUALITY_COMPARABLE_1(multi_client_business_card_t, registrar);
 };
 
-#endif /* CLUSTERING_GENERIC_MULTI_CLIENT_METADATA_HPP_ */
+#endif // CLUSTERING_GENERIC_MULTI_CLIENT_METADATA_HPP_

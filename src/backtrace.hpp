@@ -108,4 +108,4 @@ private:
     DISABLE_COPYING(lazy_backtrace_formatter_t);
 };
 
-#endif /* BACKTRACE_HPP_ */
+#endif // BACKTRACE_HPP_

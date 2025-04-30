@@ -30,5 +30,5 @@ private:
         server_config_map_subs;
 };
 
-#endif /* CLUSTERING_TABLE_MANAGER_SERVER_NAME_CACHE_UPDATER_HPP_ */
+#endif // CLUSTERING_TABLE_MANAGER_SERVER_NAME_CACHE_UPDATER_HPP_
 

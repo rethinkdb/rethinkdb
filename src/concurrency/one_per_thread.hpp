@@ -87,4 +87,4 @@ private:
     DISABLE_COPYING(one_per_thread_t);
 };
 
-#endif /* CONCURRENCY_ONE_PER_THREAD_HPP_ */
+#endif // CONCURRENCY_ONE_PER_THREAD_HPP_

@@ -122,5 +122,5 @@ private:
     scoped_ptr_t<repeating_timer_t> timer;
 };
 
-#endif /* RDB_PROTOCOL_ARTIFICIAL_TABLE_CACHING_CFEED_BACKEND_HPP_ */
+#endif // RDB_PROTOCOL_ARTIFICIAL_TABLE_CACHING_CFEED_BACKEND_HPP_
 

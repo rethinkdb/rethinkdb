@@ -131,4 +131,4 @@ private:
     DISABLE_COPYING(lba_list_t);
 };
 
-#endif /* SERIALIZER_LOG_LBA_LBA_LIST_HPP_ */
+#endif // SERIALIZER_LOG_LBA_LBA_LIST_HPP_

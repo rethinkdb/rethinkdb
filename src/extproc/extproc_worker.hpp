@@ -56,4 +56,4 @@ private:
     signal_t *interruptor;
 };
 
-#endif /* EXTPROC_EXTPROC_WORKER_HPP_ */
+#endif // EXTPROC_EXTPROC_WORKER_HPP_

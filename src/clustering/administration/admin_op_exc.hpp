@@ -94,5 +94,5 @@ may not have been performed. */
         return false;                                                                 \
     }
 
-#endif /* CLUSTERING_ADMINISTRATION_ADMIN_OP_EXC_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_ADMIN_OP_EXC_HPP_
 

@@ -244,4 +244,4 @@ private:
 
 #endif /* NDEBUG */
 
-#endif /* CONCURRENCY_MUTEX_ASSERTION_HPP_ */
+#endif // CONCURRENCY_MUTEX_ASSERTION_HPP_

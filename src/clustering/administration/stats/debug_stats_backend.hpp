@@ -53,5 +53,5 @@ private:
     mailbox_manager_t *mailbox_manager;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_SERVERS_DEBUG_STATS_BACKEND_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_STATS_DEBUG_STATS_BACKEND_HPP_
 
