@@ -22,7 +22,8 @@ runs:
       shell: bash
       run: |
         sudo apt update && sudo apt install -y curl make git ca-certificates gnupg2
-        curl https://bootstrap.pypa.io/pip/2.7/get-pip.py | python
+        curl https://bootstrap.pypa.io/pip/3.12/get-pip.py | python
+        pip install --upgrade pip setuptools wheel
 
     - name: download build artifacts
       uses: actions/download-artifact@v4
