@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
+
 
 import os, re, sys
 
@@ -9,19 +9,19 @@ import os, re, sys
 printDebug = False
 
 try:
-    unicode
+    str
 except NameError:
-    unicode = str
+    str = str
 
 # ==
 
-class yamlValue(unicode):
+class yamlValue(str):
     linenumber = None
     def __new__(cls, value, linenumber=None):
-        if isinstance(value, unicode):
-            real = unicode.__new__(cls, value)
+        if isinstance(value, str):
+            real = str.__new__(cls, value)
         else:
-            real = unicode.__new__(cls, value, "utf-8")
+            real = str.__new__(cls, value, "utf-8")
         if linenumber is not None:
             real.linenumber = int(linenumber)
         return real

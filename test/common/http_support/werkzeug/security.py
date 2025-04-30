@@ -100,7 +100,7 @@ def pbkdf2_bin(data, salt, iterations=DEFAULT_PBKDF2_ITERATIONS,
         rv = u = _pseudorandom(salt + _pack_int(block))
         for i in range_type(iterations - 1):
             u = _pseudorandom(bytes(u))
-            rv = bytearray(starmap(xor, izip(rv, u)))
+            rv = bytearray(starmap(xor, zip(rv, u)))
         buf.extend(rv)
     return bytes(buf[:keylen])
 
@@ -126,10 +126,10 @@ def safe_str_cmp(a, b):
 
     rv = 0
     if PY2:
-        for x, y in izip(a, b):
+        for x, y in zip(a, b):
             rv |= ord(x) ^ ord(y)
     else:
-        for x, y in izip(a, b):
+        for x, y in zip(a, b):
             rv |= x ^ y
 
     return rv == 0

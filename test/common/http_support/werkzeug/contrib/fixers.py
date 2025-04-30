@@ -17,7 +17,7 @@
     :license: BSD, see LICENSE for more details.
 """
 try:
-    from urllib import unquote
+    from urllib.parse import unquote
 except ImportError:
     from urllib.parse import unquote
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2014-2016 RethinkDB, all rights reserved.
 
-from __future__ import print_function
+
 
 import atexit, collections, fcntl, os, pprint, platform, random, re, shutil, signal
 import inspect
@@ -10,9 +10,9 @@ import socket, string, subprocess, sys, tempfile, threading, time, warnings
 import test_exceptions
 
 try:
-    unicode
+    str
 except NameError:
-    unicode = str
+    str = str
 
 # -- constants
 
@@ -52,7 +52,7 @@ driverPaths = {
 # -- reset driverPaths based on os.environ
 
 def resetDriverPaths():
-    for name, info in driverPaths.items():
+    for name, info in list(driverPaths.items()):
         if info['envName'] in os.environ:
             if os.environ[info['envName']].lower() == '--installed--':
                 info['driverPath'] = '--installed--'
@@ -62,7 +62,7 @@ def resetDriverPaths():
                 if not os.path.exists(target):
                     warnings.warn('Supplied %s driver path (%s) was not valid: %s' % (name, info['envName'], os.environ[info['envName']]))
                     continue
-                
+
                 if os.path.isfile(target) and os.path.basename(target) in ('__init__.py',):
                     target = os.path.dirname(target)
                 
@@ -95,10 +95,10 @@ def print_with_time(*args, **kwargs): # add timing information to print statemen
     sys.stdout.flush()
 
 def guess_is_text_file(name):
-    with file(name, 'rb') as f:
+    with open(name, 'rb') as f:
         data = f.read(100)
     for byte in data:
-        if ord(byte) in non_text_bytes:
+        if byte in non_text_bytes:
             return False
     return True
 
@@ -133,7 +133,7 @@ def latest_build_dir(check_executable=True, mode=None):
         candidateMtime = None
         for name in os.listdir(masterBuildDir):
             path = os.path.join(masterBuildDir, name)
-            if os.path.isdir(path) and any(map(lambda x: name.lower().startswith(x + '_') or name.lower() == x, mode)):
+            if os.path.isdir(path) and any([name.lower().startswith(x + '_') or name.lower() == x for x in mode]):
                 if check_executable == True:
                     if not os.path.isfile(os.path.join(path, 'rethinkdb')):
                         continue
@@ -196,7 +196,7 @@ def import_python_driver():
             return loadedDriver.r if inspect.isclass(loadedDriver) else loadedDriver
         except ImportError as e:
             raise ImportError('Unable to load system-installed `rethinkdb` module - %s' % str(e))
-    
+
     # -- build the driver if that is called for
     
     if sourcePath:
@@ -207,7 +207,7 @@ def import_python_driver():
     
     # -- validate the built driver
     
-    if not all(map(lambda x: os.path.isfile(os.path.join(driverPath, x)), ['__init__.py', 'ast.py', 'docs.py'])):
+    if not all([os.path.isfile(os.path.join(driverPath, x)) for x in ['__init__.py', 'ast.py', 'docs.py']]):
         raise ValueError('Invalid Python driver: %s' % driverPath)
     
     # -- load the driver
@@ -228,7 +228,7 @@ def import_python_driver():
     
     # -- return the loaded module
 
-    __loadedPythonDriver = loadedDriver.r if inspect.isclass(loadedDriver) else loadedDriver
+    __loadedPythonDriver = loadedDriver.r
     return __loadedPythonDriver
 
 class PerformContinuousAction(threading.Thread):
@@ -440,7 +440,7 @@ class RunningProcesses:
     
     def list(self):
         # - reset known processes status to ''
-        for process in self.processes.values():
+        for process in list(self.processes.values()):
             process.status = ''
         
         # - get ouptut from `ps`
@@ -657,11 +657,11 @@ def nonblocking_readline(source, seek=0):
     
     # - ensure we have a file
     
-    if isinstance(source, (str, unicode)):
+    if isinstance(source, str):
         if not os.path.isfile(source):
             raise ValueError('can not find the source file: %s' % str(source))
         try:
-            source = open(source, 'rU')
+            source = open(source, 'r')
         except Exception as e:
             raise ValueError('bad source file: %s got error: %s' % (str(source), str(e)))
     
@@ -798,6 +798,9 @@ def getShardRanges(conn, table, db='test'):
     ranges = []
     lastPoint = conn._r.minval
     for splitPoint in splitPointsRaw:
+        # Decode if splitPoint is a byte string
+        if isinstance(splitPoint, bytes):
+            splitPoint = splitPoint.decode('utf-8')
         newPoint = None
         if splitPoint.startswith('N'):
             # - numbers
@@ -852,7 +855,7 @@ class NextWithTimeout(threading.Thread):
     def __iter__(self):
         return self
     
-    def next(self):
+    def __next__(self):
         deadline = time.time() + self.timeout
         while time.time() < deadline:
             if self.latestResult is not None:
@@ -866,7 +869,7 @@ class NextWithTimeout(threading.Thread):
             raise Exception('Timed out waiting %d seconds for next item' % self.timeout)
     
     def __next__(self):
-        return self.next()
+        return next(self)
     
     def run(self):
         while self.keepRunning:
@@ -900,7 +903,7 @@ class RePrint(pprint.PrettyPrinter, object):
         return formated
     
     def format(self, item, context, maxlevels, level):
-        if str != unicode and isinstance(item, unicode):
+        if str != str and isinstance(item, str):
             # remove the leading `u` from unicode objects
             return (('%r' % item)[1:], True, False) # string, readable, recursed
         else:
@@ -914,7 +917,7 @@ def translatePath(path):
     if 'cygwin' in platform.system().lower():
         process = subprocess.Popen(['cygpath', '-w', str(path)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         stdout, _ = process.communicate()
-        if process.returncode is not 0:
+        if process.returncode != 0:
             raise Exception('Could not translate cygpath: %s' % stdout)
         return stdout.strip()
     else:

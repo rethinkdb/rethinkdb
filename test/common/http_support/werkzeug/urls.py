@@ -145,10 +145,10 @@ class _URLMixin(object):
         port = self.port
         if port is not None:
             rv = '%s:%d' % (rv, port)
-        auth = ':'.join(filter(None, [
+        auth = ':'.join([_f for _f in [
             _url_unquote_legacy(self.raw_username or '', '/:%@'),
             _url_unquote_legacy(self.raw_password or '', '/:%@'),
-        ]))
+        ] if _f])
         if auth:
             rv = '%s@%s' % (auth, rv)
         return rv
@@ -231,10 +231,10 @@ class URL(_URLTuple, _URLMixin):
         port = self.port
         if port is not None:
             rv = '%s:%d' % (rv, port)
-        auth = ':'.join(filter(None, [
+        auth = ':'.join([_f for _f in [
             url_quote(self.raw_username or '', 'utf-8', 'strict', '/:%'),
             url_quote(self.raw_password or '', 'utf-8', 'strict', '/:%'),
-        ]))
+        ] if _f])
         if auth:
             rv = '%s@%s' % (auth, rv)
         return rv.encode('ascii')
@@ -472,7 +472,7 @@ def url_unquote_plus(s, charset='utf-8', errors='replace'):
     :param errors: The error handling for the `charset` decoding.
     """
     if isinstance(s, text_type):
-        s = s.replace(u'+', u' ')
+        s = s.replace('+', ' ')
     else:
         s = s.replace(b'+', b' ')
     return url_unquote(s, charset, errors)
@@ -902,7 +902,7 @@ class Href(object):
             query, path = path[-1], path[:-1]
         elif query:
             query = dict([(k.endswith('_') and k[:-1] or k, v)
-                          for k, v in query.items()])
+                          for k, v in list(query.items())])
         path = '/'.join([to_unicode(url_quote(x, self.charset), 'ascii')
                         for x in path if x is not None]).lstrip('/')
         rv = self.base

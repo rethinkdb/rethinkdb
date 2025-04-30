@@ -84,33 +84,33 @@ class IterOTestSuite(WerkzeugTestCase):
         self.assert_raises(ValueError, io.read)
 
     def test_basic_unicode(self):
-        io = IterIO([u"Hello", u"World", u"1", u"2", u"3"])
+        io = IterIO(["Hello", "World", "1", "2", "3"])
         self.assert_equal(io.tell(), 0)
-        self.assert_equal(io.read(2), u"He")
+        self.assert_equal(io.read(2), "He")
         self.assert_equal(io.tell(), 2)
-        self.assert_equal(io.read(3), u"llo")
+        self.assert_equal(io.read(3), "llo")
         self.assert_equal(io.tell(), 5)
         io.seek(0)
-        self.assert_equal(io.read(5), u"Hello")
+        self.assert_equal(io.read(5), "Hello")
         self.assert_equal(io.tell(), 5)
-        self.assert_equal(io._buf, u"Hello")
-        self.assert_equal(io.read(), u"World123")
+        self.assert_equal(io._buf, "Hello")
+        self.assert_equal(io.read(), "World123")
         self.assert_equal(io.tell(), 13)
         io.close()
         assert io.closed
 
-        io = IterIO([u"Hello\n", u"World!"])
-        self.assert_equal(io.readline(), u'Hello\n')
-        self.assert_equal(io._buf, u'Hello\n')
-        self.assert_equal(io.read(), u'World!')
-        self.assert_equal(io._buf, u'Hello\nWorld!')
+        io = IterIO(["Hello\n", "World!"])
+        self.assert_equal(io.readline(), 'Hello\n')
+        self.assert_equal(io._buf, 'Hello\n')
+        self.assert_equal(io.read(), 'World!')
+        self.assert_equal(io._buf, 'Hello\nWorld!')
         self.assert_equal(io.tell(), 12)
         io.seek(0)
-        self.assert_equal(io.readlines(), [u'Hello\n', u'World!'])
+        self.assert_equal(io.readlines(), ['Hello\n', 'World!'])
 
-        io = IterIO([u"foo\n", u"bar"])
+        io = IterIO(["foo\n", "bar"])
         io.seek(-4, 2)
-        self.assert_equal(io.read(4), u'\nbar')
+        self.assert_equal(io.read(4), '\nbar')
 
         self.assert_raises(IOError, io.seek, 2, 100)
         io.close()
@@ -121,29 +121,29 @@ class IterOTestSuite(WerkzeugTestCase):
         self.assert_strict_equal(io.read(), '')
         io = IterIO([], b'')
         self.assert_strict_equal(io.read(), b'')
-        io = IterIO([], u'')
-        self.assert_strict_equal(io.read(), u'')
+        io = IterIO([], '')
+        self.assert_strict_equal(io.read(), '')
 
         io = IterIO([])
         self.assert_strict_equal(io.read(), '')
         io = IterIO([b''])
         self.assert_strict_equal(io.read(), b'')
-        io = IterIO([u''])
-        self.assert_strict_equal(io.read(), u'')
+        io = IterIO([''])
+        self.assert_strict_equal(io.read(), '')
 
         io = IterIO([])
         self.assert_strict_equal(io.readline(), '')
         io = IterIO([], b'')
         self.assert_strict_equal(io.readline(), b'')
-        io = IterIO([], u'')
-        self.assert_strict_equal(io.readline(), u'')
+        io = IterIO([], '')
+        self.assert_strict_equal(io.readline(), '')
 
         io = IterIO([])
         self.assert_strict_equal(io.readline(), '')
         io = IterIO([b''])
         self.assert_strict_equal(io.readline(), b'')
-        io = IterIO([u''])
-        self.assert_strict_equal(io.readline(), u'')
+        io = IterIO([''])
+        self.assert_strict_equal(io.readline(), '')
 
 
 class IterITestSuite(WerkzeugTestCase):
@@ -172,8 +172,8 @@ class IterITestSuite(WerkzeugTestCase):
 
         iterable = IterIO(producer_dummy_flush, b'')
         self.assert_strict_equal(next(iterable), b'')
-        iterable = IterIO(producer_dummy_flush, u'')
-        self.assert_strict_equal(next(iterable), u'')
+        iterable = IterIO(producer_dummy_flush, '')
+        self.assert_strict_equal(next(iterable), '')
 
 
 def suite():

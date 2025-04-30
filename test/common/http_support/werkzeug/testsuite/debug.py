@@ -22,41 +22,41 @@ from werkzeug._compat import PY2
 class DebugReprTestCase(WerkzeugTestCase):
 
     def test_basic_repr(self):
-        self.assert_equal(debug_repr([]), u'[]')
+        self.assert_equal(debug_repr([]), '[]')
         self.assert_equal(debug_repr([1, 2]),
-            u'[<span class="number">1</span>, <span class="number">2</span>]')
+            '[<span class="number">1</span>, <span class="number">2</span>]')
         self.assert_equal(debug_repr([1, 'test']),
-            u'[<span class="number">1</span>, <span class="string">\'test\'</span>]')
+            '[<span class="number">1</span>, <span class="string">\'test\'</span>]')
         self.assert_equal(debug_repr([None]),
-            u'[<span class="object">None</span>]')
+            '[<span class="object">None</span>]')
 
     def test_sequence_repr(self):
         self.assert_equal(debug_repr(list(range(20))), (
-            u'[<span class="number">0</span>, <span class="number">1</span>, '
-            u'<span class="number">2</span>, <span class="number">3</span>, '
-            u'<span class="number">4</span>, <span class="number">5</span>, '
-            u'<span class="number">6</span>, <span class="number">7</span>, '
-            u'<span class="extended"><span class="number">8</span>, '
-            u'<span class="number">9</span>, <span class="number">10</span>, '
-            u'<span class="number">11</span>, <span class="number">12</span>, '
-            u'<span class="number">13</span>, <span class="number">14</span>, '
-            u'<span class="number">15</span>, <span class="number">16</span>, '
-            u'<span class="number">17</span>, <span class="number">18</span>, '
-            u'<span class="number">19</span></span>]'
+            '[<span class="number">0</span>, <span class="number">1</span>, '
+            '<span class="number">2</span>, <span class="number">3</span>, '
+            '<span class="number">4</span>, <span class="number">5</span>, '
+            '<span class="number">6</span>, <span class="number">7</span>, '
+            '<span class="extended"><span class="number">8</span>, '
+            '<span class="number">9</span>, <span class="number">10</span>, '
+            '<span class="number">11</span>, <span class="number">12</span>, '
+            '<span class="number">13</span>, <span class="number">14</span>, '
+            '<span class="number">15</span>, <span class="number">16</span>, '
+            '<span class="number">17</span>, <span class="number">18</span>, '
+            '<span class="number">19</span></span>]'
         ))
 
     def test_mapping_repr(self):
-        self.assert_equal(debug_repr({}), u'{}')
+        self.assert_equal(debug_repr({}), '{}')
         self.assert_equal(debug_repr({'foo': 42}),
-            u'{<span class="pair"><span class="key"><span class="string">\'foo\''
-            u'</span></span>: <span class="value"><span class="number">42'
-            u'</span></span></span>}')
-        self.assert_equal(debug_repr(dict(zip(range(10), [None] * 10))),
-            u'{<span class="pair"><span class="key"><span class="number">0</span></span>: <span class="value"><span class="object">None</span></span></span>, <span class="pair"><span class="key"><span class="number">1</span></span>: <span class="value"><span class="object">None</span></span></span>, <span class="pair"><span class="key"><span class="number">2</span></span>: <span class="value"><span class="object">None</span></span></span>, <span class="pair"><span class="key"><span class="number">3</span></span>: <span class="value"><span class="object">None</span></span></span>, <span class="extended"><span class="pair"><span class="key"><span class="number">4</span></span>: <span class="value"><span class="object">None</span></span></span>, <span class="pair"><span class="key"><span class="number">5</span></span>: <span class="value"><span class="object">None</span></span></span>, <span class="pair"><span class="key"><span class="number">6</span></span>: <span class="value"><span class="object">None</span></span></span>, <span class="pair"><span class="key"><span class="number">7</span></span>: <span class="value"><span class="object">None</span></span></span>, <span class="pair"><span class="key"><span class="number">8</span></span>: <span class="value"><span class="object">None</span></span></span>, <span class="pair"><span class="key"><span class="number">9</span></span>: <span class="value"><span class="object">None</span></span></span></span>}')
+            '{<span class="pair"><span class="key"><span class="string">\'foo\''
+            '</span></span>: <span class="value"><span class="number">42'
+            '</span></span></span>}')
+        self.assert_equal(debug_repr(dict(list(zip(list(range(10)), [None] * 10)))),
+            '{<span class="pair"><span class="key"><span class="number">0</span></span>: <span class="value"><span class="object">None</span></span></span>, <span class="pair"><span class="key"><span class="number">1</span></span>: <span class="value"><span class="object">None</span></span></span>, <span class="pair"><span class="key"><span class="number">2</span></span>: <span class="value"><span class="object">None</span></span></span>, <span class="pair"><span class="key"><span class="number">3</span></span>: <span class="value"><span class="object">None</span></span></span>, <span class="extended"><span class="pair"><span class="key"><span class="number">4</span></span>: <span class="value"><span class="object">None</span></span></span>, <span class="pair"><span class="key"><span class="number">5</span></span>: <span class="value"><span class="object">None</span></span></span>, <span class="pair"><span class="key"><span class="number">6</span></span>: <span class="value"><span class="object">None</span></span></span>, <span class="pair"><span class="key"><span class="number">7</span></span>: <span class="value"><span class="object">None</span></span></span>, <span class="pair"><span class="key"><span class="number">8</span></span>: <span class="value"><span class="object">None</span></span></span>, <span class="pair"><span class="key"><span class="number">9</span></span>: <span class="value"><span class="object">None</span></span></span></span>}')
         self.assert_equal(
-            debug_repr((1, 'zwei', u'drei')),
-            u'(<span class="number">1</span>, <span class="string">\''
-            u'zwei\'</span>, <span class="string">%s\'drei\'</span>)' % ('u' if PY2 else ''))
+            debug_repr((1, 'zwei', 'drei')),
+            '(<span class="number">1</span>, <span class="string">\''
+            'zwei\'</span>, <span class="string">%s\'drei\'</span>)' % ('u' if PY2 else ''))
 
     def test_custom_repr(self):
         class Foo(object):
@@ -70,28 +70,28 @@ class DebugReprTestCase(WerkzeugTestCase):
             pass
         self.assert_equal(
             debug_repr(MyList([1, 2])),
-            u'<span class="module">werkzeug.testsuite.debug.</span>MyList(['
-            u'<span class="number">1</span>, <span class="number">2</span>])')
+            '<span class="module">werkzeug.testsuite.debug.</span>MyList(['
+            '<span class="number">1</span>, <span class="number">2</span>])')
 
     def test_regex_repr(self):
         self.assert_equal(debug_repr(re.compile(r'foo\d')),
-            u're.compile(<span class="string regex">r\'foo\\d\'</span>)')
+            're.compile(<span class="string regex">r\'foo\\d\'</span>)')
         #XXX: no raw string here cause of a syntax bug in py3.3
-        self.assert_equal(debug_repr(re.compile(u'foo\\d')),
-            u're.compile(<span class="string regex">%sr\'foo\\d\'</span>)' %
+        self.assert_equal(debug_repr(re.compile('foo\\d')),
+            're.compile(<span class="string regex">%sr\'foo\\d\'</span>)' %
             ('u' if PY2 else ''))
 
     def test_set_repr(self):
         self.assert_equal(debug_repr(frozenset('x')),
-            u'frozenset([<span class="string">\'x\'</span>])')
+            'frozenset([<span class="string">\'x\'</span>])')
         self.assert_equal(debug_repr(set('x')),
-            u'set([<span class="string">\'x\'</span>])')
+            'set([<span class="string">\'x\'</span>])')
 
     def test_recursive_repr(self):
         a = [1]
         a.append(a)
         self.assert_equal(debug_repr(a),
-                          u'[<span class="number">1</span>, [...]]')
+                          '[<span class="number">1</span>, [...]]')
 
     def test_broken_repr(self):
         class Foo(object):
@@ -100,8 +100,8 @@ class DebugReprTestCase(WerkzeugTestCase):
 
         self.assert_equal(
             debug_repr(Foo()),
-            u'<span class="brokenrepr">&lt;broken repr (Exception: '
-            u'broken!)&gt;</span>')
+            '<span class="brokenrepr">&lt;broken repr (Exception: '
+            'broken!)&gt;</span>')
 
 
 class Foo(object):

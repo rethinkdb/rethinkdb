@@ -206,7 +206,7 @@ def redirect_n_times(n):
 def redirect_to():
     """302 Redirects to the given URL."""
 
-    args = CaseInsensitiveDict(request.args.items())
+    args = CaseInsensitiveDict(list(request.args.items()))
 
     # We need to build the response manually and convert to UTF-8 to prevent
     # werkzeug from "fixing" the URL. This endpoint should set the Location
@@ -284,7 +284,7 @@ def response_headers():
     while True:
         content_len_shown = response.headers['Content-Length']
         d = {}
-        for key in response.headers.keys():
+        for key in list(response.headers.keys()):
             value = response.headers.get_all(key)
             if len(value) == 1:
                 value = value[0]
@@ -301,7 +301,7 @@ def response_headers():
 def view_cookies(hide_env=True):
     """Returns cookie data."""
 
-    cookies = dict(request.cookies.items())
+    cookies = dict(list(request.cookies.items()))
 
     if hide_env and ('show_env' not in request.args):
         for key in ENV_COOKIES:
@@ -334,9 +334,9 @@ def set_cookie(name, value):
 def set_cookies():
     """Sets cookie(s) as provided by the query string and redirects to cookie list."""
 
-    cookies = dict(request.args.items())
+    cookies = dict(list(request.args.items()))
     r = app.make_response(redirect('/cookies'))
-    for key, value in cookies.items():
+    for key, value in list(cookies.items()):
         r.set_cookie(key=key, value=value, secure=secure_cookie())
 
     return r
@@ -346,9 +346,9 @@ def set_cookies():
 def delete_cookies():
     """Deletes cookie(s) as provided by the query string and redirects to cookie list."""
 
-    cookies = dict(request.args.items())
+    cookies = dict(list(request.args.items()))
     r = app.make_response(redirect('/cookies'))
-    for key, value in cookies.items():
+    for key, value in list(cookies.items()):
         r.delete_cookie(key=key)
 
     return r
@@ -380,7 +380,7 @@ def digest_auth(qop=None, user='user', passwd='passwd', checkCookie=True):
     if qop not in ('auth', 'auth-int'):
         qop = None
     try:
-        remoteAddr = request.remote_addr or u''
+        remoteAddr = request.remote_addr or ''
         authInHeaders = 'Authorization' in request.headers
         digestCheck = authInHeaders and request.headers.get('Authorization').startswith('Digest ')
         authCheck = authInHeaders and digestCheck and check_digest_auth(user, passwd)
@@ -435,7 +435,7 @@ def delay_response(delay):
 @app.route('/drip')
 def drip():
     """Drips data over a duration after an optional initial delay."""
-    args = CaseInsensitiveDict(request.args.items())
+    args = CaseInsensitiveDict(list(request.args.items()))
     duration = float(args.get('duration', 2))
     numbytes = int(args.get('numbytes', 10))
     code = int(args.get('code', 200))
@@ -446,8 +446,8 @@ def drip():
         time.sleep(delay)
 
     def generate_bytes():
-        for i in xrange(numbytes):
-            yield u"*".encode('utf-8')
+        for i in range(numbytes):
+            yield "*".encode('utf-8')
             time.sleep(pause)
 
     response = Response(generate_bytes(), headers={
@@ -498,7 +498,7 @@ def random_bytes(n):
     """Returns n random bytes generated with given seed."""
     n = min(n, 100 * 1024) # set 100KB limit
 
-    params = CaseInsensitiveDict(request.args.items())
+    params = CaseInsensitiveDict(list(request.args.items()))
     if 'seed' in params:
         random.seed(int(params['seed']))
 
@@ -515,7 +515,7 @@ def stream_random_bytes(n):
     """Streams n random bytes generated with given seed, at given chunk size per packet."""
     n = min(n, 100 * 1024) # set 100KB limit
 
-    params = CaseInsensitiveDict(request.args.items())
+    params = CaseInsensitiveDict(list(request.args.items()))
     if 'seed' in params:
         random.seed(int(params['seed']))
 
@@ -527,7 +527,7 @@ def stream_random_bytes(n):
     def generate_bytes():
         chunks = bytearray()
 
-        for i in xrange(n):
+        for i in range(n):
             chunks.append(random.randint(0, 255))
             if len(chunks) == chunk_size:
                 yield(bytes(chunks))
@@ -550,7 +550,7 @@ def link_page(n, offset):
     link = "<a href='/links/{0}/{1}'>{2}</a> "
 
     html = ['<html><head><title>Links</title></head><body>']
-    for i in xrange(n):
+    for i in range(n):
         if i == offset:
             html.append("{0} ".format(i))
         else:

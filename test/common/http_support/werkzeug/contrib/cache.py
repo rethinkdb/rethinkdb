@@ -62,7 +62,7 @@ import tempfile
 from hashlib import md5
 from time import time
 try:
-    import cPickle as pickle
+    import pickle as pickle
 except ImportError:
     import pickle
 
@@ -83,9 +83,9 @@ def _items(mappingorseq):
 
     """
     if hasattr(mappingorseq, "iteritems"):
-        return mappingorseq.iteritems()
+        return iter(mappingorseq.items())
     elif hasattr(mappingorseq, "items"):
-        return mappingorseq.items()
+        return list(mappingorseq.items())
     return mappingorseq
 
 
@@ -128,7 +128,7 @@ class BaseCache(object):
         :param keys: The function accepts multiple keys as positional
                      arguments.
         """
-        return map(self.get, keys)
+        return list(map(self.get, keys))
 
     def get_dict(self, *keys):
         """Works like :meth:`get_many` but returns a dict::
@@ -140,7 +140,7 @@ class BaseCache(object):
         :param keys: The function accepts multiple keys as positional
                      arguments.
         """
-        return dict(zip(keys, self.get_many(*keys)))
+        return dict(list(zip(keys, self.get_many(*keys))))
 
     def set(self, key, value, timeout=None):
         """Adds a new key/value to the cache (overwrites value, if key already
@@ -328,7 +328,7 @@ class MemcachedCache(BaseCache):
         key_mapping = {}
         have_encoded_keys = False
         for key in keys:
-            if isinstance(key, unicode):
+            if isinstance(key, str):
                 encoded_key = key.encode('utf-8')
                 have_encoded_keys = True
             else:
@@ -337,7 +337,7 @@ class MemcachedCache(BaseCache):
                 encoded_key = self.key_prefix + encoded_key
             if _test_memcached_key(key):
                 key_mapping[encoded_key] = key
-        d = rv = self._client.get_multi(key_mapping.keys())
+        d = rv = self._client.get_multi(list(key_mapping.keys()))
         if have_encoded_keys or self.key_prefix:
             rv = {}
             for key, value in iteritems(d):
@@ -383,7 +383,7 @@ class MemcachedCache(BaseCache):
         self._client.set_multi(new_mapping, timeout)
 
     def delete(self, key):
-        if isinstance(key, unicode):
+        if isinstance(key, str):
             key = key.encode('utf-8')
         if self.key_prefix:
             key = self.key_prefix + key
@@ -393,7 +393,7 @@ class MemcachedCache(BaseCache):
     def delete_many(self, *keys):
         new_keys = []
         for key in keys:
-            if isinstance(key, unicode):
+            if isinstance(key, str):
                 key = key.encode('utf-8')
             if self.key_prefix:
                 key = self.key_prefix + key
@@ -405,14 +405,14 @@ class MemcachedCache(BaseCache):
         self._client.flush_all()
 
     def inc(self, key, delta=1):
-        if isinstance(key, unicode):
+        if isinstance(key, str):
             key = key.encode('utf-8')
         if self.key_prefix:
             key = self.key_prefix + key
         self._client.incr(key, delta)
 
     def dec(self, key, delta=1):
-        if isinstance(key, unicode):
+        if isinstance(key, str):
             key = key.encode('utf-8')
         if self.key_prefix:
             key = self.key_prefix + key

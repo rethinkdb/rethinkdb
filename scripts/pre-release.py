@@ -2,7 +2,7 @@
 #
 # This script helps to check the status of certain pre-release tasks
 
-from __future__ import print_function
+
 
 import os, re, subprocess, weakref
 
@@ -25,7 +25,7 @@ def cache(f):
         if self in box:
             return box[self]
         box[self] = None
-        kwargs = { name: self[name] for name in f.func_code.co_varnames[0:f.func_code.co_argcount] }
+        kwargs = { name: self[name] for name in f.__code__.co_varnames[0:f.__code__.co_argcount] }
         x = f(**kwargs)
         box[self] = x
         return x

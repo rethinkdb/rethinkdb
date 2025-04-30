@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from __future__ import print_function
-from __future__ import division
+
+
+
 
 import binascii
 import struct
@@ -10,11 +10,11 @@ import biplist
 try:
     next
 except NameError:
-    next = lambda x: x.next()
+    next = lambda x: x.__next__()
 try:
-    unicode
+    str
 except NameError:
-    unicode = str
+    str = str
 
 from . import buddy
 
@@ -176,7 +176,7 @@ class DSStoreEntry(object):
         utf16 = self.filename.encode('utf-16be')
         l = 4 + len(utf16) + 8
 
-        if isinstance(self.type, (str, unicode)):
+        if isinstance(self.type, str):
             entry_type = self.type
             value = self.value
         else:
@@ -208,7 +208,7 @@ class DSStoreEntry(object):
         else:
             w = block.write
         
-        if isinstance(self.type, (str, unicode)):
+        if isinstance(self.type, str):
             entry_type = self.type
             value = self.value
         else:
@@ -1185,7 +1185,7 @@ class DSStore(object):
                 raise KeyError('no such key - [%s][%s]' % (self._filename,
                                code))
 
-            if not isinstance(item.type, (str, unicode)):
+            if not isinstance(item.type, str):
                 return item.value
             
             return (item.type, item.value)

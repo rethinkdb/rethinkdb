@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2010-2014 RethinkDB, all rights reserved.
 
-import os, httplib, sys, time
+import os, http.client, sys, time
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import vcoptparse
@@ -14,7 +14,7 @@ opts = op.parse(sys.argv)
 host, port = opts["address"].split(':')
 
 def fetch(resource, expect = [200]):
-    conn = httplib.HTTPConnection(host, port)
+    conn = http.client.HTTPConnection(host, port)
     conn.request("GET", resource)
     response = conn.getresponse()
     assert response.status in expect

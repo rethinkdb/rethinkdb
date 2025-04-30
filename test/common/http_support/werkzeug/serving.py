@@ -35,7 +35,7 @@
     :copyright: (c) 2014 by the Werkzeug Team, see AUTHORS for more details.
     :license: BSD, see LICENSE for more details.
 """
-from __future__ import with_statement
+
 
 import os
 import socket
@@ -45,16 +45,16 @@ import signal
 import subprocess
 
 try:
-    import thread
+    import _thread
 except ImportError:
     import _thread as thread
 
 try:
-    from SocketServer import ThreadingMixIn, ForkingMixIn
-    from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
-except ImportError:
     from socketserver import ThreadingMixIn, ForkingMixIn
     from http.server import HTTPServer, BaseHTTPRequestHandler
+except ImportError:
+    from socketserver import ThreadingMixIn, ForkingMixIn
+    from .http.server import HTTPServer, BaseHTTPRequestHandler
 
 import werkzeug
 from werkzeug._internal import _log
@@ -104,7 +104,7 @@ class WSGIRequestHandler(BaseHTTPRequestHandler, object):
             'SERVER_PROTOCOL':      self.request_version
         }
 
-        for key, value in self.headers.items():
+        for key, value in list(self.headers.items()):
             key = 'HTTP_' + key.upper().replace('-', '_')
             if key not in ('HTTP_CONTENT_TYPE', 'HTTP_CONTENT_LENGTH'):
                 environ[key] = value
@@ -277,7 +277,7 @@ def generate_adhoc_ssl_pair(cn=None):
         cn = '*'
 
     cert = crypto.X509()
-    cert.set_serial_number(int(random() * sys.maxint))
+    cert.set_serial_number(int(random() * sys.maxsize))
     cert.gmtime_adj_notBefore(0)
     cert.gmtime_adj_notAfter(60 * 60 * 24 * 365)
 
@@ -608,7 +608,7 @@ def run_with_reloader(main_func, extra_files=None, interval=1):
     import signal
     signal.signal(signal.SIGTERM, lambda *args: sys.exit(0))
     if os.environ.get('WERKZEUG_RUN_MAIN') == 'true':
-        thread.start_new_thread(main_func, ())
+        _thread.start_new_thread(main_func, ())
         try:
             reloader_loop(extra_files, interval)
         except KeyboardInterrupt:

@@ -84,6 +84,11 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
+      - name: apt install
+        run: |
+          sudo apt update && \
+          sudo apt install -y libc6 libcurl4 libprotobuf32
+
       - name: unit tests
         uses: ./.github/actions/tests
         with:
@@ -112,6 +117,12 @@ jobs:
     needs: unit-tests
     steps:
       - uses: actions/checkout@v4
+
+      - name: apt install
+        run: |
+          sudo apt update && \
+          sudo apt install -y libc6 libcurl4 libprotobuf32
+
       - name: integration tests
         uses: ./.github/actions/driver-tests
         with:
@@ -140,6 +151,12 @@ jobs:
     needs: unit-tests
     steps:
       - uses: actions/checkout@v4
+
+      - name: apt install
+        run: |
+          sudo apt update && \
+          sudo apt install -y libc6 libcurl4 libprotobuf32
+
       - name: long running tests
         uses: ./.github/actions/driver-tests
         with:
@@ -180,7 +197,7 @@ jobs:
         with:
           driver_name: python
           driver_dist_dir: /tmp/python-driver/rethinkdb
-          interpreter: py2.7
+          interpreter: py3.12
           test_target: polyglot
 
       - name: compress test artifacts for upload

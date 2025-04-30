@@ -38,7 +38,7 @@ class StdListPrinter:
         def __iter__(self):
             return self
 
-        def next(self):
+        def __next__(self):
             if self.base == self.head:
                 raise StopIteration
             elt = self.base.cast(self.nodetype).dereference()
@@ -99,7 +99,7 @@ class StdSlistPrinter:
         def __iter__(self):
             return self
 
-        def next(self):
+        def __next__(self):
             if self.base == 0:
                 raise StopIteration
             elt = self.base.cast(self.nodetype).dereference()
@@ -144,7 +144,7 @@ class StdVectorPrinter:
         def __iter__(self):
             return self
 
-        def next(self):
+        def __next__(self):
             if self.item == self.finish:
                 raise StopIteration
             count = self.count
@@ -199,7 +199,7 @@ class StdTuplePrinter:
         def __iter__(self):
             return self
 
-        def next(self):
+        def __next__(self):
             nodes = self.head.type.fields()
             # Check for further recursions in the inheritance tree.
             if len(nodes) == 0:
@@ -268,7 +268,7 @@ class RbtreeIterator:
     def __len__(self):
         return int(self.size)
 
-    def next(self):
+    def __next__(self):
         if self.count == self.size:
             raise StopIteration
         result = self.node
@@ -330,9 +330,9 @@ class StdMapPrinter:
         def __iter__(self):
             return self
 
-        def next(self):
+        def __next__(self):
             if self.count % 2 == 0:
-                n = self.rbiter.next()
+                n = next(self.rbiter)
                 n = n.cast(self.type).dereference()['_M_value_field']
                 self.pair = n
                 item = n['first']
@@ -372,8 +372,8 @@ class StdSetPrinter:
         def __iter__(self):
             return self
 
-        def next(self):
-            item = self.rbiter.next()
+        def __next__(self):
+            item = next(self.rbiter)
             item = item.cast(self.type).dereference()['_M_value_field']
             # FIXME: this is weird ... what to do?
             # Maybe a 'set' display hint?
@@ -448,7 +448,7 @@ class StdDequePrinter:
         def __iter__(self):
             return self
 
-        def next(self):
+        def __next__(self):
             if self.p == self.last:
                 raise StopIteration
 
@@ -486,7 +486,7 @@ class StdDequePrinter:
 
         size = self.buffer_size * delta_n + delta_s + delta_e
 
-        return '%s with %d elements' % (self.typename, long(size))
+        return '%s with %d elements' % (self.typename, int(size))
 
     def children(self):
         start = self.val['_M_impl']['_M_start']
@@ -566,7 +566,7 @@ class Tr1HashtableIterator:
         else:
             self.count = self.count + 1
 
-    def next(self):
+    def __next__(self):
         if not self.node:
             raise StopIteration
         result = self.node.dereference()['_M_v']
@@ -589,8 +589,8 @@ class Tr1UnorderedSetPrinter:
         return '[%d]' % i
 
     def children(self):
-        counter = itertools.imap(self.format_count, itertools.count())
-        return itertools.izip(counter, Tr1HashtableIterator(self.val))
+        counter = map(self.format_count, itertools.count())
+        return zip(counter, Tr1HashtableIterator(self.val))
 
 class Tr1UnorderedMapPrinter:
     "Print a tr1::unordered_map"
@@ -617,11 +617,11 @@ class Tr1UnorderedMapPrinter:
         return '[%d]' % i
 
     def children(self):
-        counter = itertools.imap(self.format_count, itertools.count())
+        counter = map(self.format_count, itertools.count())
         # Map over the hash table and flatten the result.
-        data = self.flatten(itertools.imap(self.format_one, Tr1HashtableIterator(self.val)))
+        data = self.flatten(map(self.format_one, Tr1HashtableIterator(self.val)))
         # Zip the two iterators together.
-        return itertools.izip(counter, data)
+        return zip(counter, data)
 
     def display_hint(self):
         return 'map'

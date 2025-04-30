@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2010-2012 RethinkDB, all rights reserved.
 
-from __future__ import print_function
+
 
 import sys, os
 
@@ -14,7 +14,7 @@ def child(opts, log_path, load, save):
     # This is run in a separate process
     import sys
     # TODO: this overwrites existing log files
-    sys.stdout = sys.stderr = file(log_path, "w")
+    sys.stdout = sys.stderr = open(log_path, "w")
     if load is None:
         clone, deleted = {}, set()
     else:
@@ -45,7 +45,7 @@ processes = []
 try:
     print("Starting %d child processes, writing to %r" % (opts["num_testers"], tester_log_dir))
     
-    for id in xrange(opts["num_testers"]):
+    for id in range(opts["num_testers"]):
 
         log_path = os.path.join(tester_log_dir, "%d.txt" % id)
         load_path = opts["load"] + "_%d" % id if opts["load"] is not None else None
@@ -77,7 +77,7 @@ try:
 
     if stuck or failed:
         for id in stuck + failed:
-            with file(os.path.join(tester_log_dir, str(id) + ".txt")) as f:
+            with open(os.path.join(tester_log_dir, str(id) + ".txt")) as f:
                 for line in f:
                     sys.stdout.write(line)
         if len(stuck) == opts["num_testers"]:

@@ -188,7 +188,7 @@ class SplitOrContinuousWorkload(object):
         assert self.opts["workload-during"]
         if seconds != 0:
             utils.print_with_time("Letting %s run for %d seconds..." % (" and ".join(repr(x) for x in self.opts["workload-during"]), seconds))
-            for i in xrange(seconds):
+            for i in range(seconds):
                 time.sleep(1)
                 self.check()
     

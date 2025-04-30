@@ -53,13 +53,13 @@ def _mixed_join(iterable, sentinel):
     first_item = next(iterator, sentinel)
     if isinstance(first_item, bytes):
         return first_item + b''.join(iterator)
-    return first_item + u''.join(iterator)
+    return first_item + ''.join(iterator)
 
 
 def _newline(reference_string):
     if isinstance(reference_string, bytes):
         return b'\n'
-    return u'\n'
+    return '\n'
 
 
 @implements_iterator
@@ -257,7 +257,7 @@ class IterO(IterIO):
         try:
             tmp_end_pos = len(self._buf)
             while pos > tmp_end_pos:
-                item = self._gen.next()
+                item = next(self._gen)
                 tmp_end_pos += len(item)
                 buf.append(item)
         except StopIteration:

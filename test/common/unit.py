@@ -23,6 +23,7 @@ class AllUnitTests(test_framework.Test):
         gtestProcess = subprocess.Popen([unit_executable, "--gtest_list_tests"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         output, _ = gtestProcess.communicate()
         if gtestProcess.returncode != 0:
+            sys.stderr.write('Error: failed to run %s --gtest_list_tests\n\t%s' % (unit_executable, output))
             raise subprocess.CalledProcessError(gtestProcess.returncode, [unit_executable, "--gtest_list_tests"])
         key = None
         dict = collections.defaultdict(list)
@@ -35,7 +36,7 @@ class AllUnitTests(test_framework.Test):
                 dict[key].append(line.strip())
         tests = test_framework.TestTree(
             (group, UnitTest(unit_executable, group, tests))
-            for group, tests in dict.items())
+            for group, tests in list(dict.items()))
         for filter in self.filters:
             tests = tests.filter(filter)
         return tests
@@ -44,7 +45,7 @@ class UnitTest(test_framework.Test):
     def __init__(self, unit_executable, test, child_tests=[]):
         super(UnitTest, self).__init__()
         self.unit_executable = unit_executable
-        self.test = test
+        self.test = test or "*"
         self.child_tests = child_tests
 
     def run(self):

@@ -5,9 +5,9 @@ import unittest
 from driver import bag, compare, err, err_regex, partial, uuid
 
 try:
-    unicode
+    str
 except NameError:
-    unicode = str
+    str = str
 
 class PythonTestDriverTest(unittest.TestCase):
     
@@ -21,7 +21,7 @@ class PythonTestDriverTest(unittest.TestCase):
         
         # simple
         self.compare('a', 'a')
-        self.compare('a', unicode('a'))
+        self.compare('a', str('a'))
         self.compare('á', 'á')
         self.compare('something longer\nwith two lines', 'something longer\nwith two lines')
         

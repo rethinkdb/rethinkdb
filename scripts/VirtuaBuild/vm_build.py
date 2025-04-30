@@ -86,7 +86,7 @@ class VM():
 
     def command(self, cmd_str, root = False, bg = False):
         str = "ssh -o ConnectTimeout=1000 %s@%s \"%s\"" % ((self.rootname if root else self.username), self.hostname, (cmd_str + ("&" if bg else ""))) + ("&" if bg else "")
-        print str
+        print(str)
         return os.system(str)
 
     # send a file into the tmp directory of the vm
@@ -121,16 +121,16 @@ class target():
     def interact(self, short_name):
         build_vm = self.start_vm()
 
-        print "%s is now accessible via ssh at %s@%s" % (short_name, self.username, self.build_hostname)
-        print "Leave this process running in the background and when you're done interrupt it to clean up the virtual machine."
+        print("%s is now accessible via ssh at %s@%s" % (short_name, self.username, self.build_hostname))
+        print("Leave this process running in the background and when you're done interrupt it to clean up the virtual machine.")
         while True:
             time.sleep(1)
 
     def run(self, refspec, short_name):
         def purge_installed_packages():
             old_binaries_raw = build_vm.popen("ls /usr/bin/rethinkdb*", "r").readlines()
-            old_binaries = map(lambda x: x.strip('\n'), old_binaries_raw)
-            print "Binaries scheduled for removal: ", old_binaries
+            old_binaries = [x.strip('\n') for x in old_binaries_raw]
+            print("Binaries scheduled for removal: ", old_binaries)
 
             for old_binary in old_binaries:
                 build_vm.command(self.uninstall_cl_f(old_binary), True)
@@ -161,8 +161,8 @@ class target():
         dir = build_vm.popen("pwd", 'r').readline().strip('\n')
         p = build_vm.popen("find rethinkdb/build/packages -regex .*\\\\\\\\.%s" % self.res_ext, 'r')
         raw = p.readlines()
-        res_paths = map((lambda x: os.path.join(dir, x.strip('\n'))), raw)
-        print res_paths
+        res_paths = list(map((lambda x: os.path.join(dir, x.strip('\n'))), raw))
+        print(res_paths)
         dest = os.path.abspath("Built_Packages")
 
         for path in res_paths:
@@ -181,20 +181,20 @@ class target():
 
             # install current versions
             target_binary_name = build_vm.popen(self.get_binary_f(path), "r").readlines()[0].strip('\n')
-            print "Target binary name: ", target_binary_name
+            print("Target binary name: ", target_binary_name)
             run_checked(self.install_cl_f(path), True)
 
             # run smoke test
             run_unchecked("rm -r test_data")
             run_checked("rethinkdb --cluster-port 11211 --directory test_data", bg = True)
-            print "Starting tests..."
+            print("Starting tests...")
             s = ensure_socket(build_vm.hostname, 11213)
             from smoke_install_test import test_against
             if (not test_against(build_vm.hostname, 11213)):
                 raise RunError("Tests failed")
             s.send("rethinkdb shutdown\r\n")
             scp_string = "scp %s@%s:%s %s" % (self.username, self.build_hostname, path, os.path.join(dest, short_name))
-            print scp_string
+            print(scp_string)
             os.system(scp_string)
 
             # the code below is not updated
@@ -237,4 +237,4 @@ class target():
 
 def build(targets):
     os.mkdir("Built_Packages")
-    map((lambda x: x.run()), targets)
+    list(map((lambda x: x.run()), targets))

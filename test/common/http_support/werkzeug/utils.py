@@ -17,9 +17,9 @@ import pkgutil
 try:
     from html.entities import name2codepoint
 except ImportError:
-    from htmlentitydefs import name2codepoint
+    from html.entities import name2codepoint
 
-from werkzeug._compat import unichr, text_type, string_types, iteritems, \
+from werkzeug._compat import chr, text_type, string_types, iteritems, \
     reraise, PY2
 from werkzeug._internal import _DictAccessorProperty, \
      _parse_signature, _missing
@@ -323,15 +323,15 @@ def unescape(s):
     def handle_match(m):
         name = m.group(1)
         if name in HTMLBuilder._entities:
-            return unichr(HTMLBuilder._entities[name])
+            return chr(HTMLBuilder._entities[name])
         try:
             if name[:2] in ('#x', '#X'):
-                return unichr(int(name[2:], 16))
+                return chr(int(name[2:], 16))
             elif name.startswith('#'):
-                return unichr(int(name[1:]))
+                return chr(int(name[1:]))
         except ValueError:
             pass
-        return u''
+        return ''
     return _entity_re.sub(handle_match, s)
 
 
@@ -408,7 +408,7 @@ def import_string(import_name, silent=False):
             return __import__(import_name)
         # __import__ is not able to handle unicode strings in the fromlist
         # if the module is a package
-        if PY2 and isinstance(obj, unicode):
+        if PY2 and isinstance(obj, str):
             obj = obj.encode('utf-8')
         try:
             return getattr(__import__(module, None, None, [obj]), obj)

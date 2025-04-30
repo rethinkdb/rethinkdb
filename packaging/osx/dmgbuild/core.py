@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
 
 import os
 import pkg_resources
@@ -13,15 +13,15 @@ import tokenize
 
 try:
     {}.iteritems
-    iteritems = lambda x: x.iteritems()
-    iterkeys = lambda x: x.iterkeys()
+    iteritems = lambda x: iter(x.items())
+    iterkeys = lambda x: iter(x.keys())
 except AttributeError:
-    iteritems = lambda x: x.items()
-    iterkeys = lambda x: x.keys()
+    iteritems = lambda x: list(x.items())
+    iterkeys = lambda x: list(x.keys())
 try:
-    unicode
+    str
 except NameError:
-    unicode = str
+    str = str
 
 import biplist
 from mac_alias import *
@@ -49,20 +49,16 @@ def hdiutil(cmd, *args, **kwargs):
     retcode = p.wait()
     return retcode, results
 
-# On Python 2 we can just execfile() it, but Python 3 deprecated that
 def load_settings(filename, globs, locs):
-    if sys.version_info[0] == 2:
-        execfile(filename, globs, locs)
-    else:
-        encoding = 'utf-8'
-        with open(filename, 'rb') as fp:
-            try:
-                encoding = tokenize.detect_encoding(fp.readline)[0]
-            except SyntaxError:
-                pass
-    
-        with open(filename, 'r', encoding=encoding) as fp:
-            exec(compile(fp.read(), filename, 'exec'), globs, locs)
+    encoding = 'utf-8'
+    with open(filename, 'rb') as fp:
+        try:
+            encoding = tokenize.detect_encoding(fp.readline)[0]
+        except SyntaxError:
+            pass
+
+    with open(filename, 'r', encoding=encoding) as fp:
+        exec(compile(fp.read(), filename, 'exec'), globs, locs)
 
 def build_dmg(filename, volume_name, settings_file=None, defines={}, lookForHiDPI=True):
     settings = {
@@ -335,7 +331,7 @@ def build_dmg(filename, volume_name, settings_file=None, defines={}, lookForHiDP
         if icon or badge_icon:
             subprocess.call(['/usr/bin/SetFile', '-a', 'C', mount_point])
         
-        if not isinstance(background, (str, unicode)):
+        if not isinstance(background, str):
             pass
         elif background == 'builtin-arrow':
             tiffdata = pkg_resources.resource_string(
@@ -387,7 +383,7 @@ def build_dmg(filename, volume_name, settings_file=None, defines={}, lookForHiDP
                     try:
                         subprocess.check_call(
                             ['/usr/bin/tiffutil', '-cathidpicheck'] +
-                            filter(None, orderedImages) +
+                            [_f for _f in orderedImages if _f] +
                             ['-out', background], stdout=output, stderr=output)
                     except Exception as e:
                         output.seek(0)

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
 
 import re
 import math
@@ -486,7 +486,7 @@ class ColorParser (object):
         return n
 
 _color_re = re.compile('\s*(#|rgb|hsl|hwb|cmyk|gray|grey|%s)'
-                       % '|'.join(_x11_colors.keys()))
+                       % '|'.join(list(_x11_colors.keys())))
 def isAColor(s):
     return _color_re.match(s)
 

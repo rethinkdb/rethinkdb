@@ -215,7 +215,7 @@ class HTTPUtilityTestCase(WerkzeugTestCase):
         assert headers1 == [('Date', now)]
 
         http.remove_entity_headers(headers2)
-        self.assert_equal(headers2, datastructures.Headers([(u'Date', now)]))
+        self.assert_equal(headers2, datastructures.Headers([('Date', now)]))
 
     def test_remove_hop_by_hop_headers(self):
         headers1 = [('Connection', 'closed'), ('Foo', 'bar'),
@@ -285,64 +285,64 @@ class HTTPUtilityTestCase(WerkzeugTestCase):
             dict(http.parse_cookie('dismiss-top=6; CP=null*; PHPSESSID=0a539d42abc001cd'
                               'c762809248d4beed; a=42; b="\\\";"')),
             {
-                'CP':           u'null*',
-                'PHPSESSID':    u'0a539d42abc001cdc762809248d4beed',
-                'a':            u'42',
-                'dismiss-top':  u'6',
-                'b':            u'\";'
+                'CP':           'null*',
+                'PHPSESSID':    '0a539d42abc001cdc762809248d4beed',
+                'a':            '42',
+                'dismiss-top':  '6',
+                'b':            '\";'
             }
         )
         self.assert_strict_equal(
             set(http.dump_cookie('foo', 'bar baz blub', 360, httponly=True,
-                                 sync_expires=False).split(u'; ')),
-            set([u'HttpOnly', u'Max-Age=360', u'Path=/', u'foo="bar baz blub"'])
+                                 sync_expires=False).split('; ')),
+            set(['HttpOnly', 'Max-Age=360', 'Path=/', 'foo="bar baz blub"'])
         )
         self.assert_strict_equal(dict(http.parse_cookie('fo234{=bar; blub=Blah')),
-                                 {'fo234{': u'bar', 'blub': u'Blah'})
+                                 {'fo234{': 'bar', 'blub': 'Blah'})
 
     def test_cookie_quoting(self):
         val = http.dump_cookie("foo", "?foo")
         self.assert_strict_equal(val, 'foo="?foo"; Path=/')
-        self.assert_strict_equal(dict(http.parse_cookie(val)), {'foo': u'?foo'})
+        self.assert_strict_equal(dict(http.parse_cookie(val)), {'foo': '?foo'})
 
         self.assert_strict_equal(dict(http.parse_cookie(r'foo="foo\054bar"')),
-                                 {'foo': u'foo,bar'})
+                                 {'foo': 'foo,bar'})
 
     def test_cookie_domain_resolving(self):
-        val = http.dump_cookie('foo', 'bar', domain=u'\N{SNOWMAN}.com')
+        val = http.dump_cookie('foo', 'bar', domain='\N{SNOWMAN}.com')
         self.assert_strict_equal(val, 'foo=bar; Domain=xn--n3h.com; Path=/')
 
     def test_cookie_unicode_dumping(self):
-        val = http.dump_cookie('foo', u'\N{SNOWMAN}')
+        val = http.dump_cookie('foo', '\N{SNOWMAN}')
         h = datastructures.Headers()
         h.add('Set-Cookie', val)
         self.assert_equal(h['Set-Cookie'], 'foo="\\342\\230\\203"; Path=/')
 
         cookies = http.parse_cookie(h['Set-Cookie'])
-        self.assert_equal(cookies['foo'], u'\N{SNOWMAN}')
+        self.assert_equal(cookies['foo'], '\N{SNOWMAN}')
 
     def test_cookie_unicode_keys(self):
         # Yes, this is technically against the spec but happens
-        val = http.dump_cookie(u'fö', u'fö')
-        self.assert_equal(val, wsgi_encoding_dance(u'fö="f\\303\\266"; Path=/', 'utf-8'))
+        val = http.dump_cookie('fö', 'fö')
+        self.assert_equal(val, wsgi_encoding_dance('fö="f\\303\\266"; Path=/', 'utf-8'))
         cookies = http.parse_cookie(val)
-        self.assert_equal(cookies[u'fö'], u'fö')
+        self.assert_equal(cookies['fö'], 'fö')
 
     def test_cookie_unicode_parsing(self):
         # This is actually a correct test.  This is what is being submitted
         # by firefox if you set an unicode cookie and we get the cookie sent
         # in on Python 3 under PEP 3333.
-        cookies = http.parse_cookie(u'fÃ¶=fÃ¶')
-        self.assert_equal(cookies[u'fö'], u'fö')
+        cookies = http.parse_cookie('fÃ¶=fÃ¶')
+        self.assert_equal(cookies['fö'], 'fö')
 
     def test_cookie_domain_encoding(self):
-        val = http.dump_cookie('foo', 'bar', domain=u'\N{SNOWMAN}.com')
+        val = http.dump_cookie('foo', 'bar', domain='\N{SNOWMAN}.com')
         self.assert_strict_equal(val, 'foo=bar; Domain=xn--n3h.com; Path=/')
 
-        val = http.dump_cookie('foo', 'bar', domain=u'.\N{SNOWMAN}.com')
+        val = http.dump_cookie('foo', 'bar', domain='.\N{SNOWMAN}.com')
         self.assert_strict_equal(val, 'foo=bar; Domain=.xn--n3h.com; Path=/')
 
-        val = http.dump_cookie('foo', 'bar', domain=u'.foo.com')
+        val = http.dump_cookie('foo', 'bar', domain='.foo.com')
         self.assert_strict_equal(val, 'foo=bar; Domain=.foo.com; Path=/')
 
 

@@ -9,7 +9,7 @@
     :license: BSD, see LICENSE for more details.
 """
 
-from __future__ import with_statement
+
 
 import re
 import sys
@@ -130,7 +130,7 @@ class WerkzeugTestCase(unittest.TestCase):
 
     elif sys.version_info[0] == 2:
         def assertRaisesRegex(self, *args, **kwargs):
-            return self.assertRaisesRegexp(*args, **kwargs)
+            return self.assertRaisesRegex(*args, **kwargs)
 
     def assert_is_none(self, x):
         self.assertIsNone(x)

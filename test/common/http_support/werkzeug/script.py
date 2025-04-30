@@ -70,7 +70,7 @@ r'''
     :copyright: (c) 2014 by the Werkzeug Team, see AUTHORS for more details.
     :license: BSD, see LICENSE for more details.
 '''
-from __future__ import print_function
+
 
 import sys
 import inspect
@@ -194,7 +194,7 @@ def find_actions(namespace, action_prefix):
 
 def print_usage(actions):
     """Print the usage information.  (Help screen)"""
-    actions = actions.items()
+    actions = list(actions.items())
     actions.sort()
     print('usage: %s <action> [<options>]' % basename(sys.argv[0]))
     print('       %s --help' % basename(sys.argv[0]))

@@ -18,7 +18,7 @@ def __runServer(httpbinPort=0, httpPort=0, sslPort=0):
     import twisted.web.wsgi
     
     sys.path.insert(0, os.path.dirname(os.path.realpath(__file__)))
-    import httpbin
+    from . import httpbin
     
     # -- generate self signed SSL certificate
     
@@ -34,7 +34,7 @@ def __runServer(httpbinPort=0, httpPort=0, sslPort=0):
     certificate.flush()
     
     def printStrtupInfo():
-        print('''Testing server is running
+        print(('''Testing server is running
 	httpbin running on:          %(httpbinPort)d http://localhost:%(httpbinPort)d
 	http content:                %(httpContentPort)d http://localhost:%(httpContentPort)d/quickstart.png
 	http redirect to https:      %(httpContentPort)d http://localhost:%(httpContentPort)d/redirect
@@ -42,7 +42,7 @@ def __runServer(httpbinPort=0, httpPort=0, sslPort=0):
             'httpbinPort':     httpbinPort,
             'httpContentPort': httpPort,
             'httpsPort':       sslPort
-        })
+        }))
         sys.stdout.flush()
     
     twisted.internet.reactor.callWhenRunning(printStrtupInfo) 

@@ -22,10 +22,10 @@ from datetime import datetime
 
 PY2 = sys.version_info[0] == 2
 if PY2:
-    from itertools import izip
-    text_type = unicode
+    
+    text_type = str
     int_to_byte = chr
-    number_types = (int, long, float)
+    number_types = (int, int, float)
 else:
     from functools import reduce
     izip = zip
@@ -92,7 +92,7 @@ def constant_time_compare(val1, val2):
     else:
         result = 1
         left = val2
-    for x, y in izip(bytearray(left), bytearray(val2)):
+    for x, y in zip(bytearray(left), bytearray(val2)):
         result |= x ^ y
     return result == 0
 

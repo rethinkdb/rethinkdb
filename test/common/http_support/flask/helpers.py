@@ -23,7 +23,7 @@ from functools import update_wrapper
 try:
     from werkzeug.urls import url_quote
 except ImportError:
-    from urlparse import quote as url_quote
+    from urllib.parse import quote as url_quote
 
 from werkzeug.datastructures import Headers
 from werkzeug.exceptions import NotFound
@@ -401,7 +401,7 @@ def get_flashed_messages(with_categories=False, category_filter=[]):
         _request_ctx_stack.top.flashes = flashes = session.pop('_flashes') \
             if '_flashes' in session else []
     if category_filter:
-        flashes = list(filter(lambda f: f[0] in category_filter, flashes))
+        flashes = list([f for f in flashes if f[0] in category_filter])
     if not with_categories:
         return [x[1] for x in flashes]
     return flashes

@@ -6,13 +6,13 @@ import binascii
 
 try:
     {}.iterkeys
-    iterkeys = lambda x: x.iterkeys()
+    iterkeys = lambda x: iter(x.keys())
 except AttributeError:
-    iterkeys = lambda x: x.keys()
+    iterkeys = lambda x: list(x.keys())
 try:
-    unicode
+    str
 except NameError:
-    unicode = str
+    str = str
 
 class BuddyError(Exception):
     pass
@@ -68,7 +68,7 @@ class Block(object):
         self._pos = pos
 
     def read(self, size_or_format):
-        if isinstance(size_or_format, (str, unicode, bytes)):
+        if isinstance(size_or_format, (str, bytes)):
             size = struct.calcsize(size_or_format)
             fmt = size_or_format
         else:
@@ -170,7 +170,7 @@ class Allocator(object):
         
     @classmethod
     def open(cls, file_or_name, mode='r+'):
-        if isinstance(file_or_name, (str, unicode)):
+        if isinstance(file_or_name, str):
             if not 'b' in mode:
                 mode = mode[:1] + 'b' + mode[1:]
             f = open(file_or_name, mode)
@@ -273,7 +273,7 @@ class Allocator(object):
         # N.B. There is a fixed offset of four bytes(!)
         self._file.seek(offset + 4, os.SEEK_SET)
 
-        if isinstance(size_or_format, (str, unicode)):
+        if isinstance(size_or_format, str):
             size = struct.calcsize(size_or_format)
             fmt = size_or_format
         else:
@@ -443,18 +443,18 @@ class Allocator(object):
         return len(self._toc)
 
     def __getitem__(self, key):
-        if not isinstance(key, (str, unicode)):
+        if not isinstance(key, str):
             raise TypeError('Keys must be of string type')
         return self._toc[key]
 
     def __setitem__(self, key, value):
-        if not isinstance(key, (str, unicode)):
+        if not isinstance(key, str):
             raise TypeError('Keys must be of string type')
         self._toc[key] = value
         self._dirty = True
 
     def __delitem__(self, key):
-        if not isinstance(key, (str, unicode)):
+        if not isinstance(key, str):
             raise TypeError('Keys must be of string type')
         del self._toc[key]
         self._dirty = True

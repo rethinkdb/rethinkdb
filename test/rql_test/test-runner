@@ -556,8 +556,8 @@ interpreters = {
     'js5':    [JsLang('5.12')],
     'js16':    [JsLang('16.14')],
     
-    'py2':    [PyLang('2.7')],
-    'py2.7':  [PyLang('2.7')],
+    'py3':    [PyLang('3.12')],
+    'py3.12':  [PyLang('3.12')],
     
     'py3':    [PyLang('3.6'), PyLang('3.8')],
     'py3.6':  [PyLang('3.6')],

@@ -171,7 +171,7 @@ class BugTestCase(JinjaTestCase):
             {{ x }}
         ''')
         rv = t.render(foo=[1]).strip()
-        assert rv == u'1'
+        assert rv == '1'
 
     def test_call_with_args(self):
         t = Template("""{% macro dump_users(users) -%}
@@ -196,13 +196,13 @@ class BugTestCase(JinjaTestCase):
             'realname':'something else',
             'description':'test'
         }]).splitlines()] == [
-            u'<ul><li><p>apo</p><dl>',
-            u'<dl>Realname</dl>',
-            u'<dd>something else</dd>',
-            u'<dl>Description</dl>',
-            u'<dd>test</dd>',
-            u'</dl>',
-            u'</li></ul>'
+            '<ul><li><p>apo</p><dl>',
+            '<dl>Realname</dl>',
+            '<dd>something else</dd>',
+            '<dl>Description</dl>',
+            '<dd>test</dd>',
+            '</dl>',
+            '</li></ul>'
         ]
 
     def test_empty_if_condition_fails(self):

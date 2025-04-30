@@ -169,7 +169,7 @@ class UserAgent(object):
     def __str__(self):
         return self.string
 
-    def __nonzero__(self):
+    def __bool__(self):
         return bool(self.browser)
 
     __bool__ = __nonzero__

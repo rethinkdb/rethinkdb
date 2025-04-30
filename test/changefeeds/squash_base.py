@@ -32,7 +32,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
         # change is emitted.
         self._generator_initial_len = 20
         self._generator_initial = []
-        for x in xrange(self._generator_initial_len):
+        for x in range(self._generator_initial_len):
             self._generator_initial.append((x, next(self.generator)))
 
         # The primary key is used to break ties in a multi index thus `self._document`
@@ -50,7 +50,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
                                   .run(self.conn)
 
         # Generate the records ..
-        for x in xrange(self.records):
+        for x in range(self.records):
             self.r.db(self.dbName) \
                   .table(self.tableName) \
                   .insert(self._document(next(self.generator))) \
@@ -105,7 +105,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
                     self.records * self._multi_len, self.limit)
 
             initial = []
-            for x in xrange(changes):
+            for x in range(changes):
                 initial.append(next(feed))
 
             # If the number of records is greater than the limit then then insert a low
@@ -117,7 +117,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
                       .insert(self._document(value)) \
                       .run(self.conn)
 
-                self.assertRaises(Exception, feed.next)
+                self.assertRaises(Exception, feed.__next__)
 
             # Insert a value and verify it does show up.
             value = next(self.generator)
@@ -135,7 +135,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
             if self.multi:
                 changes = min(self._multi_len, self.limit)
 
-            for x in xrange(changes):
+            for x in range(changes):
                 feed_next = next(feed)
 
                 self.assertTrue("old_val" in feed_next)
@@ -174,13 +174,13 @@ class SquashBase(rdb_unittest.RdbTestCase):
                     self.records * self._multi_len, self.limit)
 
             initial = []
-            for x in xrange(changes):
+            for x in range(changes):
                 initial.append(next(feed))
 
             # Insert two more documents than the limit as a single batch, due to the
             # squashing we should never get a change for the first two.
             documents = []
-            for x in xrange(self.limit + 2):
+            for x in range(self.limit + 2):
                 value = next(self.generator)
                 if self.field == self._primary_key:
                     documents.append(self._document(value))
@@ -197,14 +197,14 @@ class SquashBase(rdb_unittest.RdbTestCase):
                   .insert(documents) \
                   .run(self.conn)
 
-            for x in xrange(self.limit):
+            for x in range(self.limit):
                 feed_next = next(feed)
 
                 self.assertTrue("old_val" in feed_next)
                 self.assertTrue("new_val" in feed_next)
                 if len(initial) + x >= self.limit:
                     self.assertTrue(
-                        feed_next["old_val"] in map(lambda x: x["new_val"], initial))
+                        feed_next["old_val"] in [x["new_val"] for x in initial])
                 else:
                     self.assertEqual(feed_next["old_val"], None)
                 self.assertTrue(feed_next["new_val"] in documents[2:])
@@ -224,7 +224,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
                     self.records * self._multi_len, self.limit)
 
             initial = []
-            for x in xrange(changes):
+            for x in range(changes):
                 initial.append(next(feed))
 
             # If the number of records is greater than the limit then insert and
@@ -258,7 +258,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
             if self.multi:
                 changes = min(self._multi_len, self.limit)
 
-            for x in xrange(changes):
+            for x in range(changes):
                 next(feed)
 
             # With the primary key delete the record again.
@@ -268,7 +268,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
                   .delete() \
                   .run(self.conn)
 
-            for x in xrange(changes):
+            for x in range(changes):
                 feed_next = next(feed)
 
                 self.assertTrue("old_val" in feed_next)
@@ -299,7 +299,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
                     self.records * self._multi_len, self.limit)
 
             initial = []
-            for x in xrange(changes):
+            for x in range(changes):
                 initial.append(next(feed))
 
             # Insert a low value, this may or may not cause changes depending on whether
@@ -318,7 +318,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
                 if self.multi:
                     changes = min(self._multi_len, self.limit - len(initial))
 
-            for x in xrange(changes):
+            for x in range(changes):
                 feed_next = next(feed)
 
                 self.assertTrue("old_val" in feed_next)
@@ -343,7 +343,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
             if self.multi:
                 changes = min(self._multi_len, self.limit)
 
-            for x in xrange(changes):
+            for x in range(changes):
                 feed_next = next(feed)
 
                 self.assertTrue("old_val" in feed_next)
@@ -366,7 +366,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
             if self.multi:
                 changes = min(self._multi_len, self.limit)
 
-            for x in xrange(changes):
+            for x in range(changes):
                 feed_next = next(feed)
 
                 self.assertTrue("old_val" in feed_next)
@@ -430,7 +430,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
                     self.records * self._multi_len, self.limit)
 
             initial = []
-            for x in xrange(changes):
+            for x in range(changes):
                 initial.append(next(feed))
 
             # As above, deleting and re-inserting a value should not lead to a change
@@ -456,9 +456,9 @@ class MultiGenerator(object):
         return self
 
     def __next__(self):
-        return self.next()
+        return next(self)
 
-    def next(self):
+    def __next__(self):
         # This is crafted to be predictable, imagine you have an initial set
         # [
         #     {u'new_val': {u'insert': True, u'multi': [44, -1], u'id': u'g-20'}},
@@ -479,4 +479,4 @@ class MultiGenerator(object):
         # This will get inserted once in the position marked by the arrow, which is
         # hard to calculate or predict.
 
-        return [self._count.next()] * 3
+        return [next(self._count)] * 3
