@@ -7,9 +7,12 @@ name: "Build"
 
 on:
   push:
-    branches: [ v2.4.x ]
+    branches:
+      - main
+      - v2.4.x
   pull_request:
-    branches: [ v2.4.x ]
+    branches:
+      - "*"
   schedule:
     - cron: '00 8 * * 1'
 
