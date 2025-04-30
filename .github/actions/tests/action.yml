@@ -21,8 +21,7 @@ runs:
     - name: install prerequisites
       shell: bash
       run: |
-        sudo apt update && sudo apt install -y curl make git ca-certificates gnupg2
-        curl https://bootstrap.pypa.io/pip/3.12/get-pip.py | python
+        sudo apt update && sudo apt install -y curl make git ca-certificates gnupg2 python3-pip python3-dev
         pip install --upgrade pip setuptools wheel
 
     - name: download build artifacts
