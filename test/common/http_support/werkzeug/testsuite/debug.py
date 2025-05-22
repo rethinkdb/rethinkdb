@@ -77,7 +77,7 @@ class DebugReprTestCase(WerkzeugTestCase):
         self.assert_equal(debug_repr(re.compile(r'foo\d')),
             're.compile(<span class="string regex">r\'foo\\d\'</span>)')
         #XXX: no raw string here cause of a syntax bug in py3.3
-        self.assert_equal(debug_repr(re.compile('foo\\d')),
+        self.assert_equal(debug_repr(re.compile(r'foo\\d')),
             're.compile(<span class="string regex">%sr\'foo\\d\'</span>)' %
             ('u' if PY2 else ''))
 

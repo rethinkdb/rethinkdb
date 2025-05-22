@@ -22,10 +22,6 @@ start_time=time.time()
 # -- import driver
 
 r = utils.import_python_driver()
-print(
-    'Using RethinkDB client from:',
-    inspect.getfile(r.__class__) if inspect.isclass(r) else r.__file__
-)
 
 # -- get settings
 
@@ -127,7 +123,7 @@ class Anything(object):
         return self.__str__()
 
 class Err(object):
-    exceptionRegex = re.compile('^(?P<message>[^\n]*?)((?: in)?:\n|\nFailed assertion:).*$', flags=re.DOTALL)
+    exceptionRegex = re.compile(r'^(?P<message>[^\n]*?)((?: in)?:\n|\nFailed assertion:).*$', flags=re.DOTALL)
     
     err_type = None
     message = None
@@ -185,7 +181,7 @@ class Regex(object):
         return "Regex(%s)" % (self.value.pattern if self.value else '<none>')
 
 class Uuid(Regex):
-    value = re.compile('^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$')
+    value = re.compile(r'^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$')
     
     def __init__(self, **kwargs):
         pass
@@ -357,7 +353,7 @@ def compare(expected, result, options=None):
                     resultMessage = str(result.message)
                 else:
                     resultMessage = str(result)
-            resultMessage = re.sub(Err.exceptionRegex, '\g<message>:', resultMessage)
+            resultMessage = re.sub(Err.exceptionRegex, r'\g<message>:', resultMessage)
             compareResult = compare(expected.message, resultMessage, options=options)
             if not compareResult:
                 return compareResult
@@ -367,7 +363,7 @@ def compare(expected, result, options=None):
         return True
     
     # -- Regex/UUID
-    if isinstance(expected, (Regex, re._pattern_type)):
+    if isinstance(expected, (Regex, re.Pattern)):
         match = expected.match(result)
         if match:
             return True

@@ -17,7 +17,6 @@ on:
     - cron: '00 8 * * 1'
 
 jobs:
-
   # Preflight runs every test and assertion that has no dependency on the build
   # directory.
   preflight:
@@ -25,11 +24,17 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: cpplint
         uses: ./.github/actions/tests
         with:
-          command: ./scripts/check_style.sh
+          command: | 
+            [ ! -d "${TEST_OUTPUT_DIR}" ] && mkdir -p ${TEST_OUTPUT_DIR}
+            ./scripts/check_style.sh | tee ${TEST_OUTPUT_DIR}/cpplint.log
           download_artifacts: false
+
 
   # Build job runs after the preflight finished successfully. It configures the
   # build system, then builds the DB.
@@ -39,13 +44,11 @@ jobs:
     needs: preflight
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
       - name: apt install
+        env:
+          DEBIAN_FRONTEND: noninteractive
         run: |
-          sudo apt update && DEBIAN_FRONTEND=noninteractive sudo apt install -y tzdata \
+          sudo apt update && sudo apt install -y tzdata \
               && sudo ln -fs /usr/share/zoneinfo/UTC /etc/localtime \
               && sudo dpkg-reconfigure --frontend noninteractive tzdata
           sudo apt update && sudo apt install -y \
@@ -84,29 +87,15 @@ jobs:
     needs: build
     steps:
       - uses: actions/checkout@v4
-      - name: apt install
-        run: |
-          sudo apt update && \
-          sudo apt install -y libc6 libcurl4 libprotobuf32
-
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: unit tests
         uses: ./.github/actions/tests
         with:
           command: |
             export MAX_JOBS=$(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
-            test/run --verbose --jobs "${MAX_JOBS}" -H unit
-
-      - name: compress test artifacts for upload
-        if: always()
-        shell: bash
-        run: tar -czf ${{ github.job }}.tar.gz test/results
-
-      - name: upload test artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ github.job }}.tar.gz
-          path: ${{ github.job }}.tar.gz
+            test/run --verbose --jobs "${MAX_JOBS}" -o ${TEST_OUTPUT_DIR} -H unit
 
   # Execute the test runner for integration tests.
   # NOTE: integration tests are using the Python driver, hence we have to setup the
@@ -117,12 +106,9 @@ jobs:
     needs: unit-tests
     steps:
       - uses: actions/checkout@v4
-
-      - name: apt install
-        run: |
-          sudo apt update && \
-          sudo apt install -y libc6 libcurl4 libprotobuf32
-
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: integration tests
         uses: ./.github/actions/driver-tests
         with:
@@ -131,19 +117,7 @@ jobs:
           test_command: |
             export PYTHON_DRIVER=/tmp/python-driver/rethinkdb
             export MAX_JOBS=$(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
-            test/run --timeout 300 --jobs "${MAX_JOBS}" -H all '!unit' '!cpplint' '!long' '!disabled'
-
-      - name: compress test artifacts for upload
-        if: always()
-        shell: bash
-        run: tar -czf ${{ github.job }}.tar.gz test/results
-
-      - name: upload test artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ github.job }}.tar.gz
-          path: ${{ github.job }}.tar.gz
+            test/run --timeout 300 --jobs "${MAX_JOBS}" -o ${TEST_OUTPUT_DIR} -H all '!unit' '!cpplint' '!long' '!disabled'
 
   long-running-tests:
     runs-on: ubuntu-latest
@@ -151,12 +125,9 @@ jobs:
     needs: unit-tests
     steps:
       - uses: actions/checkout@v4
-
-      - name: apt install
-        run: |
-          sudo apt update && \
-          sudo apt install -y libc6 libcurl4 libprotobuf32
-
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: long running tests
         uses: ./.github/actions/driver-tests
         with:
@@ -165,19 +136,7 @@ jobs:
           test_command: |
             export PYTHON_DRIVER=/tmp/python-driver/rethinkdb
             export MAX_JOBS=$(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
-            test/run --timeout 900 --jobs "${MAX_JOBS}" -H long '!disabled'
-
-      - name: compress test artifacts for upload
-        if: always()
-        shell: bash
-        run: tar -czf ${{ github.job }}.tar.gz test/results
-
-      - name: upload test artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ github.job }}.tar.gz
-          path: ${{ github.job }}.tar.gz
+            test/run --timeout 900 --jobs "${MAX_JOBS}" -o ${TEST_OUTPUT_DIR} -H long '!disabled'
 
   # Execute the test runner for polyglot tests.
   # NOTE: We are not running "language group" tests (like `py`, `rb`, or `js`) because
@@ -192,6 +151,9 @@ jobs:
       - long-running-tests
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
       - name: polyglot tests for python
         uses: ./.github/actions/driver-tests
         with:
@@ -199,18 +161,6 @@ jobs:
           driver_dist_dir: /tmp/python-driver/rethinkdb
           interpreter: py3.12
           test_target: polyglot
-
-      - name: compress test artifacts for upload
-        if: always()
-        shell: bash
-        run: tar -czf ${{ github.job }}.tar.gz test/rql_test/build
-
-      - name: upload test artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ github.job }}.tar.gz
-          path: ${{ github.job }}.tar.gz
 
   polyglot-tests-javascript:
     runs-on: ubuntu-latest
@@ -220,11 +170,12 @@ jobs:
       - long-running-tests
     steps:
       - uses: actions/checkout@v4
-      - name: install nvm and node
-        run: |
-          curl https://raw.githubusercontent.com/creationix/nvm/master/install.sh | bash
-          source $HOME/.nvm/nvm.sh
-          nvm install 5.12
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '16.14'
 
       - name: polyglot tests for javascript
         uses: ./.github/actions/driver-tests
@@ -236,22 +187,9 @@ jobs:
           #  When all tests are passing using this commit hash, update the hash to the latest and
           #  fix the newly raised issues.
           commit_hash: c717cb9e2bdab77b55b7a31a5d780ba293c5fadf
-          interpreter: js5
+          interpreter: js16.14
           test_target: polyglot
-          env_activate: source $HOME/.nvm/nvm.sh && nvm use 5.12
           install_command: npm install && npm run build
-
-      - name: compress test artifacts for upload
-        if: always()
-        shell: bash
-        run: tar -czf ${{ github.job }}.tar.gz test/rql_test/build
-
-      - name: upload test artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ github.job }}.tar.gz
-          path: ${{ github.job }}.tar.gz
 
   polyglot-tests-ruby:
     runs-on: ubuntu-latest
@@ -261,14 +199,12 @@ jobs:
       - long-running-tests
     steps:
       - uses: actions/checkout@v4
-      - name: install rvm and ruby
-        run: |
-          sudo apt update && DEBIAN_FRONTEND=noninteractive sudo apt install -y software-properties-common
-          sudo apt-add-repository -y ppa:rael-gc/rvm
-          sudo apt update && sudo apt install -y rvm
-          source /etc/profile.d/rvm.sh
-          rvm install 2.5 && rvm use 2.5
-          gem install bundler
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '2.7'
 
       - name: polyglot tests for ruby
         uses: ./.github/actions/driver-tests
@@ -277,19 +213,6 @@ jobs:
           driver_dist_dir: /tmp/driver/lib
           repo_url: https://github.com/rethinkdb/rethinkdb-ruby.git
           commit_hash: 25781763f1af4e85116c80fd0cc988927e9c6829
-          interpreter: rb2.5
+          interpreter: rb2.7
           test_target: polyglot
-          env_activate: source /etc/profile.d/rvm.sh && rvm use 2.5
-          install_command: bundle install && rake build
-
-      - name: compress test artifacts for upload
-        if: always()
-        shell: bash
-        run: tar -czf ${{ github.job }}.tar.gz test/rql_test/build
-
-      - name: upload test artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ github.job }}.tar.gz
-          path: ${{ github.job }}.tar.gz
+          install_command: bundle update --bundler && bundle install && rake build

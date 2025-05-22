@@ -2,10 +2,9 @@
 
 '''Tool to assemble and run the RQL language tests, including the polyglot yaml tests'''
 
-from __future__ import print_function
-
-import atexit, collections, copy, datetime, distutils.version, distutils.spawn, itertools, json, optparse, os
+import atexit, collections, copy, datetime, shutil, json, optparse, os
 import re, resource, shutil, signal, stat, string, subprocess, sys, tempfile, threading, time, traceback, warnings
+from packaging import version as packaging_version
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), os.pardir, "common"))
 import driver, parsePolyglot, test_exceptions, utils, http_support
@@ -184,19 +183,20 @@ class SrcLang(object):
         
         if self.interpreter_name_exe_names in (None, []):
             raise NotImplementedError('interpreter_name_exe_names is not implemented as required for the SrcLang subclass: %s' % self.__class__.__name__)
+
         if self.interpreter_env_name is None:
             raise NotImplementedError('interpreter_env_name is not implemented as required for the SrcLang subclass: %s' % self.__class__.__name__)
-        
+
         executablePath = os.getenv(self.interpreter_env_name)
         if executablePath is None:
             for name in self.interpreter_name_exe_names:
-                candidatePath = distutils.spawn.find_executable(name)
+                candidatePath = shutil.which(name)
                 if candidatePath is not None:
                     try:
                         self.interpreter_version = self.version_check(candidatePath)
                         executablePath = candidatePath
                         break
-                    except Exception:
+                    except Exception as exc:
                         pass
         else:
             self.interpreter_version = self.version_check(executablePath) # exception on failure
@@ -223,15 +223,15 @@ class SrcLang(object):
             raise test_exceptions.TestingFrameworkException(detail='Version of %s (%s) was below the minimum version %s' % (executablePath, targetVersion, self.minVersion))
         
         if self.maxVersion is not None and targetVersion > self.maxVersion:
-            raise test_exceptions.TestingFrameworkException(detail='Version of %s (%s) was above the maximum version %s for python2' % (executablePath, targetVersion, self.maxVersion))
+            raise test_exceptions.TestingFrameworkException(detail='Version of %s (%s) was above the maximum version %s' % (executablePath, targetVersion, self.maxVersion))
         
         return targetVersion
     
     @property
     def polyglot_language_header(self):
         if self.__polyglot_language_header is None:
-            with open(self._polyglot_language_header_path, 'rU') as headerFile:
-                self.__class__.__polyglot_language_header = headerFile.read().decode('utf-8')
+            with open(self._polyglot_language_header_path, 'r') as headerFile:
+                self.__class__.__polyglot_language_header = headerFile.read()
         return self.__polyglot_language_header
 
 class PyLang(SrcLang):
@@ -257,8 +257,8 @@ class PyLang(SrcLang):
         self.test_types = []
         self.interpreter_name_exe_names = []
         
-        self.minVersion = distutils.version.LooseVersion(version)
-        self.maxVersion = distutils.version.LooseVersion(version + '.999')
+        self.minVersion = packaging_version.Version(version)
+        self.maxVersion = packaging_version.Version(version + '.999')
         
         if version != '':
             lastVersion = None
@@ -284,7 +284,7 @@ class PyLang(SrcLang):
         if len(versionNumbers) != 1:
             raise test_exceptions.TestingFrameworkException(detail='Got multiple possible version numbers for %s' % executablePath)
         
-        return distutils.version.LooseVersion(str(versionNumbers[0]))
+        return packaging_version.Version(str(versionNumbers[0]))
 
 class JsLang(SrcLang):
     language_name = 'JavaScript'
@@ -314,8 +314,8 @@ class JsLang(SrcLang):
         self.test_types = []
         self.interpreter_name_exe_names = []
         
-        self.minVersion = distutils.version.LooseVersion(version)
-        self.maxVersion = distutils.version.LooseVersion(version + '.999')
+        self.minVersion = packaging_version.Version(version)
+        self.maxVersion = packaging_version.Version(version + '.999')
         
         if version != '':
             lastVersion = None
@@ -367,7 +367,7 @@ class JsLang(SrcLang):
             raise test_exceptions.TestingFrameworkException(detail='Unable to determine the version of %s' % executablePath)
         
         versionNumber = str(output.decode('utf-8')).lstrip('v').strip()
-        return distutils.version.LooseVersion(versionNumber)
+        return packaging_version.Version(versionNumber)
 
 class RbLang(SrcLang):
     language_name = 'Ruby'
@@ -394,8 +394,8 @@ class RbLang(SrcLang):
         self.test_types = []
         self.interpreter_name_exe_names = []
         
-        self.minVersion = distutils.version.LooseVersion(version)
-        self.maxVersion = distutils.version.LooseVersion(version + '.999')
+        self.minVersion = packaging_version.Version(version)
+        self.maxVersion = packaging_version.Version(version + '.999')
         
         if version != '':
             lastVersion = None
@@ -452,7 +452,7 @@ class RbLang(SrcLang):
             elif char == ':' and stateStack[-1] == '{':
                 
                 # check that to the right and left look good
-                validPreChars = tuple(string.letters)
+                validPreChars = tuple(string.ascii_letters)
                 validPostChars = validPreChars + tuple(string.digits) + tuple(levelChars.values()) + ('+', '-')
                 try:
                     # look at the preceding characters to see if this looks valid
@@ -472,7 +472,7 @@ class RbLang(SrcLang):
                             break # either a quotes string, a dict, or an array, all are valid
                         elif i >= len('nil') and ''.join(source[pos - len('nil'): pos]) == 'nil':
                             if i > len('nil') + 1:
-                                if source[pos - len('nil') - 1] in tuple(string.letters) + tuple(string.digits) + tuple('_'):
+                                if source[pos - len('nil') - 1] in tuple(string.ascii_letters) + tuple(string.digits) + tuple('_'):
                                     startedWord = True
                                     continue
                                 else:
@@ -517,8 +517,8 @@ class RbLang(SrcLang):
         if versionCheckProcess.returncode != 0:
             raise test_exceptions.TestingFrameworkException(detail='Unable to determine the version of %s' % executablePath)
         
-        versionNumber = str(output.decode('utf-8').split()[1]).strip()
-        return distutils.version.LooseVersion(versionNumber)
+        versionNumber = re.sub(r'p[0-9]+', '', str(output.decode('utf-8').split()[1]).strip())
+        return packaging_version.Version(versionNumber)
 
 class JrbLang(RbLang):
     language_name = 'JRuby'
@@ -531,8 +531,8 @@ class JrbLang(RbLang):
         self.test_types = []
         self.interpreter_name_exe_names = []
         
-        self.minVersion = distutils.version.LooseVersion(version)
-        self.maxVersion = distutils.version.LooseVersion(version + '.999')
+        self.minVersion = packaging_version.Version(version)
+        self.maxVersion = packaging_version.Version(version + '.999')
         
         if version != '':
             lastVersion = None
@@ -548,27 +548,17 @@ class JrbLang(RbLang):
         self.interpreter_name_exe_names.append('jruby')
 
 interpreters = {
-    'js':     [JsLang('5.12'), JsLang('16.14')],
-    'py':     [PyLang('2.7'), PyLang('3.6'), PyLang('3.8')],
-    'rb':     [RbLang('2.5'), RbLang('2.6'), RbLang('2.7'), JrbLang('9.2')],
-    'jrb':    [JrbLang('9.0')],
+    'py':     [PyLang('3.12')],
+    'py3.12': [PyLang('3.12')],
 
-    'js5':    [JsLang('5.12')],
-    'js16':    [JsLang('16.14')],
-    
-    'py3':    [PyLang('3.12')],
-    'py3.12':  [PyLang('3.12')],
-    
-    'py3':    [PyLang('3.6'), PyLang('3.8')],
-    'py3.6':  [PyLang('3.6')],
-    'py3.8':  [PyLang('3.8')],
-    
-    'rb2':    [RbLang('2.5'), RbLang('2.6'), RbLang('2.7'), JrbLang('9.2')],
-    'rb2.5':  [RbLang('2.5')],
-    'rb2.6':  [RbLang('2.6')],
+    'js':     [JsLang('16.14')],
+    'js16.14':[JsLang('16.14')],
+
+    'rb':     [RbLang('2.7')],
     'rb2.7':  [RbLang('2.7')],
-    
-    'jrb9.2': [JrbLang('9.2')]
+
+    'jrb':    [JrbLang('9.2')],
+    'jrb9.2': [JrbLang('9.2')],
 }
 
 # Abstracts a set of tests given in a single file
@@ -831,7 +821,7 @@ class TestGroup(object):
         
         # combine them, keeping any non-None entries from right
         returnDict = {}
-        for key in set(right.keys() + left.keys()): # should be the same, but...
+        for key in set(right.keys()).union(left.keys()):
             val = right.get(key)
             if val in (None, [], {}):
                 val = left.get(key)
@@ -1032,7 +1022,8 @@ def check_language(option, opt_str, value, parser):
             if language not in selectedValues:
                 selectedValues.append(language)
                 break # default is to only take one language from a group
-        except Exception:
+        except Exception as exc:
+            print(str(exc))
             continue
     
     if foundAny is False:
@@ -1356,7 +1347,7 @@ class YamlTest(Test):
 class MochaTest(Test):
     '''JavaScript tests run using mocha and mocha.runner'''
     
-    mochaPath = distutils.spawn.find_executable('mocha')
+    mochaPath = shutil.which('mocha')
     
     def __init__(self, name, path, driverLang=None, timeout=None, shards=1):
         assert self.mochaPath is not None, 'Mocha does not seem to be installed on this system'
@@ -1382,7 +1373,7 @@ class HttpbinTest(Test):
     '''Test that uses a httpbin target'''
     
     targetServer = None # shared
-    mochaPath = distutils.spawn.find_executable('mocha')
+    mochaPath = shutil.which('mocha')
     
     def __init__(self, name, path, driverLang=None, timeout=None, shards=1):
         self.shards = shards
@@ -1498,14 +1489,14 @@ def getTestList(rootPath, allowedLanguages, testFilters=None, shards=0):
                         warnings.warn('File uses both prefix and suffix `+` symbols in the language portion: %s' % filePath)
                         break
                     elif pre:
-                        preVersion = distutils.version.LooseVersion(version.replace('_', '.').lower() + '.99999')
+                        preVersion = packaging_version.Version(version.replace('_', '.').lower() + '.99999')
                         for language in (x for x in interpreters[lang] if x in allowedLanguages):
                             if language.interpreter_version <= preVersion:
                                 testLanguages.add(language)
                                 if single:
                                     break
                     elif post:
-                        postVersion = distutils.version.LooseVersion(version.replace('_', '.').lower())
+                        postVersion = packaging_version.Version(version.replace('_', '.').lower())
                         for language in (x for x in interpreters[lang] if x in allowedLanguages):
                             if language.interpreter_version >= postVersion:
                                 testLanguages.add(language)
@@ -2156,7 +2147,7 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
         
         # - reap dead worker threads
         for worker in copy.copy(workerThreads):
-            if not worker.isAlive():
+            if not worker.is_alive():
                 worker.join(.01) # should never timeout, but just in case
                 workerThreads.remove(worker)
         

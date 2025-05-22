@@ -118,7 +118,7 @@ class HttpTargetServer(object):
         
         # -- read port numbers
         
-        portRegex = re.compile('^\s+(?P<name>\w+).+:\s+(?P<port>\d+)\shttp\S+$')
+        portRegex = re.compile(r'^\s+(?P<name>\w+).+:\s+(?P<port>\d+)\shttp\S+$')
         
         deadline = startupTimeout + time.time()
         serverLines = utils.nonblocking_readline(self.__serverOutput)

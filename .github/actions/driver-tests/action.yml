@@ -32,6 +32,10 @@ inputs:
     description: Activate the environment for the interpreter if needed
     default: echo "no activate command set"
     required: true
+  test_output_dir:
+    description: Directory to store test output.
+    default: /tmp/test-results
+    required: false
   test_command:
     description: Test command to call
     default: |
@@ -39,7 +43,7 @@ inputs:
       export "${DRIVER_NAME^^}_DRIVER=${DRIVER_DIST_DIR}"
       export MAX_JOBS=$(python -c 'import multiprocessing; print(multiprocessing.cpu_count())')
       eval "${ENV_ACTIVATION_COMMAND}"
-      test/rql_test/test-runner --jobs "${MAX_JOBS}" --interpreter ${INTERPRETER} ${TEST_TARGET}
+      test/rql_test/test-runner --jobs "${MAX_JOBS}" --interpreter ${INTERPRETER} -o ${TEST_OUTPUT_DIR} ${TEST_TARGET} '!disabled'
     required: true
   test_target:
     description: Test target name, like "polyglot".
@@ -85,6 +89,7 @@ runs:
     - uses: ./.github/actions/tests
       with:
         command: ${{ inputs.test_command }}
+        test_output_dir: ${{ inputs.test_output_dir }}
       env:
         DEFAULT_PYTHON_DRIVER: /tmp/default-python-driver/rethinkdb
         DRIVER_NAME: ${{ inputs.driver_name }}

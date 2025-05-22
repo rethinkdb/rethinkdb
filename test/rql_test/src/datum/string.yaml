@@ -3,11 +3,7 @@ tests:
 
     - def:
         cd: japanese_hello = 'こんにちは'
-        # Python supports unicode strings with the u'' pattern, except 3.0-3.2
-        py: japanese_hello = u'こんにちは'
-        py3.0: japanese_hello = 'こんにちは'
-        py3.1: japanese_hello = 'こんにちは'
-        py3.2: japanese_hello = 'こんにちは'
+        py: japanese_hello = 'こんにちは'
 
     # Simple strings
     - cd:
@@ -24,21 +20,13 @@ tests:
     # Unicode
 
     - cd:
-      py:
-        cd: r.expr(u'str')
-        ot: u'str'
-      py3.0: r.expr('str')
-      py3.1: r.expr('str')
-      py3.2: r.expr('str')
+      py: r.expr('str')
       ot: 'str'
 
     - cd: r.expr(japanese_hello)
       ot:
        cd: 'こんにちは'
-       py: u'こんにちは'
-       py3.0: 'こんにちは'
-       py3.1: 'こんにちは'
-       py3.2: 'こんにちは'
+       py: 'こんにちは'
 
     - cd: r.expr('foo').type_of()
       ot: 'STRING'
@@ -77,24 +65,15 @@ tests:
     - cd: r.expr(japanese_hello).slice(1)
       ot:
         cd: 'んにちは'
-        py: u'んにちは'
-        py3.0: 'んにちは'
-        py3.1: 'んにちは'
-        py3.2: 'んにちは'
+        py: 'んにちは'
     - cd: r.expr(japanese_hello).slice(1,2)
       ot:
         cd: 'ん'
-        py: u'ん'
-        py3.0: 'ん'
-        py3.1: 'ん'
-        py3.2: 'ん'
+        py: 'ん'
     - cd: r.expr(japanese_hello).slice(-3)
       ot:
         cd: 'にちは'
-        py: u'にちは'
-        py3.0: 'にちは'
-        py3.1: 'にちは'
-        py3.2: 'にちは'
+        py: 'にちは'
 
     # This is how these edge cases are handled in Python.
     - cd: r.expr('').split()
@@ -281,21 +260,11 @@ tests:
       ot: "abc-def-ghj"
 
     # Same 3.0-3.2 caveats
-    - py:
-        cd: r.expr(u"f\u00e9oo").split("")
-        ot: [u"f", u"\u00e9", u"o", u"o"]
-      py3.0: r.expr("f\u00e9oo").split("")
-      py3.1: r.expr("f\u00e9oo").split("")
-      py3.2: r.expr("f\u00e9oo").split("")
+    - py: r.expr("f\u00e9oo").split("")
       cd: r.expr("f\u00e9oo").split("")
       ot: ["f", "\u00e9", "o", "o"]
 
-    - py:
-        cd: r.expr(u"fe\u0301oo").split("")
-        ot: [u"f", u"e\u0301", u"o", u"o"]
-      py3.0: r.expr("fe\u0301oo").split("")
-      py3.1: r.expr("fe\u0301oo").split("")
-      py3.2: r.expr("fe\u0301oo").split("")
+    - py: r.expr("fe\u0301oo").split("")
       cd: r.expr("fe\u0301oo").split("")
       ot: ["f", "e\u0301", "o", "o"]
 
@@ -303,12 +272,7 @@ tests:
 
     ## original set from previous work:
     - cd: r.expr("foo bar\tbaz\nquux\rfred\u000bbarney\u000cwilma").split()
-      py:
-        cd: r.expr(u"foo bar\tbaz\nquux\rfred\u000bbarney\u000cwilma").split()
-        ot: ["foo", "bar", "baz", "quux", "fred", "barney", "wilma"]
-      py3.0: r.expr("foo bar\tbaz\nquux\rfred\u000bbarney\u000cwilma").split()
-      py3.1: r.expr("foo bar\tbaz\nquux\rfred\u000bbarney\u000cwilma").split()
-      py3.2: r.expr("foo bar\tbaz\nquux\rfred\u000bbarney\u000cwilma").split()
+      py: r.expr("foo bar\tbaz\nquux\rfred\u000bbarney\u000cwilma").split()
       ot: ["foo", "bar", "baz", "quux", "fred", "barney", "wilma"]
 
     ## some specialized Unicode horrors:
@@ -319,11 +283,6 @@ tests:
     ## - U+2060 is a word joining zero width nonbreaking space and is NOT in any of the Z categories
     ## - U+2028 is a line separator and is in the Zl category
     ## - U+2029 is a paragraph separator and is in the Zp category
-    - py:
-        cd: r.expr(u"foo\u00a0bar\u2001baz\u2060quux\u2028fred\u2028barney\u2029wilma\u0085betty\u200b").split()
-        ot: ["foo", "bar", u"baz\u2060quux", "fred", "barney", "wilma", u"betty\u200b"]
-      py3.0: r.expr("foo\u00a0bar\u2001baz\u2060quux\u2028fred\u2028barney\u2029wilma\u0085betty\u200b").split()
-      py3.1: r.expr("foo\u00a0bar\u2001baz\u2060quux\u2028fred\u2028barney\u2029wilma\u0085betty\u200b").split()
-      py3.2: r.expr("foo\u00a0bar\u2001baz\u2060quux\u2028fred\u2028barney\u2029wilma\u0085betty\u200b").split()
+    - py: r.expr("foo\u00a0bar\u2001baz\u2060quux\u2028fred\u2028barney\u2029wilma\u0085betty\u200b").split()
       cd: r.expr("foo\u00a0bar\u2001baz\u2060quux\u2028fred\u2028barney\u2029wilma\u0085betty\u200b").split()
       ot: ["foo", "bar", "baz\u2060quux", "fred", "barney", "wilma", "betty\u200b"]

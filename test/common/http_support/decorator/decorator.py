@@ -57,7 +57,7 @@ else:
     def get_init(cls):
         return cls.__init__.__func__
 
-DEF = re.compile('\s*def\s*([_\w][_\w\d]*)\s*\(')
+DEF = re.compile(r'\s*def\s*([_\w][_\w\d]*)\s*\(')
 
 # basic functionality
 class FunctionMaker(object):

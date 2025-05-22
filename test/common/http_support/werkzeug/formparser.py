@@ -28,7 +28,7 @@ from werkzeug.http import parse_options_header
 _empty_string_iter = repeat('')
 
 #: a regular expression for multipart boundaries
-_multipart_boundary_re = re.compile('^[ -~]{0,200}[!-~]$')
+_multipart_boundary_re = re.compile(r'^[ -~]{0,200}[!-~]$')
 
 #: supported http encodings that are also available in python we support
 #: for multipart messages.

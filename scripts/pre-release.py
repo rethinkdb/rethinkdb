@@ -109,7 +109,7 @@ class Ref(SmartGetitem):
 
     @cache
     def notes_version(self, ref):
-        return re.match('# Release (.*?) ', self.git_show('NOTES.md')).groups()[0]
+        return re.match(r'# Release (.*?) ', self.git_show('NOTES.md')).groups()[0]
 
 def info(description, *args):
     print(description + ":", *args)

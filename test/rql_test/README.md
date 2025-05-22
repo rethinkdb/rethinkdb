@@ -124,11 +124,11 @@ The tests can be run for a specific language using the `-i`/`--interpreter` flag
 
 By default a single version of those languages are chosen based on what versions can be found. Specific interpreter versions can be chosen by adding the version number to the language suffix.
 
-* `./test-runner -i py3.12`
+* `./test-runner -i py`
 
 Multiple languages/language versions can be chosen simultaneously with multiple flags.
 
-* `./test-runner -i py3 -i rb`
+* `./test-runner -i py -i rb`
 
 ### Polyglot tests
 

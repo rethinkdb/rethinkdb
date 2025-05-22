@@ -421,9 +421,9 @@ class Process(object):
     options = None
     tags = None
     
-    logfilePortRegex = re.compile('Listening for (?P<type>intracluster|client driver|administrative HTTP) connections on port (?P<port>\d+)$')
-    logfileServerIDRegex = re.compile('Our server ID is (?P<uuid>\w{8}-\w{4}-\w{4}-\w{4}-\w{12})$')
-    logfileReadyRegex = re.compile('(Server|Proxy) ready, ("(?P<name>\w+)" )?((?P<uuid>(proxy-)?\w{8}-\w{4}-\w{4}-\w{4}-\w{12}))?$')
+    logfilePortRegex = re.compile(r'Listening for (?P<type>intracluster|client driver|administrative HTTP) connections on port (?P<port>\d+)$')
+    logfileServerIDRegex = re.compile(r'Our server ID is (?P<uuid>\w{8}-\w{4}-\w{4}-\w{4}-\w{12})$')
+    logfileReadyRegex = re.compile(r'(Server|Proxy) ready, ("(?P<name>\w+)" )?((?P<uuid>(proxy-)?\w{8}-\w{4}-\w{4}-\w{4}-\w{12}))?$')
     
     @staticmethod
     def genPath(name, path, extraLetters=3):

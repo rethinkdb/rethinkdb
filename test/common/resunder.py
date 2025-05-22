@@ -160,7 +160,7 @@ class ResunderDaemon(Daemon):
             try:
                 client, addr = listener.accept()
                 data = str(client.recv(1024))
-                matches = re.match("(block|unblock) (\d+) (\d+)$", data)
+                matches = re.match(r"(block|unblock) (\d+) (\d+)$", data)
                 if matches is not None:
                     operation = matches.group(1)
                     source_port = matches.group(2)

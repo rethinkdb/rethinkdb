@@ -35,8 +35,8 @@ def parseYAML(source):
                 print(message)
                 sys.stdout.flush()
     
-    commentLineRegex = re.compile('^\s*#')
-    yamlLineRegex = re.compile('^(?P<indent> *)((?P<itemMarker>- +)(?P<itemContent>.*)|((?P<key>[\w\.]+)(?P<keyExtra>: *))?(?P<content>.*))\s*$')
+    commentLineRegex = re.compile(r'^\s*#')
+    yamlLineRegex = re.compile(r'^(?P<indent> *)((?P<itemMarker>- +)(?P<itemContent>.*)|((?P<key>[\w\.]+)(?P<keyExtra>: *))?(?P<content>.*))\s*$')
     
     def parseYAML_inner(source, indent):
         returnItem = None
