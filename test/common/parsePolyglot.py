@@ -8,10 +8,6 @@ import os, re, sys
 
 printDebug = False
 
-try:
-    str
-except NameError:
-    str = str
 
 # ==
 

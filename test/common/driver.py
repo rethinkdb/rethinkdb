@@ -14,10 +14,6 @@ try:
     import _thread
 except ImportError:
     import _thread as thread
-try:
-    str
-except NameError:
-    str = str
 
 # == resunder support
 

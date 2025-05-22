@@ -6,9 +6,9 @@ import time
 import uuid
 
 try:
-	xrange
+	range
 except NameError:
-	xrange = range
+	range = range
 
 def gen_doc(size_doc, i):
     if size_doc == "small":

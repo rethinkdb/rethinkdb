@@ -18,10 +18,6 @@ try:
 except AttributeError:
     iteritems = lambda x: list(x.items())
     iterkeys = lambda x: list(x.keys())
-try:
-    str
-except NameError:
-    str = str
 
 import biplist
 from mac_alias import *

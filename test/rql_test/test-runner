@@ -457,7 +457,7 @@ class RbLang(SrcLang):
                 try:
                     # look at the preceding characters to see if this looks valid
                     startedWord = False
-                    for i in xrange(pos - 1, -1, -1):
+                    for i in range(pos - 1, -1, -1):
                         checkChar = source[i]
                         if checkChar in string.whitespace:
                             if startedWord:
@@ -489,7 +489,7 @@ class RbLang(SrcLang):
                             raise AssertionError()
                     
                     # look at the following characters to make sure that looks good as well
-                    for i in xrange(pos + 1, length):
+                    for i in range(pos + 1, length):
                         checkChar = source[i]
                         if checkChar in string.whitespace:
                             continue

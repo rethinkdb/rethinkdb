@@ -3,10 +3,6 @@
 
 import os, random, sys, time
 
-try:
-    xrange
-except NameError:
-    xrange = range
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import rdb_workload_common, vcoptparse, utils

@@ -9,10 +9,6 @@ try:
     iterkeys = lambda x: iter(x.keys())
 except AttributeError:
     iterkeys = lambda x: list(x.keys())
-try:
-    str
-except NameError:
-    str = str
 
 class BuddyError(Exception):
     pass

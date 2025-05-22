@@ -11,10 +11,6 @@ try:
     next
 except NameError:
     next = lambda x: x.__next__()
-try:
-    str
-except NameError:
-    str = str
 
 from . import buddy
 

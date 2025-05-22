@@ -3,10 +3,6 @@
 
 import itertools, os, sys, time
 
-try:
-    xrange
-except NameError:
-    xrange = range
 
 sys.path.append(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common'))
 import rdb_unittest, utils
@@ -101,8 +97,7 @@ class SquashBase(rdb_unittest.RdbTestCase):
         with utils.NextWithTimeout(query.run(self._feed_conn), stopOnEmpty=False) as feed:
             changes = min(self.records, self.limit)
             if self.multi:
-                changes = min(
-                    self.records * self._multi_len, self.limit)
+                changes = min(self.records * self._multi_len, self.limit)
 
             initial = []
             for x in range(changes):

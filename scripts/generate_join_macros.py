@@ -15,10 +15,6 @@ $ ../scripts/generate_join_macros.py > rpc/semilattice/joins/macros.hpp
 
 import sys
 
-try:
-    xrange
-except NameError:
-    xrange = range
 
 def help_generate_semilattice_joinable_macro(nfields, impl):
     print("#define RDB_%s_SEMILATTICE_JOINABLE_%d(type_t%s) \\" % \

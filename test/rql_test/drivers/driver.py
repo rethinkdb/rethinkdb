@@ -9,10 +9,6 @@ import driver, utils
 sys.path = stashedPath
 
 try:
-    str
-except NameError:
-    str = str
-try:
     int
 except NameError:
     long = int

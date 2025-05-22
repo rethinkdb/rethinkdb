@@ -7,10 +7,6 @@ try:
     int
 except NameError:
     long = int
-try:
-    str
-except NameError:
-    str = str
 
 import driver, utils
 

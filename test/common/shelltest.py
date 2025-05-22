@@ -1,5 +1,3 @@
-
-
 from os.path import abspath, join
 from subprocess import check_call, CalledProcessError
 from os import environ

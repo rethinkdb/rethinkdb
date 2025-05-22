@@ -4,10 +4,6 @@
 import unittest
 from driver import bag, compare, err, err_regex, partial, uuid
 
-try:
-    str
-except NameError:
-    str = str
 
 class PythonTestDriverTest(unittest.TestCase):
     

@@ -9,10 +9,6 @@ import socket, string, subprocess, sys, tempfile, threading, time, warnings
 
 import test_exceptions
 
-try:
-    str
-except NameError:
-    str = str
 
 # -- constants
 
@@ -207,7 +203,7 @@ def import_python_driver():
     
     # -- validate the built driver
     
-    if not all([os.path.isfile(os.path.join(driverPath, x)) for x in ['__init__.py', 'ast.py', 'docs.py']]):
+    if not all([os.path.isfile(os.path.join(driverPath, x)) for x in ['__init__.py', 'ast.py']]):
         raise ValueError('Invalid Python driver: %s' % driverPath)
     
     # -- load the driver
@@ -828,59 +824,66 @@ def getShardRanges(conn, table, db='test'):
     return ranges
 
 class NextWithTimeout(threading.Thread):
-    '''Constantly tries to fetch the next item on an changefeed'''
+    '''Constantly tries to fetch the next item on a changefeed.'''
     
     daemon = True
-    
-    feed = None
-    timeout = None
-    
-    keepRunning = True
-    latestResult = None
-    stopOnEmpty = None
+
+    def __init__(self, feed, timeout=5, stopOnEmpty=True):
+        self.feed = iter(feed)
+        self.timeout = timeout
+        self.stopOnEmpty = stopOnEmpty
+        
+        self.keepRunning = True
+        self.latestResult = None
+        self._cond = threading.Condition()
+        
+        super(NextWithTimeout, self).__init__()
+        self.daemon = True
+        self.start()
     
     def __enter__(self):
         return self
     
     def __exit__(self, exitType, value, traceback):
-        self.keepRunning = False
-    
-    def __init__(self, feed, timeout=5, stopOnEmpty=True):
-        self.feed = iter(feed)
-        self.timeout = timeout
-        self.stopOnEmpty = stopOnEmpty
-        super(NextWithTimeout, self).__init__()
-        self.start()
+        with self._cond:
+            self.keepRunning = False
+            self._cond.notify_all()
     
     def __iter__(self):
         return self
     
     def __next__(self):
         deadline = time.time() + self.timeout
-        while time.time() < deadline:
-            if self.latestResult is not None:
-                if isinstance(self.latestResult, Exception):
-                    raise self.latestResult
-                result = self.latestResult
-                self.latestResult = None
-                return result
-            time.sleep(.05)
-        else:
-            raise Exception('Timed out waiting %d seconds for next item' % self.timeout)
-    
-    def __next__(self):
-        return next(self)
+        with self._cond:
+            while self.latestResult is None:
+                remaining = deadline - time.time()
+                if remaining <= 0:
+                    raise Exception('Timed out waiting %d seconds for next item' % self.timeout)
+                self._cond.wait(timeout=remaining)
+            # when here, latestResult is not None
+            if isinstance(self.latestResult, Exception):
+                raise self.latestResult
+            result = self.latestResult
+            self.latestResult = None
+            return result
     
     def run(self):
         while self.keepRunning:
-            if self.latestResult is not None:
-                time.sleep(.1)
-                continue
+            with self._cond:
+                if self.latestResult is not None:
+                    # If a result is waiting to be picked up, let __next__ fetch it
+                    self._cond.wait(timeout=0.1)
+                    continue
             try:
-                self.latestResult = next(self.feed)
-                time.sleep(.05)
+                item = next(self.feed)
+                with self._cond:
+                    self.latestResult = item
+                    self._cond.notify_all()
+                time.sleep(0.05)
             except Exception as e:
-                self.latestResult = e
+                with self._cond:
+                    self.latestResult = e
+                    self._cond.notify_all()
                 if not self.stopOnEmpty:
                     self.keepRunning = False
 

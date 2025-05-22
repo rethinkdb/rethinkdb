@@ -49,7 +49,7 @@ if not PY2:
 else:
     chr = chr
     text_type = str
-    range_type = xrange
+    range_type = range
     string_types = (str, str)
 
     iterkeys = lambda d: iter(d.keys())

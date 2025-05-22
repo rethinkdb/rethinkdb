@@ -187,7 +187,7 @@ class Database(object):
         
         # Fill in empty extents with placeholders
         
-        for offset in xrange(0, max(self.extents.keys()) + 1, self.extent_size):
+        for offset in range(0, max(self.extents.keys()) + 1, self.extent_size):
             if offset not in self.extents:
                 self.add_extent(GoodChunk(offset, self.extent_size, "Unused Extent", UnusedExtent()))
     
@@ -294,7 +294,7 @@ class MetablockExtent(object):
         static_header = try_parse(db, offset, db.device_block_size, "Static Header", StaticHeader)
         
         metablocks = []
-        for o in xrange(db.device_block_size, db.extent_size, db.device_block_size):
+        for o in range(db.device_block_size, db.extent_size, db.device_block_size):
             metablocks.append(try_parse(db, offset + o, db.device_block_size, "Metablock", Metablock))
         
         return MetablockExtent(static_header, metablocks)
@@ -522,7 +522,7 @@ class LBASuperblock(object):
         _, offset = parse_constant("lbasuper")(db.block, offset)
         while offset % 16 != 0: offset += 1
         
-        for i in xrange(how_many_lba_extents):
+        for i in range(how_many_lba_extents):
         
             lba_extent_offset, offset = parse_off64_t(db.block, offset)
             how_many_pairs, offset = parse_int(db.block, offset)
@@ -555,7 +555,7 @@ class LBAExtent(object):
         
         pairs = []
         
-        for i in xrange(count):
+        for i in range(count):
             
             block_id, offset = parse_block_id(db.block, offset)
             block_offset, offset = parse_off64_t(db.block, offset)

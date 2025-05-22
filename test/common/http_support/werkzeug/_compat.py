@@ -60,7 +60,7 @@ if PY2:
         return cls
 
     
-    range_type = xrange
+    range_type = range
 
     from io import StringIO
     from io import StringIO as BytesIO

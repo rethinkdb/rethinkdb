@@ -75,10 +75,10 @@ def _items(mappingorseq):
     """Wrapper for efficient iteration over mappings represented by dicts
     or sequences::
 
-        >>> for k, v in _items((i, i*i) for i in xrange(5)):
+        >>> for k, v in _items((i, i*i) for i in range(5)):
         ...    assert k*k == v
 
-        >>> for k, v in _items(dict((i, i*i) for i in xrange(5))):
+        >>> for k, v in _items(dict((i, i*i) for i in range(5))):
         ...    assert k*k == v
 
     """
