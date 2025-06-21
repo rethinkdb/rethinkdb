@@ -451,9 +451,6 @@ class MultiGenerator(object):
         return self
 
     def __next__(self):
-        return next(self)
-
-    def __next__(self):
         # This is crafted to be predictable, imagine you have an initial set
         # [
         #     {u'new_val': {u'insert': True, u'multi': [44, -1], u'id': u'g-20'}},
