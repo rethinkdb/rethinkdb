@@ -119,5 +119,5 @@ void semilattice_join(versioned_t<T> *a, const versioned_t<T> &b) {
     }
 }
 
-#endif /* RPC_SEMILATTICE_JOINS_VERSIONED_HPP_ */
+#endif // RPC_SEMILATTICE_JOINS_VERSIONED_HPP_
 

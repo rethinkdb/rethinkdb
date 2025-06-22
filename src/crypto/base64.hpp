@@ -1,6 +1,6 @@
 // Copyright 2010-2016 RethinkDB, all rights reserved.
-#ifndef CRYPTO_BASE64_HPP
-#define CRYPTO_BASE64_HPP
+#ifndef CRYPTO_BASE64_HPP_
+#define CRYPTO_BASE64_HPP_
 
 #include <stddef.h>
 
@@ -29,4 +29,4 @@ inline std::string base64_encode(std::string const &string) {
 
 }  // namespace crypto
 
-#endif  // CRYPTO_BASE64_HPP
+#endif  // CRYPTO_BASE64_HPP_

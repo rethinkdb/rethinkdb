@@ -35,7 +35,7 @@ except NameError:
     pass
 
 
-HEADER = u'''\
+HEADER = '''\
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
   "http://www.w3.org/TR/html4/loose.dtd">
 <html>
@@ -58,7 +58,7 @@ HEADER = u'''\
   <body>
     <div class="debugger">
 '''
-FOOTER = u'''\
+FOOTER = '''\
       <div class="footer">
         Brought to you by <strong class="arthur">DON'T PANIC</strong>, your
         friendly Werkzeug powered traceback interpreter.
@@ -68,7 +68,7 @@ FOOTER = u'''\
 </html>
 '''
 
-PAGE_HTML = HEADER + u'''\
+PAGE_HTML = HEADER + '''\
 <h1>%(exception_type)s</h1>
 <div class="detail">
   <p class="errormsg">%(exception)s</p>
@@ -102,7 +102,7 @@ PAGE_HTML = HEADER + u'''\
 -->
 '''
 
-CONSOLE_HTML = HEADER + u'''\
+CONSOLE_HTML = HEADER + '''\
 <h1>Interactive Console</h1>
 <div class="explanation">
 In this console you can execute Python expressions in the context of the
@@ -111,7 +111,7 @@ application.  The initial namespace was created by the debugger automatically.
 <div class="console"><div class="inner">The Console requires JavaScript.</div></div>
 ''' + FOOTER
 
-SUMMARY_HTML = u'''\
+SUMMARY_HTML = '''\
 <div class="%(classes)s">
   %(title)s
   <ul>%(frames)s</ul>
@@ -119,7 +119,7 @@ SUMMARY_HTML = u'''\
 </div>
 '''
 
-FRAME_HTML = u'''\
+FRAME_HTML = '''\
 <div class="frame" id="frame-%(id)d">
   <h4>File <cite class="filename">"%(filename)s"</cite>,
       line <em class="line">%(lineno)s</em>,
@@ -128,9 +128,9 @@ FRAME_HTML = u'''\
 </div>
 '''
 
-SOURCE_TABLE_HTML = u'<table class=source>%s</table>'
+SOURCE_TABLE_HTML = '<table class=source>%s</table>'
 
-SOURCE_LINE_HTML = u'''\
+SOURCE_LINE_HTML = '''\
 <tr class="%(classes)s">
   <td class=lineno>%(lineno)s</td>
   <td>%(code)s</td>
@@ -189,7 +189,7 @@ class Line(object):
 
     def render(self):
         return SOURCE_LINE_HTML % {
-            'classes':      u' '.join(self.classes),
+            'classes':      ' '.join(self.classes),
             'lineno':       self.lineno,
             'code':         escape(self.code)
         }
@@ -267,7 +267,7 @@ class Traceback(object):
         """Log the ASCII traceback into a file object."""
         if logfile is None:
             logfile = sys.stderr
-        tb = self.plaintext.rstrip() + u'\n'
+        tb = self.plaintext.rstrip() + '\n'
         if PY2:
             tb.encode('utf-8', 'replace')
         logfile.write(tb)
@@ -284,7 +284,7 @@ class Traceback(object):
             }
         }).encode('utf-8')
         try:
-            from urllib2 import urlopen
+            from urllib.request import urlopen
         except ImportError:
             from urllib.request import urlopen
         rv = urlopen('https://api.github.com/gists', data=data)
@@ -305,25 +305,25 @@ class Traceback(object):
 
         if include_title:
             if self.is_syntax_error:
-                title = u'Syntax Error'
+                title = 'Syntax Error'
             else:
-                title = u'Traceback <em>(most recent call last)</em>:'
+                title = 'Traceback <em>(most recent call last)</em>:'
 
         for frame in self.frames:
-            frames.append(u'<li%s>%s' % (
-                frame.info and u' title="%s"' % escape(frame.info) or u'',
+            frames.append('<li%s>%s' % (
+                frame.info and ' title="%s"' % escape(frame.info) or '',
                 frame.render()
             ))
 
         if self.is_syntax_error:
-            description_wrapper = u'<pre class=syntaxerror>%s</pre>'
+            description_wrapper = '<pre class=syntaxerror>%s</pre>'
         else:
-            description_wrapper = u'<blockquote>%s</blockquote>'
+            description_wrapper = '<blockquote>%s</blockquote>'
 
         return SUMMARY_HTML % {
-            'classes':      u' '.join(classes),
-            'title':        title and u'<h3>%s</h3>' % title or u'',
-            'frames':       u'\n'.join(frames),
+            'classes':      ' '.join(classes),
+            'title':        title and '<h3>%s</h3>' % title or '',
+            'frames':       '\n'.join(frames),
             'description':  description_wrapper % escape(self.exception)
         }
 
@@ -345,18 +345,18 @@ class Traceback(object):
 
     def generate_plaintext_traceback(self):
         """Like the plaintext attribute but returns a generator"""
-        yield u'Traceback (most recent call last):'
+        yield 'Traceback (most recent call last):'
         for frame in self.frames:
-            yield u'  File "%s", line %s, in %s' % (
+            yield '  File "%s", line %s, in %s' % (
                 frame.filename,
                 frame.lineno,
                 frame.function_name
             )
-            yield u'    ' + frame.current_line.strip()
+            yield '    ' + frame.current_line.strip()
         yield self.exception
 
     def plaintext(self):
-        return u'\n'.join(self.generate_plaintext_traceback())
+        return '\n'.join(self.generate_plaintext_traceback())
     plaintext = cached_property(plaintext)
 
     id = property(lambda x: id(x))
@@ -431,13 +431,13 @@ class Frame(object):
 
     def render_source(self):
         """Render the sourcecode."""
-        return SOURCE_TABLE_HTML % u'\n'.join(line.render() for line in
+        return SOURCE_TABLE_HTML % '\n'.join(line.render() for line in
                                               self.get_annotated_lines())
 
     def eval(self, code, mode='single'):
         """Evaluate code in the context of the frame."""
         if isinstance(code, string_types):
-            if PY2 and isinstance(code, unicode):
+            if PY2 and isinstance(code, str):
                 code = UTF8_COOKIE + code.encode('utf-8')
             code = compile(code, '<interactive>', mode)
         return eval(code, self.globals, self.locals)
@@ -499,7 +499,7 @@ class Frame(object):
         try:
             return self.sourcelines[self.lineno - 1]
         except IndexError:
-            return u''
+            return ''
 
     @cached_property
     def console(self):

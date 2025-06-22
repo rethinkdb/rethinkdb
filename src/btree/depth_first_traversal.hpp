@@ -155,4 +155,4 @@ continue_bool_t btree_depth_first_traversal(
     release_superblock_t release_superblock,
     signal_t *interruptor);
 
-#endif /* BTREE_DEPTH_FIRST_TRAVERSAL_HPP_ */
+#endif // BTREE_DEPTH_FIRST_TRAVERSAL_HPP_

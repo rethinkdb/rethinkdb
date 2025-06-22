@@ -71,7 +71,7 @@ class cond_t : public document_t {
 public:
     std::string small, cont, tail;
 
-    cond_t(const std::string l, const std::string r, const std::string t="")
+    cond_t(const std::string l, const std::string r, const std::string t = "")
         : small(std::move(l)), cont(std::move(r)), tail(std::move(t)) {}
     ~cond_t() override {}
 

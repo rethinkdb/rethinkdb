@@ -22,24 +22,24 @@ for i in range(0, opts["count"]):
     pairs.append((key, value))
 
 with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
-    print "Creating test data"
+    print("Creating test data")
     for i, (key, value) in enumerate(pairs):
         if (i + 1) % print_interval == 0:
             res = table.insert({'id':key, 'val': value}).run(conn)
             assert res['inserted'] == 1
-            print i + 1,
+            print(i + 1, end=' ')
         else:
             table.insert({'id':key, 'val': value}).run(conn, noreply=True)
     conn.noreply_wait()
-    print
-    print "Testing rget"
+    print()
+    print("Testing rget")
     res = iter(table.order_by(index='id').run(conn))
     for i, (key, value) in enumerate(sorted(pairs)):
-        returned = res.next()
+        returned = next(res)
         expected = {'id': key, 'val': value}
         if returned != expected:
             raise Exception('Excepcted %s but got %s' % (expected, returned))
         if (i + 1) % print_interval == 0:
-            print i + 1,
+            print(i + 1, end=' ')
             sys.stdout.flush()
-    print
+    print()

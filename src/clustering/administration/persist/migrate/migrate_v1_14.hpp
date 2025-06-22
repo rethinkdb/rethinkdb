@@ -12,4 +12,4 @@ metadata_v1_16::cluster_semilattice_metadata_t migrate_cluster_metadata_v1_14_to
 metadata_v1_16::auth_semilattice_metadata_t migrate_auth_metadata_v1_14_to_v1_16(
     const metadata_v1_14::auth_semilattice_metadata_t &old_metadata);
 
-#endif /* CLUSTERING_ADMINISTRATION_PERSIST_MIGRATE_MIGRATE_V1_14_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_PERSIST_MIGRATE_MIGRATE_V1_14_HPP_

@@ -65,4 +65,4 @@ private:
     uint8_t data_[256];
 };
 
-#endif /* UNITTEST_BTREE_UTILS_HPP_ */
+#endif // UNITTEST_BTREE_UTILS_HPP_

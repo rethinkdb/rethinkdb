@@ -43,5 +43,5 @@ public:
     virtual store_t *get_underlying_store(size_t i) = 0;
 };
 
-#endif /* CLUSTERING_TABLE_CONTRACT_CPU_SHARDING_HPP_ */
+#endif // CLUSTERING_TABLE_CONTRACT_CPU_SHARDING_HPP_
 

@@ -75,5 +75,5 @@ void get_table_status(
     table_status_t *status_out)
     THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t);
 
-#endif /* CLUSTERING_ADMINISTRATION_TABLES_CALCULATE_STATUS_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_TABLES_CALCULATE_STATUS_HPP_
 

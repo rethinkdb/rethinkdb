@@ -205,5 +205,5 @@ private:
 
 #include "concurrency/watchable_map.tcc"
 
-#endif   /* CONCURRENCY_WATCHABLE_MAP_HPP_ */
+#endif  // CONCURRENCY_WATCHABLE_MAP_HPP_
 

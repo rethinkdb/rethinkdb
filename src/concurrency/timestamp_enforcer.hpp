@@ -38,5 +38,5 @@ private:
     std::multimap<state_timestamp_t, cond_t *> waiters;
 };
 
-#endif /* CONCURRENCY_TIMESTAMP_ENFORCER_HPP_ */
+#endif // CONCURRENCY_TIMESTAMP_ENFORCER_HPP_
 

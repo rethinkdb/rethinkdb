@@ -94,5 +94,5 @@ protected:
     region_t const region;
 };
 
-#endif /* CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_HPP_ */
+#endif // CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_HPP_
 

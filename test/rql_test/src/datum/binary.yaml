@@ -247,21 +247,12 @@ tests:
 
     # Test encodings
     - py:
-        cd: r.binary(u'イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'.encode('utf-8'))
-        ot: u'イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'.encode('utf-8')
-      py3:
         cd: r.binary(str('イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム').encode('utf-8'))
         ot: str('イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム').encode('utf-8')
     - py:
-        cd: r.binary(u'ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏ'.encode('utf-16'))
-        ot: u'ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏ'.encode('utf-16')
-      py3:
         cd: r.binary(str('ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏ').encode('utf-16'))
         ot: str('ƀƁƂƃƄƅƆƇƈƉƊƋƌƍƎƏ').encode('utf-16')
     - py:
-        cd: r.binary(u'lorem ipsum'.encode('ascii'))
-        ot: u'lorem ipsum'.encode('ascii')
-      py3:
         cd: r.binary(str('lorem ipsum').encode('ascii'))
         ot: str('lorem ipsum').encode('ascii')
 
@@ -269,15 +260,9 @@ tests:
     - py: r.binary(b'foo').coerce_to('string')
       ot: 'foo'
     - py:
-        cd: r.binary(u'イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'.encode('utf-8')).coerce_to('string')
-        ot: u'イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム'
-      py3:
         cd: r.binary(str('イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム').encode('utf-8')).coerce_to('string')
         ot: str('イロハニホヘト チリヌルヲ ワカヨタレソ ツネナラム')
     - py:
-        cd: r.binary(u'lorem ipsum'.encode('ascii')).coerce_to('string')
-        ot: u'lorem ipsum'
-      py3:
         cd: r.binary(str('lorem ipsum').encode('ascii')).coerce_to('string')
         ot: str('lorem ipsum')
 

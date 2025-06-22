@@ -4,7 +4,7 @@ tests:
 
     # Set up some data
 
-    - py: tbl.insert([{'id':i} for i in xrange(100)])
+    - py: tbl.insert([{'id':i} for i in range(100)])
       js: |
         tbl.insert(function(){
             var res = []

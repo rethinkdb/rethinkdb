@@ -3,10 +3,6 @@
 
 import os, random, sys, time
 
-try:
-    xrange
-except NameError:
-    xrange = range
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), os.path.pardir, 'common')))
 import rdb_workload_common, vcoptparse, utils
@@ -31,9 +27,9 @@ with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
         
         keys = []
         if opts["sequential"]:
-            keys = xrange(opts["num_rows"])
+            keys = range(opts["num_rows"])
         else:
-            keys = [x for x in xrange(opts["num_rows"])]
+            keys = [x for x in range(opts["num_rows"])]
             random.shuffle(keys)
         
         # - open key file if not in 'wr' mode (pwd is the test output folder)

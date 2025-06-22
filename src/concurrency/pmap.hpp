@@ -125,4 +125,4 @@ void throttled_pmap(int64_t count, const callable_t &c, int64_t capacity) {
     throttled_pmap(0, count, c, capacity);
 }
 
-#endif /* CONCURRENCY_PMAP_HPP_ */
+#endif // CONCURRENCY_PMAP_HPP_

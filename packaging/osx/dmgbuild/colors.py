@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+
 
 import re
 import math
@@ -251,10 +251,10 @@ _x11_colors = {
     'yellowgreen': (154, 205, 50)
     }
     
-_ws_re = re.compile('\s+')
-_token_re = re.compile('[A-Za-z_][A-Za-z0-9_]*')
-_hex_re = re.compile('#([0-9a-f]{3}(?:[0-9a-f]{3}))')
-_number_re = re.compile('[0-9]*(\.[0-9]*)')
+_ws_re = re.compile(r'\s+')
+_token_re = re.compile(r'[A-Za-z_][A-Za-z0-9_]*')
+_hex_re = re.compile(r'#([0-9a-f]{3}(?:[0-9a-f]{3}))')
+_number_re = re.compile(r'[0-9]*(\.[0-9]*)')
 
 class ColorParser (object):
     def __init__(self, s):
@@ -485,8 +485,8 @@ class ColorParser (object):
             raise ValueError('bad angle unit "%s"' % tok)
         return n
 
-_color_re = re.compile('\s*(#|rgb|hsl|hwb|cmyk|gray|grey|%s)'
-                       % '|'.join(_x11_colors.keys()))
+_color_re = re.compile(r'\s*(#|rgb|hsl|hwb|cmyk|gray|grey|%s)'
+                       % '|'.join(list(_x11_colors.keys())))
 def isAColor(s):
     return _color_re.match(s)
 

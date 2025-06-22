@@ -138,4 +138,4 @@ private:
     DISABLE_COPYING(http_runner_t);
 };
 
-#endif /* EXTPROC_HTTP_RUNNER_HPP_ */
+#endif // EXTPROC_HTTP_RUNNER_HPP_

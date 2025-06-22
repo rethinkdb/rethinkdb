@@ -183,4 +183,4 @@ RDB_DECLARE_SERIALIZABLE(table_config_and_shards_change_t::sindex_create_t);
 RDB_DECLARE_SERIALIZABLE(table_config_and_shards_change_t::sindex_drop_t);
 RDB_DECLARE_SERIALIZABLE(table_config_and_shards_change_t::sindex_rename_t);
 
-#endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_METADATA_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_TABLES_TABLE_METADATA_HPP_

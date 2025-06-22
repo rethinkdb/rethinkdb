@@ -18,18 +18,18 @@ with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
 
     table.insert({'id': key, 'val': val_chunks[0]}).run(conn)
 
-    for i in xrange(1, opts["n_appends"]):
+    for i in range(1, opts["n_appends"]):
         response = table.get(key).update(lambda row: {'val': row['val'].add(val_chunks[i % 3])}, durability="soft").run(conn)
 
     # Read the reply from the last command.
     if (response['replaced'] != 1):
         raise ValueError("Expecting { replaced: 1 } in reply.")
 
-    expected_val = ''.join([val_chunks[i % 3] for i in xrange(opts["n_appends"])])
+    expected_val = ''.join([val_chunks[i % 3] for i in range(opts["n_appends"])])
 
     actual_val = table.get(key)['val'].run(conn)
     
     if (expected_val != actual_val):
-        print "Expected val: %s" % expected_val
-        print "Incorrect val (len=%d): %s" % (len(actual_val), actual_val)
+        print("Expected val: %s" % expected_val)
+        print("Incorrect val (len=%d): %s" % (len(actual_val), actual_val))
         raise ValueError("Incorrect value.")

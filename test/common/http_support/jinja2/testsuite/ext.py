@@ -58,14 +58,14 @@ newstyle_i18n_templates = {
 
 languages = {
     'de': {
-        'missing':                      u'fehlend',
-        'watch out':                    u'pass auf',
-        'One user online':              u'Ein Benutzer online',
-        '%(user_count)s users online':  u'%(user_count)s Benutzer online',
-        'User: %(num)s':                u'Benutzer: %(num)s',
-        'User: %(count)s':              u'Benutzer: %(count)s',
-        '%(num)s apple':                u'%(num)s Apfel',
-        '%(num)s apples':               u'%(num)s Äpfel'
+        'missing':                      'fehlend',
+        'watch out':                    'pass auf',
+        'One user online':              'Ein Benutzer online',
+        '%(user_count)s users online':  '%(user_count)s Benutzer online',
+        'User: %(num)s':                'Benutzer: %(num)s',
+        'User: %(count)s':              'Benutzer: %(count)s',
+        '%(num)s apple':                '%(num)s Apfel',
+        '%(num)s apples':               '%(num)s Äpfel'
     }
 }
 
@@ -282,9 +282,9 @@ class InternationalizationTestCase(JinjaTestCase):
         {% trans %}{{ users }} user{% pluralize %}{{ users }} users{% endtrans %}
         '''.encode('ascii')) # make python 3 happy
         assert list(babel_extract(source, ('gettext', 'ngettext', '_'), [], {})) == [
-            (2, 'gettext', u'Hello World', []),
-            (3, 'gettext', u'Hello World', []),
-            (4, 'ngettext', (u'%(users)s user', u'%(users)s users', None), [])
+            (2, 'gettext', 'Hello World', []),
+            (3, 'gettext', 'Hello World', []),
+            (4, 'ngettext', ('%(users)s user', '%(users)s users', None), [])
         ]
 
     def test_comment_extract(self):
@@ -297,9 +297,9 @@ class InternationalizationTestCase(JinjaTestCase):
         {% trans %}{{ users }} user{% pluralize %}{{ users }} users{% endtrans %}
         '''.encode('utf-8')) # make python 3 happy
         assert list(babel_extract(source, ('gettext', 'ngettext', '_'), ['trans', ':'], {})) == [
-            (3, 'gettext', u'Hello World', ['first']),
-            (4, 'gettext', u'Hello World', ['second']),
-            (6, 'ngettext', (u'%(users)s user', u'%(users)s users', None), ['third'])
+            (3, 'gettext', 'Hello World', ['first']),
+            (4, 'gettext', 'Hello World', ['second']),
+            (6, 'ngettext', ('%(users)s user', '%(users)s users', None), ['third'])
         ]
 
 
@@ -328,12 +328,12 @@ class NewstyleInternationalizationTestCase(JinjaTestCase):
     def test_newstyle_plural(self):
         tmpl = newstyle_i18n_env.get_template('ngettext.html')
         assert tmpl.render(LANGUAGE='de', apples=1) == '1 Apfel'
-        assert tmpl.render(LANGUAGE='de', apples=5) == u'5 Äpfel'
+        assert tmpl.render(LANGUAGE='de', apples=5) == '5 Äpfel'
 
     def test_autoescape_support(self):
         env = Environment(extensions=['jinja2.ext.autoescape',
                                       'jinja2.ext.i18n'])
-        env.install_gettext_callables(lambda x: u'<strong>Wert: %(name)s</strong>',
+        env.install_gettext_callables(lambda x: '<strong>Wert: %(name)s</strong>',
                                       lambda s, p, n: s, newstyle=True)
         t = env.from_string('{% autoescape ae %}{{ gettext("foo", name='
                             '"<test>") }}{% endautoescape %}')
@@ -342,7 +342,7 @@ class NewstyleInternationalizationTestCase(JinjaTestCase):
 
     def test_num_used_twice(self):
         tmpl = newstyle_i18n_env.get_template('ngettext_long.html')
-        assert tmpl.render(apples=5, LANGUAGE='de') == u'5 Äpfel'
+        assert tmpl.render(apples=5, LANGUAGE='de') == '5 Äpfel'
 
     def test_num_called_num(self):
         source = newstyle_i18n_env.compile('''
@@ -386,7 +386,7 @@ class AutoEscapeTestCase(JinjaTestCase):
             {{ "<HelloWorld>" }}
         ''')
         assert tmpl.render().split() == \
-            [u'&lt;HelloWorld&gt;', u'<HelloWorld>', u'&lt;HelloWorld&gt;']
+            ['&lt;HelloWorld&gt;', '<HelloWorld>', '&lt;HelloWorld&gt;']
 
         env = Environment(extensions=['jinja2.ext.autoescape'],
                           autoescape=False)
@@ -398,7 +398,7 @@ class AutoEscapeTestCase(JinjaTestCase):
             {{ "<HelloWorld>" }}
         ''')
         assert tmpl.render().split() == \
-            [u'<HelloWorld>', u'&lt;HelloWorld&gt;', u'<HelloWorld>']
+            ['<HelloWorld>', '&lt;HelloWorld&gt;', '<HelloWorld>']
 
     def test_nonvolatile(self):
         env = Environment(extensions=['jinja2.ext.autoescape'],

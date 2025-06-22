@@ -70,5 +70,5 @@ private:
     replica_bcard_t::synchronize_mailbox_t synchronize_mailbox;
 };
 
-#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_REPLICA_HPP_ */
+#endif // CLUSTERING_IMMEDIATE_CONSISTENCY_REPLICA_HPP_
 

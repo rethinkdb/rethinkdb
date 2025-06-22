@@ -24,10 +24,10 @@ parser.add_argument('-r','--output-results', nargs='?', dest='result_output_dire
 args = parser.parse_args()
 
 def print_available_tests():
-    print 'Available tests:'
-    print '\t- all: run all of the following tests'
+    print('Available tests:')
+    print('\t- all: run all of the following tests')
     for test in tests:
-        print '\t- ' + test
+        print('\t- ' + test)
 
 if args.list_tests:
     print_available_tests()
@@ -35,7 +35,7 @@ if args.list_tests:
 
 if len(args.tests) < 1:
     parser.print_usage()
-    print '\nNo test specified.',
+    print('\nNo test specified.', end=' ')
     print_available_tests()
     exit(1)
 
@@ -54,7 +54,7 @@ for test_name in test_list:
     try:
         with open(casper_script) as f: pass
     except IOError as e:
-        print "No test script found for CasperJS test '%s'." % test_name
+        print("No test script found for CasperJS test '%s'." % test_name)
         continue
 
     # Build command with arguments for casperjs test
@@ -70,7 +70,7 @@ for test_name in test_list:
     stdout = process.stdout.readlines()
     for i, line in enumerate(stdout):
         cprint('[%s]' % test_name, attrs=['bold'], end=' ')
-        print line.rstrip('\n')
+        print(line.rstrip('\n'))
 
     # If the option to save results was specified, save stdout to a file
     if args.result_output_directory:
@@ -88,7 +88,7 @@ for test_name in test_list:
     if process.returncode == 0:
         successful_tests += 1
 
-    print
+    print()
 
 # Print test suite summary
 cprint(" %d of %d tests ran successfully. " % (successful_tests, len(test_list)), attrs=['reverse'])

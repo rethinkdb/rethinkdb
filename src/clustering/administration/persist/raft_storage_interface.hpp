@@ -86,5 +86,5 @@ private:
     raft_persistent_state_t<table_raft_state_t> state;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_PERSIST_RAFT_STORAGE_INTERFACE_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_PERSIST_RAFT_STORAGE_INTERFACE_HPP_
 

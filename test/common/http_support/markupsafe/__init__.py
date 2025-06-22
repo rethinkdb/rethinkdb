@@ -12,7 +12,7 @@ import re
 import string
 from collections import Mapping
 from markupsafe._compat import text_type, string_types, int_types, \
-     unichr, iteritems, PY2
+     chr, iteritems, PY2
 
 
 __all__ = ['Markup', 'soft_unicode', 'escape', 'escape_silent']
@@ -67,7 +67,7 @@ class Markup(text_type):
     """
     __slots__ = ()
 
-    def __new__(cls, base=u'', encoding=None, errors='strict'):
+    def __new__(cls, base='', encoding=None, errors='strict'):
         if hasattr(base, '__html__'):
             base = base.__html__()
         if encoding is None:
@@ -107,7 +107,7 @@ class Markup(text_type):
         )
 
     def join(self, seq):
-        return self.__class__(text_type.join(self, map(self.escape, seq)))
+        return self.__class__(text_type.join(self, list(map(self.escape, seq))))
     join.__doc__ = text_type.join.__doc__
 
     def split(self, *args, **kwargs):
@@ -134,15 +134,15 @@ class Markup(text_type):
         def handle_match(m):
             name = m.group(1)
             if name in HTML_ENTITIES:
-                return unichr(HTML_ENTITIES[name])
+                return chr(HTML_ENTITIES[name])
             try:
                 if name[:2] in ('#x', '#X'):
-                    return unichr(int(name[2:], 16))
+                    return chr(int(name[2:], 16))
                 elif name.startswith('#'):
-                    return unichr(int(name[1:]))
+                    return chr(int(name[1:]))
             except ValueError:
                 pass
-            return u''
+            return ''
         return _entity_re.sub(handle_match, text_type(self))
 
     def striptags(self):
@@ -153,7 +153,7 @@ class Markup(text_type):
         >>> Markup("Main &raquo;  <em>About</em>").striptags()
         u'Main \xbb About'
         """
-        stripped = u' '.join(_striptags_re.sub('', self).split())
+        stripped = ' '.join(_striptags_re.sub('', self).split())
         return Markup(stripped).unescape()
 
     @classmethod

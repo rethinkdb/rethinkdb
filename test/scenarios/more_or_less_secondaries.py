@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
-from __future__ import print_function
+
 
 import os, sys, time
 

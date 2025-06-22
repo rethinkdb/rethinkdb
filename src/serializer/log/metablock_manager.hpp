@@ -159,4 +159,4 @@ private:
     DISABLE_COPYING(metablock_manager_t);
 };
 
-#endif /* SERIALIZER_LOG_METABLOCK_MANAGER_HPP_ */
+#endif // SERIALIZER_LOG_METABLOCK_MANAGER_HPP_

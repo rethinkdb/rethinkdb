@@ -72,7 +72,7 @@ class LoaderTestCase(JinjaTestCase):
         changed = False
         class TestLoader(loaders.BaseLoader):
             def get_source(self, environment, template):
-                return u'foo', None, lambda: not changed
+                return 'foo', None, lambda: not changed
         env = Environment(loader=TestLoader(), cache_size=-1)
         tmpl = env.get_template('template')
         assert tmpl is env.get_template('template')

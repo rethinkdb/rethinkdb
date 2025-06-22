@@ -1,6 +1,6 @@
 // Copyright 2010-2016 RethinkDB, all rights reserved.
-#ifndef CRYPTO_INITIALIZATION_GUARD_HPP
-#define CRYPTO_INITIALIZATION_GUARD_HPP
+#ifndef CRYPTO_INITIALIZATION_GUARD_HPP_
+#define CRYPTO_INITIALIZATION_GUARD_HPP_
 
 namespace crypto {
 
@@ -12,4 +12,4 @@ public:
 
 }  // namespace crypto
 
-#endif  // CRYPTO_INITIALIZATION_GUARD_HPP
+#endif // CRYPTO_INITIALIZATION_GUARD_HPP_

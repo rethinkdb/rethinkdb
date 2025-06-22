@@ -1,6 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_AUTH_USER_HPP
-#define CLUSTERING_ADMINISTRATION_AUTH_USER_HPP
+#ifndef CLUSTERING_ADMINISTRATION_AUTH_USER_HPP_
+#define CLUSTERING_ADMINISTRATION_AUTH_USER_HPP_
 
 #include <map>
 #include <string>
@@ -77,4 +77,4 @@ private:
 
 }  // namespace auth
 
-#endif  // CLUSTERING_ADMINISTRATION_AUTH_USER_HPP
+#endif  // CLUSTERING_ADMINISTRATION_AUTH_USER_HPP_

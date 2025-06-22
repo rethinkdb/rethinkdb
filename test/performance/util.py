@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 import os
 import random
@@ -6,9 +6,9 @@ import time
 import uuid
 
 try:
-	xrange
+	range
 except NameError:
-	xrange = range
+	range = range
 
 def gen_doc(size_doc, i):
     if size_doc == "small":
@@ -26,8 +26,8 @@ def gen_doc(size_doc, i):
             "float": i / 3.,
             "boolean": (random.random() > 0.5),
             "null": None,
-            "array_num": [int(random.random() * 10000) for i in xrange(int(random.random() * 100))],
-            "array_str": [str(uuid.uuid1()) for i in xrange(int(random.random() * 100))],
+            "array_num": [int(random.random() * 10000) for i in range(int(random.random() * 100))],
+            "array_str": [str(uuid.uuid1()) for i in range(int(random.random() * 100))],
             "obj": {
                 "nested0": str(uuid.uuid1()),
                 "nested1": str(uuid.uuid1()),

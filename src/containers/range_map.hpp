@@ -392,5 +392,5 @@ void debug_print(printf_buffer_t *buf, const range_map_t<E, V> &map) {
     buf->appendf(" |");
 }
 
-#endif /* CONTAINERS_RANGE_MAP_HPP_ */
+#endif // CONTAINERS_RANGE_MAP_HPP_
 

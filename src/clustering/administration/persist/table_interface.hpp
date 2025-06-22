@@ -93,4 +93,4 @@ private:
     thread_allocator_t thread_allocator;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_PERSIST_TABLE_INTERFACE_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_PERSIST_TABLE_INTERFACE_HPP_

@@ -1,7 +1,7 @@
 #!/usr/bin/python
 # Copyright 2010-2015 RethinkDB, all rights reserved.
 
-from __future__ import print_function
+
 
 import sys
 import time
@@ -128,7 +128,7 @@ def execute_read_write_queries(suffix):
     for table in tables:
         docs = []
         num_writes = gen_num_docs(table["size_doc"])
-        for i in xrange(num_writes):
+        for i in range(num_writes):
             docs.append(gen_doc(table["size_doc"], i))
 
         
@@ -196,10 +196,10 @@ def execute_read_write_queries(suffix):
     print("Running update/replace...", end=' ')
     sys.stdout.flush()
     for table in tables:
-        for p in xrange(len(write_queries)):
+        for p in range(len(write_queries)):
             docs = []
             num_writes = gen_num_docs(table["size_doc"])
-            for i in xrange(num_writes):
+            for i in range(num_writes):
                 docs.append(gen_doc(table["size_doc"], i))
 
             i = 0
@@ -233,7 +233,7 @@ def execute_read_write_queries(suffix):
     print("Running reads...", end=' ')
     sys.stdout.flush()
     for table in tables:
-        for p in xrange(len(table_queries)):
+        for p in range(len(table_queries)):
             count = 0
             i = 0
             if "imax" in table_queries[p]:
@@ -281,7 +281,7 @@ def execute_read_write_queries(suffix):
     print("Running delete...", end =' ')
     sys.stdout.flush()
     for table in tables:
-        for p in xrange(len(delete_queries)):
+        for p in range(len(delete_queries)):
             start = time.time()
 
             i = 0
@@ -314,7 +314,7 @@ def execute_constant_queries():
     # Execute the queries that do not require a table
     print("Running constant queries...", end=' ')
     sys.stdout.flush()
-    for p in xrange(len(constant_queries)):
+    for p in range(len(constant_queries)):
         count = 0
         durations = []
         start = time.time()

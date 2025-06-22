@@ -21,7 +21,7 @@ def make_struct(name, names_and_parsers):
     ty = namedtuple(name, [x[0] for x in names_and_parsers if x[0] is not None])
     def parse(block, offset = 0):
         assert isinstance(block, str)
-        assert isinstance(offset, (int, long))
+        assert isinstance(offset, int)
         values = []
         for name, parser in names_and_parsers:
             value, offset = parser(block, offset)

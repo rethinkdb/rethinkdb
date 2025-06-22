@@ -3,7 +3,7 @@
 
 '''Merging shards causes a server crash'''
 
-from __future__ import print_function
+
 
 import sys, os
 

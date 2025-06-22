@@ -118,4 +118,4 @@ private:
     DISABLE_COPYING(signal_t);
 };
 
-#endif /* CONCURRENCY_SIGNAL_HPP_ */
+#endif // CONCURRENCY_SIGNAL_HPP_

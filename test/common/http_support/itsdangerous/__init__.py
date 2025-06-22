@@ -1,2 +1,2 @@
 
-from itsdangerous import *
+from .itsdangerous import *

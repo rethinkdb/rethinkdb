@@ -47,4 +47,4 @@ private:
 #endif
 };
 
-#endif /* EXTPROC_EXTPROC_SPAWNER_HPP_ */
+#endif // EXTPROC_EXTPROC_SPAWNER_HPP_

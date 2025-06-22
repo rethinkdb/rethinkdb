@@ -61,5 +61,5 @@ void mark_ancestors_since_base_live(
         const branch_history_reader_t *base,
         std::set<branch_id_t> *remove_branches_out);
 
-#endif /* CLUSTERING_TABLE_CONTRACT_BRANCH_HISTORY_GC_HPP_ */
+#endif // CLUSTERING_TABLE_CONTRACT_BRANCH_HISTORY_GC_HPP_
 

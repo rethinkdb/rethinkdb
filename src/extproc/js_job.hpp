@@ -35,4 +35,4 @@ private:
     DISABLE_COPYING(js_job_t);
 };
 
-#endif /* EXTPROC_JS_JOB_HPP_ */
+#endif // EXTPROC_JS_JOB_HPP_

@@ -28,9 +28,11 @@ def load_tests():
     for filename in os.listdir(dirpath):
         base_name, ext = splitext(filename)
         if ext == '.test':
-            tree = test_framework.TestTree();
+            tree = test_framework.TestTree()
             full_path = os.path.join(dirpath, filename)
-            execfile(full_path, {"__builtins__": __builtins__, "generate_test": generate_test(tree)})
+            with open(full_path, 'r') as f:
+                code = f.read()
+                exec(code, {"__builtins__": __builtins__, "generate_test": generate_test(tree)})
             tests.add(base_name, tree)
 
 # Test groups

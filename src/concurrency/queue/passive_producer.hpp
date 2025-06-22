@@ -98,4 +98,4 @@ private:
     DISABLE_COPYING(passive_producer_t);
 };
 
-#endif /* CONCURRENCY_QUEUE_PASSIVE_PRODUCER_HPP_ */
+#endif // CONCURRENCY_QUEUE_PASSIVE_PRODUCER_HPP_

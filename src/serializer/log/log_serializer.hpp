@@ -275,4 +275,4 @@ private:
     DISABLE_COPYING(log_serializer_t);
 };
 
-#endif /* SERIALIZER_LOG_LOG_SERIALIZER_HPP_ */
+#endif // SERIALIZER_LOG_LOG_SERIALIZER_HPP_

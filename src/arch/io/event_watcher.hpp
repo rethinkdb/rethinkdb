@@ -139,4 +139,4 @@ typedef linux_event_watcher_t event_watcher_t;
 
 #endif // _WIN32
 
-#endif /* ARCH_IO_EVENT_WATCHER_HPP_ */
+#endif // ARCH_IO_EVENT_WATCHER_HPP_

@@ -4,13 +4,9 @@
 import itertools, os, random, re, shutil, sys, traceback, unittest, warnings
 
 try:
-    long
+    int
 except NameError:
     long = int
-try:
-    unicode
-except NameError:
-    unicode = str
 
 import driver, utils
 
@@ -38,7 +34,7 @@ class TestCaseCompatible(unittest.TestCase):
         if not hasattr(self, 'assertIn'):
             self.assertIn = self.replacement_assertIn
         if not hasattr(self, 'assertRaisesRegexp'):
-            self.assertRaisesRegexp = self.replacement_assertRaisesRegexp
+            self.assertRaisesRegex = self.replacement_assertRaisesRegexp
         
         if not hasattr(self, 'skipTest'):
             self.skipTest = self.replacement_skipTest
@@ -134,12 +130,12 @@ class RdbTestCase(TestCaseCompatible):
             if not self.dbName:
                 self.dbName = defaultDb
             
-            if isinstance(self.tables, (int, long)):
+            if isinstance(self.tables, int):
                 if self.tables == 1:
                     self.tableNames = [defaultTable]
                 else:
                     self.tableNames = ['%s_%d' % (defaultTable, i) for i in range(1, self.tables + 1)]
-            elif isinstance(self.tables, (str, unicode)):
+            elif isinstance(self.tables, str):
                 self.tableNames = [self.tables]
             elif hasattr(self.tables, '__iter__'):
                 self.tableNames = [str(x) for x in self.tables]
@@ -313,7 +309,7 @@ class RdbTestCase(TestCaseCompatible):
             
             shardPlan = []
             for primary in primaries:
-                chosenReplicas = [replicas.next().name for _ in range(0, self.replicas - 1)]
+                chosenReplicas = [next(replicas).name for _ in range(0, self.replicas - 1)]
                 shardPlan.append({'primary_replica':primary.name, 'replicas':[primary.name] + chosenReplicas})
             assert (table.config().update({'shards':shardPlan}).run(self.conn))['errors'] == 0
             table.wait().run(self.conn)
@@ -408,9 +404,9 @@ class RdbTestCase(TestCaseCompatible):
             connections = itertools.cycle(connections)
         
         changedRecordIds = []
-        for lower, upper in utils.getShardRanges(connections.next(), tableName):
+        for lower, upper in utils.getShardRanges(next(connections), tableName):
             
-            conn = connections.next()
+            conn = next(connections)
             sampleIds = (x['id'] for x in self.r.db(dbName).table(tableName).between(lower, upper).sample(samplesPerShard).run(conn))
             
             for thisId in sampleIds:

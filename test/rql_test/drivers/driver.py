@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 
 import atexit, copy, inspect, itertools, os, pprint, re, sys, time, warnings
 from datetime import datetime, tzinfo, timedelta # used by time tests
@@ -9,11 +9,7 @@ import driver, utils
 sys.path = stashedPath
 
 try:
-    unicode
-except NameError:
-    unicode = str
-try:
-    long
+    int
 except NameError:
     long = int
 
@@ -26,10 +22,6 @@ start_time=time.time()
 # -- import driver
 
 r = utils.import_python_driver()
-print(
-    'Using RethinkDB client from:',
-    inspect.getfile(r.__class__) if inspect.isclass(r) else r.__file__
-)
 
 # -- get settings
 
@@ -96,24 +88,24 @@ class OptionsBox(object):
         self.options = options
     
     def __str__(self):
-        if self.options and self.options.keys() == ['ordered'] and self.options['ordered'] == False:
+        if self.options and list(self.options.keys()) == ['ordered'] and self.options['ordered'] == False:
             return 'bag(%s)' % self.value
-        elif self.options and self.options.keys() == ['partial'] and self.options['partial'] == True:
+        elif self.options and list(self.options.keys()) == ['partial'] and self.options['partial'] == True:
             return 'partial(%s)' % self.value
         else:
             return 'options(%s, %s)' % (self.options, self.value)
     
     def __repr__(self):
-        if self.options and self.options.keys() == ['ordered'] and self.options['ordered'] == False:
+        if self.options and list(self.options.keys()) == ['ordered'] and self.options['ordered'] == False:
             return 'bag(%r)' % self.value
-        elif self.options and self.options.keys() == ['partial'] and self.options['partial'] == True:
+        elif self.options and list(self.options.keys()) == ['partial'] and self.options['partial'] == True:
             return 'partial(%r)' % self.value
         else:
             return 'options(%s, %r)' % (self.options, self.value)
 
 class FalseStr(str):
     '''return a string that evaluates as false'''
-    def __nonzero__(self):
+    def __bool__(self):
         return False
 
 class Anything(object):
@@ -131,7 +123,7 @@ class Anything(object):
         return self.__str__()
 
 class Err(object):
-    exceptionRegex = re.compile('^(?P<message>[^\n]*?)((?: in)?:\n|\nFailed assertion:).*$', flags=re.DOTALL)
+    exceptionRegex = re.compile(r'^(?P<message>[^\n]*?)((?: in)?:\n|\nFailed assertion:).*$', flags=re.DOTALL)
     
     err_type = None
     message = None
@@ -174,7 +166,7 @@ class Regex(object):
             raise ValueError('Regex got a bad value: %r' % value)
     
     def match(self, other):
-        if not isinstance(other, (str, unicode)):
+        if not isinstance(other, str):
             return False
         return self.value.match(other) is not None
         
@@ -189,7 +181,7 @@ class Regex(object):
         return "Regex(%s)" % (self.value.pattern if self.value else '<none>')
 
 class Uuid(Regex):
-    value = re.compile('^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$')
+    value = re.compile(r'^[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}$')
     
     def __init__(self, **kwargs):
         pass
@@ -254,8 +246,8 @@ def compare(expected, result, options=None):
         return result is None
     
     # -- number
-    if isinstance(expected, (int, long, float)):
-        if not isinstance(result, (int, long, float)):
+    if isinstance(expected, (int, float)):
+        if not isinstance(result, (int, float)):
             return FalseStr('expected number %s but got %s (%s)' % (expected, result, type(result).__name__))
         if abs(expected - result) <= options['precision']:
             return True
@@ -266,7 +258,7 @@ def compare(expected, result, options=None):
                 return FalseStr('value << %r >> was not equal to: %r' % (result, expected))
     
     # -- string/unicode
-    if isinstance(expected, (str, unicode)):
+    if isinstance(expected, str):
         if result == expected:
             return True
         else:
@@ -288,7 +280,7 @@ def compare(expected, result, options=None):
                 return FalseStr('unmatched keys from either side: %s' % expectedKeys.symmetric_difference(resultKeys))
         
         # - values
-        for key, value in expected.items():
+        for key, value in list(expected.items()):
             compareResult = compare(value, result[key], options=options)
             if not compareResult:
                 return compareResult
@@ -361,7 +353,7 @@ def compare(expected, result, options=None):
                     resultMessage = str(result.message)
                 else:
                     resultMessage = str(result)
-            resultMessage = re.sub(Err.exceptionRegex, '\g<message>:', resultMessage)
+            resultMessage = re.sub(Err.exceptionRegex, r'\g<message>:', resultMessage)
             compareResult = compare(expected.message, resultMessage, options=options)
             if not compareResult:
                 return compareResult
@@ -371,7 +363,7 @@ def compare(expected, result, options=None):
         return True
     
     # -- Regex/UUID
-    if isinstance(expected, (Regex, re._pattern_type)):
+    if isinstance(expected, (Regex, re.Pattern)):
         match = expected.match(result)
         if match:
             return True
@@ -443,7 +435,7 @@ class PyTestDriver(object):
         # -- build the expected result
         
         print_debug('\tExpected: %s' % str(expected))
-        exp_val = eval(unicode(expected), self.scope)
+        exp_val = eval(str(expected), self.scope)
         
         # -- evaluate the command
         
@@ -535,7 +527,7 @@ def test(query, expected, name, runopts=None, testopts=None):
     if runopts is None:
         runopts = {}
     else:
-        for k, v in runopts.items():
+        for k, v in list(runopts.items()):
             if isinstance(v, str):
                 try:
                     runopts[k] = eval(v)
@@ -654,7 +646,7 @@ def fetch(cursor, limit=None, timeout=0.2):
             if deadline:
                 result.append(cursor.next(wait=deadline - time.time()))
             else:
-                result.append(cursor.next())
+                result.append(next(cursor))
             if limit and len(result) >= limit:
                 break
         except r.ReqlTimeoutError:
@@ -685,9 +677,9 @@ def regex(value):
     return Regex(value)
 
 def int_cmp(expected_value):
-    if not isinstance(expected_value, (int, long)):
+    if not isinstance(expected_value, int):
         raise ValueError('value must be of type `int` or `long` but got: %r (%s)' % (expected_value, type(expected_value).__name__))
-    return OptionsBox(expected_value, {'explicit_type': (int, long)})
+    return OptionsBox(expected_value, {'explicit_type': (int, int)})
 
 def float_cmp(expected_value):
     if not isinstance(expected_value, float):

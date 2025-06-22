@@ -39,7 +39,7 @@ microtime_t current_microtime() {
     struct timeval t;
     DEBUG_VAR int res = gettimeofday(&t, nullptr);
     rassert(0 == res);
-    return uint64_t(t.tv_sec) * MILLION + t.tv_usec;
+    return static_cast<uint64_t>(t.tv_sec) * MILLION + t.tv_usec;
 }
 
 #endif

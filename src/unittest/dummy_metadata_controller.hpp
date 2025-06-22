@@ -75,4 +75,4 @@ private:
     publisher_controller_t<std::function<void()> > change_publisher;
 };
 
-#endif /* UNITTEST_DUMMY_METADATA_CONTROLLER_HPP_ */
+#endif // UNITTEST_DUMMY_METADATA_CONTROLLER_HPP_

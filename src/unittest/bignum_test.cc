@@ -10,7 +10,7 @@ TEST(BignumTest, TestGetUint64) {
     uint64_t x = geo::BN_ext_get_uint64(bn.get());
     ASSERT_EQ(0, x);
 
-    uint64_t values[4] = { 1, (1ull << 32) - 1, (1ull << 32), uint64_t(-1) };
+    uint64_t values[4] = { 1, (1ull << 32) - 1, (1ull << 32), static_cast<uint64_t>(-1) };
     for (int i = 0; i < 4; ++i) {
         geo::BN_ext_set_uint64(bn.get(), values[i]);
         ASSERT_EQ(values[i], geo::BN_ext_get_uint64(bn.get()));

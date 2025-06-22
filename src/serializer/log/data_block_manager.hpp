@@ -276,4 +276,4 @@ void unaligned_read_ahead_interval(const int64_t block_offset,
                                    int64_t *const offset_out,
                                    int64_t *const end_offset_out);
 
-#endif /* SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP_ */
+#endif // SERIALIZER_LOG_DATA_BLOCK_MANAGER_HPP_

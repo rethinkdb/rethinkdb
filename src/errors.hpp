@@ -273,4 +273,4 @@ vestigial. */
     #define final
 #endif
 
-#endif /* ERRORS_HPP_ */
+#endif // ERRORS_HPP_

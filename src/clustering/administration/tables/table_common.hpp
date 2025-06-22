@@ -80,5 +80,5 @@ protected:
     admin_identifier_format_t identifier_format;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_COMMON_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_TABLES_TABLE_COMMON_HPP_
 

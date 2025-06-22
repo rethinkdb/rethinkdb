@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
+
 
 import os, re, sys
 
@@ -8,20 +8,16 @@ import os, re, sys
 
 printDebug = False
 
-try:
-    unicode
-except NameError:
-    unicode = str
 
 # ==
 
-class yamlValue(unicode):
+class yamlValue(str):
     linenumber = None
     def __new__(cls, value, linenumber=None):
-        if isinstance(value, unicode):
-            real = unicode.__new__(cls, value)
+        if isinstance(value, str):
+            real = str.__new__(cls, value)
         else:
-            real = unicode.__new__(cls, value, "utf-8")
+            real = str.__new__(cls, value, "utf-8")
         if linenumber is not None:
             real.linenumber = int(linenumber)
         return real
@@ -39,8 +35,8 @@ def parseYAML(source):
                 print(message)
                 sys.stdout.flush()
     
-    commentLineRegex = re.compile('^\s*#')
-    yamlLineRegex = re.compile('^(?P<indent> *)((?P<itemMarker>- +)(?P<itemContent>.*)|((?P<key>[\w\.]+)(?P<keyExtra>: *))?(?P<content>.*))\s*$')
+    commentLineRegex = re.compile(r'^\s*#')
+    yamlLineRegex = re.compile(r'^(?P<indent> *)((?P<itemMarker>- +)(?P<itemContent>.*)|((?P<key>[\w\.]+)(?P<keyExtra>: *))?(?P<content>.*))\s*$')
     
     def parseYAML_inner(source, indent):
         returnItem = None

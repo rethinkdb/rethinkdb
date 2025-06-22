@@ -9,23 +9,23 @@ inputs:
     description: Download and decompress build artifacts.
     default: "true"
     required: false
+  test_output_dir:
+    description: Directory to store test output.
+    default: /tmp/test-results
+    required: false
 
 # Composite step for using the test runner with multiple parameters.
 runs:
   using: composite
   steps:
-    - uses: actions/setup-python@v3
-      with:
-        python-version: '2.7'
-
     - name: install prerequisites
       shell: bash
       run: |
-        sudo apt update && sudo apt install -y curl make git ca-certificates gnupg2
-        curl https://bootstrap.pypa.io/pip/2.7/get-pip.py | python
+        sudo apt update && \
+        sudo apt install -y curl make git ca-certificates gnupg2 libc6 libcurl4 libprotobuf32
 
     - name: download build artifacts
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       if: ${{ inputs.download_artifacts == 'true' }}
       with:
         name: build-artifacts
@@ -38,3 +38,22 @@ runs:
     - name: run tests
       shell: bash
       run: ${{ inputs.command }}
+      env:
+        TEST_OUTPUT_DIR: ${{ inputs.test_output_dir }}
+
+    - name: Generate artifact name
+      id: generate-name
+      shell: bash
+      run: echo "artifact=rethinkdb-artifact-${{ github.run_id }}-$(date +%s)" >> $GITHUB_OUTPUT
+
+    - name: compress test artifacts for upload
+      if: always()
+      shell: bash
+      run: tar -czf ${{ steps.generate-name.outputs.artifact }}.tar.gz ${{ inputs.test_output_dir }}
+
+    - name: upload test artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ steps.generate-name.outputs.artifact }}
+        path: ${{ steps.generate-name.outputs.artifact }}.tar.gz

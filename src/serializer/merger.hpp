@@ -145,4 +145,4 @@ private:
     DISABLE_COPYING(merger_serializer_t);
 };
 
-#endif /* SERIALIZER_MERGER_HPP_ */
+#endif // SERIALIZER_MERGER_HPP_

@@ -155,4 +155,4 @@ private:
     DISABLE_COPYING(publisher_controller_t);
 };
 
-#endif /* CONCURRENCY_PUBSUB_HPP_ */
+#endif // CONCURRENCY_PUBSUB_HPP_

@@ -1,6 +1,6 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
-#ifndef CLUSTERING_ADMINISTRATION_AUTH_GRANT_HPP
-#define CLUSTERING_ADMINISTRATION_AUTH_GRANT_HPP
+#ifndef CLUSTERING_ADMINISTRATION_AUTH_GRANT_HPP_
+#define CLUSTERING_ADMINISTRATION_AUTH_GRANT_HPP_
 
 #include "rdb_protocol/table_common.hpp"
 
@@ -25,4 +25,4 @@ bool grant(
 
 }  // namespace auth
 
-#endif  // CLUSTERING_ADMINISTRATION_AUTH_GRANT_HPP
+#endif  // CLUSTERING_ADMINISTRATION_AUTH_GRANT_HPP_

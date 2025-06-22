@@ -539,7 +539,7 @@ class BaseRequest(object):
     @cached_property
     def full_path(self):
         """Requested path as unicode, including the query string."""
-        return self.path + u'?' + to_unicode(self.query_string, self.url_charset)
+        return self.path + '?' + to_unicode(self.query_string, self.url_charset)
 
     @cached_property
     def script_root(self):
@@ -1096,11 +1096,11 @@ class BaseResponse(object):
         # speedup.
         for key, value in headers:
             ikey = key.lower()
-            if ikey == u'location':
+            if ikey == 'location':
                 location = value
-            elif ikey == u'content-location':
+            elif ikey == 'content-location':
                 content_location = value
-            elif ikey == u'content-length':
+            elif ikey == 'content-length':
                 content_length = value
 
         # make sure the location header is an absolute URL
@@ -1129,7 +1129,7 @@ class BaseResponse(object):
         # content length detection does not trigger in the following
         # code.
         if 100 <= status < 200 or status == 204:
-            headers['Content-Length'] = content_length = u'0'
+            headers['Content-Length'] = content_length = '0'
         elif status == 304:
             remove_entity_headers(headers)
 

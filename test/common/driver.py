@@ -11,13 +11,9 @@ import socket, string, subprocess, sys, tempfile, time, traceback, warnings
 import utils, resunder
 
 try:
-    import thread
+    import _thread
 except ImportError:
     import _thread as thread
-try:
-    unicode
-except NameError:
-    unicode = str
 
 # == resunder support
 
@@ -159,7 +155,7 @@ class Cluster(object):
     processes     = None
     output_folder = None
     
-    _startLock = thread.allocate_lock()
+    _startLock = _thread.allocate_lock()
     _hasStartLock = None # the Process that has it
     
     def __init__(self, metacluster=None, initial_servers=0, output_folder=None, console_output=True, executable_path=None, server_tags=None, command_prefix=None, extra_options=None, wait_until_ready=True, tls=False):
@@ -371,7 +367,7 @@ class Cluster(object):
             if not (-1 * len(self.processes) <= pos < len(self.processes) ):
                 raise IndexError('This cluster only has %d servers, so index %s is invalid' % (len(self.processes), str(pos)))
             return self.processes[pos]
-        elif isinstance(pos, (str, unicode)):
+        elif isinstance(pos, str):
             for server in self.processes:
                 if pos == server.name:
                     return server
@@ -425,9 +421,9 @@ class Process(object):
     options = None
     tags = None
     
-    logfilePortRegex = re.compile('Listening for (?P<type>intracluster|client driver|administrative HTTP) connections on port (?P<port>\d+)$')
-    logfileServerIDRegex = re.compile('Our server ID is (?P<uuid>\w{8}-\w{4}-\w{4}-\w{4}-\w{12})$')
-    logfileReadyRegex = re.compile('(Server|Proxy) ready, ("(?P<name>\w+)" )?((?P<uuid>(proxy-)?\w{8}-\w{4}-\w{4}-\w{4}-\w{12}))?$')
+    logfilePortRegex = re.compile(r'Listening for (?P<type>intracluster|client driver|administrative HTTP) connections on port (?P<port>\d+)$')
+    logfileServerIDRegex = re.compile(r'Our server ID is (?P<uuid>\w{8}-\w{4}-\w{4}-\w{4}-\w{12})$')
+    logfileReadyRegex = re.compile(r'(Server|Proxy) ready, ("(?P<name>\w+)" )?((?P<uuid>(proxy-)?\w{8}-\w{4}-\w{4}-\w{4}-\w{12}))?$')
     
     @staticmethod
     def genPath(name, path, extraLetters=3):
@@ -487,7 +483,7 @@ class Process(object):
         self.cluster.processes.append(self)
         
         # - name/data_path
-        assert isinstance(name, (str, unicode, None.__class__)), 'name was not an expected value: %r' % name
+        assert isinstance(name, (str, None.__class__)), 'name was not an expected value: %r' % name
         if name is None:
             # default name and data_path
             name = '%s_%s' % (self.server_type, self.cluster.metacluster.get_new_unique_id(server_type=self.server_type))
@@ -538,7 +534,7 @@ class Process(object):
             self._console_file = console_output
         else:
             # a path
-            assert isinstance(console_output, (str, unicode)), 'Unknown console_output: %r' % console_output
+            assert isinstance(console_output, str), 'Unknown console_output: %r' % console_output
             console_output = os.path.realpath(console_output)
             assert os.path.isdir(os.path.dirname(console_output)), 'console_output parent directory was not a folder: %r' % console_output
             assert os.path.isfile(console_output) or not os.path.exists(console_output), 'console_output location was not useable: %r' % console_output
@@ -693,7 +689,7 @@ class Process(object):
                 runningServers.append(self)
             
             # - start thread to tail output for needed info
-            thread.start_new_thread(self.read_ports_from_log, ())
+            _thread.start_new_thread(self.read_ports_from_log, ())
 
         except Exception:
             self.stop()
@@ -874,7 +870,7 @@ class Process(object):
                 self.check()
                 self.stop()
             assert not self.running
-            if self.killed is False and self.returncode is not 0:
+            if self.killed is False and self.returncode != 0:
                 raise RuntimeError('%s %s stopped unexpectedly with return code: %r' % (self.server_type.capitalize(), self._name, self.returncode))
         finally:
             if self in runningServers:

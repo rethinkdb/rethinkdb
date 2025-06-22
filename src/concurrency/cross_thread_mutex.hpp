@@ -71,4 +71,4 @@ private:
     DISABLE_COPYING(cross_thread_mutex_t);
 };
 
-#endif /* CONCURRENCY_CROSS_THREAD_MUTEX_HPP_ */
+#endif // CONCURRENCY_CROSS_THREAD_MUTEX_HPP_

@@ -1,6 +1,6 @@
 // Copyright 2010-2016 RethinkDB, all rights reserved.
-#ifndef CRYPTO_RANDOM_HPP
-#define CRYPTO_RANDOM_HPP
+#ifndef CRYPTO_RANDOM_HPP_
+#define CRYPTO_RANDOM_HPP_
 
 #include <stddef.h>
 
@@ -23,4 +23,4 @@ inline std::array<unsigned char, N> random_bytes() {
 
 }  // namespace crypto
 
-#endif  // CRYPTO_RANDOM_HPP
+#endif // CRYPTO_RANDOM_HPP_

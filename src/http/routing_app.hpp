@@ -20,4 +20,4 @@ private:
     http_app_t *defaultroute;
 };
 
-#endif /* HTTP_ROUTING_APP_HPP_ */
+#endif // HTTP_ROUTING_APP_HPP_

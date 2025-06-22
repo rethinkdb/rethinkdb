@@ -36,7 +36,7 @@ class OptParser(object):
     def __setitem__(self, key, parser):
         assert isinstance(parser, Arg)
         if key in self.parsers_by_key: del self[key]
-        assert parser not in self.parsers_by_key.values()
+        assert parser not in list(self.parsers_by_key.values())
         self.parsers_by_key[key] = parser
         self.parsers_in_order.append((key, parser))
     
@@ -51,7 +51,7 @@ class OptParser(object):
     
         args = args[1:]   # Cut off name of program
         
-        values = dict((key, NoValue) for key in self.parsers_by_key.keys())
+        values = dict((key, NoValue) for key in list(self.parsers_by_key.keys()))
         
         def name_for_key(key):
             return getattr(self.parsers_by_key[key], "name", key)
@@ -100,7 +100,7 @@ class OptParser(object):
         
         # Apply defaults
         
-        for key, parser in self.parsers_by_key.items():
+        for key, parser in list(self.parsers_by_key.items()):
             if values[key] is NoValue:
                 if hasattr(parser, "default") and parser.default is not NoValue:
                     values[key] = parser.default

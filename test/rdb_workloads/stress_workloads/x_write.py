@@ -67,8 +67,8 @@ class Workload:
 
     def generate_nested(self, levels):
         nested = {}
-        nested["foo"] = "".join(random.choice(string.letters + string.digits) for i in xrange(10))
-        nested["bar"] = "".join(random.choice(string.letters + string.digits) for i in xrange(10))
+        nested["foo"] = "".join(random.choice(string.ascii_letters + string.digits) for i in range(10))
+        nested["bar"] = "".join(random.choice(string.ascii_letters + string.digits) for i in range(10))
 
         if levels > 0:
             nested["nested"] = self.generate_nested(levels - 1)
@@ -84,13 +84,13 @@ class Workload:
         row["type"] = "type%d" % self.typ_dist.get()
         row["datetime"] = r.now()
         row["nested"] = self.generate_nested(2)
-        row["arr"] = [random.randint(0, 100000) for i in xrange(86)]
-        row["arr2"] = ["".join(random.sample(string.letters + string.digits, 2)) for i in xrange(86)]
-        row["flat"] = "".join(random.choice(string.letters + string.digits) for i in xrange(463))
+        row["arr"] = [random.randint(0, 100000) for i in range(86)]
+        row["arr2"] = ["".join(random.sample(string.ascii_letters + string.digits, 2)) for i in range(86)]
+        row["flat"] = "".join(random.choice(string.ascii_letters + string.digits) for i in range(463))
         return row
 
     def run(self, conn):
-        row_data = [self.generate_row() for i in xrange(self.batch_size)]
+        row_data = [self.generate_row() for i in range(self.batch_size)]
         rql_res = r.db(self.db).table(self.table).insert(row_data).run(conn)
 
         result = {}

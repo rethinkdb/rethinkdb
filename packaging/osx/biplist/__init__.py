@@ -55,20 +55,20 @@ import sys
 import time
 
 try:
-    unicode
+    str
     unicodeEmpty = r''
 except NameError:
-    unicode = str
+    str = str
     unicodeEmpty = ''
 try:
-    long
+    int
 except NameError:
     long = int
 try:
     {}.iteritems
-    iteritems = lambda x: x.iteritems()
+    iteritems = lambda x: iter(x.items())
 except AttributeError:
-    iteritems = lambda x: x.items()
+    iteritems = lambda x: list(x.items())
 
 __all__ = [
     'Uid', 'Data', 'readPlist', 'writePlist', 'readPlistFromString',
@@ -118,7 +118,7 @@ def readPlist(pathOrFile):
     """Raises NotBinaryPlistException, InvalidPlistException"""
     didOpen = False
     result = None
-    if isinstance(pathOrFile, (bytes, unicode)):
+    if isinstance(pathOrFile, (bytes, str)):
         pathOrFile = open(pathOrFile, 'rb')
         didOpen = True
     try:
@@ -130,7 +130,7 @@ def readPlist(pathOrFile):
             result = None
             if hasattr(plistlib, 'loads'):
                 contents = None
-                if isinstance(pathOrFile, (bytes, unicode)):
+                if isinstance(pathOrFile, (bytes, str)):
                     with open(pathOrFile, 'rb') as f:
                         contents = f.read()
                 else:
@@ -169,7 +169,7 @@ def writePlist(rootObject, pathOrFile, binary=True):
     if not binary:
         rootObject = wrapDataObject(rootObject, binary)
         if hasattr(plistlib, "dump"):
-            if isinstance(pathOrFile, (bytes, unicode)):
+            if isinstance(pathOrFile, (bytes, str)):
                 with open(pathOrFile, 'wb') as f:
                     return plistlib.dump(rootObject, f)
             else:
@@ -178,7 +178,7 @@ def writePlist(rootObject, pathOrFile, binary=True):
             return plistlib.writePlist(rootObject, pathOrFile)
     else:
         didOpen = False
-        if isinstance(pathOrFile, (bytes, unicode)):
+        if isinstance(pathOrFile, (bytes, str)):
             pathOrFile = open(pathOrFile, 'wb')
             didOpen = True
         writer = PlistWriter(pathOrFile)
@@ -612,7 +612,7 @@ class PlistWriter(object):
         elif isinstance(root, tuple):
             n = tuple([self.wrapRoot(value) for value in root])
             return HashableWrapper(n)
-        elif isinstance(root, (str, unicode)) and not isinstance(root, Data):
+        elif isinstance(root, str) and not isinstance(root, Data):
             return StringWrapper(root)
         elif isinstance(root, bytes):
             return Data(root)
@@ -650,7 +650,7 @@ class PlistWriter(object):
         elif isinstance(obj, Uid):
             size = self.intSize(obj.integer)
             self.incrementByteCount('uidBytes', incr=1+size)
-        elif isinstance(obj, (int, long)):
+        elif isinstance(obj, int):
             size = self.intSize(obj)
             self.incrementByteCount('intBytes', incr=1+size)
         elif isinstance(obj, FloatWrapper):
@@ -736,7 +736,7 @@ class PlistWriter(object):
             size = self.intSize(obj.integer)
             output += pack('!B', (0b1000 << 4) | size - 1)
             output += self.binaryInt(obj.integer)
-        elif isinstance(obj, (int, long)):
+        elif isinstance(obj, int):
             byteSize = self.intSize(obj)
             root = math.log(byteSize, 2)
             output += pack('!B', (0b0001 << 4) | int(root))

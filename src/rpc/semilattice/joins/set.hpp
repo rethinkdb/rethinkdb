@@ -18,4 +18,4 @@ void semilattice_join(std::set<T> *a, const std::set<T> &b) {
 
 }  // namespace std
 
-#endif /* RPC_SEMILATTICE_JOINS_SET_HPP_ */
+#endif // RPC_SEMILATTICE_JOINS_SET_HPP_

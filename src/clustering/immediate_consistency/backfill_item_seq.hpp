@@ -174,5 +174,5 @@ private:
         beg_hash, end_hash, left_key, right_key, mem_size, items);
 };
 
-#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILL_ITEM_SEQ_HPP_ */
+#endif // CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILL_ITEM_SEQ_HPP_
 

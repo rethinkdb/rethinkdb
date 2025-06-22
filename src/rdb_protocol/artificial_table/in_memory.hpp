@@ -132,5 +132,5 @@ private:
     std::map<std::string, ql::datum_t> data;
 };
 
-#endif /* RDB_PROTOCOL_ARTIFICIAL_TABLE_IN_MEMORY_HPP_ */
+#endif // RDB_PROTOCOL_ARTIFICIAL_TABLE_IN_MEMORY_HPP_
 

@@ -86,4 +86,4 @@ private:
 
 void debug_print(printf_buffer_t *buf, state_timestamp_t ts);
 
-#endif /* TIMESTAMPS_HPP_ */
+#endif // TIMESTAMPS_HPP_

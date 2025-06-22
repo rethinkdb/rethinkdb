@@ -161,4 +161,4 @@ private:
     DISABLE_COPYING(disk_backed_queue_t);
 };
 
-#endif /* CONTAINERS_DISK_BACKED_QUEUE_HPP_ */
+#endif // CONTAINERS_DISK_BACKED_QUEUE_HPP_

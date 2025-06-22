@@ -164,5 +164,5 @@ private:
     `~executor_t()`. */
 };
 
-#endif /* CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXECUTOR_HPP_ */
+#endif // CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXECUTOR_HPP_
 

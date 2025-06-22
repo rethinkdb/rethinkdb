@@ -17,7 +17,7 @@ Each test is named for its relative path from this folder, with the exception th
 
 ### Interpreters
 
-Each test can specify what interpreter (e.g.: Ruby) it is written in using short codes (`js`, `py`, `rb`, `jrb`). If no interpreter is specified then the test is run as a command-line executable, but most cases should specify an interpreter. The interpreters to use are specified in a comma-separated list (e.g.: `grey.rb1.9,rb2.0.test`). Additionally single-ended ranges can be created using the `+` symbol either before or after the interpreter (e.g.: `+py2.7` to mean `[py2.6, py2.7]` or `py3+` to mean all versions of Python3.x).
+Each test can specify what interpreter (e.g.: Ruby) it is written in using short codes (`js`, `py`, `rb`, `jrb`). If no interpreter is specified then the test is run as a command-line executable, but most cases should specify an interpreter. The interpreters to use are specified in a comma-separated list (e.g.: `grey.rb1.9,rb2.0.test`). Additionally single-ended ranges can be created using the `+` symbol either before or after the interpreter (e.g.: `+py3.12` or `py3+` to mean all versions of Python3.x).
 
 For tests that are testing server-side behavior adding `_one` to the interpreter will run them for only the first version of the interpreter found.
 
@@ -124,12 +124,11 @@ The tests can be run for a specific language using the `-i`/`--interpreter` flag
 
 By default a single version of those languages are chosen based on what versions can be found. Specific interpreter versions can be chosen by adding the version number to the language suffix.
 
-* `./test-runner -i py2.7`
-* `./test-runner -i py3.4`
+* `./test-runner -i py`
 
 Multiple languages/language versions can be chosen simultaneously with multiple flags.
 
-* `./test-runner -i py2.7 -i py3 -i rb`
+* `./test-runner -i py -i rb`
 
 ### Polyglot tests
 

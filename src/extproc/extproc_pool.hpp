@@ -84,4 +84,4 @@ private:
     pump_coro_t dealloc_pumper;
 };
 
-#endif /* EXTPROC_EXTPROC_POOL_HPP_ */
+#endif // EXTPROC_EXTPROC_POOL_HPP_

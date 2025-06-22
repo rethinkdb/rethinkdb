@@ -67,4 +67,4 @@ private:
     watchable_map_t<peer_id_t, cluster_directory_metadata_t> *const directory;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_ISSUES_LOCAL_HPP_

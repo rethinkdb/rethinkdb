@@ -16,5 +16,5 @@ public:
     RDB_MAKE_ME_SERIALIZABLE_0(empty_value_t);
 };
 
-#endif /* CONTAINERS_EMPTY_VALUE_HPP_ */
+#endif // CONTAINERS_EMPTY_VALUE_HPP_
 

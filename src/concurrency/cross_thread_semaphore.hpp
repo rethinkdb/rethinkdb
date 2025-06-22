@@ -224,4 +224,4 @@ value_t *cross_thread_semaphore_t<value_t>::request_t::wait_and_get(signal_t *in
     return result;
 }
 
-#endif /* CONCURRENCY_CROSS_THREAD_SEMAPHORE_HPP_ */
+#endif // CONCURRENCY_CROSS_THREAD_SEMAPHORE_HPP_

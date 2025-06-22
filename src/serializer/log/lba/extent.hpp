@@ -46,4 +46,4 @@ private:
     DISABLE_COPYING(extent_t);
 };
 
-#endif /* SERIALIZER_LOG_LBA_EXTENT_HPP_ */
+#endif // SERIALIZER_LOG_LBA_EXTENT_HPP_

@@ -429,5 +429,5 @@ private:
     scoped_ptr_t<multi_table_manager_bcard_t::get_status_mailbox_t> get_status_mailbox;
 };
 
-#endif /* CLUSTERING_TABLE_MANAGER_MULTI_TABLE_MANAGER_HPP_ */
+#endif // CLUSTERING_TABLE_MANAGER_MULTI_TABLE_MANAGER_HPP_
 

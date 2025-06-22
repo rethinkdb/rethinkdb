@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-from __future__ import unicode_literals
-from __future__ import division
+
+
 
 import struct
 import datetime
@@ -449,9 +449,9 @@ class Alias (object):
 
         b.write(struct.pack(b'>hhQhhQ',
                 TAG_HIGH_RES_VOLUME_CREATION_DATE,
-                8, long(voldate * 65536),
+                8, int(voldate * 65536),
                 TAG_HIGH_RES_CREATION_DATE,
-                8, long(crdate * 65536)))
+                8, int(crdate * 65536)))
 
         if self.target.cnid_path:
             cnid_path = struct.pack(b'>%uI' % len(self.target.cnid_path),

@@ -41,7 +41,7 @@ class ExtendedAPITestCase(JinjaTestCase):
     def test_finalizer(self):
         def finalize_none_empty(value):
             if value is None:
-                value = u''
+                value = ''
             return value
         env = Environment(finalize=finalize_none_empty)
         tmpl = env.from_string('{% for item in seq %}|{{ item }}{% endfor %}')
@@ -158,8 +158,8 @@ class StreamingTestCase(JinjaTestCase):
                                "}} - {{ item }}</li>{%- endfor %}</ul>")
         stream = tmpl.stream(seq=list(range(4)))
         stream.enable_buffering(size=3)
-        self.assert_equal(next(stream), u'<ul><li>1 - 0</li><li>2 - 1</li>')
-        self.assert_equal(next(stream), u'<li>3 - 2</li><li>4 - 3</li></ul>')
+        self.assert_equal(next(stream), '<ul><li>1 - 0</li><li>2 - 1</li>')
+        self.assert_equal(next(stream), '<li>3 - 2</li><li>4 - 3</li></ul>')
 
     def test_streaming_behavior(self):
         tmpl = env.from_string("")
@@ -173,7 +173,7 @@ class StreamingTestCase(JinjaTestCase):
     def test_dump_stream(self):
         tmp = tempfile.mkdtemp()
         try:
-            tmpl = env.from_string(u"\u2713")
+            tmpl = env.from_string("\u2713")
             stream = tmpl.stream()
             stream.dump(os.path.join(tmp, 'dump.txt'), 'utf-8')
             with open(os.path.join(tmp, 'dump.txt'), 'rb') as f:
@@ -202,7 +202,7 @@ class UndefinedTestCase(JinjaTestCase):
 
     def test_default_undefined(self):
         env = Environment(undefined=Undefined)
-        self.assert_equal(env.from_string('{{ missing }}').render(), u'')
+        self.assert_equal(env.from_string('{{ missing }}').render(), '')
         self.assert_raises(UndefinedError,
                            env.from_string('{{ missing.attribute }}').render)
         self.assert_equal(env.from_string('{{ missing|list }}').render(), '[]')
@@ -218,7 +218,7 @@ class UndefinedTestCase(JinjaTestCase):
         self.assert_equal(env.from_string('{{ missing|list }}').render(), '[]')
         self.assert_equal(env.from_string('{{ missing is not defined }}').render(), 'True')
         self.assert_equal(env.from_string('{{ foo.missing }}').render(foo=42),
-                          u"{{ no such element: int object['missing'] }}")
+                          "{{ no such element: int object['missing'] }}")
         self.assert_equal(env.from_string('{{ not missing }}').render(), 'True')
 
     def test_strict_undefined(self):

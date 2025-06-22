@@ -14,7 +14,7 @@ class line():
         matches = re.match(self.regex, line)
         if matches:
             result = {}
-            for field, groupi in zip(self.fields, range(1, len(self.fields) + 1)):
+            for field, groupi in zip(self.fields, list(range(1, len(self.fields) + 1))):
                 try:
                     if (field[1] == 'd'):
                         val = int(matches.group(groupi))

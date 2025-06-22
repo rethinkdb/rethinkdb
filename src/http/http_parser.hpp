@@ -322,4 +322,4 @@ int http_body_is_final(const http_parser *parser);
 #ifdef __cplusplus
 }
 #endif
-#endif /* HTTP_HTTP_PARSER_HPP_ */
+#endif // HTTP_HTTP_PARSER_HPP_

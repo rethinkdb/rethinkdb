@@ -43,4 +43,4 @@ size_t check_limit(const char *name, int64_t limit);
 
 } // namespace ql
 
-#endif /* RDB_PROTOCOL_CONFIGURED_LIMITS_HPP_ */
+#endif // RDB_PROTOCOL_CONFIGURED_LIMITS_HPP_

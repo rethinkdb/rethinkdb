@@ -13,4 +13,4 @@ class cyanide_http_app_t : public http_app_t {
     }
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_HTTP_CYANIDE_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_HTTP_CYANIDE_HPP_

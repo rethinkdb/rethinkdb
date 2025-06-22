@@ -319,5 +319,5 @@ void debug_print(printf_buffer_t *buf, const contract_t &contract);
 void debug_print(printf_buffer_t *buf, const contract_ack_t &ack);
 void debug_print(printf_buffer_t *buf, const table_raft_state_t &state);
 
-#endif /* CLUSTERING_TABLE_CONTRACT_CONTRACT_METADATA_HPP_ */
+#endif // CLUSTERING_TABLE_CONTRACT_CONTRACT_METADATA_HPP_
 

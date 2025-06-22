@@ -62,4 +62,4 @@ private:
     DISABLE_COPYING(promise_t);
 };
 
-#endif /* CONCURRENCY_PROMISE_HPP_ */
+#endif // CONCURRENCY_PROMISE_HPP_

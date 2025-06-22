@@ -153,4 +153,4 @@ When writing code that relies on the destructor order, it's good practice to
 leave a comment explaining which things must be destroyed before which other
 things and why. */
 
-#endif /* CONCURRENCY_AUTO_DRAINER_HPP_ */
+#endif // CONCURRENCY_AUTO_DRAINER_HPP_

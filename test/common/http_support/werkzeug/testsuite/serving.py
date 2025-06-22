@@ -11,11 +11,12 @@
 import sys
 import time
 try:
-    import httplib
+    import http.client
 except ImportError:
-    from http import client as httplib
+    from .http import client as httplib
 try:
-    from urllib2 import urlopen, HTTPError
+    from urllib.request import urlopen
+    from urllib.error import HTTPError
 except ImportError:  # pragma: no cover
     from urllib.request import urlopen
     from urllib.error import HTTPError
@@ -105,7 +106,7 @@ class ServingTestCase(WerkzeugTestCase):
             return [b'YES']
 
         server, addr = run_dev_server(asserting_app)
-        conn = httplib.HTTPConnection(addr)
+        conn = http.client.HTTPConnection(addr)
         conn.request('GET', 'http://surelynotexisting.example.com:1337/index.htm')
         res = conn.getresponse()
         assert res.read() == b'YES'

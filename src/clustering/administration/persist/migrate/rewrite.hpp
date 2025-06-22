@@ -23,4 +23,4 @@ void rewrite_metadata_values(const metadata_file_t::key_t<T> &prefix,
     }
 }
 
-#endif /* CLUSTERING_ADMINISTRATION_PERSIST_MIGRATE_REWRITE_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_PERSIST_MIGRATE_REWRITE_HPP_

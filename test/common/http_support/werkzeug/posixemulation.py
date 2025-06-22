@@ -37,10 +37,10 @@ if os.name == 'nt': # pragma: no cover
         _MoveFileEx = ctypes.windll.kernel32.MoveFileExW
 
         def _rename(src, dst):
-            if not isinstance(src, unicode):
-                src = unicode(src, sys.getfilesystemencoding())
-            if not isinstance(dst, unicode):
-                dst = unicode(dst, sys.getfilesystemencoding())
+            if not isinstance(src, str):
+                src = str(src, sys.getfilesystemencoding())
+            if not isinstance(dst, str):
+                dst = str(dst, sys.getfilesystemencoding())
             if _rename_atomic(src, dst):
                 return True
             retry = 0
@@ -93,7 +93,7 @@ if os.name == 'nt': # pragma: no cover
         except OSError as e:
             if e.errno != errno.EEXIST:
                 raise
-            old = "%s-%08x" % (dst, random.randint(0, sys.maxint))
+            old = "%s-%08x" % (dst, random.randint(0, sys.maxsize))
             os.rename(dst, old)
             os.rename(src, dst)
             try:

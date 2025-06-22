@@ -16,7 +16,7 @@ class CaseInsensitiveDict(dict):
     """
 
     def _lower_keys(self):
-        return [str.lower(k) for k in  self.keys()]
+        return [str.lower(k) for k in  list(self.keys())]
 
     def __contains__(self, key):
         return key.lower() in self._lower_keys()

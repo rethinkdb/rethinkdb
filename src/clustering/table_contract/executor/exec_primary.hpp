@@ -153,5 +153,5 @@ private:
     auto_drainer_t drainer;
 };
 
-#endif /* CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_PRIMARY_HPP_ */
+#endif // CLUSTERING_TABLE_CONTRACT_EXECUTOR_EXEC_PRIMARY_HPP_
 

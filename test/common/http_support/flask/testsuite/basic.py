@@ -370,50 +370,50 @@ class BasicFunctionalityTestCase(FlaskTestCase):
 
         @app.route('/')
         def index():
-            flask.flash(u'Hello World')
-            flask.flash(u'Hello World', 'error')
-            flask.flash(flask.Markup(u'<em>Testing</em>'), 'warning')
+            flask.flash('Hello World')
+            flask.flash('Hello World', 'error')
+            flask.flash(flask.Markup('<em>Testing</em>'), 'warning')
             return ''
 
         @app.route('/test/')
         def test():
             messages = flask.get_flashed_messages()
             self.assert_equal(len(messages), 3)
-            self.assert_equal(messages[0], u'Hello World')
-            self.assert_equal(messages[1], u'Hello World')
-            self.assert_equal(messages[2], flask.Markup(u'<em>Testing</em>'))
+            self.assert_equal(messages[0], 'Hello World')
+            self.assert_equal(messages[1], 'Hello World')
+            self.assert_equal(messages[2], flask.Markup('<em>Testing</em>'))
             return ''
 
         @app.route('/test_with_categories/')
         def test_with_categories():
             messages = flask.get_flashed_messages(with_categories=True)
             self.assert_equal(len(messages), 3)
-            self.assert_equal(messages[0], ('message', u'Hello World'))
-            self.assert_equal(messages[1], ('error', u'Hello World'))
-            self.assert_equal(messages[2], ('warning', flask.Markup(u'<em>Testing</em>')))
+            self.assert_equal(messages[0], ('message', 'Hello World'))
+            self.assert_equal(messages[1], ('error', 'Hello World'))
+            self.assert_equal(messages[2], ('warning', flask.Markup('<em>Testing</em>')))
             return ''
 
         @app.route('/test_filter/')
         def test_filter():
             messages = flask.get_flashed_messages(category_filter=['message'], with_categories=True)
             self.assert_equal(len(messages), 1)
-            self.assert_equal(messages[0], ('message', u'Hello World'))
+            self.assert_equal(messages[0], ('message', 'Hello World'))
             return ''
 
         @app.route('/test_filters/')
         def test_filters():
             messages = flask.get_flashed_messages(category_filter=['message', 'warning'], with_categories=True)
             self.assert_equal(len(messages), 2)
-            self.assert_equal(messages[0], ('message', u'Hello World'))
-            self.assert_equal(messages[1], ('warning', flask.Markup(u'<em>Testing</em>')))
+            self.assert_equal(messages[0], ('message', 'Hello World'))
+            self.assert_equal(messages[1], ('warning', flask.Markup('<em>Testing</em>')))
             return ''
 
         @app.route('/test_filters_without_returning_categories/')
         def test_filters2():
             messages = flask.get_flashed_messages(category_filter=['message', 'warning'])
             self.assert_equal(len(messages), 2)
-            self.assert_equal(messages[0], u'Hello World')
-            self.assert_equal(messages[1], flask.Markup(u'<em>Testing</em>'))
+            self.assert_equal(messages[0], 'Hello World')
+            self.assert_equal(messages[1], flask.Markup('<em>Testing</em>'))
             return ''
 
         # Create new test client on each test to clean flashed messages.
@@ -676,10 +676,10 @@ class BasicFunctionalityTestCase(FlaskTestCase):
         app = flask.Flask(__name__)
         @app.route('/unicode')
         def from_unicode():
-            return u'Hällo Wörld'
+            return 'Hällo Wörld'
         @app.route('/string')
         def from_string():
-            return u'Hällo Wörld'.encode('utf-8')
+            return 'Hällo Wörld'.encode('utf-8')
         @app.route('/args')
         def from_tuple():
             return 'Meh', 400, {
@@ -687,8 +687,8 @@ class BasicFunctionalityTestCase(FlaskTestCase):
                 'Content-Type': 'text/plain; charset=utf-8'
             }
         c = app.test_client()
-        self.assert_equal(c.get('/unicode').data, u'Hällo Wörld'.encode('utf-8'))
-        self.assert_equal(c.get('/string').data, u'Hällo Wörld'.encode('utf-8'))
+        self.assert_equal(c.get('/unicode').data, 'Hällo Wörld'.encode('utf-8'))
+        self.assert_equal(c.get('/string').data, 'Hällo Wörld'.encode('utf-8'))
         rv = c.get('/args')
         self.assert_equal(rv.data, b'Meh')
         self.assert_equal(rv.headers['X-Foo'], 'Testing')
@@ -970,12 +970,12 @@ class BasicFunctionalityTestCase(FlaskTestCase):
         app = flask.Flask(__name__)
         app.testing = True
 
-        @app.route(u'/киртест')
+        @app.route('/киртест')
         def index():
             return 'Hello World!'
 
         c = app.test_client()
-        rv = c.get(u'/киртест')
+        rv = c.get('/киртест')
         self.assert_equal(rv.data, b'Hello World!')
 
     def test_debug_mode_complains_after_first_request(self):

@@ -73,4 +73,4 @@ private:
     DISABLE_COPYING(registrant_t);
 };
 
-#endif /* CLUSTERING_GENERIC_REGISTRANT_HPP_ */
+#endif // CLUSTERING_GENERIC_REGISTRANT_HPP_
