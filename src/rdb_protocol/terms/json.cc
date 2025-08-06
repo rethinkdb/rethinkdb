@@ -19,8 +19,10 @@ public:
     json_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        const datum_string_t data = args->arg(env, 0)->as_str();
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        const datum_string_t data = v0->as_str();
+        if (err_out->has()) { return noval(); }
 
         if (env->env->reql_version() < reql_version_t::v2_1) {
             const std::string std_data = data.to_std();
@@ -68,8 +70,9 @@ public:
     to_json_string_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        scoped_ptr_t<val_t> v = args->arg(env, 0);
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
         datum_t d = v->as_datum();
         r_sanity_check(d.has());
         if (env->env->reql_version() < reql_version_t::v2_1) {

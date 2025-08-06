@@ -39,11 +39,11 @@ private:
         return op_term_t::is_deterministic().join(deterministic_t::single_server());
     }
     virtual scoped_ptr_t<val_t> eval_geo(
-            scope_env_t *env, args_t *args, eval_flags_t flags) const = 0;
+            eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t flags) const = 0;
     scoped_ptr_t<val_t> eval_impl(
-            scope_env_t *env, args_t *args, eval_flags_t flags) const {
+            eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t flags) const {
         try {
-            return eval_geo(env, args, flags);
+            return eval_geo(err_out, env, args, flags);
         } catch (const geo_exception_t &e) {
             rfail(base_exc_t::LOGIC, "%s", e.what());
         }
@@ -62,11 +62,11 @@ private:
         return obj_or_seq_op_term_t::is_deterministic().join(deterministic_t::single_server());
     }
     virtual scoped_ptr_t<val_t> obj_eval_geo(
-            scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const = 0;
+            eval_error *err_out, scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const = 0;
     scoped_ptr_t<val_t> obj_eval(
-            scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
+            eval_error *err_out, scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
         try {
-            return obj_eval_geo(env, args, v0);
+            return obj_eval_geo(err_out, env, args, v0);
         } catch (const geo_exception_t &e) {
             rfail(base_exc_t::LOGIC, "%s", e.what());
         }
@@ -78,8 +78,9 @@ public:
     geojson_term_t(compile_env_t *env, const raw_term_t &term)
         : geo_term_t(env, term, argspec_t(1)) { }
 private:
-    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        scoped_ptr_t<val_t> v = args->arg(env, 0);
+    scoped_ptr_t<val_t> eval_geo(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
         datum_t geo_json = v->as_datum();
         validate_geojson(geo_json);
 
@@ -105,8 +106,9 @@ public:
     to_geojson_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        scoped_ptr_t<val_t> v = args->arg(env, 0);
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
 
         datum_object_builder_t result(v->as_ptype(pseudo::geometry_string));
         bool success = result.delete_field(datum_t::reql_type_string);
@@ -132,9 +134,13 @@ private:
     deterministic_t is_deterministic() const {
         return op_term_t::is_deterministic(); // NB: skip over geo_term_t
     }
-    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        double lon = args->arg(env, 0)->as_num();
-        double lat = args->arg(env, 1)->as_num();
+    scoped_ptr_t<val_t> eval_geo(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        double lon = v0->as_num();
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        double lat = v1->as_num();
         lon_lat_point_t point(lon, lat);
 
         const datum_t result = construct_geo_point(point, env->env->limits());
@@ -166,11 +172,12 @@ lon_lat_point_t parse_point_argument(const datum_t &point_datum) {
 }
 
 // Used by line_term_t and polygon_term_t
-lon_lat_line_t parse_line_from_args(scope_env_t *env, args_t *args) {
+lon_lat_line_t parse_line_from_args(eval_error *err_out, scope_env_t *env, args_t *args) {
     lon_lat_line_t line;
     line.reserve(args->num_args());
     for (size_t i = 0; i < args->num_args(); ++i) {
-        scoped_ptr_t<const val_t> point_arg = args->arg(env, i);
+        scoped_ptr_t<const val_t> point_arg = args->arg(err_out, env, i);
+        if (err_out->has()) { return line; }
         const datum_t &point_datum = point_arg->as_datum();
         line.push_back(parse_point_argument(point_datum));
     }
@@ -183,8 +190,9 @@ public:
     line_term_t(compile_env_t *env, const raw_term_t &term)
         : geo_term_t(env, term, argspec_t(2, -1)) { }
 private:
-    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        const lon_lat_line_t line = parse_line_from_args(env, args);
+    scoped_ptr_t<val_t> eval_geo(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        const lon_lat_line_t line = parse_line_from_args(err_out, env, args);
+        if (err_out->has()) { return noval(); }
 
         const datum_t result = construct_geo_line(line, env->env->limits());
         validate_geojson(result);
@@ -199,8 +207,9 @@ public:
     polygon_term_t(compile_env_t *env, const raw_term_t &term)
         : geo_term_t(env, term, argspec_t(3, -1)) { }
 private:
-    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        const lon_lat_line_t shell = parse_line_from_args(env, args);
+    scoped_ptr_t<val_t> eval_geo(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        const lon_lat_line_t shell = parse_line_from_args(err_out, env, args);
+        if (err_out->has()) { return noval(); }
 
         const datum_t result = construct_geo_polygon(shell, env->env->limits());
         validate_geojson(result);
@@ -216,8 +225,9 @@ public:
         : geo_obj_or_seq_op_term_t(env, term, poly_type_t::FILTER, argspec_t(2)) { }
 private:
     scoped_ptr_t<val_t> obj_eval_geo(
-            scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
-        scoped_ptr_t<val_t> other = args->arg(env, 1);
+            eval_error *err_out, scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
+        scoped_ptr_t<val_t> other = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
 
         bool result = geo_does_intersect(v0->as_ptype(pseudo::geometry_string),
                                          other->as_ptype(pseudo::geometry_string));
@@ -233,8 +243,9 @@ public:
         : geo_obj_or_seq_op_term_t(env, term, poly_type_t::FILTER, argspec_t(2)) { }
 private:
     scoped_ptr_t<val_t> obj_eval_geo(
-            scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
-        scoped_ptr_t<val_t> g = args->arg(env, 1);
+            eval_error *err_out, scope_env_t *env, args_t *args, const scoped_ptr_t<val_t> &v0) const {
+        scoped_ptr_t<val_t> g = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
 
         scoped_ptr_t<S2Polygon> s2polygon =
             to_s2polygon(v0->as_ptype(pseudo::geometry_string));
@@ -245,8 +256,9 @@ private:
     virtual const char *name() const { return "includes"; }
 };
 
-ellipsoid_spec_t pick_reference_ellipsoid(scope_env_t *env, args_t *args) {
-    scoped_ptr_t<val_t> geo_system_arg = args->optarg(env, "geo_system");
+ellipsoid_spec_t pick_reference_ellipsoid(eval_error *err_out, scope_env_t *env, args_t *args) {
+    scoped_ptr_t<val_t> geo_system_arg = args->optarg(err_out, env, "geo_system");
+    if (err_out->has()) { return ellipsoid_spec_t{} /* ignored value */; }
     if (geo_system_arg.has()) {
         if (geo_system_arg->as_datum().get_type() == datum_t::R_OBJECT) {
             // We expect a reference ellipsoid with parameters 'a' and 'f'.
@@ -279,8 +291,9 @@ ellipsoid_spec_t pick_reference_ellipsoid(scope_env_t *env, args_t *args) {
     }
 }
 
-dist_unit_t pick_dist_unit(scope_env_t *env, args_t *args) {
-    scoped_ptr_t<val_t> geo_system_arg = args->optarg(env, "unit");
+dist_unit_t pick_dist_unit(eval_error *err_out, scope_env_t *env, args_t *args) {
+    scoped_ptr_t<val_t> geo_system_arg = args->optarg(err_out, env, "unit");
+    if (err_out->has()) { return dist_unit_t{} /* ignored value */; }
     if (geo_system_arg.has()) {
         return parse_dist_unit(geo_system_arg->as_str().to_std());
     } else {
@@ -293,12 +306,16 @@ public:
     distance_term_t(compile_env_t *env, const raw_term_t &term)
         : geo_term_t(env, term, argspec_t(2), optargspec_t({"geo_system", "unit"})) { }
 private:
-    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        scoped_ptr_t<val_t> g1_arg = args->arg(env, 0);
-        scoped_ptr_t<val_t> g2_arg = args->arg(env, 1);
+    scoped_ptr_t<val_t> eval_geo(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> g1_arg = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        scoped_ptr_t<val_t> g2_arg = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
 
-        ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
-        dist_unit_t result_unit = pick_dist_unit(env, args);
+        ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(err_out, env, args);
+        if (err_out->has()) { return noval(); }
+        dist_unit_t result_unit = pick_dist_unit(err_out, env, args);
+        if (err_out->has()) { return noval(); }
 
         // (At least) one of the arguments must be a point.
         // Find out which one it is.
@@ -328,16 +345,20 @@ public:
         : geo_term_t(env, term, argspec_t(2),
           optargspec_t({"geo_system", "unit", "fill", "num_vertices"})) { }
 private:
-    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        scoped_ptr_t<val_t> center_arg = args->arg(env, 0);
-        scoped_ptr_t<val_t> radius_arg = args->arg(env, 1);
+    scoped_ptr_t<val_t> eval_geo(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> center_arg = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        scoped_ptr_t<val_t> radius_arg = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
 
-        scoped_ptr_t<val_t> fill_arg = args->optarg(env, "fill");
+        scoped_ptr_t<val_t> fill_arg = args->optarg(err_out, env, "fill");
+        if (err_out->has()) { return noval(); }
         bool fill = true;
         if (fill_arg.has()) {
             fill = fill_arg->as_bool();
         }
-        scoped_ptr_t<val_t> num_vertices_arg = args->optarg(env, "num_vertices");
+        scoped_ptr_t<val_t> num_vertices_arg = args->optarg(err_out, env, "num_vertices");
+        if (err_out->has()) { return noval(); }
         unsigned int num_vertices = 32;
         if (num_vertices_arg.has()) {
             num_vertices = num_vertices_arg->as_int<unsigned int>();
@@ -347,8 +368,10 @@ private:
                           "num_vertices must be positive.");
         }
 
-        ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
-        dist_unit_t radius_unit = pick_dist_unit(env, args);
+        ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(err_out, env, args);
+        if (err_out->has()) { return noval(); }
+        dist_unit_t radius_unit = pick_dist_unit(err_out, env, args);
+        if (err_out->has()) { return noval(); }
 
         lon_lat_point_t center = parse_point_argument(center_arg->as_datum());
         double radius = radius_arg->as_num();
@@ -373,10 +396,14 @@ public:
     get_intersecting_term_t(compile_env_t *env, const raw_term_t &term)
         : geo_term_t(env, term, argspec_t(2), optargspec_t({ "index" })) { }
 private:
-    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> table = args->arg(env, 0)->as_table();
-        scoped_ptr_t<val_t> query_arg = args->arg(env, 1);
-        scoped_ptr_t<val_t> index = args->optarg(env, "index");
+    scoped_ptr_t<val_t> eval_geo(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        counted_t<table_t> table = v0->as_table();
+        scoped_ptr_t<val_t> query_arg = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        scoped_ptr_t<val_t> index = args->optarg(err_out, env, "index");
+        if (err_out->has()) { return noval(); }
         rcheck(index.has(), base_exc_t::LOGIC,
                "get_intersecting requires an index argument.");
         std::string index_str = index->as_str().to_std();
@@ -395,8 +422,9 @@ public:
     fill_term_t(compile_env_t *env, const raw_term_t &term)
         : geo_term_t(env, term, argspec_t(1)) { }
 private:
-    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        scoped_ptr_t<val_t> l_arg = args->arg(env, 0);
+    scoped_ptr_t<val_t> eval_geo(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> l_arg = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
         const lon_lat_line_t shell =
             extract_lon_lat_line(l_arg->as_ptype(pseudo::geometry_string));
 
@@ -414,19 +442,26 @@ public:
         : geo_term_t(env, term, argspec_t(2),
           optargspec_t({ "index", "max_results", "max_dist", "geo_system", "unit" })) { }
 private:
-    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> table = args->arg(env, 0)->as_table();
-        scoped_ptr_t<val_t> center_arg = args->arg(env, 1);
-        scoped_ptr_t<val_t> index = args->optarg(env, "index");
+    scoped_ptr_t<val_t> eval_geo(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        counted_t<table_t> table = v0->as_table();
+        scoped_ptr_t<val_t> center_arg = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        scoped_ptr_t<val_t> index = args->optarg(err_out, env, "index");
+        if (err_out->has()) { return noval(); }
         rcheck(index.has(), base_exc_t::LOGIC,
                "get_nearest requires an index argument.");
         std::string index_str = index->as_str().to_std();
         rcheck(index_str != table->get_pkey(), base_exc_t::LOGIC,
                "get_nearest cannot use the primary index.");
         lon_lat_point_t center = parse_point_argument(center_arg->as_datum());
-        ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(env, args);
-        dist_unit_t dist_unit = pick_dist_unit(env, args);
-        scoped_ptr_t<val_t> max_dist_arg = args->optarg(env, "max_dist");
+        ellipsoid_spec_t reference_ellipsoid = pick_reference_ellipsoid(err_out, env, args);
+        if (err_out->has()) { return noval(); }
+        dist_unit_t dist_unit = pick_dist_unit(err_out, env, args);
+        if (err_out->has()) { return noval(); }
+        scoped_ptr_t<val_t> max_dist_arg = args->optarg(err_out, env, "max_dist");
+        if (err_out->has()) { return noval(); }
         double max_dist = 100000; // Default: 100 km
         if (max_dist_arg.has()) {
             max_dist =
@@ -436,7 +471,8 @@ private:
                           base_exc_t::LOGIC,
                           "max_dist must be positive.");
         }
-        scoped_ptr_t<val_t> max_results_arg = args->optarg(env, "max_results");
+        scoped_ptr_t<val_t> max_results_arg = args->optarg(err_out, env, "max_results");
+        if (err_out->has()) { return noval(); }
         int64_t max_results = 100; // Default: 100 results
         if (max_results_arg.has()) {
             max_results = max_results_arg->as_int();
@@ -475,9 +511,13 @@ private:
         return res;
     }
 
-    scoped_ptr_t<val_t> eval_geo(scope_env_t *env, args_t *args, eval_flags_t) const {
-        const datum_t lhs = check_arg(args->arg(env, 0));
-        const datum_t rhs = check_arg(args->arg(env, 1));
+    scoped_ptr_t<val_t> eval_geo(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        const datum_t lhs = check_arg(std::move(v0));
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        const datum_t rhs = check_arg(std::move(v1));
 
         {
             scoped_ptr_t<S2Polygon> lhs_poly = to_s2polygon(lhs);
