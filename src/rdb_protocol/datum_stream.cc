@@ -1932,7 +1932,8 @@ std::vector<datum_t> ordered_union_datum_stream_t::next_raw_batch(
         }
 
         while (merge_cache.size() > 0 && !batcher.should_send_batch()) {
-            merge_cache_item_t el = std::move(merge_cache.top());
+            // TODO: Replace std::priority_queue with one you can move out of.
+            merge_cache_item_t el = merge_cache.top();
             merge_cache.pop();
 
             datum_t datum_on_deck = std::move(el.value);

@@ -774,8 +774,10 @@ service_address_ports_t get_service_address_ports(const std::map<std::string, op
             local_ip_filter_t::MATCH_FILTER :
             local_ip_filter_t::MATCH_FILTER_OR_LOOPBACK;
 
-    const std::vector<std::string> &default_options =
-        all_options(opts, "--bind");
+    // To smother a dangling reference warning with default_options:
+    const std::string bind_str = "--bind";
+
+    const std::vector<std::string> &default_options = all_options(opts, bind_str);
     return service_address_ports_t(
         get_local_addresses(default_options, default_options, filter),
         get_local_addresses(all_options(opts, "--bind-cluster"),
