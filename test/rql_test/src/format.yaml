@@ -1,0 +1,55 @@
+desc: Tests string formatting function
+tests:
+    # Formatting at the middle of the text
+    - cd: r.format("With great {noun} comes great responsibility.", {"noun": "power"})
+      rb: r.format("With great {noun} comes great responsibility.", {"noun" => "power"})
+      ot: "With great power comes great responsibility."
+    # Formatting at the beginning and end of the text
+    - cd: r.format("{with} great power comes great {what}.", {"with": "With", "what": "responsibility"})
+      rb: r.format("{with} great power comes great {what}.", {"with" => "With", "what" => "responsibility"})
+      ot: "With great power comes great responsibility."
+    # Formatting with empty placeholder
+    - cd: r.format("With great {} comes great responsibility.", {"": "power"})
+      rb: r.format("With great {} comes great responsibility.", {"" => "power"})
+      ot: "With great power comes great responsibility."
+    # Parameter not found in text
+    - cd: r.format("With great power comes great responsibility.", {"text": "test" })
+      rb: r.format("With great power comes great responsibility.", {"text" => "test" })
+      ot: "With great power comes great responsibility."
+    # Using integers for formatting
+    - cd: r.format("{bottles} bottles of beer on the wall.", {"bottles": 100})
+      rb: r.format("{bottles} bottles of beer on the wall.", {"bottles" => 100})
+      ot: "100 bottles of beer on the wall."
+    # Using doubles for formatting
+    - cd: r.format("{bottles} bottles of beer on the wall.", {"bottles": 99.12345})
+      rb: r.format("{bottles} bottles of beer on the wall.", {"bottles" => 99.12345})
+      ot: "99.12345 bottles of beer on the wall."
+    # Placeholder not found in replacement parameters
+    - cd: r.format("foo {bar} baz", {})
+      rb: r.format("foo {bar} baz", {})
+      ot: err('ReqlNonExistenceError', 'No attribute `bar` in object:')
+    # Placeholder indicator curly braces is not closed
+    - cd: r.format("foo {bar baz", {"bar": "bar" })
+      rb: r.format("foo {bar baz", {"bar" => "bar" })
+      ot: err('ReqlQueryLogicError', 'Parameter tag must be closed')
+    # Placeholder indicator curly braces is not opened
+    - cd: r.format("foo bar} baz", {"bar": "bar" })
+      rb: r.format("foo bar} baz", {"bar" => "bar" })
+      ot: err('ReqlQueryLogicError', 'No parameter tags to close')
+    - cd: r.format("foo {{nested}} baz", {"nested": "bar" })
+      rb: r.format("foo {{nested}} baz", {"nested" => "bar" })
+      ot: err('ReqlQueryLogicError', 'Nested template parameters are not allowed')
+    - cd: r.format("{foo} {bar} {baz}", ["foo", "bar", "baz"])
+      ot: err('ReqlQueryLogicError', 'Expected type OBJECT but found ARRAY.')
+    - cd: r.format("{foo} bar baz", "foo")
+      ot: err('ReqlQueryLogicError', 'Expected type OBJECT but found STRING.')
+    - cd: r.format("{foo} bar baz", 1)
+      ot: err('ReqlQueryLogicError', 'Expected type OBJECT but found NUMBER.')
+    # Reserved formatting characters not allowed
+    - cd: r.format("foo {bar:} baz", {"bar:": "bar"})
+      ot: err('ReqlQueryLogicError', 'Formatting separator `:` is not allowed in parameter name')
+    # We escape backslash to avoid using raw strings per language we test
+    - cd: r.format("foo {bar\\} baz", {"bar\\": "bar" })
+      ot:
+        cd: err('ReqlQueryLogicError', 'Reserved escape character `\` is not allowed in parameter name')
+        js: err('ReqlQueryLogicError', 'Reserved escape character `\\` is not allowed in parameter name')
