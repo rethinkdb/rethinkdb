@@ -14,6 +14,9 @@ inputs:
   commit_hash:
     description: The commit hash to use at checkout.
     required: false
+  # TODO: This commit is pointing after driver extraction, hence it should be the baseline.
+  #  When all tests are passing using this commit hash, update the hash to the latest and
+  #  fix the newly raised issues.
   default_python_driver_commit_hash:
     description: The commit hash to use at checkout for the default Python driver.
     default: d706bd3a55b9f7754fd7e62c29590e9156ec2088
@@ -51,10 +54,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - uses: actions/setup-python@v3
-      with:
-        python-version: '3.8'
-
     - name: download ${{ inputs.driver_name }} driver
       if: ${{ inputs.driver_name != 'python' }}
       shell: bash
@@ -73,9 +72,9 @@ runs:
         git clone https://github.com/rethinkdb/rethinkdb-python /tmp/python-driver
         cd /tmp/python-driver
         git checkout ${{ inputs.default_python_driver_commit_hash }}
-        pip install poetry
-        poetry install
-        make ql2.proto
+        sudo apt install -y rsync
+        pip install -r requirements.txt
+        make prepare
         cd -
 
     - name: setup ${{ inputs.driver_name }} driver

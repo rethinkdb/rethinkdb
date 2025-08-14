@@ -294,11 +294,11 @@ class PerformContinuousAction(threading.Thread):
     def stop(self):
         self.stopSignal = True
         self.join(timeout=.5)
-        if self.is_alive():
+        if self.isAlive():
           raise Warning('performContinuousAction failed to stop when asked to, results might not be trustable')
     
     def errorSummary(self):
-        if self.is_alive():
+        if self.isAlive():
             self.stop()
         
         return self.recordedErrors
