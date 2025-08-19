@@ -2008,7 +2008,7 @@ from this list: JAVASCRIPT_DRIVER, PYTHON_DRIVER, RUBY_DRIVER. Or use
         if makeProcess.wait() != 0:
             sys.stderr.write('Error making %s driver. Make output follows:\n\n' % os.path.basename(__file__))
             outputFile.seek(0)
-            print(outputFile.read().decode('utf-8'))
+            print(outputFile.read())
             sys.exit(1)
         
         os.environ[language.driver_info['envName'] + '_SRC'] = language.driver_info['sourcePath']

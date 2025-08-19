@@ -46,8 +46,8 @@ tests:
     - cd: r.format("{foo} bar baz", 1)
       ot: err('ReqlQueryLogicError', 'Expected type OBJECT but found NUMBER.')
     # Reserved formatting characters not allowed
-    - cd: r.format("foo {bar:} baz", {"bar:": "bar"})
-      ot: err('ReqlQueryLogicError', 'Formatting separator `:` is not allowed in parameter name')
+    - cd: r.format("foo {bar,} baz", {"bar,": "bar"})
+      ot: err('ReqlQueryLogicError', 'Formatting separator `,` is not allowed in parameter name')
     # We escape backslash to avoid using raw strings per language we test
     - cd: r.format("foo {bar\\} baz", {"bar\\": "bar" })
       ot:
