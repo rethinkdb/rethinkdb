@@ -20,3 +20,4 @@ web-assets: $(ALL_WEB_ASSETS)
 generate-web-assets-cc: web-assets
 	mkdir -p $(TOP)/src/gen
 	$(TOP)/scripts/compile-web-assets.py $(TOP)/build/web_assets > $(TOP)/src/gen/web_assets.cc
+	grep -E 'module\.exports=\\"[0-9]+(\.[0-9]+)+\\";' $(TOP)/src/gen/web_assets.cc | xargs -0 echo -n 'Double-check version:'

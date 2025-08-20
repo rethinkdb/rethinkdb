@@ -1,4 +1,4 @@
 version=6.17.1
 
-src_url=http://nodejs.org/dist/v$version/node-v$version.tar.gz
-src_url_sha1=7497b72ad8e216b95e3dea864adeb6e5e4100509
+src_url=https://nodejs.org/dist/v$version/node-v$version.tar.gz
+src_url_sha256=6fa487c5c6770cc7ca0567c0e532d6bcdf0f5d1aebdceb169ecfb66984459dea

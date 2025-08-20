@@ -30,16 +30,32 @@ src/gen/web_assets.cc.
 To generate src/gen/web_assets.cc, run the following:
 
     ./configure --fetch all
-    # ./configure --fetch all CXX=clang++
+
+    make clean
     make -j8 generate
 
-To generate a web_assets.cc for a specific RethinkDB version, you might want to try
+To generate a web_assets.cc for a specific RethinkDB version like
+1.2.3, you might want to try
 
-    make PVERSION=<your choice> -j8 generate
+    cd /rethinkdb    # see "canonical location" instructions below
+    make clean
+    make PVERSION=1.2.3 -j8 generate
+
+It is IMPORTANT that you clean *and* double-check the
+rethinkdb-version value in src/gen/web_assets.cc after generating.
+(The build system now greps the web_assets.cc file for you so you can
+visually inspect the generated value.)
 
 Once src/gen/web_assets.cc is built, you can copy the file into your
 rethinkdb repository, replacing the existing one at the same location,
-src/gen/web_assets.cc.  Then, presumably, commit that version.
+src/gen/web_assets.cc.  Then, if appropriate, commit that version.
+
+If committing, your web assets should be generated from a repo located
+at the "canonical location", which is `/rethinkdb`.  The generation
+process emits some absolute paths; hence this minimizes diffs and
+avoids leaking your personal directory information.  See
+https://github.com/rethinkdb/rethinkdb/issues/7136 .  A fix for this
+problem is welcome; this is a lazy workaround.
 
 ## Development Process
 
@@ -60,6 +76,12 @@ another terminal, run:
 Now you can work on the web UI in ~/rethinkdb-old-admin/admin/ and
 semi-instantly view the results in a web browser.
 
+Beware: RethinkDB's server won't serve any file outside of the
+whitelist of files that were listed in its generated `web_assets.cc`.
+You will see console log messages if that occurs.  If you add new
+files, you will need to regenerate web_assets.cc and recompile the
+RethinkDB server.
+
 Then, once you're satisfied with your changes, interrupt the `make
 web-assets-watch` with Ctrl+C and use `make generate` to create your
 web_assets.cc, as described in the Usage section above.
@@ -67,13 +89,5 @@ web_assets.cc, as described in the Usage section above.
 
 ## System Requirements
 
-This is known to work on Debian Bullseye (with python-is-python3) and
-Ubuntu Focal (20.04).
-
-On Ubuntu Jammy (22.04), you will need Python to point to python2:
-
-    mkdir ~/tmpbin
-    ln -s /usr/bin/python2 ~/tmpbin/python
-    export PATH=~/tmpbin:"$PATH"
-    ./configure --allow-fetch
-    make -j8 generate
+This is known to work on Debian Bullseye (with python-is-python3),
+Ubuntu Focal (20.04), and Ubuntu Jammy (22.04).

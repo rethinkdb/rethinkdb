@@ -1113,9 +1113,9 @@ reql_docs = {
     "url": "includes"
   },
   "api/javascript/index_create/": {
-    "body": "table.indexCreate(indexName[, indexFunction][, {multi: false, geo: false}]) &rarr; object",
-    "description": "<p>Create a new secondary index on a table. Secondary indexes improve the speed of many read queries at the slight cost of increased storage space and decreased write performance. For more information about secondary indexes, read the article \"<a href=\"/docs/secondary-indexes/\">Using secondary indexes in RethinkDB</a>.\"</p>",
-    "example": "<p><strong>Example:</strong> Create a simple index based on the field <code>postId</code>.</p>\n<pre><code>r.table('comments').indexCreate('postId').run(conn, callback)\n</code></pre>",
+    "body": "table.indexCreate(indexName[, indexFunction][, {multi: false, geo: false}]) &rarr; object", 
+    "description": "<p>Create a new secondary index on a table. Secondary indexes improve the speed of many read queries at the slight cost of increased storage space and decreased write performance. For more information about secondary indexes, read the article \"<a href=\"https://rethinkdb.com/docs/secondary-indexes/\">Using secondary indexes in RethinkDB</a>.\"</p>", 
+    "example": "<p><strong>Example:</strong> Create a simple index based on the field <code>postId</code>.</p>\n<pre><code>r.table('comments').indexCreate('postId').run(conn, callback)\n</code></pre>", 
     "io": [
       [
         "table",
@@ -1324,9 +1324,9 @@ reql_docs = {
     "url": "json"
   },
   "api/javascript/keys/": {
-    "body": "singleSelection.keys() &rarr; arrayobject.keys() &rarr; array",
-    "description": "<p>Return an array containing all of an object's keys. Note that the keys will be sorted as described in <a href=\"/docs/data-types/#sorting-order\">ReQL data types</a> (for strings, lexicographically).</p>",
-    "example": "<p><strong>Example:</strong> Get all the keys from a table row.</p>\n<pre><code>// row: { id: 1, mail: \"fred@example.com\", name: \"fred\" }\n\nr.table('users').get(1).keys().run(conn, callback);\n// Result passed to callback\n[ \"id\", \"mail\", \"name\" ]\n</code></pre>",
+    "body": "singleSelection.keys() &rarr; arrayobject.keys() &rarr; array", 
+    "description": "<p>Return an array containing all of an object's keys. Note that the keys will be sorted as described in <a href=\"https://rethinkdb.com/docs/data-types/#sorting-order\">ReQL data types</a> (for strings, lexicographically).</p>", 
+    "example": "<p><strong>Example:</strong> Get all the keys from a table row.</p>\n<pre><code>// row: { id: 1, mail: \"fred@example.com\", name: \"fred\" }\n\nr.table('users').get(1).keys().run(conn, callback);\n// Result passed to callback\n[ \"id\", \"mail\", \"name\" ]\n</code></pre>", 
     "io": [
       [
         "singleSelection",
