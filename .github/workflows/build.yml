@@ -186,7 +186,7 @@ jobs:
           # TODO: This commit is pointing after driver extraction, hence it should be the baseline.
           #  When all tests are passing using this commit hash, update the hash to the latest and
           #  fix the newly raised issues.
-          commit_hash: c717cb9e2bdab77b55b7a31a5d780ba293c5fadf
+          commit_hash: 9e3aa0a229d2f5759a5215844317dae4e7d58d10
           interpreter: js16.14
           test_target: polyglot
           install_command: npm install && npm run build
@@ -212,7 +212,7 @@ jobs:
           driver_name: ruby
           driver_dist_dir: /tmp/driver/lib
           repo_url: https://github.com/rethinkdb/rethinkdb-ruby.git
-          commit_hash: 25781763f1af4e85116c80fd0cc988927e9c6829
+          commit_hash: e5b14cc26a9263a60ad88fb4443d4699b7eb6182
           interpreter: rb2.7
           test_target: polyglot
           install_command: bundle update --bundler && bundle install && rake build

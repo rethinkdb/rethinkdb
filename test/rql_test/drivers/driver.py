@@ -71,12 +71,7 @@ TEST FAILURE: %(name)s%(message)s
 def check_pp(src, query):
     # This isn't a good indicator because of lambdas, whitespace differences, etc
     # But it will at least make sure that we don't crash when trying to print a query
-    printer = r.errors.QueryPrinter(query)
-    composed = printer.print_query()
-    #if composed != src:
-    #    print('Warning, pretty printing inconsistency:')
-    #    print("Source code: %s", src)
-    #    print("Printed query: %s", composed)
+    r.errors.QueryPrinter(query).print_query()
 
 class OptionsBox(object):
     value = None

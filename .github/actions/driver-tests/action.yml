@@ -19,7 +19,7 @@ inputs:
   #  fix the newly raised issues.
   default_python_driver_commit_hash:
     description: The commit hash to use at checkout for the default Python driver.
-    default: d706bd3a55b9f7754fd7e62c29590e9156ec2088
+    default: d3d36d9d08abf3cc3fa91f70f3332e43bdcab766
     required: false
   install_command:
     description: The test runner command to execute.
@@ -73,8 +73,9 @@ runs:
         cd /tmp/python-driver
         git checkout ${{ inputs.default_python_driver_commit_hash }}
         sudo apt install -y rsync
-        pip install -r requirements.txt
-        make prepare
+        pip install poetry
+        poetry config virtualenvs.create false
+        poetry install -E all
         cd -
 
     - name: setup ${{ inputs.driver_name }} driver
