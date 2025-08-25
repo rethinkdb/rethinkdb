@@ -32,7 +32,8 @@ class runtime_term_t : public slow_atomic_countable_t<runtime_term_t>,
                        public bt_rcheckable_t {
 public:
     virtual ~runtime_term_t();
-    scoped_ptr_t<val_t> eval(scope_env_t *env, eval_flags_t eval_flags = NO_FLAGS) const;
+    static inline scoped_ptr_t<val_t> noval() { return scoped_ptr_t<val_t>(); }
+    scoped_ptr_t<val_t> eval(eval_error *err_out, scope_env_t *env, eval_flags_t eval_flags = NO_FLAGS) const;
     virtual deterministic_t is_deterministic() const = 0;
     virtual const char *name() const = 0;
 
@@ -49,10 +50,12 @@ protected:
     explicit runtime_term_t(backtrace_id_t bt);
 private:
     scoped_ptr_t<val_t> eval_on_current_stack(
+            eval_error *err_out,
             scope_env_t *env,
             eval_flags_t eval_flags) const;
 
-    virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, eval_flags_t) const = 0;
+    virtual scoped_ptr_t<val_t> term_eval(eval_error *err_out,
+        scope_env_t *env, eval_flags_t) const = 0;
 };
 
 class term_t : public runtime_term_t {

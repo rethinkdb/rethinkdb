@@ -119,10 +119,10 @@ public:
     // number of arguments
     size_t num_args() const;
     // Returns argument `i`.
-    scoped_ptr_t<val_t> arg(scope_env_t *env, size_t i, eval_flags_t flags = NO_FLAGS);
+    scoped_ptr_t<val_t> arg(eval_error *err_out, scope_env_t *env, size_t i, eval_flags_t flags = NO_FLAGS);
     deterministic_t arg_is_deterministic(size_t i) const;
     // Tries to get an optional argument, returns `scoped_ptr_t<val_t>()` if not found.
-    scoped_ptr_t<val_t> optarg(scope_env_t *env, const std::string &key) const;
+    scoped_ptr_t<val_t> optarg(eval_error *err_out, scope_env_t *env, const std::string &key) const;
 
     args_t(const op_term_t *op_term, argvec_t argv);
     args_t(const op_term_t *op_term, argvec_t argv, scoped_ptr_t<val_t> arg0);
@@ -188,7 +188,7 @@ private:
     // Union term is a friend so we can steal arguments from an array.
     friend class union_term_t;
     // Tries to get an optional argument, returns `scoped_ptr_t<val_t>()` if not found.
-    scoped_ptr_t<val_t> optarg(scope_env_t *env, const std::string &key) const;
+    scoped_ptr_t<val_t> optarg(eval_error *err_out, scope_env_t *env, const std::string &key) const;
 
     // Evaluates args[0] and sets *grouped_data_out to non-nil if it's grouped.
     // (Sets *arg0_out to non-nil if it's not grouped.  Both outputs are set to nil
@@ -199,9 +199,11 @@ private:
                             counted_t<grouped_data_t> *grouped_data_out,
                             scoped_ptr_t<val_t> *arg0_out) const;
 
-    virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env,
-                                          eval_flags_t eval_flags) const;
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
+    scoped_ptr_t<val_t> term_eval(eval_error *err_out,
+        scope_env_t *env,
+        eval_flags_t eval_flags) const override;
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out,
+                                          scope_env_t *env,
                                           args_t *args,
                                           eval_flags_t eval_flags) const = 0;
     virtual bool can_be_grouped() const;
@@ -229,11 +231,11 @@ public:
     virtual ~bounded_op_term_t() { }
 
 protected:
-    bool is_left_open(scope_env_t *env, args_t *args) const;
-    bool is_right_open(scope_env_t *env, args_t *args) const;
+    bool is_left_open(eval_error *err_out, scope_env_t *env, args_t *args) const;
+    bool is_right_open(eval_error *err_out, scope_env_t *env, args_t *args) const;
 
 private:
-    bool open_bool(scope_env_t *env, args_t *args, const std::string &key,
+    bool open_bool(eval_error *err_out, scope_env_t *env, args_t *args, const std::string &key,
                    bool def/*ault*/) const;
 };
 

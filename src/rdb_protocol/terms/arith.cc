@@ -27,10 +27,14 @@ public:
         guarantee(namestr && op);
     }
 
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        datum_t acc = args->arg(env, 0)->as_datum();
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        datum_t acc = v->as_datum();
         for (size_t i = 1; i < args->num_args(); ++i) {
-            acc = (this->*op)(acc, args->arg(env, i)->as_datum(), env->env->limits());
+            auto v_i = args->arg(err_out, env, i);
+            if (err_out->has()) { return noval(); }
+            acc = (this->*op)(acc, v_i->as_datum(), env->env->limits());
         }
         return new_val(acc);
     }
@@ -127,9 +131,13 @@ public:
     mod_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        int64_t i0 = args->arg(env, 0)->as_int();
-        int64_t i1 = args->arg(env, 1)->as_int();
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        int64_t i0 = v0->as_int();
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        int64_t i1 = v1->as_int();
         rcheck(i1, base_exc_t::LOGIC, "Cannot take a number modulo 0.");
         rcheck(!(i0 == std::numeric_limits<int64_t>::min() && i1 == -1),
                base_exc_t::LOGIC,
@@ -176,10 +184,14 @@ public:
         guarantee(namestr && op);
     }
 
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        int64_t acc = bit_arith_ranged_int(this, args->arg(env, 0));
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        int64_t acc = bit_arith_ranged_int(this, std::move(v0));
         for (size_t i = 1, n = args->num_args(); i < n; ++i) {
-            int64_t rhs = bit_arith_ranged_int(this, args->arg(env, i));
+            auto v_i = args->arg(err_out, env, i);
+            if (err_out->has()) { return noval(); }
+            int64_t rhs = bit_arith_ranged_int(this, std::move(v_i));
             acc = (*op)(acc, rhs);
         }
         return new_val(datum_t(static_cast<double>(acc)));
@@ -197,8 +209,10 @@ public:
     bit_not_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        int64_t arg = bit_arith_ranged_int(this, args->arg(env, 0));
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        int64_t arg = bit_arith_ranged_int(this, std::move(v0));
         return new_val(datum_t(static_cast<double>(~arg)));
     }
     virtual const char *name() const { return "BIT_NOT"; }
@@ -216,10 +230,14 @@ public:
         guarantee(namestr && op);
     }
 
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
         // First argument is a bounded "bit-flippable" integer, the second is any old integer.
-        int64_t lhs = bit_arith_ranged_int(this, args->arg(env, 0));
-        int64_t rhs = args->arg(env, 1)->as_int();
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        int64_t lhs = bit_arith_ranged_int(this, std::move(v0));
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        int64_t rhs = v1->as_int();
         rcheck(rhs >= 0, base_exc_t::LOGIC, "Cannot bit-shift by a negative value");
 
         double ret = (*op)(lhs, rhs);
@@ -263,8 +281,10 @@ public:
 
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-            scope_env_t *env, args_t *args, eval_flags_t) const {
-        return new_val(datum_t(std::floor(args->arg(env, 0)->as_num())));
+            eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        return new_val(datum_t(std::floor(v0->as_num())));
     }
 
     virtual const char *name() const { return "floor"; }
@@ -277,8 +297,10 @@ public:
 
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-            scope_env_t *env, args_t *args, eval_flags_t) const {
-        return new_val(datum_t(std::ceil(args->arg(env, 0)->as_num())));
+            eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        return new_val(datum_t(std::ceil(v0->as_num())));
     }
 
     virtual const char *name() const { return "ceil"; }
@@ -291,8 +313,10 @@ public:
 
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-            scope_env_t *env, args_t *args, eval_flags_t) const {
-        return new_val(datum_t(std::round(args->arg(env, 0)->as_num())));
+            eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        return new_val(datum_t(std::round(v0->as_num())));
     }
 
     virtual const char *name() const { return "round"; }

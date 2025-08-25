@@ -18,8 +18,10 @@ public:
     sample_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        int64_t num_int = args->arg(env, 1)->as_int();
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const override {
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        int64_t num_int = v1->as_int();
         rcheck(num_int >= 0,
                base_exc_t::LOGIC,
                strprintf("Number of items to sample must be non-negative, got `%"
@@ -32,7 +34,8 @@ public:
 
         counted_t<table_t> t;
         counted_t<datum_stream_t> seq;
-        scoped_ptr_t<val_t> v = args->arg(env, 0);
+        scoped_ptr_t<val_t> v = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
 
         if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
             counted_t<selection_t> t_seq = v->as_selection(env->env);
@@ -106,8 +109,9 @@ private:
         return res;
     }
 
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        scoped_ptr_t<val_t> use_float_arg = args->optarg(env, "float");
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const override {
+        scoped_ptr_t<val_t> use_float_arg = args->optarg(err_out, env, "float");
+        if (err_out->has()) { return noval(); }
         bool use_float = use_float_arg ? use_float_arg->as_bool() : args->num_args() == 0;
 
         if (use_float) {
@@ -117,11 +121,17 @@ private:
             if (args->num_args() == 0) {
                 // Use default bounds
             } else if (args->num_args() == 1) {
-                upper = args->arg(env, 0)->as_num();
+                auto v0 = args->arg(err_out, env, 0);
+                if (err_out->has()) { return noval(); }
+                upper = v0->as_num();
             } else {
                 r_sanity_check(args->num_args() == 2);
-                lower = args->arg(env, 0)->as_num();
-                upper = args->arg(env, 1)->as_num();
+                auto v0 = args->arg(err_out, env, 0);
+                if (err_out->has()) { return noval(); }
+                lower = v0->as_num();
+                auto v1 = args->arg(err_out, env, 1);
+                if (err_out->has()) { return noval(); }
+                upper = v1->as_num();
             }
 
             bool range_scaled = false;
@@ -160,11 +170,17 @@ private:
             // lose precision when putting the result in a datum_t (double)
             if (args->num_args() == 1) {
                 lower = 0;
-                upper = convert_bound(args->arg(env, 0)->as_num(), bound_type_t::UPPER);
+                auto v0 = args->arg(err_out, env, 0);
+                if (err_out->has()) { return noval(); }
+                upper = convert_bound(v0->as_num(), bound_type_t::UPPER);
             } else {
                 r_sanity_check(args->num_args() == 2);
-                lower = convert_bound(args->arg(env, 0)->as_num(), bound_type_t::LOWER);
-                upper = convert_bound(args->arg(env, 1)->as_num(), bound_type_t::UPPER);
+                auto v0 = args->arg(err_out, env, 0);
+                if (err_out->has()) { return noval(); }
+                lower = convert_bound(v0->as_num(), bound_type_t::LOWER);
+                auto v1 = args->arg(err_out, env, 1);
+                if (err_out->has()) { return noval(); }
+                upper = convert_bound(v1->as_num(), bound_type_t::UPPER);
             }
 
             rcheck(lower < upper, base_exc_t::LOGIC,
