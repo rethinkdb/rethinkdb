@@ -1,0 +1,33 @@
+diff -ruN --label original original ./tools/build/src/engine/execcmd.c
+--- original
++++ ./tools/build/src/engine/execcmd.c	2025-10-27 11:58:03.160829376 -0700
+@@ -15,6 +15,7 @@
+ #include <stdio.h>
+ #include <string.h>
+ 
++#include "output.h"
+ 
+ /* Internal interrupt counter. */
+ static int intr;
+diff -ruN --label original original ./tools/build/src/engine/make.c
+--- original
++++ ./tools/build/src/engine/make.c	2025-10-27 11:49:42.613667099 -0700
+@@ -39,6 +39,7 @@
+ #include "headers.h"
+ #include "lists.h"
+ #include "object.h"
++#include "output.h"
+ #include "parse.h"
+ #include "rules.h"
+ #include "search.h"
+diff -ruN --label original original ./tools/build/src/engine/modules/path.c
+--- original
++++ ./tools/build/src/engine/modules/path.c	2025-10-27 11:49:57.185746334 -0700
+@@ -5,6 +5,7 @@
+  */
+ 
+ #include "../constants.h"
++#include "../filesys.h"
+ #include "../frames.h"
+ #include "../lists.h"
+ #include "../native.h"
