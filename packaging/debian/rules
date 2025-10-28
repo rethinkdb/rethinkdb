@@ -11,7 +11,10 @@ clean:
 	dh_clean
 	if [ -e build ] ; then rm -rf build ; fi ;
 
-install:
+# This has "build" as an explicit dependency because starting on
+# Ubuntu 24.10 or 25.04, for some reason, dpkg-buildpackage is not
+# invoking the "build" step.
+install: build
 	dh_clean
 	dh_installdirs
 	$(MAKE) DEBUG=$(DEBUG) DESTDIR=$(CURDIR)/debian/$(package) PVERSION=$(PVERSION) STRIP_ON_INSTALL=0 install
