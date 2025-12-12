@@ -1,4 +1,20 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+
+/// @file errors.hpp
+/// @brief Error handling, assertions, and debugging macros for RethinkDB
+///
+/// This comprehensive error handling module provides:
+/// - Platform-specific breakpoint and trap instructions
+/// - Assertion macros for debug and release builds
+/// - Error reporting functions with stack traces
+/// - Compiler optimizations hints (LIKELY/UNLIKELY)
+/// - Safe errno access through thread-local storage
+///
+/// @note This is a foundational header used across the entire codebase
+/// @defgroup ErrorHandling Error Handling and Assertions
+/// Macros and functions for reporting errors and validating assertions
+/// @{
+
 #ifndef ERRORS_HPP_
 #define ERRORS_HPP_
 
@@ -14,70 +30,137 @@
 #include "windows.hpp"
 #endif
 
+/// @brief Platform-specific breakpoint for debugger
+/// Inserts a breakpoint instruction that is recognized by debuggers
+/// @note Can be disabled by defining DISABLE_BREAKPOINTS before including this header
 #ifndef DISABLE_BREAKPOINTS
 #ifdef __linux__
 #if defined __i386 || defined __x86_64
+/// @internal x86/x86-64 breakpoint instruction
 #define BREAKPOINT __asm__ volatile ("int3")
 #else   /* not x86/amd64 */
+/// @internal Generic POSIX breakpoint via signal
 #define BREAKPOINT (raise(SIGTRAP))
 #endif  /* x86/amd64 */
 #elif defined(__MACH__) || defined(__FreeBSD__)
+/// @internal macOS/FreeBSD breakpoint via SIGTRAP
 #define BREAKPOINT (raise(SIGTRAP))
 #elif defined(_WIN32)
+/// @internal Windows breakpoint function
 #define BREAKPOINT DebugBreak()
 #else
 #error "BREAKPOINT not defined for this operating system"
 #endif
 #else /* Breakpoints Disabled */
+/// @internal Breakpoint disabled - no-op
 #define BREAKPOINT
 #endif /* DISABLE_BREAKPOINTS */
 
+/// @brief Compile-time assertion macro
+/// Verifies expressions at compile time; fails with clear error message if false
+/// @param e The expression to check (must be compile-time constant)
+/// @example
+/// @code
+/// CT_ASSERT(sizeof(uint32_t) == 4);  // Verify platform assumptions
+/// @endcode
 #define CT_ASSERT(e) static_assert(e, #e)
 
+/// @brief Conditionally defined code for debug builds
+/// Expands to arguments in debug builds, empty in release builds
+/// @param ... Code to include only in debug builds
+/// @note Only used internally; prefer DEBUG_ONLY_CODE for executable statements
+/// @example
+/// @code
+/// #ifdef NDEBUG
+/// // ... release code ...
+/// #else
+/// DEBUG_ONLY(int debug_count = 0;)  // Only compiled in debug mode
+/// #endif
+/// @endcode
 #ifndef NDEBUG
 #define DEBUG_ONLY(...) __VA_ARGS__
+
+/// @brief Debug-only executable statements
+/// Executes the provided expression only in debug builds
+/// @param expr Expression to execute only in debug mode
+/// @example
+/// @code
+/// DEBUG_ONLY_CODE(validate_data_structure());
+/// @endcode
 #define DEBUG_ONLY_CODE(expr) do { expr; } while (0)
 #else
 #define DEBUG_ONLY(...)
 #define DEBUG_ONLY_CODE(expr) ((void)(0))
 #endif
 
-// Static branch-prediction hint for guarantees
+/// @brief Compiler branch prediction hint for false branch
+/// Hints to the compiler that a condition is unlikely to be true,
+/// enabling better code optimization
+/// @param x The condition to evaluate
+/// @return The value of x
+/// @example
+/// @code
+/// if (UNLIKELY(error_code == -1)) {
+///     handle_error();  // This branch is rarely taken
+/// }
+/// @endcode
 #if defined __clang__ || defined __GNUC__
 #define UNLIKELY(x) __builtin_expect(x, 0)
 #else
 #define UNLIKELY(x) x
 #endif
 
-/* Accessors to errno.
- * Please access errno *only* through these access functions.
- * Accessing errno directly is unsafe in the context of
- * coroutines because compiler optimizations can interfer with TLS, which
- * might be used for errno.
- * See thread_local.hpp for a more detailed explanation of the issue. */
+/// @brief Gets the current value of errno in a thread-safe manner
+/// Accesses errno through thread-local storage to avoid compiler optimizations
+/// that could interfere with coroutine contexts
+/// @return The current errno value
+/// @see set_errno, Error handling overview
 int get_errno();
-void set_errno(int new_errno);
-/* The following line can be useful for identifying illegal direct access in our
- * code. However it cannot be turned on in general because some system headers use
- * errno and don't compile with this. */
-//#pragma GCC poison errno
 
-/* Error handling
- *
- * There are several ways to report errors in RethinkDB:
- *  fail_due_to_user_error(msg, ...)    fail and report line number/stack trace. Should only be used when the user
- *                                      is at fault (e.g. provided wrong database file name) and it is reasonable to
- *                                      fail instead of handling the problem more gracefully.
- *
- *  The following macros are used only for the cases of programmer error checking. For the time being they are also used
- *  for system error checking (especially the *_err variants).
- *
- *  crash(msg, ...)                 always fails and reports line number and such. Never returns.
- *  crash_or_trap(msg, ...)         same as above, but traps into debugger if it is present instead of terminating.
- *                                  That means that it possibly can return, and one can continue stepping through the code in the debugger.
- *                                  All off the rassert/guarantee functions use crash_or_trap.
- *  rassert(cond)                   makes sure cond is true and is a no-op in release mode
- *  rassert(cond, msg, ...)         ditto, with additional message and possibly some arguments used for formatting
+/// @brief Sets errno to a new value in a thread-safe manner
+/// Updates errno through thread-local storage for safety with coroutines
+/// @param new_errno The new errno value to set
+/// @see get_errno, Error handling overview
+void set_errno(int new_errno);
+
+/// @brief Documented error reporting strategy for RethinkDB
+/// RethinkDB uses multiple error handling approaches depending on context:
+///
+/// - `fail_due_to_user_error(msg, ...)`: Fail with traceback when user provided
+///   invalid input (e.g., wrong database file path). Prefer this for recoverable
+///   user errors only.
+///
+/// - `crash(msg, ...)`: Immediate termination with traceback. Used for
+///   unrecoverable programmer errors. Never returns.
+///
+/// - `crash_or_trap(msg, ...)`: Like crash() but traps debugger if attached,
+///   allowing step-through debugging. Returns if debugger continues execution.
+///   All rassert/guarantee functions use this.
+///
+/// - `rassert(cond)`: Debug-only assertion that becomes no-op in release.
+///
+/// - `rassert(cond, msg, ...)`: Debug assertion with formatted message.
+///
+/// @example
+/// @code
+/// // User error - invalid configuration
+/// if (config.buffer_size < 1024) {
+///     fail_due_to_user_error("Buffer size must be at least 1024 bytes");
+/// }
+///
+/// // Programmer error - something that should never happen
+/// if (nullptr == critical_pointer) {
+///     crash("Critical pointer is null - memory corruption?");
+/// }
+///
+/// // Debug-time validation
+/// rassert(list_size >= 0, "List size is negative: %d", list_size);
+/// @endcode
+/// @defgroup ErrorReporting Error Reporting Functions
+/// Functions for reporting and handling various types of errors
+/// @{
+
+/// @}
  *  rassert_err(cond)               same as rassert(cond), but also print errno error description
  *  rassert_err(cond, msg, ...)     same as rassert(cond, msg, ...), but also print errno error description
  *  guarantee(cond)                 same as rassert(cond), but the check is still done in release mode. Do not use for expensive checks!

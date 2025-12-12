@@ -1,19 +1,38 @@
-# Basic CMakeLists.txt for src directory
-# This is a placeholder - needs to be expanded with actual source files
+## @file src/CMakeLists.txt
+## @brief CMake configuration for RethinkDB source compilation
+##
+## This CMakeLists.txt handles:
+## - Protocol Buffer code generation from .proto files
+## - Collection and compilation of all RethinkDB source files
+## - Linking of external dependencies (Boost, OpenSSL, Protobuf, etc.)
+## - Installation of the rethinkdb executable
+##
+## ## Key Components
+##
+## 1. **Protobuf Compilation**: Automatically compiles ql2.proto to C++ code
+## 2. **Source Collection**: Recursively finds all .cc files in src/
+## 3. **Executable Creation**: Links all sources into the main rethinkdb binary
+## 4. **Dependency Linking**: Connects external libraries (Boost, OpenSSL, jemalloc, QuickJS)
 
 cmake_minimum_required(VERSION 3.15)
 
-# Generate protobuf files
+## @defgroup ProtobufGeneration Protocol Buffer Code Generation
+## Automatically generates C++ code from .proto files
+## @{
+
+## Define the protocol buffer files to compile
 set(PROTO_FILES
     ${CMAKE_CURRENT_SOURCE_DIR}/rdb_protocol/ql2.proto
 )
 
+## Create output directory for generated protobuf files
 set(PROTO_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/rdb_protocol")
 file(MAKE_DIRECTORY ${PROTO_OUTPUT_DIR})
 
 set(PROTO_SRCS)
 set(PROTO_HDRS)
 
+## Generate C++ files from each .proto file using protoc
 foreach(PROTO_FILE ${PROTO_FILES})
     get_filename_component(PROTO_NAME ${PROTO_FILE} NAME_WE)
     
@@ -23,6 +42,7 @@ foreach(PROTO_FILE ${PROTO_FILES})
     list(APPEND PROTO_SRCS ${PROTO_SRC})
     list(APPEND PROTO_HDRS ${PROTO_HDR})
     
+    ## Custom command to invoke protoc compiler
     add_custom_command(
         OUTPUT ${PROTO_SRC} ${PROTO_HDR}
         COMMAND ${PROTOC_EXECUTABLE}
@@ -35,25 +55,36 @@ foreach(PROTO_FILE ${PROTO_FILES})
     )
 endforeach()
 
-# Collect all source files
+## @}
+
+## @defgroup SourceCollection Source Code Collection and Compilation
+## Finds and compiles all RethinkDB source files
+## @{
+
+## Recursively collect all C++ source files from the src directory
 file(GLOB_RECURSE RETHINKDB_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cc"
 )
 
-# Remove test files if not building tests
+## Remove unit test files unless explicitly requested
+## Test files are identified by paths containing "unittest" or filenames ending in "test.cc"
 if(NOT BUILD_TESTING)
     list(FILTER RETHINKDB_SOURCES EXCLUDE REGEX ".*unittest/.*")
     list(FILTER RETHINKDB_SOURCES EXCLUDE REGEX ".*test\\.cc$")
+    message(STATUS "Excluded unit tests from build (set BUILD_TESTING=ON to include)")
 endif()
 
+message(STATUS "Collected ${CMAKE_CURRENT_SOURCE_DIR}: ${RETHINKDB_SOURCES}")
 
-# Create the main executable
+## Create the main RethinkDB executable
+## Combines all source files and generated protobuf code
 add_executable(rethinkdb
     ${RETHINKDB_SOURCES}
     ${PROTO_SRCS}
 )
 
-# Add include directories for generated protobuf headers and version.hpp
+## Configure include directories for the executable
+## Allows access to generated protobuf headers and local includes
 target_include_directories(rethinkdb
     PRIVATE
         ${CMAKE_CURRENT_BINARY_DIR}
@@ -61,7 +92,13 @@ target_include_directories(rethinkdb
         ${CMAKE_BINARY_DIR}/src
 )
 
-# Link libraries
+## @}
+
+## @defgroup DependencyLinking External Dependency Linking
+## Configures linking of all required external libraries
+## @{
+
+## Link all required external libraries to the executable
 target_link_libraries(rethinkdb
     PRIVATE
         Boost::boost
