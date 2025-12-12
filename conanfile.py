@@ -20,9 +20,9 @@ class RethinkDBConan(ConanFile):
     default_options = {
         "with_jemalloc": True,
         "with_tests": False,
-        "protobuf:shared": False,
-        "openssl:shared": False,
-        "libcurl:shared": False,
+        "protobuf/*:shared": False,
+        "openssl/*:shared": False,
+        "libcurl/*:shared": False,
     }
     
     generators = "CMakeDeps", "CMakeToolchain"
@@ -34,6 +34,7 @@ class RethinkDBConan(ConanFile):
         self.requires("zlib/1.3.1")
         self.requires("libcurl/8.5.0")
         self.requires("re2/20231101")
+        self.requires("boost/1.84.0")
         
         if self.options.with_jemalloc:
             self.requires("jemalloc/5.3.0")

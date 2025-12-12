@@ -37,45 +37,15 @@ if(USE_CCACHE)
     endif()
 endif()
 
-# Add Conan integration
-if(NOT EXISTS "${CMAKE_BINARY_DIR}/conan.cmake")
-    message(STATUS "Downloading conan.cmake from https://github.com/conan-io/cmake-conan")
-    file(DOWNLOAD "https://raw.githubusercontent.com/conan-io/cmake-conan/0.18.1/conan.cmake"
-         "${CMAKE_BINARY_DIR}/conan.cmake"
-         TLS_VERIFY ON)
-endif()
-
-include(${CMAKE_BINARY_DIR}/conan.cmake)
-
-# Run Conan to install dependencies
-conan_cmake_configure(
-    REQUIRES
-        protobuf/3.21.12
-        openssl/3.2.0
-        zlib/1.3.1
-        libcurl/8.5.0
-        jemalloc/5.3.0
-        re2/20231101
-        gtest/1.14.0
-    GENERATORS cmake_find_package
-    OPTIONS
-        openssl:shared=False
-        protobuf:shared=False
-)
-
-conan_cmake_autodetect(settings)
-
-conan_cmake_install(
-    PATH_OR_REFERENCE .
-    BUILD missing
-    REMOTE conancenter
-    SETTINGS ${settings}
-)
+# Conan dependencies are handled via conanfile.py
+# Run: conan install . --output-folder=build --build=missing
+# before running cmake
 
 # Find required packages
 list(APPEND CMAKE_PREFIX_PATH ${CMAKE_BINARY_DIR})
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_BINARY_DIR})
 
+find_package(Boost REQUIRED)
 find_package(Protobuf REQUIRED)
 find_package(OpenSSL REQUIRED)
 find_package(ZLIB REQUIRED)
@@ -91,10 +61,13 @@ if(BUILD_TESTING)
     enable_testing()
 endif()
 
-# Find protoc
+# Find protoc - prefer protobuf@21 from Homebrew for compatibility
 find_program(PROTOC_EXECUTABLE
     NAMES protoc
-    HINTS ${Protobuf_INCLUDE_DIRS}/../bin
+    HINTS 
+        /opt/homebrew/opt/protobuf@21/bin
+        /usr/local/opt/protobuf@21/bin
+        ${Protobuf_INCLUDE_DIRS}/../bin
     REQUIRED
 )
 message(STATUS "Found protoc: ${PROTOC_EXECUTABLE}")
@@ -125,6 +98,9 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
         -fno-strict-aliasing
     )
     
+    # Define build machine info
+    add_compile_definitions(BUILD_MACHINE="${CMAKE_SYSTEM_NAME}")
+    
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
         add_compile_options(-g -O0)
     else()
@@ -144,7 +120,7 @@ include_directories(
 # Generate version.hpp
 configure_file(
     ${CMAKE_SOURCE_DIR}/src/version.hpp.in
-    ${CMAKE_BINARY_DIR}/src/version.hpp
+    ${CMAKE_BINARY_DIR}/src/rethinkdb_version.hpp
     @ONLY
 )
 

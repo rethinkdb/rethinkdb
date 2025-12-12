@@ -1356,7 +1356,7 @@ MUST_USE bool prepare_space_for_new_entry(
         guarantees that it will remain valid even as `pair_offsets` entries are
         moved around. */
         garbage_collect(sizer, node, MANDATORY_TIMESTAMPS - 1, &index,
-                        make_optional(gc_tstamp_cutoff_upper_bound));
+                        optional<int>(gc_tstamp_cutoff_upper_bound));
 
         /* Make sure that `index` still refers to where the new key should be
         inserted. */

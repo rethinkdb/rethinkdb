@@ -1,6 +1,8 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "extproc/http_job.hpp"
 
+#include "rethinkdb_version.hpp"
+
 #include <ctype.h>
 #include <string.h>
 
