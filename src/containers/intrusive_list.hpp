@@ -1,4 +1,16 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
+
+/// @file intrusive_list.hpp
+/// @brief Intrusive doubly-linked list container
+///
+/// Provides an intrusive linked list implementation where the list node is embedded
+/// within the list element itself. This eliminates extra allocations and improves
+/// cache locality compared to external node storage.
+///
+/// @defgroup IntrinsicContainers Intrusive Container Structures
+/// Containers where node pointers are embedded in elements
+/// @{
+
 #ifndef CONTAINERS_INTRUSIVE_LIST_HPP_
 #define CONTAINERS_INTRUSIVE_LIST_HPP_
 
@@ -6,16 +18,46 @@
 
 template <class T> class intrusive_list_t;
 
+/// @brief Base class for elements in an intrusive_list_t
+///
+/// Derived classes inherit from intrusive_list_node_t<T> to embed list node
+/// pointers directly in the element structure. This provides efficient O(1) removal
+/// and prevents extra allocations.
+///
+/// @tparam T The derived class type that will inherit from this node
+/// @example
+/// @code
+/// class Task : public intrusive_list_node_t<Task> {
+/// public:
+///     std::string name;
+///     void execute() { /* ... */ }
+/// };
+///
+/// intrusive_list_t<Task> todo_list;
+/// Task t;
+/// todo_list.push_back(&t);
+/// @endcode
+///
+/// @note Elements must remain valid for the entire duration they're in a list
+/// @warning Removing from one list and adding to another is safe, but removing
+///          without care can cause list corruption
 template <class T>
 class intrusive_list_node_t {
 public:
+    /// @brief Checks if this node is currently in a list
+    /// @return true if node is linked in a list, false if standalone
     bool in_a_list() const {
         guarantee((next_ == nullptr) == (prev_ == nullptr));
         return prev_ != nullptr;
     }
 
 protected:
+    /// @brief Default constructor creates an unlinked node
+    /// Node starts in a detached state, not part of any list
     intrusive_list_node_t() : prev_(nullptr), next_(nullptr) { }
+
+    /// @brief Destructor ensures node was properly detached
+    /// Asserts that the node is not still linked in a list
     ~intrusive_list_node_t() {
         guarantee(prev_ == nullptr,
                   "non-detached intrusive list node destroyed");
@@ -23,6 +65,10 @@ protected:
                   "inconsistent intrusive list node!");
     }
 
+    /// @brief Move constructor transfers list linkage
+    /// If the node is linked, it updates the adjacent nodes' pointers
+    /// to point to the new location. The source is left unlinked.
+    /// @param movee The node to move from
     intrusive_list_node_t(intrusive_list_node_t &&movee) {
         guarantee((movee.prev_ == nullptr) == (movee.next_ == nullptr));
         guarantee(movee.prev_ != &movee,
@@ -37,22 +83,60 @@ protected:
         movee.next_ = nullptr;
     }
 
-    // Don't implement this.  _Maybe_ you won't fuck it up.  Just use the
-    // move-constructor in subclasses' assignment operator implementations.
+    /// @brief Move assignment is explicitly deleted
+    /// Use move constructor in derived class assignment operators instead
     intrusive_list_node_t &operator=(intrusive_list_node_t &&movee) = delete;
 
 private:
     friend class intrusive_list_t<T>;
 
-    intrusive_list_node_t *prev_;
-    intrusive_list_node_t *next_;
+    intrusive_list_node_t *prev_;  ///< Pointer to previous node in list
+    intrusive_list_node_t *next_;  ///< Pointer to next node in list
 
     DISABLE_COPYING(intrusive_list_node_t);
 };
 
+/// @brief Intrusive doubly-linked list container
+///
+/// `intrusive_list_t` manages a doubly-linked list where the list nodes are
+/// embedded in the elements themselves (via inheritance from intrusive_list_node_t).
+/// This provides O(1) element removal given an element pointer, improved cache
+/// locality, and eliminates separate node allocations.
+///
+/// Elements must inherit from intrusive_list_node_t<T> to be used in an
+/// intrusive_list_t<T>.
+///
+/// @tparam T The element type (must inherit from intrusive_list_node_t<T>)
+///
+/// @example
+/// @code
+/// struct Task : intrusive_list_node_t<Task> {
+///     std::string name;
+/// };
+///
+/// intrusive_list_t<Task> tasks;
+/// Task t1, t2, t3;
+///
+/// tasks.push_back(&t1);
+/// tasks.push_back(&t2);
+/// tasks.push_back(&t3);
+///
+/// // Iterate forward
+/// for (auto it = tasks.begin(); it != tasks.end(); ++it) {
+///     std::cout << it->name << "\n";
+/// }
+///
+/// // Remove an element - O(1) operation
+/// tasks.remove(&t2);
+/// @endcode
+///
+/// @note This list uses a sentinel node (the list object itself)
+/// @note All operations are O(1) except iteration
 template <class T>
 class intrusive_list_t : private intrusive_list_node_t<T> {
 public:
+    /// @brief Default constructor creates an empty list
+    /// The list starts with just a sentinel node
     intrusive_list_t() : size_(0) {
         this->prev_ = this;
         this->next_ = this;
