@@ -1,3 +1,16 @@
+/// @file range_map.hpp
+/// @brief Range-based mapping container for efficient region representation
+///
+/// Maps ranges delimited by edge_t to values of type value_t. Ranges must be
+/// contiguous and non-overlapping; adjacent ranges with the same value are
+/// automatically coalesced. This provides an efficient way to store a mapping
+/// from regions to values, commonly used in distributed database systems for
+/// partition and replica tracking.
+///
+/// @defgroup RangeContainers Range-based Containers
+/// Containers managing contiguous, non-overlapping regions
+/// @{
+
 #ifndef CONTAINERS_RANGE_MAP_HPP_
 #define CONTAINERS_RANGE_MAP_HPP_
 
@@ -7,27 +20,55 @@
 #include "rpc/serialize_macros.hpp"
 #include "utils.hpp"
 
-/* `range_map_t` maps from ranges delimited by `edge_t` to values of type `value_t`. The
-ranges must be contiguous and non-overlapping; adjacent ranges with the same value will
-be automatically coalesced. It can be thought of as a more efficient way of storing a
-mapping from `edge_t` to `value_t`. */
+/// @brief Maps ranges to values with automatic coalescing
+///
+/// `range_map_t` provides a container that maps from ranges (delimited by `edge_t`)
+/// to values of type `value_t`. The ranges are automatically kept contiguous and
+/// non-overlapping. When adjacent ranges have the same value, they are automatically
+/// coalesced into a single range.
+///
+/// This is particularly useful for representing:
+/// - Database shard assignments to regions
+/// - Replica availability tracking across key ranges
+/// - Permission and configuration zones
+///
+/// @tparam edge_t The type representing range boundaries (must support <, ==, >= operators)
+/// @tparam value_t The value type stored for each range
+///
+/// @example
+/// @code
+/// // Track replica availability across key ranges
+/// range_map_t<key_t, replication_level_t> replicas;
+/// replicas.insert(key_range_t(key_a, key_b), FULLY_REPLICATED);
+/// replicas.insert(key_range_t(key_b, key_c), DEGRADED);
+/// 
+/// // Query a specific key's replication status
+/// auto level = replicas.lookup(some_key);
+/// @endcode
+///
+/// @note Ranges are [left, right) - left-inclusive, right-exclusive
+/// @warning All operations maintain the invariant that ranges are non-overlapping
 template<class edge_t, class value_t>
 class range_map_t {
 public:
+    /// @brief Type alias for edge type
     typedef edge_t edge_type;
+    /// @brief Type alias for value type
     typedef value_t mapped_type;
 
-    /* Constructs an empty `range_map_t` that starts and ends at the default-constructed
-    `edge_t`. */
+    /// @brief Constructs an empty range_map starting at default edge
+    /// Creates a zero-width range at the default-constructed edge_t
     range_map_t() : left(edge_t()) { }
 
-    /* Constructs an empty `range_map_t` that starts and ends at the given point. Even
-    when empty, a `range_map_t` is still considered to be at some specific point in the
-    `edge_t` space. */
+    /// @brief Constructs a range_map at a specific point with zero width
+    /// @param l_and_r The single point where this range_map exists
     explicit range_map_t(const edge_t &l_and_r) : left(l_and_r) { }
 
-    /* Constructs a `range_map_t` that stretches from `l` to `r` and has value `v` within
-    that range. */
+    /// @brief Constructs a range_map covering [l, r) with given value
+    /// @param l The left boundary (inclusive) of the initial range
+    /// @param r The right boundary (exclusive) of the initial range
+    /// @param v The value to associate with the range [l, r)
+    /// @pre r >= l
     range_map_t(const edge_t &l, const edge_t &r, value_t &&v = value_t()) : left(l) {
         rassert(r >= l);
         if (r != l) {
@@ -36,17 +77,24 @@ public:
         DEBUG_ONLY_CODE(validate());
     }
 
+
     range_map_t(range_map_t &&movee) :
             left(std::move(movee.left)),
             zones(std::move(movee.zones)) { }
+    /// @brief Copy and move constructors
+    /// Full value semantics with move optimization
     range_map_t(const range_map_t &) = default;
     range_map_t &operator=(const range_map_t &) = default;
     range_map_t &operator=(range_map_t &&) = default;
 
-    /* Returns the left and right edges of the `range_map_t`. */
+    /// @brief Gets the left boundary of the entire range
+    /// @return The leftmost edge of this range_map
     const edge_t &left_edge() const {
         return left;
     }
+
+    /// @brief Gets the right boundary of the entire range
+    /// @return The rightmost edge of this range_map, or left_edge() if empty_domain()
     const edge_t &right_edge() const {
         if (!zones.empty()) {
             return (--zones.end())->first;
@@ -55,13 +103,18 @@ public:
         }
     }
 
-    /* Returns `true` if the `range_map_t` covers a zero-width range. This is equivalent
-    to `left_edge() == right_edge()`. */
+    /// @brief Checks if this range_map covers zero width
+    /// @return true if left_edge() == right_edge(), false otherwise
     bool empty_domain() const {
         return zones.empty();
     }
 
-    /* Looks up the value for the location immediately to the right of `before_point`. */
+    /// @brief Looks up the value at a specific point
+    /// Returns the value associated with the range containing the given point.
+    /// The point must be in [left_edge(), right_edge()).
+    /// @param before_point The point to query
+    /// @return The value associated with the range containing before_point
+    /// @pre before_point >= left_edge() && before_point < right_edge()
     const value_t &lookup(const edge_t &before_point) const {
         rassert(before_point >= left_edge());
         rassert(before_point < right_edge());
@@ -69,11 +122,24 @@ public:
         return it->second;
     }
 
-    /* Calls the given callback for every sub-range from `l` to `r`. If `l` or `r` lie
-    within existing sub-ranges, the sub-ranges will be effectively split. The callback is
-    guaranteed to be called in order. The signature of `cb` is:
-        void cb(const edge_t &l, const edge_t &r, const value_t &v);
-    */
+    /// @brief Visits all ranges in a sub-region, possibly splitting ranges
+    ///
+    /// Calls the provided callback for every sub-range from l to r.
+    /// If l or r lie within existing sub-ranges, the ranges are effectively split
+    /// at those boundaries. The callback is called in increasing order of boundaries.
+    ///
+    /// @tparam callable_t A callable type with signature: void(const edge_t&, const edge_t&, const value_t&)
+    /// @param l The left boundary of the region to visit
+    /// @param r The right boundary of the region to visit
+    /// @param cb Callback invoked for each range [l_i, r_i] with its associated value
+    /// @pre l >= left_edge() && r <= right_edge() && l <= r
+    ///
+    /// @example
+    /// @code
+    /// range_map.visit(start, end, [](const key_t& l, const key_t& r, const value_t& v) {
+    ///     std::cout << "Range [" << l << ", " << r << ") has value " << v << "\n";
+    /// });
+    /// @endcode
     template<class callable_t>
     void visit(const edge_t &l, const edge_t &r, const callable_t &cb) const {
         rassert(l >= left_edge());
@@ -92,10 +158,23 @@ public:
         cb(prev, r, it->second);
     }
 
-    /* Derives a new `range_map_t` from some sub-range of this one by applying a function
-    to every value. The signature of `cb` is:
-        value2_t cb(const value_t &);
-    and the return value will have type `range_map_t<edge_t, value2_t>`*/
+    /// @brief Derives a new range_map by transforming all values in a sub-region
+    ///
+    /// Creates a new range_map covering [l, r) where each value is transformed
+    /// by applying the provided callback function.
+    ///
+    /// @tparam callable_t A callable type with signature: value2_t(const value_t&)
+    /// @param l The left boundary of the region to transform
+    /// @param r The right boundary of the region to transform
+    /// @param cb Callback function applied to each value
+    /// @return A new range_map with transformed values
+    ///
+    /// @example
+    /// @code
+    /// auto original = range_map_t<key_t, int>{key_a, key_c, 100};
+    /// auto doubled = original.map(key_a, key_c, [](int v) { return v * 2; });
+    /// // doubled now has value 200 in range [key_a, key_c)
+    /// @endcode
     template<class callable_t>
     auto map(const edge_t &l, const edge_t &r, const callable_t &cb) const
             /* We need the `std::decay` here because if `callable_t` is a lambda, it's

@@ -1,4 +1,16 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
+
+/// @file counted.hpp
+/// @brief Reference-counted smart pointer for shared object ownership
+///
+/// Provides a boost::intrusive_ptr-like smart pointer for reference-counted
+/// objects. Objects are automatically deleted when the last reference is released.
+/// Includes support for checking if an object is uniquely owned (.unique()).
+///
+/// @defgroup SmartPointers Reference-Counted Smart Pointers
+/// Smart pointers for managing shared object ownership
+/// @{
+
 #ifndef CONTAINERS_COUNTED_HPP_
 #define CONTAINERS_COUNTED_HPP_
 
@@ -12,40 +24,85 @@
 #include "errors.hpp"
 #include "threading.hpp"
 
-// Yes, this is a clone of boost::intrusive_ptr.  This will probably
-// not be the case in the future.
-
-// Now it supports .unique(), and in order to use it, your type needs
-// to provide an counted_use_count implementation.
-
+/// @brief Reference-counted smart pointer for shared ownership
+///
+/// `counted_t` provides automatic reference counting and memory management.
+/// It's similar to boost::intrusive_ptr and manages objects that implement
+/// reference counting via `counted_add_ref()` and `counted_release()` functions.
+///
+/// The managed type T must provide these functions:
+/// - `void counted_add_ref(T *p)` - Increment reference count
+/// - `void counted_release(T *p)` - Decrement reference count and potentially delete
+///
+/// @tparam T The type of object being reference-counted
+/// @note Provides .unique() to check if this is the sole owner
+/// @example
+/// @code
+/// class MyObject : public counted_t_base {
+/// public:
+///     void do_something() { /* ... */ }
+/// };
+///
+/// {
+///     counted_t<MyObject> ptr1(new MyObject());
+///     counted_t<MyObject> ptr2 = ptr1;  // Both own the object
+///     
+///     ptr1->do_something();
+///     if (!ptr2.unique()) {
+///         // Shared ownership detected
+///     }
+/// }  // Object deleted here when last counted_t is destroyed
+/// @endcode
+///
+/// @note This is a clone of boost::intrusive_ptr with added .unique() support
 template <class T>
 class counted_t {
 public:
     template <class U>
     friend class counted_t;
 
+    /// @brief Default constructor creates null pointer
     counted_t() : p_(nullptr) { }
+
+    /// @brief Constructs from a raw pointer, taking ownership
+    /// Calls counted_add_ref() on the pointer
+    /// @param p Raw pointer to reference-counted object
     explicit counted_t(T *p) : p_(p) {
         if (p_ != nullptr) { counted_add_ref(p_); }
     }
 
+    /// @brief Constructs from a scoped_ptr, taking ownership
+    /// Extracts the pointer from scoped_ptr and calls counted_add_ref()
+    /// @param p scoped_ptr to extract from
     explicit counted_t(scoped_ptr_t<T> &&p) : p_(p.release()) {
         if (p_ != nullptr) { counted_add_ref(p_); }
     }
 
+    /// @brief Copy constructor increments reference count
+    /// @param copyee The counted_t to copy from
     counted_t(const counted_t &copyee) : p_(copyee.p_) {
         if (p_ != nullptr) { counted_add_ref(p_); }
     }
 
+    /// @brief Copy constructor with type conversion
+    /// Allows implicit conversion from derived types
+    /// @tparam U Type convertible to T*
+    /// @param copyee The counted_t with different type
     template <class U>
     counted_t(const counted_t<U> &copyee) : p_(copyee.p_) {
         if (p_ != nullptr) { counted_add_ref(p_); }
     }
 
+    /// @brief Move constructor transfers ownership
+    /// Does not increment reference count (just moves pointer)
+    /// @param movee The source counted_t (will be emptied)
     counted_t(counted_t &&movee) noexcept : p_(movee.p_) {
         movee.p_ = nullptr;
     }
 
+    /// @brief Move constructor with type conversion
+    /// @tparam U Type convertible to T*
+    /// @param movee The source with different type
     template <class U>
     counted_t(counted_t<U> &&movee) noexcept : p_(movee.p_) {
         movee.p_ = nullptr;
