@@ -1,3 +1,14 @@
+/// @file versioned.hpp
+/// @brief Version-aware serialization for cluster and protocol compatibility
+///
+/// Provides serialization functions that are version-aware, allowing RethinkDB
+/// to maintain forward and backward compatibility across cluster version upgrades.
+/// Different cluster versions may serialize data differently, and this framework
+/// handles those differences transparently.
+///
+/// @defgroup Serialization
+/// @{
+
 #ifndef CONTAINERS_ARCHIVE_VERSIONED_HPP_
 #define CONTAINERS_ARCHIVE_VERSIONED_HPP_
 
@@ -6,22 +17,38 @@
 #include "containers/archive/archive.hpp"
 #include "version.hpp"
 
-
 namespace archive_internal {
 
+/// @internal Placeholder type for internal archive mechanisms
 class bogus_made_up_type_t;
 
 }  // namespace archive_internal
 
-// These are generally universal.  They must not have their behavior change -- except
-// if we remove some cluster_version_t value, in which case... maybe would fail on a
-// range error with the specific removed values.  Or maybe, we would do something
-// differently.
+/// @brief Serializes a cluster_version_t value
+///
+/// Serializes a cluster version identifier in a way that is compatible
+/// with all versions of the cluster. The version is stored as an int8_t
+/// and must remain stable across versions.
+///
+/// @param wm The write message to serialize into
+/// @param v The cluster version to serialize
 inline void serialize_cluster_version(write_message_t *wm, cluster_version_t v) {
     int8_t raw = static_cast<int8_t>(v);
     serialize<cluster_version_t::LATEST_OVERALL>(wm, raw);
 }
 
+/// @brief Deserializes a cluster_version_t value with obsolescence handling
+///
+/// Deserializes a cluster version identifier and handles obsolete versions
+/// by invoking a callback and then crashing (for security/consistency).
+///
+/// @param s The read stream to deserialize from
+/// @param thing Pointer to receive the deserialized version
+/// @param obsolete_cb Callback function to invoke if an obsolete version is detected
+/// @return Result status (SUCCESS, SOCK_ERROR, SOCK_EOF, or exception on invalid version)
+///
+/// @note GCC 4.6.3 workaround: thing is always initialized to LATEST_OVERALL
+/// @see https://github.com/rethinkdb/rethinkdb/issues/2640
 inline MUST_USE archive_result_t deserialize_cluster_version(
         read_stream_t *s,
         cluster_version_t *thing,
