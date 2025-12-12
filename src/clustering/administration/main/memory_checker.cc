@@ -56,7 +56,7 @@ void memory_checker_t::do_check(UNUSED auto_drainer_t::lock_t keepalive) {
     if (new_swap_usage > swap_usage + 200 && practice_runs_remaining == 0) {
         // We've started using more swap
         if (print_log_message) {
-            logWRN(error_message.c_str());
+            logWRN("%s", error_message.c_str());
 
             print_log_message = false;
         }
