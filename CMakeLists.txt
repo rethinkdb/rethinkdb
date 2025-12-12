@@ -51,6 +51,7 @@ find_package(OpenSSL REQUIRED)
 find_package(ZLIB REQUIRED)
 find_package(CURL REQUIRED)
 find_package(re2 REQUIRED)
+find_package(quickjs REQUIRED)
 
 if(USE_JEMALLOC)
     find_package(jemalloc REQUIRED)

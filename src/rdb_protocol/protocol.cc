@@ -246,7 +246,7 @@ void post_construct_and_drain_queue(
 
             store_t::sindex_access_vector_t sindexes;
             store->acquire_sindex_superblocks_for_write(
-                    make_optional(sindexes_to_bring_up_to_date),
+                    optional(sindexes_to_bring_up_to_date),
                     &queue_sindex_block,
                     &sindexes);
 

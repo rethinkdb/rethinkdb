@@ -1,5 +1,4 @@
 #include "containers/optional.hpp"
-using rethinkdb::make_optional;
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/store.hpp"
 
@@ -241,7 +240,7 @@ void do_read(ql::env_t *env,
                     &sindex_info,
                     &sindex_uuid);
             if (sindex_id_out != nullptr) {
-                *sindex_id_out = rethinkdb::make_optional(sindex_uuid);
+                *sindex_id_out = optional(sindex_uuid);
             }
             reql_version_t reql_version =
                 sindex_info.mapping_version_info.latest_compatible_reql_version;

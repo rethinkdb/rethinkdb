@@ -463,7 +463,7 @@ private:
             counted_t<table_t> table = target->as_table();
             name_string_t table_name = name_string_t::guarantee_valid(table->name.c_str());
             return eval_impl_on_table_or_db(env, args, flags, table->db,
-                                            make_optional(table_name));
+                                            optional(table_name));
         }
     }
 };

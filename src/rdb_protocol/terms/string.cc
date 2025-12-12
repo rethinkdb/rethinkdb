@@ -91,7 +91,7 @@ private:
             // MUST_USE.
             bool b = false;
             b |= match.add("str", datum_t(
-                               datum_string_t(groups[0].as_string())));
+                               datum_string_t(std::string(groups[0].data(), groups[0].length()))));
             b |= match.add("start", datum_t(
                                static_cast<double>(groups[0].begin() - str.data())));
             b |= match.add("end", datum_t(
@@ -105,7 +105,7 @@ private:
                     datum_object_builder_t match_group;
                     b |= match_group.add(
                         "str", datum_t(
-                            datum_string_t(group.as_string())));
+                            datum_string_t(std::string(group.data(), group.length()))));
                     b |= match_group.add(
                         "start", datum_t(
                             static_cast<double>(group.begin() - str.data())));

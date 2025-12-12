@@ -164,7 +164,7 @@ private:
     union { T value_; };
 };
 
-// In C++17, std::make_optional exists, but it returns std::optional<decay_t<T>>
+// In C++17, std::optional exists, but it returns std::optional<decay_t<T>>
 // which is incompatible with our optional<T> class. So we always use our own implementation.
 template <class T>
 optional<typename std::decay<T>::type> make_optional(T &&x) {

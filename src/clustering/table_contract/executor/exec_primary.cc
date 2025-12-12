@@ -90,7 +90,7 @@ void primary_execution_t::update_contract_or_raft_state(
         bool branch_matches = true;
         raft_state.current_branches.visit(region,
         [&](const region_t &, const branch_id_t &b) {
-            if (make_optional(b) != our_branch_id) {
+            if (optional(b) != our_branch_id) {
                 branch_matches = false;
             }
         });

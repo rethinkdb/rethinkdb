@@ -51,7 +51,7 @@ public:
             if (static_cast<bool>(prev)) {
                 EXPECT_NE(*prev, v);
             }
-            prev = make_optional(v);
+            prev = optional(v);
             for (int i = l2; i < r2; ++i) {
                 EXPECT_EQ(ref.at(i - ref_offset), v);
             }
@@ -149,7 +149,7 @@ public:
             if (static_cast<bool>(prev)) {
                 EXPECT_NE(*prev, *v) << "adjacent ranges should be coalesced";
             }
-            prev = make_optional(*v);
+            prev = optional(*v);
             for (int i = l2; i < r2; ++i) {
                 EXPECT_EQ(ref.at(i - ref_offset), *v);
             }

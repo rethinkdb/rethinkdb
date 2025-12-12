@@ -1,5 +1,4 @@
 #include "containers/optional.hpp"
-using rethinkdb::make_optional;
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/btree.hpp"
 
@@ -1120,7 +1119,7 @@ void rdb_rget_secondary_slice(
                        : sindex_region_range.right.key_or_max(),
                    sorting,
                    require_sindex_val),
-        rethinkdb::make_optional(rget_sindex_data_t(
+        optional(rget_sindex_data_t(
             pk_range,
             datumspec,
             &active_region_range,
@@ -1135,7 +1134,7 @@ void rdb_rget_secondary_slice(
         rget_cb_wrapper_t wrapper(
             &callback,
             pair.second,
-            rethinkdb::make_optional(key_to_unescaped_str(sindex_keyrange.left)));
+            optional(key_to_unescaped_str(sindex_keyrange.left)));
         key_range_t active_range = active_region_range.intersection(sindex_keyrange);
         // This can happen sometimes with truncated keys.
         if (active_range.is_empty()) return continue_bool_t::CONTINUE;
@@ -1546,7 +1545,7 @@ void compute_keys(const store_key_t &primary_key,
                 std::vector<std::string> geo_keys = expand_geo_key(reql_version,
                                                                    skey,
                                                                    primary_key,
-                                                                   rethinkdb::make_optional(i));
+                                                                   optional(i));
                 for (auto it = geo_keys.begin(); it != geo_keys.end(); ++it) {
                     keys_out->push_back(std::make_pair(store_key_t(*it), skey));
                 }
@@ -1564,7 +1563,7 @@ void compute_keys(const store_key_t &primary_key,
                 try {
                     std::string store_key =
                         skey.print_secondary(reql_version, primary_key,
-                                             rethinkdb::make_optional(i));
+                                             optional(i));
                     keys_out->push_back(
                         std::make_pair(store_key_t(store_key), skey));
                     if (cfeed_keys_out != nullptr) {
@@ -1781,8 +1780,8 @@ void rdb_update_single_sindex(
                 &keys, cfeed_old_keys_out);
             if (cserver.first != nullptr) {
                 cserver.first->foreach_limit(
-                    rethinkdb::make_optional(sindex->name.name),
-                    rethinkdb::make_optional(sindex->sindex.id),
+                    optional(sindex->name.name),
+                    optional(sindex->sindex.id),
                     &modification->primary_key,
                     [&](rwlock_in_line_t *clients_spot,
                         rwlock_in_line_t *limit_clients_spot,
@@ -1857,8 +1856,8 @@ void rdb_update_single_sindex(
             }
             if (cserver.first != nullptr) {
                 cserver.first->foreach_limit(
-                    rethinkdb::make_optional(sindex->name.name),
-                    rethinkdb::make_optional(sindex->sindex.id),
+                    optional(sindex->name.name),
+                    optional(sindex->sindex.id),
                     &modification->primary_key,
                     [&](rwlock_in_line_t *clients_spot,
                         rwlock_in_line_t *limit_clients_spot,
@@ -1929,8 +1928,8 @@ void rdb_update_single_sindex(
 
     if (cserver.first != nullptr) {
         cserver.first->foreach_limit(
-            rethinkdb::make_optional(sindex->name.name),
-            make_optional(sindex->sindex.id),
+            optional(sindex->name.name),
+            optional(sindex->sindex.id),
             &modification->primary_key,
             [&](rwlock_in_line_t *clients_spot,
                 rwlock_in_line_t *limit_clients_spot,
@@ -2165,7 +2164,7 @@ private:
         superblock.reset();
         store_t::sindex_access_vector_t all_sindexes;
         store_->acquire_sindex_superblocks_for_write(
-            make_optional(sindexes_to_post_construct_),
+            optional(sindexes_to_post_construct_),
             &sindex_block,
             &all_sindexes);
 

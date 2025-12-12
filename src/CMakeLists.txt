@@ -59,7 +59,6 @@ target_include_directories(rethinkdb
         ${CMAKE_CURRENT_BINARY_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_BINARY_DIR}/src
-        ${quickjs_INCLUDE_DIRS}
 )
 
 # Link libraries
@@ -72,10 +71,10 @@ target_link_libraries(rethinkdb
         ZLIB::ZLIB
         CURL::libcurl
         re2::re2
+        quickjs::quickjs
         ${PTHREAD_LIBS}
         ${RT_LIBS}
         ${DL_LIBS}
-        ${quickjs_LIBRARIES}
 )
 
 if(USE_JEMALLOC)
