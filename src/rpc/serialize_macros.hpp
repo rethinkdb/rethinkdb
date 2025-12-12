@@ -1,4 +1,40 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
+
+/// @file serialize_macros.hpp
+/// @brief Macros for automatic serialization and deserialization of data structures
+///
+/// Provides macros to automatically generate serialize/deserialize functions
+/// for data structures consisting of serializable fields. This file is auto-generated
+/// by scripts/generate_serialize_macros.py.
+///
+/// @defgroup Serialization Serialization Macros and Utilities
+/// Automatic serialization code generation for cluster and disk storage
+/// @{
+///
+/// **Usage:**
+/// For a simple struct like:
+/// @code
+/// struct point_t {
+///     int32_t x, y;
+/// };
+/// @endcode
+///
+/// Generate serialization using one of:
+/// @code
+/// // At global scope (outside class):
+/// RDB_MAKE_SERIALIZABLE_2(point_t, x, y);
+///
+/// // Or inside the class definition:
+/// RDB_MAKE_ME_SERIALIZABLE_2(point_t, x, y);
+/// @endcode
+///
+/// **Variants:**
+/// - `RDB_*_SERIALIZABLE`: General serialization (works for cluster and disk)
+/// - `RDB_*_FOR_CLUSTER`: Cluster-only serialization (not written to disk)
+/// - `RDB_*_SINCE_v1_13`: Simplified for types unchanged since v1.13
+///
+/// The number suffix (2, 3, etc.) indicates the number of fields to serialize.
+
 #ifndef RPC_SERIALIZE_MACROS_HPP_
 #define RPC_SERIALIZE_MACROS_HPP_
 
@@ -12,42 +48,57 @@ Please modify './scripts/generate_serialize_macros.py' instead of modifying this
 #include "errors.hpp"
 #include "version.hpp"
 
-/* The purpose of these macros is to make it easier to serialize and
-unserialize data types that consist of a simple series of fields, each
-of which is serializable. Suppose we have a type "struct point_t {
-int32_t x, y; }" that we want to be able to serialize. To make it
-serializable automatically, either write
-RDB_MAKE_SERIALIZABLE_2(point_t, x, y) at the global scope, or write
-RDB_MAKE_ME_SERIALIZABLE_2(point_t, x, y) within the body of the
-point_t type.
+/// @defgroup SerializationMacros Serialization Helper Macros
+/// Macros that simplify serialization code generation
+/// @{
 
-The _FOR_CLUSTER variants of the macros exist to indicate that a type
-can only be serialized for use within the cluster, thus should not be
-serialized to disk.
+/// The purpose of these macros is to make it easier to serialize and
+/// unserialize data types that consist of a simple series of fields, each
+/// of which is serializable. Suppose we have a type "struct point_t {
+/// int32_t x, y; }" that we want to be able to serialize. To make it
+/// serializable automatically, either write
+/// RDB_MAKE_SERIALIZABLE_2(point_t, x, y) at the global scope, or write
+/// RDB_MAKE_ME_SERIALIZABLE_2(point_t, x, y) within the body of the
+/// point_t type.
+///
+/// The _FOR_CLUSTER variants of the macros exist to indicate that a type
+/// can only be serialized for use within the cluster, thus should not be
+/// serialized to disk.
+///
+/// The _SINCE_v1_13 variants of the macros exist to make the conversion to
+/// versioned serialization easier. They must only be used for types which
+/// serialization format has not changed since version 1.13.0.
+/// Once the format changes, you can still use the macros without
+/// the _SINCE_v1_13 suffix and instantiate the serialize() and deserialize()
+/// functions explicitly for a certain version.
+///
+/// We use dummy "extern int" declarations to force a compile error in
+/// macros that should not be used inside of class bodies.
 
-The _SINCE_v1_13 variants of the macros exist to make the conversion to
-versioned serialization easier. They must only be used for types which
-serialization format has not changed since version 1.13.0.
-Once the format changes, you can still use the macros without
-the _SINCE_v1_13 suffix and instantiate the serialize() and deserialize()
-functions explicitly for a certain version.
-
-We use dummy "extern int" declarations to force a compile error in
-macros that should not be used inside of class bodies. */
 namespace helper {
 
-/* When a `static_assert` is used within a templated class or function,
- * but does not depend on any template parameters the C++ compiler is free
- * to evaluate the assert even before instantiating that template. This
- * helper class allows a `static_assert(false, ...)` to depend on the
- * `cluster_version_t` template parameter.
- * Also see http://stackoverflow.com/a/14637534. */
+/// Helper class to work around C++ static_assert evaluation rules
+/// When a static_assert is used within a templated class or function,
+/// but does not depend on any template parameters, the C++ compiler may
+/// evaluate the assert before instantiating the template.
+/// This class allows a static_assert(false, ...) to depend on the
+/// cluster_version_t template parameter, deferring evaluation.
+/// @tparam W The cluster version (ensures template-dependent evaluation)
+/// @see http://stackoverflow.com/a/14637534
 template <cluster_version_t W>
 struct always_false
     : std::false_type { };
 
 } // namespace helper
 
+/// @brief Declares serialization functions for a type
+/// Use this macro at global scope to declare serialize/deserialize functions.
+/// The actual implementation must be provided separately.
+/// @param type_t The type to make serializable
+/// @example
+/// @code
+/// RDB_DECLARE_SERIALIZABLE(my_struct_t);
+/// @endcode
 #define RDB_DECLARE_SERIALIZABLE(type_t) \
     template <cluster_version_t W> \
     void serialize(write_message_t *, const type_t &); \
@@ -55,6 +106,14 @@ struct always_false
     archive_result_t deserialize(read_stream_t *s, type_t *thing); \
     extern int dont_use_RDB_DECLARE_SERIALIZABLE_within_a_class_body
 
+/// @brief Declares cluster-only serialization functions
+/// Use for types that should only be serialized for cluster communication,
+/// never to disk.
+/// @param type_t The type to make serializable for cluster use only
+/// @example
+/// @code
+/// RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(temp_config_t);
+/// @endcode
 #define RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(type_t) \
     template <cluster_version_t W> \
     void serialize(write_message_t *, const type_t &) { \
