@@ -1,0 +1,84 @@
+# Doxyfile für RethinkDB Developer Documentation
+# RethinkDB Doxygen Configuration File
+
+PROJECT_NAME           = "RethinkDB"
+PROJECT_NUMBER         = 2.4.4
+PROJECT_BRIEF          = "Open-source database for realtime apps"
+PROJECT_LOGO           = 
+
+INPUT                  = src/
+INPUT_ENCODING         = UTF-8
+FILE_PATTERNS          = *.hpp *.h *.cc *.cpp
+RECURSIVE              = YES
+EXCLUDE_PATTERNS       = */test/* */benchmark/* */gen/*
+EXCLUDE_SYMBOLS        = 
+
+OUTPUT_DIRECTORY       = ./docs/doxygen/
+CREATE_SUBDIRS         = NO
+
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+HTML_FILE_EXTENSION    = .html
+HTML_HEADER            = 
+HTML_FOOTER            = 
+HTML_STYLESHEET        = 
+HTML_COLORSTYLE_HUE    = 220
+HTML_COLORSTYLE_SAT    = 100
+HTML_COLORSTYLE_GAMMA  = 80
+HTML_TIMESTAMP         = YES
+
+GENERATE_LATEX         = NO
+GENERATE_MAN           = NO
+GENERATE_TREEVIEW      = YES
+TREEVIEW_WIDTH         = 250
+
+DISABLE_INDEX          = NO
+GENERATE_TREEVIEW      = YES
+SEARCHENGINE           = YES
+SERVER_BASED_SEARCH    = NO
+
+SEARCH_INCLUDES        = YES
+INCLUDE_PATH           = src/
+INCLUDE_FILE_PATTERNS  = *.hpp *.h
+
+PREDEFINED             = NDEBUG RDB_NO_BACKTRACE __cplusplus=201703L
+
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+
+EXTRACT_ALL            = NO
+EXTRACT_PRIVATE        = NO
+EXTRACT_PACKAGE        = NO
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = NO
+EXTRACT_LOCAL_METHODS  = NO
+
+SORT_MEMBERS_CTORS_1ST = YES
+SORT_GROUP_NAMES       = NO
+
+QUIET                  = NO
+WARNINGS               = YES
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_MISSING    = YES
+WARN_NO_PARAMDOC       = YES
+
+USE_MDFILE_AS_MAINPAGE = README.md
+
+DOT_IMAGE_FORMAT       = svg
+DOT_FONTNAME           = Helvetica
+DOT_FONTSIZE           = 10
+DOT_GRAPH_MAX_NODES    = 100
+INTERACTIVE_SVG        = YES
+DOT_CLEANUP            = YES
+
+COLLABORATION_GRAPH    = NO
+INCLUDE_GRAPH          = YES
+INCLUDED_BY_GRAPH      = YES
+CLASS_GRAPH            = YES
+INHERITANCE_GRAPH      = YES
+CALL_GRAPH             = NO
+CALLER_GRAPH           = NO
+
+# Index pages
+GENERATE_LEGEND        = YES
