@@ -46,6 +46,7 @@ if(NOT BUILD_TESTING)
     list(FILTER RETHINKDB_SOURCES EXCLUDE REGEX ".*test\\.cc$")
 endif()
 
+
 # Create the main executable
 add_executable(rethinkdb
     ${RETHINKDB_SOURCES}
@@ -58,6 +59,7 @@ target_include_directories(rethinkdb
         ${CMAKE_CURRENT_BINARY_DIR}
         ${CMAKE_CURRENT_SOURCE_DIR}
         ${CMAKE_BINARY_DIR}/src
+        ${quickjs_INCLUDE_DIRS}
 )
 
 # Link libraries
@@ -73,6 +75,7 @@ target_link_libraries(rethinkdb
         ${PTHREAD_LIBS}
         ${RT_LIBS}
         ${DL_LIBS}
+        ${quickjs_LIBRARIES}
 )
 
 if(USE_JEMALLOC)

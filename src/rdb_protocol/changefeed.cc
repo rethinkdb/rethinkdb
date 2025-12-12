@@ -1,3 +1,5 @@
+#include "containers/optional.hpp"
+using rethinkdb::make_optional;
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/changefeed.hpp"
 

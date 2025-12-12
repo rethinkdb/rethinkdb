@@ -38,15 +38,17 @@ class RethinkDBConan(ConanFile):
         
         if self.options.with_jemalloc:
             self.requires("jemalloc/5.3.0")
+        # QuickJS immer als Dependency
+        self.requires("quickjs/2021-03-27")
     
     def build_requirements(self):
         """Build-time dependencies"""
         if self.options.with_tests:
             self.requires("gtest/1.14.0")
-    
+
     def layout(self):
         cmake_layout(self)
-    
+
     def configure(self):
         """Configure options based on platform"""
         if self.settings.os == "Windows":

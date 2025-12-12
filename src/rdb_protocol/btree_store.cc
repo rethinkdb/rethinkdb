@@ -1,3 +1,5 @@
+#include "containers/optional.hpp"
+using rethinkdb::make_optional;
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/store.hpp"  // NOLINT(build/include_order)
 
@@ -649,7 +651,7 @@ optional<uuid_u> store_t::add_sindex_internal(
         sindex.needs_post_construction_range = key_range_t::universe();
 
         ::set_secondary_index(sindex_block, name, sindex);
-        return make_optional(sindex.id);
+        return rethinkdb::make_optional(sindex.id);
     }
 }
 
