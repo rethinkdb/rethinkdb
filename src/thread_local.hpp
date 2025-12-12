@@ -1,4 +1,15 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
+
+/// @file thread_local.hpp
+/// @brief Thread-local storage utilities with inline-safe accessor functions
+///
+/// Provides abstractions for thread-local storage (TLS) with particular care
+/// to ensure compiler optimizations don't break TLS access across coroutine switches.
+///
+/// @defgroup ThreadLocalStorage Thread-Local Storage
+/// Safe thread-local variable access preventing compiler optimization issues
+/// @{
+
 #ifndef THREAD_LOCAL_HPP_
 #define THREAD_LOCAL_HPP_
 
@@ -14,50 +25,47 @@
 #include "concurrency/cache_line_padded.hpp"
 #include "utils.hpp"
 
-/*
- * We have to make sure that access to thread local storage (TLS) is only performed
- * from functions that cannot be inlined.
- *
- * Consider the following code:
- *     int before = TLS_get_x();
- *     on_thread_t switcher(...);
- *     int after = TLS_get_x();
- *
- * `after` should be the value of `x` on the new thread, and `before` the one on the
- * old thread.
- *
- * Now if the compiler is allowed to inline TLS_get_x(), it will internally generate
- * something like this (pseudocode):
- *     void *__tls_segment = register "%gs";
- *     int *__addr_of_x = __tls_segment + __x_tls_offset;
- *     int before = *__addr_of_x;
- *     on_thread_t switcher(...);
- *     __tls_segment = register "%gs";
- *     _addr_of_x = __tls_segment + __x_tls_offset;
- *     int after = *__addr_of_x;
- *
- * So far so good. The value of %gs will have changed after on_thread_t, and
- * `after` is going to have the value of x on the new thread.
- * Note that I'm using %gs here as the register for the TLS memory region.
- * Other architectures will use different registers (e.g. %fs).
- * Unfortunately, the compiler does not know that %gs can change in the middle
- * of this function, and for GCC as of version 4.8, there doesn't seem to be a
- * way of telling it that it can.
- * So the compiler will look for common subexpressions and optimize them away,
- * making the generated code look more like this:
- *     void *__tls_segment = register "%gs";
- *     int *__addr_of_x = __tls_segment + __x_tls_offset;
- *     int before = *__addr_of_x;
- *     on_thread_t switcher(...);
- *     int after = *__addr_of_x;
- *
- * Now `after` will have the value of x on the *old* thread. This is obviously
- * not correct.
- *
- * Also note that making x volatile is not going to solve this, because
- * we would need the compiler-generated __tls_segment to be volatile.
- *
- * So in essence, we must make sure that any function which accesses TLS directly
+/// @brief Thread-local storage with safe accessor functions
+///
+/// @details We must ensure that access to thread local storage (TLS) is only
+/// performed from functions that cannot be inlined.
+///
+/// **The Problem:**
+/// Consider this code:
+/// @code
+/// int before = TLS_get_x();
+/// on_thread_t switcher(...);
+/// int after = TLS_get_x();
+/// @endcode
+///
+/// The `after` value should be from the new thread, and `before` from the old thread.
+/// However, if the compiler inlines TLS_get_x(), it will generate pseudocode like:
+/// @code
+/// void *__tls_segment = register "%gs";  // Thread-local segment register
+/// int *__addr_of_x = __tls_segment + __x_tls_offset;
+/// int before = *__addr_of_x;
+/// on_thread_t switcher(...);
+/// void *__tls_segment = register "%gs";  // Should reload but doesn't!
+/// int *__addr_of_x = __tls_segment + __x_tls_offset;
+/// int after = *__addr_of_x;
+/// @endcode
+///
+/// The compiler will see the identical `__tls_segment` expressions and optimize the
+/// second one away, caching the old thread's value. Then `after` will have the wrong value.
+///
+/// **The Solution:**
+/// We ensure TLS accessors are never inlined. This forces the compiler to reload the
+/// TLS segment register (%gs on x86, %fs on others) every time we call an accessor.
+///
+/// **Note:**
+/// Making variables volatile won't help here because we need the TLS segment *lookup*
+/// to be volatile, not just the variable access.
+///
+/// @see arch/runtime/coroutines.hpp for thread switching mechanisms
+/// @}
+
+#ifndef THREAD_LOCAL_HPP_
+#define THREAD_LOCAL_HPP_
  * cannot be inlined, and that it does not use on_thread_t.
  */
 

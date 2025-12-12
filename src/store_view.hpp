@@ -1,6 +1,16 @@
 #ifndef STORE_VIEW_HPP_
 #define STORE_VIEW_HPP_
 
+/// @file store_view.hpp
+/// @brief Abstract interface for key-value store views
+///
+/// Defines the store_view_t abstract class that represents a region of a key-value store.
+/// Handles read/write operations, metadata, and backfill operations for a specific region.
+///
+/// @defgroup StoreViews Data Store Views
+/// Store view abstractions for data access and management
+/// @{
+
 #include "btree/types.hpp"
 #include "protocol_api.hpp"
 #include "region/region_map.hpp"
@@ -9,54 +19,96 @@ class backfill_item_t;
 class backfill_pre_item_t;
 
 #ifndef NDEBUG
-// Checks that the metainfo has a certain value, or certain kind of value.
+/// @brief Debug-only metadata validation helper
+/// Verifies that metadata for a region has an expected value or pattern.
+/// @note Only available in debug builds (NDEBUG not defined)
 class metainfo_checker_t {
 public:
+    /// @brief Constructs a metadata checker with region and callback
+    /// @param r The region to check metadata for
+    /// @param cb Callback function invoked with (region, metainfo) pairs
     metainfo_checker_t(
             const region_t &r,
             const std::function<void(const region_t &, const binary_blob_t &)> &cb) :
         region(r), callback(cb) { }
-    region_t region;
-    std::function<void(const region_t &, const binary_blob_t &)> callback;
+    
+    region_t region;                                                ///< Region to validate
+    std::function<void(const region_t &, const binary_blob_t &)> callback;  ///< Validation callback
 };
 
 #endif  // NDEBUG
 
-/* {read,write}_token_t hold the lock held when getting in line for the
-   superblock. */
+/// @brief Token representing a read lock on the store
+/// Holds the lock acquired when getting in line for superblock read access.
 struct read_token_t {
+    /// @brief The read lock token from the FIFO enforcer
     object_buffer_t<fifo_enforcer_sink_t::exit_read_t> main_read_token;
 };
 
+/// @brief Token representing a write lock on the store
+/// Holds the lock acquired when getting in line for superblock write access.
 struct write_token_t {
+    /// @brief The write lock token from the FIFO enforcer
     object_buffer_t<fifo_enforcer_sink_t::exit_write_t> main_write_token;
 };
 
-/* `store_view_t` is an abstract class that represents a region of a key-value store
-for some protocol.  It covers some `region_t`, which is returned by `get_region()`.
-
-In addition to the actual data, `store_view_t` is responsible for keeping track of
-metadata which is keyed by region. The metadata is currently implemented as opaque
-binary blob (`binary_blob_t`).
-*/
-
+/// @brief Abstract interface for a region of a key-value store
+///
+/// `store_view_t` is an abstract class that represents a region of a key-value store
+/// for some protocol. It covers some `region_t`, which is returned by `get_region()`.
+///
+/// In addition to the actual data, `store_view_t` is responsible for keeping track of
+/// metadata which is keyed by region. The metadata is currently implemented as opaque
+/// binary blob (`binary_blob_t`).
+///
+/// @example
+/// @code
+/// // Typical usage pattern:
+/// store_view_t *view = get_store_view();
+///
+/// // Acquire tokens for operations
+/// read_token_t read_token;
+/// view->new_read_token(&read_token);
+///
+/// // Perform a read
+/// read_response_t response;
+/// view->read(nullptr, read_spec, &response, &read_token, &interruptor);
+/// @endcode
 class store_view_t : public home_thread_mixin_t {
 public:
+    /// @brief Virtual destructor
     virtual ~store_view_t() {
         home_thread_mixin_t::assert_thread();
     }
 
+    /// @brief Returns the region managed by this store view
+    /// Safe to call from any thread
+    /// @return The region_t covered by this view
     region_t get_region() {
-        /* Safe to call on any thread */
         return region;
     }
 
+    /// @brief Notifies the view of a resharding operation
+    /// Called when the store is resharded to a new region boundary.
+    /// @param shard_region The new shard region after resharding
     virtual void note_reshard(const region_t &shard_region) = 0;
 
+    /// @brief Allocates a new read token for lock acquisition
+    /// @param token_out Pointer to receive the allocated read token
     virtual void new_read_token(read_token_t *token_out) = 0;
+
+    /// @brief Allocates a new write token for lock acquisition
+    /// @param token_out Pointer to receive the allocated write token
     virtual void new_write_token(write_token_t *token_out) = 0;
 
-    /* Gets the metainfo. */
+    /// @brief Retrieves metadata for a region
+    /// Gets the metadata (opaque binary blob) for the specified region.
+    /// @param order_token Order token for operation ordering
+    /// @param token Read token for lock management
+    /// @param region The region to get metadata for
+    /// @param interruptor Signal to interrupt the operation
+    /// @return A region_map_t mapping regions to their metadata blobs
+    /// @throws interrupted_exc_t if the interruptor fires
     virtual region_map_t<binary_blob_t> get_metainfo(
             order_token_t order_token,
             read_token_t *token,
@@ -64,7 +116,14 @@ public:
             signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) = 0;
 
-    /* Replaces the metainfo in `new_metainfo`'s domain with `new_metainfo`. */
+    /// @brief Sets metadata for a region
+    /// Replaces the metadata in the regions covered by new_metainfo.
+    /// @param new_metainfo The new metadata mapping to install
+    /// @param order_token Order token for operation ordering
+    /// @param token Write token for lock management
+    /// @param durability The durability requirement for this write
+    /// @param interruptor Signal to interrupt the operation
+    /// @throws interrupted_exc_t if the interruptor fires
     virtual void set_metainfo(
             const region_map_t<binary_blob_t> &new_metainfo,
             order_token_t order_token,
@@ -72,7 +131,14 @@ public:
             write_durability_t durability,
             signal_t *interruptor) THROWS_ONLY(interrupted_exc_t) = 0;
 
-    /* Performs a read. The read's region must be a subset of the store's region. */
+    /// @brief Performs a read operation
+    /// The read's region must be a subset of the store's region.
+    /// @param metainfo_expecter Debug-only metadata validation (debug builds only)
+    /// @param read The read operation specification
+    /// @param response Output parameter to receive the read result
+    /// @param token Read token for lock management
+    /// @param interruptor Signal to interrupt the operation
+    /// @throws interrupted_exc_t if the interruptor fires
     virtual void read(
             DEBUG_ONLY(const metainfo_checker_t& metainfo_expecter, )
             const read_t &read,

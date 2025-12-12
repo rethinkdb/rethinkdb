@@ -1,59 +1,77 @@
 #ifndef STORE_SUBVIEW_HPP_
 #define STORE_SUBVIEW_HPP_
 
+/// @file store_subview.hpp
+/// @brief Partial view abstraction for a store region
+///
+/// Provides store_subview_t, which creates a view over a subset region of an existing store.
+/// Documents the consistency and ordering guarantees provided by the query routing logic.
+///
+/// @defgroup StoreSubviews Store Subviews and Region Partitioning
+/// Partial store views with documented consistency guarantees
+/// @{
+
 #include "store_view.hpp"
 
-/* The query-routing logic provides the following ordering guarantees:
-
-1.  All the replicas of each individual key will see writes in the same order.
-
-    Example: Suppose K = "x". You send (append "a" to K) and (append "b" to K)
-    concurrently from different nodes. Either every copy of K will become "xab",
-    or every copy of K will become "xba", but the different copies of K will
-    never disagree.
-
-2.  Queries from the same origin will be performed in same order they are sent.
-
-    Example: Suppose K = "a". You send (set K to "b") and (read K) from the same
-    thread on the same node, in that order. The read will return "b".
-
-3.  Arbitrary atomic single-key operations can be performed, as long as they can
-    be expressed as `write_t` objects.
-
-4.  There are no other atomicity or ordering guarantees.
-
-    Example: Suppose K1 = "x" and K2 = "x". You send (append "a" to every key)
-    and (append "b" to every key) concurrently. Every copy of K1 will agree with
-    every other copy of K1, and every copy of K2 will agree with every other
-    copy of K2, but K1 and K2 may disagree.
-
-    Example: Suppose K = "a". You send (set K to "b"). As soon as it's sent, you
-    send (set K to "c") from a different node. K may end up being either "b" or
-    "c".
-
-    Example: Suppose K1 = "a" and K2 = "a". You send (set K1 to "b") and (set K2
-    to "b") from the same node, in that order. Then you send (read K1 and K2)
-    from a different node. The read may return (K1 = "a", K2 = "b").
-
-5.  There is no simple way to perform an atomic multikey transaction. You might
-    be able to fake it by using a key as a "lock".
-*/
-
+/// @brief Consistency and ordering guarantees provided by RethinkDB query routing
+///
+/// The query-routing logic provides the following ordering guarantees:
+///
+/// **1. Single-key write ordering:** All replicas of each individual key will see
+/// writes in the same order.
+///
+/// Example: Two writes to key "x": (append "a") and (append "b") sent concurrently.
+/// Every copy of "x" will become either "xab" or "xba", but never "xab" on one
+/// replica and "xba" on another.
+///
+/// **2. Origin ordering:** Queries from the same origin are performed in the order
+/// they are sent.
+///
+/// Example: From the same thread: (set K to "b") then (read K) returns "b".
+///
+/// **3. Arbitrary single-key operations:** Any atomic operation on a single key
+/// can be performed, as long as it can be expressed as a write_t object.
+///
+/// **4. No multi-key atomicity:** Other keys may be in different states.
+///
+/// Example: Set K1 to "b" and K2 to "b" concurrently. K1 and K2 may disagree.
+///
+/// Example: Set K1 to "b" from node A, then set K2 to "b" from node B. A subsequent
+/// read from node C may see (K1="a", K2="b").
+///
+/// **5. No simple atomic multi-key transactions:** You might be able to fake it
+/// by using a key as a "lock".
+///
+/// @see store_subview_t for creating views over subregions
 class store_subview_t final : public store_view_t {
 public:
-    /* Note that `store_subview_t` can be created and deleted on any thread, but its
-    "home thread" will be set as the home thread of the underlying store. */
-
+    /// @brief Creates a subview over a region of an existing store
+    ///
+    /// Note that `store_subview_t` can be created and deleted on any thread,
+    /// but its "home thread" will be set as the home thread of the underlying store.
+    ///
+    /// @param _store_view The underlying store view to create a subview of
+    /// @param _region The region to restrict this view to (must be a subset of _store_view's region)
+    /// @example
+    /// @code
+    /// store_view_t* full_store = get_full_store_view();
+    /// region_t shard_region = compute_shard_region();
+    /// store_subview_t shard_view(full_store, shard_region);
+    /// // Now shard_view only sees data in shard_region
+    /// @endcode
     store_subview_t(store_view_t *_store_view, region_t _region)
         : store_view_t(_region), store_view(_store_view) {
         home_thread_mixin_t::real_home_thread = store_view->home_thread();
         rassert(region_is_superset(_store_view->get_region(), _region));
     }
 
+    /// @brief Destructor handles thread affinity cleanup
     ~store_subview_t() {
         home_thread_mixin_t::real_home_thread = get_thread_id();
     }
 
+    /// @brief Handles store resharding events
+    /// @param shard_region The new shard region (must equal this view's region)
     void note_reshard(const region_t &shard_region) {
         guarantee(get_region() == shard_region);
         store_view->note_reshard(shard_region);

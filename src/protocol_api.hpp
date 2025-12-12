@@ -1,4 +1,16 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
+
+/// @file protocol_api.hpp
+/// @brief Protocol-agnostic database interface for query routing
+///
+/// Defines the abstract interfaces for database operations (reads/writes),
+/// namespaces, and store views. This abstraction allows different query
+/// protocols to interact with the same underlying database implementation.
+///
+/// @defgroup ProtocolAPI Protocol API and Database Interfaces
+/// Interfaces for protocol-independent database access
+/// @{
+
 #ifndef PROTOCOL_API_HPP_
 #define PROTOCOL_API_HPP_
 
@@ -41,18 +53,47 @@ struct write_response_t;
 
 ARCHIVE_PRIM_MAKE_RANGED_SERIALIZABLE(
         query_state_t, int8_t, query_state_t::FAILED, query_state_t::INDETERMINATE);
+
+/// @brief Exception thrown when a query cannot be performed
+///
+/// Indicates that a query (read or write) could not be executed.
+/// Includes a human-readable error message and indicates whether the
+/// query state is FAILED (error occurred) or INDETERMINATE (unclear).
+///
+/// @example
+/// @code
+/// try {
+///     namespace_interface_t* ns = get_namespace_interface();
+///     // Attempt read operation...
+/// } catch (const cannot_perform_query_exc_t &e) {
+///     if (e.get_query_state() == query_state_t::FAILED) {
+///         std::cerr << "Query definitely failed: " << e.what() << std::endl;
+///     } else {
+///         std::cerr << "Query state unknown: " << e.what() << std::endl;
+///     }
+/// }
+/// @endcode
 class cannot_perform_query_exc_t : public std::exception {
 public:
+    /// @brief Default constructor for deserialization
     // SHOULD ONLY BE USED FOR SERIALIZATION
     cannot_perform_query_exc_t()
         : message("UNINITIALIZED"), query_state(query_state_t::FAILED) { }
+
+    /// @brief Constructs an exception with message and state
+    /// @param s The error message
+    /// @param _query_state Whether the query FAILED or is INDETERMINATE
     cannot_perform_query_exc_t(const std::string &s, query_state_t _query_state)
         : message(s), query_state(_query_state) { }
-    ~cannot_perform_query_exc_t() throw () { }
+
+    /// @brief Returns the error message
     const char *what() const throw () {
         return message.c_str();
     }
+
+    /// @brief Returns the query state
     query_state_t get_query_state() const throw () { return query_state; }
+
 private:
     RDB_DECLARE_ME_SERIALIZABLE(cannot_perform_query_exc_t);
     std::string message;
@@ -60,19 +101,62 @@ private:
 };
 RDB_DECLARE_SERIALIZABLE_FOR_CLUSTER(cannot_perform_query_exc_t);
 
+/// @brief Enumeration for table readiness levels
+///
+/// Indicates the current readiness state of a table for serving different
+/// types of operations.
+///
+/// @example
+/// @code
+/// if (namespace_interface->check_readiness(table_readiness_t::writes, &signal)) {
+///     // Table is ready for write operations
+/// }
+/// @endcode
 enum class table_readiness_t {
-    unavailable,
-    outdated_reads,
-    reads,
-    writes,
-    finished
+    unavailable,          ///< Table is not available
+    outdated_reads,       ///< Can perform reads but data may be stale
+    reads,                ///< Can perform reads with consistent data
+    writes,               ///< Can perform both reads and writes
+    finished              ///< Table is fully ready
 };
 
-/* `namespace_interface_t` is the interface that the protocol-agnostic database
-logic for query routing exposes to the protocol-specific query parser. */
-
+/// @brief Protocol-agnostic interface for database operations
+///
+/// Abstract interface that provides protocol-independent access to database
+/// operations. Different query protocols (ReQL, SQL, etc.) use this interface
+/// to interact with the underlying database.
+///
+/// @example
+/// @code
+/// class namespace_interface_t {
+///     virtual void read(auth::user_context_t const &user_context,
+///                       const read_t &read,
+///                       read_response_t *response,
+///                       order_token_t tok,
+///                       signal_t *interruptor)
+///         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t, 
+///                    auth::permission_error_t) = 0;
+///
+///     virtual void write(auth::user_context_t const &user_context,
+///                        const write_t &write,
+///                        write_response_t *response,
+///                        order_token_t tok,
+///                        signal_t *interruptor)
+///         THROWS_ONLY(interrupted_exc_t, cannot_perform_query_exc_t,
+///                    auth::permission_error_t) = 0;
+/// };
+/// @endcode
 class namespace_interface_t {
 public:
+    /// @brief Performs a read operation on the database
+    /// @param user_context Authentication context for the user
+    /// @param read The read operation specification
+    /// @param response Output parameter to receive the read result
+    /// @param tok Order token for maintaining operation ordering
+    /// @param interruptor Signal to interrupt the operation
+    /// @throws interrupted_exc_t if the interruptor signal fires
+    /// @throws cannot_perform_query_exc_t if the read cannot be performed
+    /// @throws auth::permission_error_t if the user lacks permission
     virtual void read(auth::user_context_t const &user_context,
                       const read_t &,
                       read_response_t *response,
@@ -81,6 +165,15 @@ public:
         THROWS_ONLY(
             interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t) = 0;
 
+    /// @brief Performs a write operation on the database
+    /// @param user_context Authentication context for the user
+    /// @param write The write operation specification
+    /// @param response Output parameter to receive the write result
+    /// @param tok Order token for maintaining operation ordering
+    /// @param interruptor Signal to interrupt the operation
+    /// @throws interrupted_exc_t if the interruptor signal fires
+    /// @throws cannot_perform_query_exc_t if the write cannot be performed
+    /// @throws auth::permission_error_t if the user lacks permission
     virtual void write(auth::user_context_t const &user_context,
                        const write_t &,
                        write_response_t *response,
@@ -89,13 +182,25 @@ public:
         THROWS_ONLY(
             interrupted_exc_t, cannot_perform_query_exc_t, auth::permission_error_t) = 0;
 
-    /* These calls are for the sole purpose of optimizing queries; don't rely
-    on them for correctness. They should not block. */
+    /// @brief Gets the sharding scheme of the database
+    /// Returns the regions into which the database is partitioned.
+    /// This is an optimization hint for query routing - do not rely on it for correctness.
+    /// This function should not block.
+    /// @return A set of regions representing the database sharding scheme
+    /// @throws cannot_perform_query_exc_t if the scheme cannot be determined
     virtual std::set<region_t> get_sharding_scheme()
         THROWS_ONLY(cannot_perform_query_exc_t) = 0;
 
+    /// @brief Gets a signal that fires when the table becomes initially ready
+    /// Optional override for implementations that track readiness explicitly.
+    /// @return A signal_t that fires when the table is ready, or nullptr
     virtual signal_t *get_initial_ready_signal() { return nullptr; }
 
+    /// @brief Checks if the table meets a readiness requirement
+    /// Determines if the table is ready for a specific level of operations.
+    /// @param readiness The required readiness level
+    /// @param interruptor Signal to interrupt the check
+    /// @return true if the table meets the readiness requirement
     virtual bool check_readiness(table_readiness_t readiness,
                                  signal_t *interruptor) = 0;
 

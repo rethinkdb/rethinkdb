@@ -1,4 +1,18 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+
+/// @file scoped.hpp
+/// @brief Smart pointer classes for automatic resource cleanup
+///
+/// Provides RAII-based smart pointers for automatic memory management including:
+/// - scoped_ptr_t: Exclusive ownership smart pointer (like unique_ptr)
+/// - scoped_array_ptr_t: Exclusive ownership for arrays
+/// - shared_ptr_t: Reference-counted shared ownership
+/// - clone_ptr_t: Value-semantics pointer with automatic cloning
+///
+/// @defgroup SmartPointers Smart Pointer Classes
+/// RAII memory management and automatic cleanup
+/// @{
+
 #ifndef CONTAINERS_SCOPED_HPP_
 #define CONTAINERS_SCOPED_HPP_
 
@@ -10,37 +24,68 @@
 #include "errors.hpp"
 #include "memory_utils.hpp"
 
-// Like boost::scoped_ptr only with release, init, no bool conversion, no boost headers!
+/// @brief Exclusive-ownership smart pointer (similar to std::unique_ptr)
+///
+/// Manages a single dynamically-allocated object with automatic cleanup.
+/// Only one scoped_ptr_t can own an object at a time.
+/// Move semantics allow safe transfer of ownership.
+///
+/// @tparam T The type of object being managed
+///
+/// @example
+/// @code
+/// {
+///     scoped_ptr_t<MyClass> obj(new MyClass());
+///     obj->do_work();
+///     obj.release();  // Transfer ownership
+/// }  // Automatically deleted here if not released
+/// @endcode
 template <class T>
 class scoped_ptr_t {
 public:
     template <class U>
     friend class scoped_ptr_t;
 
+    /// @brief Constructs an empty smart pointer
     scoped_ptr_t() : ptr_(nullptr) { }
+
+    /// @brief Constructs a smart pointer managing the given object
+    /// @param p Pointer to object to manage (can be nullptr)
     explicit scoped_ptr_t(T *p) : ptr_(p) { }
 
-    // (These noexcepts don't actually do anything w.r.t. STL containers, since the
-    // type's not copyable.  There is no specific reason why these are many other
-    // functions need be marked noexcept with any degree of urgency.)
+    /// @brief Move constructor transfers ownership
+    /// @param movee The source pointer (will be emptied)
     scoped_ptr_t(scoped_ptr_t &&movee) noexcept : ptr_(movee.ptr_) {
         movee.ptr_ = nullptr;
     }
+
+    /// @brief Move constructor with type conversion
+    /// Allows implicit conversion from derived classes
+    /// @tparam U Type convertible to T*
+    /// @param movee The source pointer with different type
     template <class U>
     scoped_ptr_t(scoped_ptr_t<U> &&movee) noexcept : ptr_(movee.ptr_) {
         movee.ptr_ = nullptr;
     }
 
+    /// @brief Destructor automatically deletes the managed object
     ~scoped_ptr_t() {
         reset();
     }
 
+    /// @brief Move assignment transfers ownership
+    /// @param movee The source pointer
+    /// @return Reference to this pointer
     scoped_ptr_t &operator=(scoped_ptr_t &&movee) noexcept {
         scoped_ptr_t tmp(std::move(movee));
         swap(tmp);
         return *this;
     }
 
+    /// @brief Move assignment with type conversion
+    /// @tparam U Type convertible to T*
+    /// @param movee The source pointer with different type
+    /// @return Reference to this pointer
     template <class U>
     scoped_ptr_t &operator=(scoped_ptr_t<U> &&movee) noexcept {
         scoped_ptr_t tmp(std::move(movee));
@@ -48,31 +93,36 @@ public:
         return *this;
     }
 
-    // These 'init' functions are largely obsolete, because move semantics are a
-    // better thing to use.
+    /// @brief Initializes the pointer from another scoped_ptr_t
+    /// Asserts that this pointer is currently null
+    /// @tparam U Type convertible to T*
+    /// @param movee The source pointer to move from
     template <class U>
     void init(scoped_ptr_t<U> &&movee) {
         rassert(ptr_ == NULL);
-
         operator=(std::move(movee));
     }
 
-    // includes a sanity-check for first-time use.
+    /// @brief Initializes the pointer with a new value
+    /// Asserts that this pointer is currently null, then deletes any existing object
+    /// @param value The new pointer value
     void init(T *value) {
         rassert(ptr_ == NULL);
-
-        // This is like reset with an assert.
         T *tmp = ptr_;
         ptr_ = value;
         delete tmp;
     }
 
+    /// @brief Resets the pointer to null and deletes the managed object
+    /// Safe to call on null or already-reset pointers
     void reset() {
         T *tmp = ptr_;
         ptr_ = nullptr;
         delete tmp;
     }
 
+    /// @brief Releases ownership without deleting the object
+    /// @return The managed pointer (caller becomes responsible for deletion)
     MUST_USE T *release() {
         T *tmp = ptr_;
         ptr_ = nullptr;
