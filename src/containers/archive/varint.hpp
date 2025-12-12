@@ -1,38 +1,71 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
+
+/// @file varint.hpp
+/// @brief Variable-length integer encoding/decoding
+///
+/// Implements variable-length integer (varint) encoding for efficient storage
+/// of integers. Values are encoded in base-128 with the MSB of each byte
+/// indicating if more bytes follow.
+///
+/// This encoding is more efficient than fixed-width integers for small values,
+/// making it ideal for network protocols and storage.
+///
+/// @defgroup Serialization
+/// @{
+
 #ifndef CONTAINERS_ARCHIVE_VARINT_HPP_
 #define CONTAINERS_ARCHIVE_VARINT_HPP_
 
 #include "containers/archive/archive.hpp"
 
-// We don't use google::protobuf::io::CodedOutputStream::WriteVarint64ToArray because
-// we have no clean way of _reading_ varints without constructing a CodedInputStream,
-// which would require knowing the varint structure anyway in order to know how many
-// bytes of the input stream to read off and load into an array.
-
-// Varint encoding encodes a number in base-128 in little-endian order, with the MSB
-// the last byte 0, all other bytes 1.
-//
-// Some sample encodings:
-//
-// 1     -> [0000 0001]
-// 127   -> [0111 1111]
-// 138   -> [1000 1010, 0000 0001]
-//
-// Unlike protocol buffers does (or what its documentation claims it does), we don't
-// silently truncate out-of-range varints when decoding.
-
+/// @brief Calculates the serialized size of a varint uint64
+///
+/// Determines how many bytes are needed to encode the given value using
+/// varint encoding.
+///
+/// @param value The value to calculate size for
+/// @return Number of bytes required to encode value
+/// @example
+/// @code
+/// uint64_t num = 138;
+/// size_t size = varint_uint64_serialized_size(num);  // Returns 2
+/// @endcode
+///
+/// Example encodings:
+/// - 1     -> 1 byte:  [0000 0001]
+/// - 127   -> 1 byte:  [0111 1111]
+/// - 128   -> 2 bytes: [1000 0000, 0000 0001]
+/// - 138   -> 2 bytes: [1000 1010, 0000 0001]
 size_t varint_uint64_serialized_size(uint64_t value);
 
+/// @brief Serializes a uint64 as a varint to a write message
+/// Uses variable-length encoding to minimize bytes for small values.
+/// @param wm The write message to serialize into
+/// @param value The value to serialize
 void serialize_varint_uint64(write_message_t *wm, const uint64_t value);
-// buf_out must have a size of at least varint_uint64_serialized_size(value).
-// The actually used size is returned.
+
+/// @brief Serializes a uint64 varint directly into a buffer
+/// Encodes the value directly into provided buffer without using write_message_t.
+/// @param value The value to serialize
+/// @param buf_out Buffer to write the varint into
+/// @return Number of bytes actually written
+/// @pre buf_out must have size >= varint_uint64_serialized_size(value)
 size_t serialize_varint_uint64_into_buf(const uint64_t value, uint8_t *buf_out);
 
-// Note: This is defined in the header file because inlining this yields
-// significant performance gains due to its frequent use in datum_string_t and
-// other datum deserialization functions. (measured on GCC 4.8)
-// If we end up compiling with whole-program link-time optimization some day,
-// we can probably move this back to the .cc file.
+/// @brief Deserializes a uint64 from varint encoding
+/// Reads and decodes a varint from a stream, supporting values up to 2^64-1.
+/// Unlike Protocol Buffers, this doesn't silently truncate out-of-range values.
+/// @param s The read stream to deserialize from
+/// @param value_out Pointer to receive the decoded value
+/// @return Result status (SUCCESS, SOCK_ERROR, SOCK_EOF, or RANGE_ERROR)
+/// @example
+/// @code
+/// uint64_t decoded;
+/// archive_result_t res = deserialize_varint_uint64(stream, &decoded);
+/// throw_if_bad_deserialization(res, "varint");
+/// @endcode
+///
+/// This function is inlined for performance in datum deserialization paths.
 inline archive_result_t deserialize_varint_uint64(read_stream_t *s, uint64_t *value_out) {
     uint64_t value = 0;
 

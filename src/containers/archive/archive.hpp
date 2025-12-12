@@ -1,4 +1,16 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
+
+/// @file archive.hpp
+/// @brief Serialization framework for RPC and persistence
+///
+/// Provides the foundation for serializing and deserializing RethinkDB data types
+/// over network streams and to disk. Handles version-aware serialization with
+/// support for forward/backward compatibility.
+///
+/// @defgroup Serialization Serialization and Deserialization Framework
+/// Framework for converting objects to/from binary format
+/// @{
+
 #ifndef CONTAINERS_ARCHIVE_ARCHIVE_HPP_
 #define CONTAINERS_ARCHIVE_ARCHIVE_HPP_
 
@@ -14,41 +26,84 @@
 
 class uuid_u;
 
+/// @brief Exception thrown when writing to an archive fails
 struct fake_archive_exc_t {
+    /// @brief Gets the error message
     const char *what() const throw() {
         return "Writing to a tcp stream failed.";
     }
 };
 
+/// @brief Abstract base class for reading from an archive stream
+///
+/// `read_stream_t` defines the interface for reading data from various sources
+/// (network sockets, files, memory buffers). Implementations provide the actual
+/// I/O mechanics.
+///
+/// @example
+/// @code
+/// // Custom read stream implementation
+/// class custom_read_stream : public read_stream_t {
+/// public:
+///     int64_t read(void *p, int64_t n) override {
+///         // Read n bytes from source into p
+///         // Return: bytes read, 0 for EOF, -1 for error
+///     }
+/// };
+/// @endcode
 class read_stream_t {
 public:
+    /// @brief Default constructor
     read_stream_t() { }
-    // Returns number of bytes read or 0 upon EOF, -1 upon error.
+
+    /// @brief Reads data from the stream
+    /// Reads up to n bytes from the stream into the provided buffer.
+    /// @param p Pointer to buffer where data is written
+    /// @param n Maximum number of bytes to read
+    /// @return Number of bytes read (1-n), 0 on EOF, -1 on error
+    /// @note Implementations should read exactly n bytes when possible
     virtual MUST_USE int64_t read(void *p, int64_t n) = 0;
+
 protected:
+    /// @brief Virtual destructor for proper cleanup
     virtual ~read_stream_t() { }
+
 private:
     DISABLE_COPYING(read_stream_t);
 };
 
-// The return value of deserialization functions.
+/// @brief Result status of a deserialization operation
+///
+/// Indicates the outcome of attempting to deserialize data from a stream.
+/// Used instead of exceptions in some code paths for error handling.
 enum class archive_result_t {
-    // Success.
-    SUCCESS,
-    // An error on the socket happened.
-    SOCK_ERROR,
-    // An EOF on the socket happened.
-    SOCK_EOF,
-    // The value deserialized was out of range.
-    RANGE_ERROR,
+    SUCCESS,        ///< Deserialization succeeded
+    SOCK_ERROR,     ///< Socket/stream error occurred
+    SOCK_EOF,       ///< End-of-file reached unexpectedly
+    RANGE_ERROR,    ///< Deserialized value out of valid range
 };
 
+/// @brief Checks if an archive result indicates an error
+/// @param res The archive result to check
+/// @return true if the result is not SUCCESS
 inline bool bad(archive_result_t res) {
     return res != archive_result_t::SUCCESS;
 }
 
+/// @brief Converts an archive_result_t to a human-readable string
+/// @param archive_result The result code to convert
+/// @return String description of the result
 const char *archive_result_as_str(archive_result_t archive_result);
 
+/// @brief Macro that guarantees successful deserialization
+/// Aborts the program if the result indicates an error.
+/// @param result The archive_result_t to check
+/// @param ... Format string and arguments for the guarantee message
+/// @example
+/// @code
+/// archive_result_t result = deserialize_universal(stream, &value);
+/// guarantee_deserialization(result, "my_struct");
+/// @endcode
 #define guarantee_deserialization(result, ...) do {                     \
         guarantee(result == archive_result_t::SUCCESS,                  \
                   "Deserialization of %s failed with error %s.",        \
@@ -56,17 +111,38 @@ const char *archive_result_as_str(archive_result_t archive_result);
                   archive_result_as_str(result));                       \
     } while (0)
 
+/// @brief Exception thrown for serialization/deserialization errors
+///
+/// Used by the archive framework to report errors in a C++ exception context.
+/// Carries a descriptive error message.
 class archive_exc_t : public std::exception {
 public:
+    /// @brief Constructs an archive exception with a message
+    /// @param _s The error message
     explicit archive_exc_t(std::string _s) : s(std::move(_s)) { }
+
+    /// @brief Virtual destructor
     ~archive_exc_t() throw () { }
+
+    /// @brief Gets the error message
+    /// @return C-string describing the error
     const char *what() const throw() {
         return s.c_str();
     }
+
 private:
-    std::string s;
+    std::string s;  ///< The error message
 };
 
+/// @brief Macro that throws an exception if deserialization fails
+/// Throws archive_exc_t with a formatted message if the result is not SUCCESS.
+/// @param result The archive_result_t to check
+/// @param ... Format string and arguments for the exception message
+/// @example
+/// @code
+/// archive_result_t result = deserialize_universal(stream, &value);
+/// throw_if_bad_deserialization(result, "my_struct");
+/// @endcode
 #define throw_if_bad_deserialization(result, ...) do {                  \
         if (result != archive_result_t::SUCCESS) {                      \
             throw archive_exc_t(                                        \
