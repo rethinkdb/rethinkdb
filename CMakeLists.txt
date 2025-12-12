@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(rethinkdb VERSION 2.4.4 LANGUAGES CXX C)
+project(rethinkdb VERSION 2.4.5 LANGUAGES CXX C)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)

@@ -4,7 +4,7 @@ from conan.tools.cmake import cmake_layout
 
 class RethinkDBConan(ConanFile):
     name = "rethinkdb"
-    version = "2.4.4"
+    version = "2.4.5"
     license = "Apache-2.0"
     author = "RethinkDB"
     url = "https://github.com/rethinkdb/rethinkdb"
