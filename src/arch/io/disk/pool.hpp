@@ -161,4 +161,4 @@ private:
     DISABLE_COPYING(pool_diskmgr_t);
 };
 
-#endif /* ARCH_IO_DISK_POOL_HPP_ */
+#endif // ARCH_IO_DISK_POOL_HPP_

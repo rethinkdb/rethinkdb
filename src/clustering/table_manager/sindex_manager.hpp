@@ -38,5 +38,5 @@ private:
     watchable_t<table_config_t>::subscription_t table_config_subs;
 };
 
-#endif /* CLUSTERING_TABLE_MANAGER_SINDEX_MANAGER_HPP_ */
+#endif // CLUSTERING_TABLE_MANAGER_SINDEX_MANAGER_HPP_
 

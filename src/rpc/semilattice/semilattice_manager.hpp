@@ -114,4 +114,4 @@ private:
         connection_change_subscription;
 };
 
-#endif /* RPC_SEMILATTICE_SEMILATTICE_MANAGER_HPP_ */
+#endif // RPC_SEMILATTICE_SEMILATTICE_MANAGER_HPP_

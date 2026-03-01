@@ -243,4 +243,4 @@ protected:
     virtual ~branch_history_manager_t() { }
 };
 
-#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_HISTORY_HPP_ */
+#endif // CLUSTERING_IMMEDIATE_CONSISTENCY_HISTORY_HPP_

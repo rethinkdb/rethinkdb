@@ -41,4 +41,4 @@ bool start_windows_service(const std::string &service_name);
 bool stop_windows_service(const std::string &service_name);
 
 #endif /* _WIN32 */
-#endif /* CLUSTERING_ADMINISTRATION_MAIN_WINDOWS_SERVICE_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_MAIN_WINDOWS_SERVICE_HPP_

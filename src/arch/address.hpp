@@ -239,4 +239,4 @@ void debug_print(printf_buffer_t *buf, const ip_and_port_t &addr);
 void debug_print(printf_buffer_t *buf, const host_and_port_t &addr);
 void debug_print(printf_buffer_t *buf, const peer_address_t &address);
 
-#endif /* ARCH_ADDRESS_HPP_ */
+#endif // ARCH_ADDRESS_HPP_

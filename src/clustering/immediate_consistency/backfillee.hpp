@@ -154,4 +154,4 @@ private:
     scoped_ptr_t<registrant_t<backfiller_bcard_t::intro_1_t> > registrant;
 };
 
-#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLEE_HPP_ */
+#endif // CLUSTERING_IMMEDIATE_CONSISTENCY_BACKFILLEE_HPP_

@@ -394,4 +394,4 @@ private:
 typedef rdb_noop_deletion_context_t rdb_post_construction_deletion_context_t;
 
 
-#endif /* RDB_PROTOCOL_BTREE_HPP_ */
+#endif // RDB_PROTOCOL_BTREE_HPP_

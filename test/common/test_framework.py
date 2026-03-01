@@ -2,7 +2,7 @@
 
 '''This test framework is responsible for running the test suite'''
 
-from __future__ import print_function
+
 
 from argparse import ArgumentParser
 from os.path import abspath, join, dirname, pardir, getmtime, relpath
@@ -24,7 +24,7 @@ import time
 import traceback
 
 try:
-    import Queue
+    import queue
 except ImportError:
     import queue as Queue
 
@@ -116,7 +116,7 @@ def run(all_tests, all_groups, configure, args):
 # This mode just lists the tests
 def list_tests_mode(tests, verbose, all_groups):
     if all_groups:
-        groups = {name: TestFilter.parse(patterns, all_groups) for name, patterns in all_groups.items()}
+        groups = {name: TestFilter.parse(patterns, all_groups) for name, patterns in list(all_groups.items())}
     else:
         groups = False
     for name, test in tests:
@@ -137,7 +137,7 @@ def list_tests_mode(tests, verbose, all_groups):
 def list_groups_mode(groups, filters, verbose):
     if filters:
         raise Exception('Cannot combine --groups with positional arguments')
-    for name, patterns in groups.items():
+    for name, patterns in list(groups.items()):
         if not verbose:
             print(name)
         else:
@@ -287,10 +287,10 @@ class TestRunner(object):
         running = self.running.copy()
         if running:
             print("\nKilling remaining tasks...")
-            for id, process in running.items():
+            for id, process in list(running.items()):
                 tests_killed.add(id)
                 process.terminate(gracefull_kill=True)
-            for id, process in running.items():
+            for id, process in list(running.items()):
                 process.join()
 
         self.view.close()
@@ -361,13 +361,16 @@ class TextView(object):
         if self.use_color:
             try:
                 curses.setupterm()
-                setf = curses.tigetstr('setaf') or ''
-                bold = curses.tigetstr('bold') or ''
-                self.red = (curses.tparm(setf, 1) if setf != '' else '') + bold 
-                self.green = (curses.tparm(setf, 2) if setf != '' else '') + bold
-                self.yellow = (curses.tparm(setf, 3) if setf != '' else '') + bold
-                self.nocolor = curses.tigetstr('sgr0') or ''
-            except Exception: pass
+                setf = curses.tigetstr('setaf') or b''
+                bold = curses.tigetstr('bold') or b''
+                sgr0 = curses.tigetstr('sgr0') or b''
+
+                self.red = (curses.tparm(setf, 1).decode() if setf else '') + (bold.decode() if bold else '')
+                self.green = (curses.tparm(setf, 2).decode() if setf else '') + (bold.decode() if bold else '')
+                self.yellow = (curses.tparm(setf, 3).decode() if setf else '') + (bold.decode() if bold else '')
+                self.nocolor = sgr0.decode() if sgr0 else ''
+            except Exception:
+                pass
 
     def tell(self, event, name, **args):
         if event not in ['STARTED', 'CANCEL']:
@@ -384,9 +387,9 @@ class TextView(object):
         )[str]
         buf = ''
         if self.use_color:
-            buf += short[0] + short[1] + " " + name + self.nocolor
+            buf += f"{short[0]}{short[1]} {name}{self.nocolor}"
         else:
-            buf += short[1] + " " + name
+            buf += f"{short[1]} {name}"
         if error:
             buf += '\n' + error
         return buf
@@ -396,11 +399,10 @@ class TextView(object):
 
 # For printing the status to a terminal
 class TermView(TextView):
-    
     statusPadding = 5 # some padding to the right of the status lines to allow for a little buffer for window resizing
     columns = 80
-    clear_line = "\n"
-    
+    clear_line = '\n'
+
     def __init__(self, total):
         super(TermView, self).__init__()
         self.running_list = []
@@ -409,14 +411,16 @@ class TermView(TextView):
         self.failed = 0
         self.total = total
         self.start_time = time.time()
-        self.printingQueue = Queue.Queue()
-        
+        self.printingQueue = queue.Queue()
+
         try:
-            # curses.setupterm is already called in super's init
             self.columns = struct.unpack('hh', fcntl.ioctl(1, termios.TIOCGWINSZ, '1234'))[1]
             signal.signal(signal.SIGWINCH, lambda *args: self.tell('SIGWINCH', args))
-            self.clear_line = curses.tigetstr('cr') + (curses.tigetstr('dl1') or curses.tigetstr('el'))
-        except Exception: pass
+            cr = curses.tigetstr('cr') or b''
+            dl1 = curses.tigetstr('dl1') or curses.tigetstr('el') or b''
+            self.clear_line = cr.decode() + dl1.decode()
+        except Exception:
+            pass
         
         self.thread = threading.Thread(target=self.run, name='TermView')
         self.thread.daemon = True
@@ -433,7 +437,7 @@ class TermView(TextView):
         while True:
             try:
                 args, kwargs = self.printingQueue.get(timeout=1)
-            except Queue.Empty:
+            except queue.Empty:
                 if self.clear_line != self.__class__.clear_line: # if we can't clear the line, don't print every second
                     self.update_status()
                     self.flush()
@@ -756,7 +760,7 @@ class TestFilter(object):
         return filter
 
     def combine(self, type, other):
-        for name in set(self.tree.keys() + other.tree.keys()):
+        for name in list(self.tree.keys()) + list(other.tree.keys()):
             self.zoom(name, create=True).combine(type, other.zoom(name))
         if other.default == self.INCLUDE:
             self.default = type
@@ -793,7 +797,7 @@ class TestFilter(object):
                 print('Warning: ' + message)
             else:
                 raise Exception(message)
-        for name, filter in self.tree.items():
+        for name, filter in list(self.tree.items()):
             filter.check_use(path + [name])
 
     def __repr__(self):
@@ -868,13 +872,13 @@ class TestTree(Test):
             else:
                 return TestTree()
         trimmed = TestTree()
-        for name, test in self.tests.items():
+        for name, test in list(self.tests.items()):
             subfilter = filter.zoom(name)
             trimmed[name] = test.filter(subfilter)
         return trimmed
 
     def run(self):
-        for test in self.tests.values():
+        for test in list(self.tests.values()):
             test.run()
 
     def __getitem__(self, name):
@@ -903,7 +907,7 @@ class TestTree(Test):
                     yield name, test
 
     def requirements(self):
-        for test in self.tests.values():
+        for test in list(self.tests.values()):
             for req in test.requirements():
                 yield req
 
@@ -961,7 +965,7 @@ class OldTest(Test):
         return os.path.exists(join(self.dir, "killed"))
 
     def dump_file(self, name):
-        with file(join(self.dir, name)) as f:
+        with open(join(self.dir, name)) as f:
             for line in f:
                 print(line, end=' ')
 

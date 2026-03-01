@@ -60,4 +60,4 @@ private:
     DISABLE_COPYING(limited_fifo_queue_t);
 };
 
-#endif /* CONCURRENCY_QUEUE_LIMITED_FIFO_HPP_ */
+#endif // CONCURRENCY_QUEUE_LIMITED_FIFO_HPP_

@@ -572,7 +572,7 @@ class BlueprintTestCase(FlaskTestCase):
             return s[::-1]
         app = flask.Flask(__name__)
         app.register_blueprint(bp, url_prefix='/py')
-        self.assert_in('my_reverse', app.jinja_env.filters.keys())
+        self.assert_in('my_reverse', list(app.jinja_env.filters.keys()))
         self.assert_equal(app.jinja_env.filters['my_reverse'], my_reverse)
         self.assert_equal(app.jinja_env.filters['my_reverse']('abcd'), 'dcba')
 
@@ -583,7 +583,7 @@ class BlueprintTestCase(FlaskTestCase):
         bp.add_app_template_filter(my_reverse)
         app = flask.Flask(__name__)
         app.register_blueprint(bp, url_prefix='/py')
-        self.assert_in('my_reverse', app.jinja_env.filters.keys())
+        self.assert_in('my_reverse', list(app.jinja_env.filters.keys()))
         self.assert_equal(app.jinja_env.filters['my_reverse'], my_reverse)
         self.assert_equal(app.jinja_env.filters['my_reverse']('abcd'), 'dcba')
 
@@ -594,7 +594,7 @@ class BlueprintTestCase(FlaskTestCase):
             return s[::-1]
         app = flask.Flask(__name__)
         app.register_blueprint(bp, url_prefix='/py')
-        self.assert_in('strrev', app.jinja_env.filters.keys())
+        self.assert_in('strrev', list(app.jinja_env.filters.keys()))
         self.assert_equal(app.jinja_env.filters['strrev'], my_reverse)
         self.assert_equal(app.jinja_env.filters['strrev']('abcd'), 'dcba')
 
@@ -605,7 +605,7 @@ class BlueprintTestCase(FlaskTestCase):
         bp.add_app_template_filter(my_reverse, 'strrev')
         app = flask.Flask(__name__)
         app.register_blueprint(bp, url_prefix='/py')
-        self.assert_in('strrev', app.jinja_env.filters.keys())
+        self.assert_in('strrev', list(app.jinja_env.filters.keys()))
         self.assert_equal(app.jinja_env.filters['strrev'], my_reverse)
         self.assert_equal(app.jinja_env.filters['strrev']('abcd'), 'dcba')
 
@@ -681,7 +681,7 @@ class BlueprintTestCase(FlaskTestCase):
             return isinstance(value, bool)
         app = flask.Flask(__name__)
         app.register_blueprint(bp, url_prefix='/py')
-        self.assert_in('is_boolean', app.jinja_env.tests.keys())
+        self.assert_in('is_boolean', list(app.jinja_env.tests.keys()))
         self.assert_equal(app.jinja_env.tests['is_boolean'], is_boolean)
         self.assert_true(app.jinja_env.tests['is_boolean'](False))
 
@@ -692,7 +692,7 @@ class BlueprintTestCase(FlaskTestCase):
         bp.add_app_template_test(is_boolean)
         app = flask.Flask(__name__)
         app.register_blueprint(bp, url_prefix='/py')
-        self.assert_in('is_boolean', app.jinja_env.tests.keys())
+        self.assert_in('is_boolean', list(app.jinja_env.tests.keys()))
         self.assert_equal(app.jinja_env.tests['is_boolean'], is_boolean)
         self.assert_true(app.jinja_env.tests['is_boolean'](False))
 
@@ -703,7 +703,7 @@ class BlueprintTestCase(FlaskTestCase):
             return isinstance(value, bool)
         app = flask.Flask(__name__)
         app.register_blueprint(bp, url_prefix='/py')
-        self.assert_in('boolean', app.jinja_env.tests.keys())
+        self.assert_in('boolean', list(app.jinja_env.tests.keys()))
         self.assert_equal(app.jinja_env.tests['boolean'], is_boolean)
         self.assert_true(app.jinja_env.tests['boolean'](False))
 
@@ -714,7 +714,7 @@ class BlueprintTestCase(FlaskTestCase):
         bp.add_app_template_test(is_boolean, 'boolean')
         app = flask.Flask(__name__)
         app.register_blueprint(bp, url_prefix='/py')
-        self.assert_in('boolean', app.jinja_env.tests.keys())
+        self.assert_in('boolean', list(app.jinja_env.tests.keys()))
         self.assert_equal(app.jinja_env.tests['boolean'], is_boolean)
         self.assert_true(app.jinja_env.tests['boolean'](False))
 

@@ -31,16 +31,16 @@ foo_count = 100
 fop_count = 1000
 
 with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
-    print "Creating test data"
+    print("Creating test data")
     data  = [{'id':gen_key('foo', i), 'val':gen_value('foo', i)} for i in range(0,foo_count)]
     data += [{'id':gen_key('fop', i), 'val':gen_value('fop', i)} for i in range(0,fop_count)]
     res = table.insert(data).run(conn)
     assert res['inserted'] == foo_count + fop_count
 
 with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
-    print "Testing between"
+    print("Testing between")
 
-    print "Checking simple between requests with open/closed boundaries"
+    print("Checking simple between requests with open/closed boundaries")
     res = list(table.between(gen_key('foo', 0), gen_key('fop', 0)).run(conn))
     check_results(res, foo_count)
 
@@ -56,11 +56,11 @@ with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
                              left_bound='open').run(conn))
     check_results(res, foo_count - 1)
 
-    print "Checking that between works when the boundaries are not real keys"
+    print("Checking that between works when the boundaries are not real keys")
     res = list(table.between(gen_key('a', 0), gen_key('fop', 0)).run(conn))
     check_results(res, foo_count)
 
-    print "Checking larger number of results"
+    print("Checking larger number of results")
     res = list(table.between(gen_key('a', 0), gen_key('goo', 0)).run(conn))
     check_results(res, foo_count + fop_count)
 
@@ -73,6 +73,6 @@ with rdb_workload_common.make_table_and_connection(opts) as (table, conn):
         if kv['val'] != expected_value:
             raise ValueError("received wrong value (expected: '%s', got: '%s')" % (expected_value, kv['val']))
 
-    print "Checking empty results being returned when no keys match"
+    print("Checking empty results being returned when no keys match")
     res = list(table.between(gen_key('a', 0), gen_key('b', 0)).run(conn))
     check_results(res, 0)

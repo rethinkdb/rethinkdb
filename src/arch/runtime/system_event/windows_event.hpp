@@ -21,4 +21,4 @@ private:
     linux_event_callback_t *callback;
 };
 
-#endif
+#endif  // ARCH_RUNTIME_SYSTEM_EVENT_WINDOWS_EVENT_HPP_

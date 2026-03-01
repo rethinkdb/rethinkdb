@@ -18,7 +18,7 @@ class Builder(Thread):
             semaphore.acquire()
             self.target.run(self.branch, self.name)
             self.success = True
-        except vm_build.RunError, err:
+        except vm_build.RunError as err:
             self.exception = err
         finally:
             semaphore.release()
@@ -26,29 +26,29 @@ class Builder(Thread):
 target_names = ["suse", "redhat5_1", "ubuntu", "debian", "centos5_5", "centos6"]
 
 def help():
-    print >>sys.stderr, "Virtual builder:"
-    print >>sys.stderr, "     --help      Print this help."
-    print >>sys.stderr, "     --target target1 [target2, target3]"
-    print >>sys.stderr, "                 Build just one target, options are:"
-    print >>sys.stderr, "                 ", target_names
-    print >>sys.stderr, "                 defaults to all of them."
-    print >>sys.stderr, "     --branch branch_name"
-    print >>sys.stderr, "                 Build from a branch mutually exclusive with --tag."
-    print >>sys.stderr, "     --tag tag-name"
-    print >>sys.stderr, "                 Build from a tag mutually exclusive with --branch."
-    print >>sys.stderr, "     --threads number"
-    print >>sys.stderr, "                 The number of parallel threads to run."
-    print >>sys.stderr, "     --debug"
-    print >>sys.stderr, "                 Whether to build the packages with debugging enabled."
-    print >>sys.stderr, "     --interact"
-    print >>sys.stderr, "                 This starts a target so that you can interact with it."
-    print >>sys.stderr, "                 Requires a target."
-    print >>sys.stderr, "     --clean-up"
-    print >>sys.stderr, "                 Shutdown all running vms"
-    print >>sys.stderr, "     --username"
-    print >>sys.stderr, "                 Starts the Virtual Machine using VirtualBox from the specified username."
-    print >>sys.stderr, "     --hostname"
-    print >>sys.stderr, "                 Starts the Virtual Machine using VirtualBox from the specified host machine."
+    print("Virtual builder:", file=sys.stderr)
+    print("     --help      Print this help.", file=sys.stderr)
+    print("     --target target1 [target2, target3]", file=sys.stderr)
+    print("                 Build just one target, options are:", file=sys.stderr)
+    print("                 ", target_names, file=sys.stderr)
+    print("                 defaults to all of them.", file=sys.stderr)
+    print("     --branch branch_name", file=sys.stderr)
+    print("                 Build from a branch mutually exclusive with --tag.", file=sys.stderr)
+    print("     --tag tag-name", file=sys.stderr)
+    print("                 Build from a tag mutually exclusive with --branch.", file=sys.stderr)
+    print("     --threads number", file=sys.stderr)
+    print("                 The number of parallel threads to run.", file=sys.stderr)
+    print("     --debug", file=sys.stderr)
+    print("                 Whether to build the packages with debugging enabled.", file=sys.stderr)
+    print("     --interact", file=sys.stderr)
+    print("                 This starts a target so that you can interact with it.", file=sys.stderr)
+    print("                 Requires a target.", file=sys.stderr)
+    print("     --clean-up", file=sys.stderr)
+    print("                 Shutdown all running vms", file=sys.stderr)
+    print("     --username", file=sys.stderr)
+    print("                 Starts the Virtual Machine using VirtualBox from the specified username.", file=sys.stderr)
+    print("     --hostname", file=sys.stderr)
+    print("                 Starts the Virtual Machine using VirtualBox from the specified host machine.", file=sys.stderr)
 
 o = OptParser()
 o["help"] = BoolFlag("--help")
@@ -65,7 +65,7 @@ o["hostname"] = StringFlag("--hostname", "deadshot") # because the UUID values b
 try:
     opts = o.parse(sys.argv)
 except OptError:
-    print >>sys.stderr, "Argument parsing error"
+    print("Argument parsing error", file=sys.stderr)
     help()
     exit(-1)
 
@@ -74,7 +74,7 @@ if opts["help"]:
     sys.exit(0)
 
 if opts["branch"] and opts["tag"]:
-    print >>sys.stderr, "Error cannot use --tag and --branch together."
+    print("Error cannot use --tag and --branch together.", file=sys.stderr)
     help()
     sys.exit(1)
 
@@ -105,35 +105,35 @@ if (opts["target"]):
     targets = {opts["target"]: targets[opts["target"]]}
 
 if opts["clean-up"]:
-    map(lambda x: x[1].clean_up(), targets.iteritems())
+    list(map(lambda x: x[1].clean_up(), iter(targets.items())))
     exit(0)
 
 if opts["interact"]:
     if not opts["target"]:
-        print >>sys.stderr, "Error must specify a --target for --interact mode."
+        print("Error must specify a --target for --interact mode.", file=sys.stderr)
         exit(1)
-    for name, target in targets.iteritems():
+    for name, target in targets.items():
         target.interact(name)
 else:
     success = {}
     exception = {}
     semaphore = Semaphore(opts["threads"])
 
-    builders = map(lambda x: Builder(x[0], rspec, x[1], semaphore), targets.iteritems())
-    map(lambda x: x.start(), builders)
-    map(lambda x: x.join(), builders)
+    builders = [Builder(x[0], rspec, x[1], semaphore) for x in iter(targets.items())]
+    list(map(lambda x: x.start(), builders))
+    list(map(lambda x: x.join(), builders))
 
     for b in builders:
         success[b.name] = b.success
         if not b.success:
             exception[b.name] = b.exception
 
-    print "Build summary:"
+    print("Build summary:")
     from termcolor import colored
-    for name, val in success.iteritems():
-        print name, "." * (20 - len(name)), colored("[Pass]", "green") if val else colored("[Fail]", "red")
+    for name, val in success.items():
+        print(name, "." * (20 - len(name)), colored("[Pass]", "green") if val else colored("[Fail]", "red"))
         if (not val):
-            print "Failed on: ", exception[name]
+            print("Failed on: ", exception[name])
             raise exception[name]
 
-print "Done."
+print("Done.")

@@ -1,12 +1,6 @@
 // Copyright 2010-2016 RethinkDB, all rights reserved.
-
-/**
- * @file hash.hpp
- * @brief SHA-256 cryptographic hashing utilities.
- */
-
-#ifndef CRYPTO_HASH_HPP
-#define CRYPTO_HASH_HPP
+#ifndef CRYPTO_HASH_HPP_
+#define CRYPTO_HASH_HPP_
 
 #include <openssl/sha.h>
 #include <stddef.h>
@@ -76,4 +70,4 @@ inline std::array<unsigned char, SHA256_DIGEST_LENGTH> sha256(
 
 }  // namespace crypto
 
-#endif  // CRYPTO_HASH_HPP
+#endif  // CRYPTO_HASH_HPP_

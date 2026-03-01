@@ -35,4 +35,4 @@ void help_rethinkdb_install_service();
 void help_rethinkdb_remove_service();
 #endif /* _WIN32 */
 
-#endif /* CLUSTERING_ADMINISTRATION_MAIN_COMMAND_LINE_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_MAIN_COMMAND_LINE_HPP_

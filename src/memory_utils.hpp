@@ -1,13 +1,5 @@
-/**
- * @file memory_utils.hpp
- * @brief Memory allocation utilities with alignment and error handling.
- *
- * Provides safe memory allocation functions that handle alignment requirements
- * and check for allocation failures by crashing (fail-fast approach).
- */
-
-#ifndef MEMORY_HPP_
-#define MEMORY_HPP_
+#ifndef MEMORY_UTILS_HPP_
+#define MEMORY_UTILS_HPP_
 
 #include <stddef.h>
 
@@ -114,4 +106,4 @@ void *rmalloc(size_t size);
  */
 void *rrealloc(void *ptr, size_t size);
 
-#endif  // MEMORY_HPP_
+#endif  // MEMORY_UTILS_HPP_

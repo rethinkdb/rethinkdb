@@ -21,9 +21,9 @@ if not PY2:
     string_types = (str,)
     integer_types = (int, )
 
-    iterkeys = lambda d: iter(d.keys())
-    itervalues = lambda d: iter(d.values())
-    iteritems = lambda d: iter(d.items())
+    iterkeys = lambda d: iter(list(d.keys()))
+    itervalues = lambda d: iter(list(d.values()))
+    iteritems = lambda d: iter(list(d.items()))
 
     from io import StringIO
 
@@ -35,15 +35,15 @@ if not PY2:
     implements_to_string = _identity
 
 else:
-    text_type = unicode
-    string_types = (str, unicode)
-    integer_types = (int, long)
+    text_type = str
+    string_types = (str, str)
+    integer_types = (int, int)
 
-    iterkeys = lambda d: d.iterkeys()
-    itervalues = lambda d: d.itervalues()
-    iteritems = lambda d: d.iteritems()
+    iterkeys = lambda d: iter(d.keys())
+    itervalues = lambda d: iter(d.values())
+    iteritems = lambda d: iter(d.items())
 
-    from cStringIO import StringIO
+    from io import StringIO
 
     exec('def reraise(tp, value, tb=None):\n raise tp, value, tb')
 

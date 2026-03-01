@@ -369,7 +369,7 @@ class Environment(object):
 
     def iter_extensions(self):
         """Iterates over the extensions by priority."""
-        return iter(sorted(self.extensions.values(),
+        return iter(sorted(list(self.extensions.values()),
                            key=lambda x: x.priority))
 
     def getitem(self, obj, argument):
@@ -636,11 +636,11 @@ class Environment(object):
             else:
                 import imp, marshal
                 py_header = imp.get_magic() + \
-                    u'\xff\xff\xff\xff'.encode('iso-8859-15')
+                    '\xff\xff\xff\xff'.encode('iso-8859-15')
 
                 # Python 3.3 added a source filesize to the header
                 if sys.version_info >= (3, 3):
-                    py_header += u'\x00\x00\x00\x00'.encode('iso-8859-15')
+                    py_header += '\x00\x00\x00\x00'.encode('iso-8859-15')
 
         def write_file(filename, data, mode):
             if zip:
@@ -716,7 +716,7 @@ class Environment(object):
             filter_func = lambda x: '.' in x and \
                                     x.rsplit('.', 1)[1] in extensions
         if filter_func is not None:
-            x = ifilter(filter_func, x)
+            x = filter(filter_func, x)
         return x
 
     def handle_exception(self, exc_info=None, rendered=False, source_hint=None):
@@ -803,8 +803,8 @@ class Environment(object):
            from the function unchanged.
         """
         if not names:
-            raise TemplatesNotFound(message=u'Tried to select from an empty list '
-                                            u'of templates.')
+            raise TemplatesNotFound(message='Tried to select from an empty list '
+                                            'of templates.')
         globals = self.make_globals(globals)
         for name in names:
             if isinstance(name, Template):
@@ -1048,7 +1048,7 @@ class Template(object):
     @property
     def debug_info(self):
         """The debug info mapping."""
-        return [tuple(imap(int, x.split('='))) for x in
+        return [tuple(map(int, x.split('='))) for x in
                 self._debug_info.split('&')]
 
     def __repr__(self):

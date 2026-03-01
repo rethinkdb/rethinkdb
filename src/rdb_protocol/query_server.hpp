@@ -45,4 +45,4 @@ private:
     DISABLE_COPYING(rdb_query_server_t);
 };
 
-#endif /* RDB_PROTOCOL_QUERY_SERVER_HPP_ */
+#endif // RDB_PROTOCOL_QUERY_SERVER_HPP_

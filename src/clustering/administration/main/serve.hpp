@@ -161,4 +161,4 @@ bool serve_proxy(const serve_info_t& serve_info,
                  const std::string &initial_password,
                  os_signal_cond_t *stop_cond);
 
-#endif /* CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_MAIN_SERVE_HPP_

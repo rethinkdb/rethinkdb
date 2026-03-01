@@ -9,7 +9,7 @@
     :license: BSD, see LICENSE for more details.
 """
 
-from __future__ import with_statement
+
 
 import sys
 import unittest
@@ -140,11 +140,11 @@ class TestTestCase(WerkzeugTestCase):
         req = b.get_request()
         b.close()
 
-        self.assert_strict_equal(req.url, u'http://localhost/')
+        self.assert_strict_equal(req.url, 'http://localhost/')
         self.assert_strict_equal(req.method, 'POST')
-        self.assert_strict_equal(req.form['test'], u'normal value')
+        self.assert_strict_equal(req.form['test'], 'normal value')
         self.assert_equal(req.files['test'].content_type, 'text/plain')
-        self.assert_strict_equal(req.files['test'].filename, u'test.txt')
+        self.assert_strict_equal(req.files['test'].filename, 'test.txt')
         self.assert_strict_equal(req.files['test'].read(), b'test contents')
 
     def test_environ_builder_headers(self):
@@ -211,11 +211,11 @@ class TestTestCase(WerkzeugTestCase):
         builder.files.add_file('blafasel', BytesIO(b'foo'), 'test.txt')
         self.assert_equal(builder.content_type, 'multipart/form-data')
         req = builder.get_request()
-        self.assert_strict_equal(req.form['foo'], u'bar')
+        self.assert_strict_equal(req.form['foo'], 'bar')
         self.assert_strict_equal(req.files['blafasel'].read(), b'foo')
 
     def test_environ_builder_stream_switch(self):
-        d = MultiDict(dict(foo=u'bar', blub=u'blah', hu=u'hum'))
+        d = MultiDict(dict(foo='bar', blub='blah', hu='hum'))
         for use_tempfile in False, True:
             stream, length, boundary = stream_encode_multipart(
                 d, use_tempfile, threshold=150)
@@ -229,9 +229,9 @@ class TestTestCase(WerkzeugTestCase):
 
     def test_environ_builder_unicode_file_mix(self):
         for use_tempfile in False, True:
-            f = FileStorage(BytesIO(u'\N{SNOWMAN}'.encode('utf-8')),
+            f = FileStorage(BytesIO('\N{SNOWMAN}'.encode('utf-8')),
                             'snowman.txt')
-            d = MultiDict(dict(f=f, s=u'\N{SNOWMAN}'))
+            d = MultiDict(dict(f=f, s='\N{SNOWMAN}'))
             stream, length, boundary = stream_encode_multipart(
                 d, use_tempfile, threshold=150)
             self.assert_true(isinstance(stream, BytesIO) != use_tempfile)
@@ -242,11 +242,11 @@ class TestTestCase(WerkzeugTestCase):
                 'CONTENT_TYPE': 'multipart/form-data; boundary="%s"' %
                                     boundary
             })
-            self.assert_strict_equal(form['s'], u'\N{SNOWMAN}')
+            self.assert_strict_equal(form['s'], '\N{SNOWMAN}')
             self.assert_strict_equal(files['f'].name, 'f')
-            self.assert_strict_equal(files['f'].filename, u'snowman.txt')
+            self.assert_strict_equal(files['f'].filename, 'snowman.txt')
             self.assert_strict_equal(files['f'].read(),
-                                     u'\N{SNOWMAN}'.encode('utf-8'))
+                                     '\N{SNOWMAN}'.encode('utf-8'))
             stream.close()
 
     def test_create_environ(self):
@@ -366,7 +366,7 @@ class TestTestCase(WerkzeugTestCase):
         self.assert_strict_equal(resp.status_code, 200)
 
     def test_iri_support(self):
-        b = EnvironBuilder(u'/föö-bar', base_url=u'http://☃.net/')
+        b = EnvironBuilder('/föö-bar', base_url='http://☃.net/')
         self.assert_strict_equal(b.path, '/f%C3%B6%C3%B6-bar')
         self.assert_strict_equal(b.base_url, 'http://xn--n3h.net/')
 
@@ -392,15 +392,15 @@ class TestTestCase(WerkzeugTestCase):
         @Request.application
         def test_app(request):
             response = Response(repr(sorted(request.cookies.items())))
-            response.set_cookie(u'test1', b'foo')
-            response.set_cookie(u'test2', b'bar')
+            response.set_cookie('test1', b'foo')
+            response.set_cookie('test2', b'bar')
             return response
         client = Client(test_app, Response)
         resp = client.get('/')
         self.assert_strict_equal(resp.data, b'[]')
         resp = client.get('/')
         self.assert_strict_equal(resp.data,
-                          to_bytes(repr([('test1', u'foo'), ('test2', u'bar')]), 'ascii'))
+                          to_bytes(repr([('test1', 'foo'), ('test2', 'bar')]), 'ascii'))
 
     def test_correct_open_invocation_on_redirect(self):
         class MyClient(Client):
@@ -421,9 +421,9 @@ class TestTestCase(WerkzeugTestCase):
         self.assert_strict_equal(c.get('/').data, b'3')
 
     def test_correct_encoding(self):
-        req = Request.from_values(u'/\N{SNOWMAN}', u'http://example.com/foo')
-        self.assert_strict_equal(req.script_root, u'/foo')
-        self.assert_strict_equal(req.path, u'/\N{SNOWMAN}')
+        req = Request.from_values('/\N{SNOWMAN}', 'http://example.com/foo')
+        self.assert_strict_equal(req.script_root, '/foo')
+        self.assert_strict_equal(req.path, '/\N{SNOWMAN}')
 
     def test_full_url_requests_with_args(self):
         base = 'http://example.com/'

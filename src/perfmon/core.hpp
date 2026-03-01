@@ -151,4 +151,4 @@ private:
 
 perfmon_collection_t &get_global_perfmon_collection();
 
-#endif /* PERFMON_CORE_HPP_ */
+#endif // PERFMON_CORE_HPP_

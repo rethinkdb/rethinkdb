@@ -33,8 +33,8 @@ class WSGIUtilsTestCase(WerkzeugTestCase):
             yield b'NOT FOUND'
 
         test_dir = get_temporary_directory()
-        with open(path.join(test_dir, to_native(u'äöü', 'utf-8')), 'w') as test_file:
-            test_file.write(u'FOUND')
+        with open(path.join(test_dir, to_native('äöü', 'utf-8')), 'w') as test_file:
+            test_file.write('FOUND')
 
         app = wsgi.SharedDataMiddleware(null_application, {
             '/':        path.join(path.dirname(__file__), 'res'),
@@ -125,14 +125,14 @@ class WSGIUtilsTestCase(WerkzeugTestCase):
         self.assert_equal(wsgi.peek_path_info(env, charset=None), b'aaa')
 
     def test_path_info_and_script_name_fetching(self):
-        env = create_environ(u'/\N{SNOWMAN}', u'http://example.com/\N{COMET}/')
-        self.assert_equal(wsgi.get_path_info(env), u'/\N{SNOWMAN}')
-        self.assert_equal(wsgi.get_path_info(env, charset=None), u'/\N{SNOWMAN}'.encode('utf-8'))
-        self.assert_equal(wsgi.get_script_name(env), u'/\N{COMET}')
-        self.assert_equal(wsgi.get_script_name(env, charset=None), u'/\N{COMET}'.encode('utf-8'))
+        env = create_environ('/\N{SNOWMAN}', 'http://example.com/\N{COMET}/')
+        self.assert_equal(wsgi.get_path_info(env), '/\N{SNOWMAN}')
+        self.assert_equal(wsgi.get_path_info(env, charset=None), '/\N{SNOWMAN}'.encode('utf-8'))
+        self.assert_equal(wsgi.get_script_name(env), '/\N{COMET}')
+        self.assert_equal(wsgi.get_script_name(env, charset=None), '/\N{COMET}'.encode('utf-8'))
 
     def test_query_string_fetching(self):
-        env = create_environ(u'/?\N{SNOWMAN}=\N{COMET}')
+        env = create_environ('/?\N{SNOWMAN}=\N{COMET}')
         qs = wsgi.get_query_string(env)
         self.assert_strict_equal(qs, '%E2%98%83=%E2%98%84')
 
@@ -195,13 +195,13 @@ class WSGIUtilsTestCase(WerkzeugTestCase):
         stream = wsgi.LimitedStream(io, 0)
         self.assert_strict_equal(stream.read(-1), b'')
 
-        io = StringIO(u'123456')
+        io = StringIO('123456')
         stream = wsgi.LimitedStream(io, 0)
-        self.assert_strict_equal(stream.read(-1), u'')
+        self.assert_strict_equal(stream.read(-1), '')
 
-        io = StringIO(u'123\n456\n')
+        io = StringIO('123\n456\n')
         stream = wsgi.LimitedStream(io, 8)
-        self.assert_strict_equal(list(stream), [u'123\n', u'456\n'])
+        self.assert_strict_equal(list(stream), ['123\n', '456\n'])
 
     def test_limited_stream_disconnection(self):
         io = BytesIO(b'A bit of content')
@@ -220,24 +220,24 @@ class WSGIUtilsTestCase(WerkzeugTestCase):
 
     def test_path_info_extraction(self):
         x = wsgi.extract_path_info('http://example.com/app', '/app/hello')
-        self.assert_equal(x, u'/hello')
+        self.assert_equal(x, '/hello')
         x = wsgi.extract_path_info('http://example.com/app',
                                    'https://example.com/app/hello')
-        self.assert_equal(x, u'/hello')
+        self.assert_equal(x, '/hello')
         x = wsgi.extract_path_info('http://example.com/app/',
                                    'https://example.com/app/hello')
-        self.assert_equal(x, u'/hello')
+        self.assert_equal(x, '/hello')
         x = wsgi.extract_path_info('http://example.com/app/',
                                    'https://example.com/app')
-        self.assert_equal(x, u'/')
-        x = wsgi.extract_path_info(u'http://☃.net/', u'/fööbär')
-        self.assert_equal(x, u'/fööbär')
-        x = wsgi.extract_path_info(u'http://☃.net/x', u'http://☃.net/x/fööbär')
-        self.assert_equal(x, u'/fööbär')
+        self.assert_equal(x, '/')
+        x = wsgi.extract_path_info('http://☃.net/', '/fööbär')
+        self.assert_equal(x, '/fööbär')
+        x = wsgi.extract_path_info('http://☃.net/x', 'http://☃.net/x/fööbär')
+        self.assert_equal(x, '/fööbär')
 
-        env = create_environ(u'/fööbär', u'http://☃.net/x/')
-        x = wsgi.extract_path_info(env, u'http://☃.net/x/fööbär')
-        self.assert_equal(x, u'/fööbär')
+        env = create_environ('/fööbär', 'http://☃.net/x/')
+        x = wsgi.extract_path_info(env, 'http://☃.net/x/fööbär')
+        self.assert_equal(x, '/fööbär')
 
         x = wsgi.extract_path_info('http://example.com/app/',
                                    'https://example.com/a/hello')
@@ -264,7 +264,7 @@ class WSGIUtilsTestCase(WerkzeugTestCase):
         env['QUERY_STRING'] = 'foo=bar&baz=blah&meh=\xcf'
         rv = wsgi.get_current_url(env)
         self.assert_strict_equal(rv,
-            u'http://localhost/?foo=bar&baz=blah&meh=\ufffd')
+            'http://localhost/?foo=bar&baz=blah&meh=\ufffd')
 
     def test_multi_part_line_breaks(self):
         data = 'abcdef\r\nghijkl\r\nmnopqrstuvwxyz\r\nABCDEFGHIJK'
@@ -313,17 +313,17 @@ class WSGIUtilsTestCase(WerkzeugTestCase):
                                   'mnopqrstuvwxyz\r\n', 'ABCDEFGHIJK'])
 
     def test_make_chunk_iter(self):
-        data = [u'abcdefXghi', u'jklXmnopqrstuvwxyzX', u'ABCDEFGHIJK']
+        data = ['abcdefXghi', 'jklXmnopqrstuvwxyzX', 'ABCDEFGHIJK']
         rv = list(wsgi.make_chunk_iter(data, 'X'))
-        self.assert_equal(rv, [u'abcdef', u'ghijkl', u'mnopqrstuvwxyz',
-                               u'ABCDEFGHIJK'])
+        self.assert_equal(rv, ['abcdef', 'ghijkl', 'mnopqrstuvwxyz',
+                               'ABCDEFGHIJK'])
 
-        data = u'abcdefXghijklXmnopqrstuvwxyzXABCDEFGHIJK'
+        data = 'abcdefXghijklXmnopqrstuvwxyzXABCDEFGHIJK'
         test_stream = StringIO(data)
         rv = list(wsgi.make_chunk_iter(test_stream, 'X', limit=len(data),
                                        buffer_size=4))
-        self.assert_equal(rv, [u'abcdef', u'ghijkl', u'mnopqrstuvwxyz',
-                               u'ABCDEFGHIJK'])
+        self.assert_equal(rv, ['abcdef', 'ghijkl', 'mnopqrstuvwxyz',
+                               'ABCDEFGHIJK'])
 
     def test_make_chunk_iter_bytes(self):
         data = [b'abcdefXghi', b'jklXmnopqrstuvwxyzX', b'ABCDEFGHIJK']

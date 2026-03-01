@@ -1,6 +1,6 @@
 // Copyright 2010-2016 RethinkDB, all rights reserved.
-#ifndef CRYPTO_HMAC_HPP
-#define CRYPTO_HMAC_HPP
+#ifndef CRYPTO_HMAC_HPP_
+#define CRYPTO_HMAC_HPP_
 
 #include <openssl/sha.h>
 
@@ -44,4 +44,4 @@ inline std::array<unsigned char, SHA256_DIGEST_LENGTH> hmac_sha256(
 
 }  // namespace crypto
 
-#endif  // CRYPTO_HMAC_HPP
+#endif // CRYPTO_HMAC_HPP_

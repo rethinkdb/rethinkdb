@@ -206,5 +206,5 @@ private:
         reader_subs;
 };
 
-#endif /* CLUSTERING_GENERIC_MINIDIR_HPP_ */
+#endif // CLUSTERING_GENERIC_MINIDIR_HPP_
 

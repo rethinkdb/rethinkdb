@@ -9,7 +9,7 @@
     :license: BSD, see LICENSE for more details.
 """
 
-from __future__ import with_statement
+
 
 import unittest
 
@@ -79,9 +79,9 @@ class WrappersTestCase(WerkzeugTestCase):
         assert resp.mimetype_params == {'charset': 'utf-8'}
         resp.mimetype_params['charset'] = 'iso-8859-15'
         assert resp.charset == 'iso-8859-15'
-        resp.set_data(u'Hällo Wörld')
+        resp.set_data('Hällo Wörld')
         assert b''.join(resp.iter_encoded()) == \
-               u'Hällo Wörld'.encode('iso-8859-15')
+               'Hällo Wörld'.encode('iso-8859-15')
         del resp.headers['content-type']
         try:
             resp.charset = 'utf-8'

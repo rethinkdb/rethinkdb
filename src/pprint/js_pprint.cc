@@ -904,6 +904,7 @@ static void pprint_update_reminder() {
     case Term::FLOOR:
     case Term::CEIL:
     case Term::ROUND:
+    case Term::FORMAT:
         break;
     }
     ql::datum_t::type_t d = ql::datum_t::type_t::R_NULL;

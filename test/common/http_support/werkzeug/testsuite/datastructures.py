@@ -16,7 +16,7 @@
     :license: BSD, see LICENSE for more details.
 """
 
-from __future__ import with_statement
+
 
 import unittest
 import pickle
@@ -357,7 +357,7 @@ class MultiDictTestCase(MutableMultiDictBaseTestCase):
         mapping = [('a', 1), ('b', 2), ('a', 2), ('d', 3),
                    ('a', 1), ('a', 3), ('d', 4), ('c', 3)]
         md = self.storage_class(mapping)
-        self.assert_equal(list(zip(md.keys(), md.listvalues())),
+        self.assert_equal(list(zip(list(md.keys()), md.listvalues())),
                           list(md.lists()))
         self.assert_equal(list(zip(md, iterlistvalues(md))),
                           list(iterlists(md)))
@@ -617,7 +617,7 @@ class HeadersTestCase(WerkzeugTestCase):
         h.set('X-Foo-Poo', 'bleh')
         h.set('Content-Type', 'application/whocares')
         h.set('X-Forwarded-For', '192.168.0.123')
-        h[:] = [(k, v) for k, v in h if k.startswith(u'X-')]
+        h[:] = [(k, v) for k, v in h if k.startswith('X-')]
         self.assert_equal(list(h), [
             ('X-Foo-Poo', 'bleh'),
             ('X-Forwarded-For', '192.168.0.123')
@@ -633,14 +633,14 @@ class HeadersTestCase(WerkzeugTestCase):
 
     def test_to_wsgi_list(self):
         h = self.storage_class()
-        h.set(u'Key', u'Value')
+        h.set('Key', 'Value')
         for key, value in h.to_wsgi_list():
             if PY2:
                 self.assert_strict_equal(key, b'Key')
                 self.assert_strict_equal(value, b'Value')
             else:
-                self.assert_strict_equal(key, u'Key')
-                self.assert_strict_equal(value, u'Value')
+                self.assert_strict_equal(key, 'Key')
+                self.assert_strict_equal(value, 'Value')
 
 
 
@@ -675,11 +675,11 @@ class EnvironHeadersTestCase(WerkzeugTestCase):
             'HTTP_FOO': '\xe2\x9c\x93',
             'CONTENT_TYPE': 'text/plain',
         })
-        self.assert_equal(headers['Foo'], u"\xe2\x9c\x93")
+        self.assert_equal(headers['Foo'], "\xe2\x9c\x93")
         assert isinstance(headers['Foo'], text_type)
         assert isinstance(headers['Content-Type'], text_type)
         iter_output = dict(iter(headers))
-        self.assert_equal(iter_output['Foo'], u"\xe2\x9c\x93")
+        self.assert_equal(iter_output['Foo'], "\xe2\x9c\x93")
         assert isinstance(iter_output['Foo'], text_type)
         assert isinstance(iter_output['Content-Type'], text_type)
 
@@ -690,7 +690,7 @@ class EnvironHeadersTestCase(WerkzeugTestCase):
         })
 
         self.assert_equal(h.get('x-foo', as_bytes=True), b'\xff')
-        self.assert_equal(h.get('x-foo'), u'\xff')
+        self.assert_equal(h.get('x-foo'), '\xff')
 
 
 class HeaderSetTestCase(WerkzeugTestCase):

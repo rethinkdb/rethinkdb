@@ -54,13 +54,13 @@ class InternalTestCase(WerkzeugTestCase):
         assert repr(resp) == '<Response streamed [200 OK]>'
 
         # unicode data does not set content length
-        response = Response([u'Hällo Wörld'])
+        response = Response(['Hällo Wörld'])
         headers = response.get_wsgi_headers(create_environ())
-        assert u'Content-Length' not in headers
+        assert 'Content-Length' not in headers
 
-        response = Response([u'Hällo Wörld'.encode('utf-8')])
+        response = Response(['Hällo Wörld'.encode('utf-8')])
         headers = response.get_wsgi_headers(create_environ())
-        assert u'Content-Length' in headers
+        assert 'Content-Length' in headers
 
         # check for internal warnings
         filterwarnings('error', category=Warning)

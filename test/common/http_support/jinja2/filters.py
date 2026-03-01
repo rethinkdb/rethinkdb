@@ -93,7 +93,7 @@ def do_urlencode(value):
             pass
     if itemiter is None:
         return unicode_urlencode(value)
-    return u'&'.join(unicode_urlencode(k) + '=' +
+    return '&'.join(unicode_urlencode(k) + '=' +
                      unicode_urlencode(v) for k, v in itemiter)
 
 
@@ -159,13 +159,13 @@ def do_xmlattr(_eval_ctx, d, autospace=True):
     As you can see it automatically prepends a space in front of the item
     if the filter returned something unless the second parameter is false.
     """
-    rv = u' '.join(
-        u'%s="%s"' % (escape(key), escape(value))
+    rv = ' '.join(
+        '%s="%s"' % (escape(key), escape(value))
         for key, value in iteritems(d)
         if value is not None and not isinstance(value, Undefined)
     )
     if autospace and rv:
-        rv = u' ' + rv
+        rv = ' ' + rv
     if _eval_ctx.autoescape:
         rv = Markup(rv)
     return rv
@@ -220,7 +220,7 @@ def do_dictsort(value, case_sensitive=False, by='key'):
             value = value.lower()
         return value
 
-    return sorted(value.items(), key=sort_func)
+    return sorted(list(value.items()), key=sort_func)
 
 
 @environmentfilter
@@ -265,7 +265,7 @@ def do_sort(environment, value, reverse=False, case_sensitive=False,
     return sorted(value, key=sort_func, reverse=reverse)
 
 
-def do_default(value, default_value=u'', boolean=False):
+def do_default(value, default_value='', boolean=False):
     """If the value is undefined it will return the passed default value,
     otherwise the value of the variable:
 
@@ -288,7 +288,7 @@ def do_default(value, default_value=u'', boolean=False):
 
 
 @evalcontextfilter
-def do_join(eval_ctx, value, d=u'', attribute=None):
+def do_join(eval_ctx, value, d='', attribute=None):
     """Return a string which is the concatenation of the strings in the
     sequence. The separator between elements is an empty string per
     default, you can define it with the optional parameter:
@@ -311,11 +311,11 @@ def do_join(eval_ctx, value, d=u'', attribute=None):
        The `attribute` parameter was added.
     """
     if attribute is not None:
-        value = imap(make_attrgetter(eval_ctx.environment, attribute), value)
+        value = map(make_attrgetter(eval_ctx.environment, attribute), value)
 
     # no automatic escaping?  joining is a lot eaiser then
     if not eval_ctx.autoescape:
-        return text_type(d).join(imap(text_type, value))
+        return text_type(d).join(map(text_type, value))
 
     # if the delimiter doesn't have an html representation we check
     # if any of the items has.  If yes we do a coercion to Markup
@@ -334,7 +334,7 @@ def do_join(eval_ctx, value, d=u'', attribute=None):
         return d.join(value)
 
     # no html involved, to normal joining
-    return soft_unicode(d).join(imap(soft_unicode, value))
+    return soft_unicode(d).join(map(soft_unicode, value))
 
 
 def do_center(value, width=80):
@@ -438,8 +438,8 @@ def do_indent(s, width=4, indentfirst=False):
         {{ mytext|indent(2, true) }}
             indent by two spaces and indent the first line too.
     """
-    indention = u' ' * width
-    rv = (u'\n' + indention).join(s.splitlines())
+    indention = ' ' * width
+    rv = ('\n' + indention).join(s.splitlines())
     if indentfirst:
         rv = indention + rv
     return rv
@@ -474,7 +474,7 @@ def do_truncate(s, length=255, killwords=False, end='...'):
             break
         result.append(word)
     result.append(end)
-    return u' '.join(result)
+    return ' '.join(result)
 
 @environmentfilter
 def do_wordwrap(environment, s, width=79, break_long_words=True,
@@ -729,7 +729,7 @@ def do_sum(environment, iterable, attribute=None, start=0):
        attributes.  Also the `start` parameter was moved on to the right.
     """
     if attribute is not None:
-        iterable = imap(make_attrgetter(environment, attribute), iterable)
+        iterable = map(make_attrgetter(environment, attribute), iterable)
     return sum(iterable, start)
 
 

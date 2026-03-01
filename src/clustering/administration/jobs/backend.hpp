@@ -78,4 +78,4 @@ private:
     admin_identifier_format_t identifier_format;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_JOBS_BACKEND_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_JOBS_BACKEND_HPP_

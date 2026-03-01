@@ -110,6 +110,9 @@ configure_unixlike () {
         arm*|arm64*|aarch64*)
             var_append LDFLAGS -ldl
             final_warning="ARM support is still experimental" ;;
+        riscv64)
+            var_append LDFLAGS -ldl
+            final_warning="RISC-V support is still experimental" ;;
         s390x)
             final_warning="s390x support is still experimental" ;;
         ppc64le|powerpc64le|powerpc64el)

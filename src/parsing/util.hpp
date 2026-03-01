@@ -37,4 +37,4 @@ private:
     bool readCRLF(signal_t *closer);
 };
 
-#endif /* PARSING_UTIL_HPP_ */
+#endif // PARSING_UTIL_HPP_

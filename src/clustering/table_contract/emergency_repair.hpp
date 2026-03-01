@@ -18,5 +18,5 @@ void calculate_emergency_repair(
     bool *rollback_found_out,
     bool *erase_found_out);
 
-#endif /* CLUSTERING_TABLE_CONTRACT_EMERGENCY_REPAIR_HPP_ */
+#endif // CLUSTERING_TABLE_CONTRACT_EMERGENCY_REPAIR_HPP_
 

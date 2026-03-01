@@ -49,4 +49,4 @@ timer_token_t *fire_timer_once(int64_t ms, timer_callback_t *callback);
 void cancel_timer(timer_token_t *timer);
 
 
-#endif /* ARCH_TIMER_HPP_ */
+#endif // ARCH_TIMER_HPP_

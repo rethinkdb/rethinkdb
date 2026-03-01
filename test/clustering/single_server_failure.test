@@ -162,21 +162,21 @@ class SingleServerFailure(rdb_unittest.RdbTestCase):
             try:
                 result = self.db.table(table['name']).limit(1).run(self.conn)
                 self.assertTrue(table['status']['ready_for_reads'], 'Table %s should not have been available for normal reads but was: %r' % (table['name'], result))
-            except self.r.RqlError as result:
+            except self.r.ReqlError as result:
                 self.assertFalse(table['status']['ready_for_reads'], 'Table %s should have been available for normal reads but got error: %s' % (table['name'], str(result)))
             
             # - outdated read
             try:
                 result = self.db.table(table['name']).limit(1).run(self.conn, read_mode='outdated')
                 self.assertTrue(table['status']['ready_for_outdated_reads'], 'Table %s should not have been available for normal reads but was: %r' % (table['name'], result))
-            except self.r.RqlError as result:
+            except self.r.ReqlError as result:
                 self.assertFalse(table['status']['ready_for_outdated_reads'], 'Table %s should have been available for normal reads but got error: %s' % (table['name'], str(result)))
             
             # - write
             try:
                 result = self.db.table(table['name']).insert({}).run(self.conn)
                 self.assertTrue(table['status']['ready_for_writes'], 'Table %s should not have been available for normal reads but was: %r' % (table['name'], result))
-            except self.r.RqlError as result:
+            except self.r.ReqlError as result:
                 self.assertFalse(table['status']['ready_for_writes'], 'Table %s should have been available for normal reads but got error: %s' % (table['name'], str(result)))
         
         # - expected primary (or change)

@@ -149,4 +149,4 @@ private:
         block_id_t relative_inner_end_block_id);
 };
 
-#endif /* SERIALIZER_TRANSLATOR_HPP_ */
+#endif // SERIALIZER_TRANSLATOR_HPP_

@@ -26,7 +26,7 @@ NoValue = NoValueClass()
 class Arg(object):
     pass
 
-class OptError(StandardError):
+class OptError(Exception):
     pass
 
 class OptParser(object):
@@ -38,7 +38,7 @@ class OptParser(object):
     def __setitem__(self, key, parser):
         assert isinstance(parser, Arg)
         if key in self.parsers_by_key: del self[key]
-        assert parser not in self.parsers_by_key.values()
+        assert parser not in list(self.parsers_by_key.values())
         self.parsers_by_key[key] = parser
         self.parsers_in_order.append((key, parser))
     
@@ -53,7 +53,7 @@ class OptParser(object):
     
         args = args[1:]   # Cut off name of program
         
-        values = dict((key, NoValue) for key in self.parsers_by_key.keys())
+        values = dict((key, NoValue) for key in list(self.parsers_by_key.keys()))
         
         def name_for_key(key):
             return getattr(self.parsers_by_key[key], "name", key)
@@ -62,7 +62,7 @@ class OptParser(object):
             combiner = getattr(self.parsers_by_key[key], "combiner", enforce_one_combiner)
             try:
                 values[key] = combiner(values[key], new_value)
-            except OptError, e:
+            except OptError as e:
                 raise OptError(str(e) % {"name": name_for_key(key)})
         
         # Build flag table
@@ -102,7 +102,7 @@ class OptParser(object):
         
         # Apply defaults
         
-        for (key, parser) in self.parsers_by_key.iteritems():
+        for (key, parser) in self.parsers_by_key.items():
             if values[key] is NoValue:
                 if hasattr(parser, "default") and parser.default is not NoValue:
                     values[key] = parser.default
@@ -187,7 +187,7 @@ class ValueFlag(Arg):
         except IndexError:
             raise OptError("Flag %r expects %d argument(s), but only got %d." % (flag, len(self.converters), args_gotten))
         try: value2 = self.converter(value)
-        except OptError, e:
+        except OptError as e:
             raise OptError("Problem in argument %d to flag %r: %s" % (args_gotten + 1, flag, e))
         args_gotten += 1
         return value2
@@ -227,7 +227,7 @@ class MultiValueFlag(Arg):
             except IndexError:
                 raise OptError("Flag %r expects %d argument(s), but only got %d." % (flag, len(self.converters), args_gotten))
             try: value2 = converter(value)
-            except OptError, e:
+            except OptError as e:
                 raise OptError("Problem in argument %d to flag %r: %s" % (args_gotten + 1, flag, e))
             new_values += (value2, )
             args_gotten += 1
@@ -246,7 +246,7 @@ class AllArgsAfterFlag(Arg):
         args2 = []
         for arg in args:
             try: args2.append(self.converter(arg))
-            except OptError, e: raise OptError("For %r: %s" % (flag, e))
+            except OptError as e: raise OptError("For %r: %s" % (flag, e))
         del args[:]   # We consume all arguments remaining
         return args2
 
@@ -269,7 +269,7 @@ class PositionalArg(Arg):
             else:
                 return NoValue
         try: value2 = self.converter(value)
-        except OptError, e:
+        except OptError as e:
             if self.name is None: raise
             else: raise OptError("For %r: %s" % (self.name, e))
         return value2
@@ -283,7 +283,7 @@ class ManyPositionalArgs(Arg):
         args2 = []
         for arg in args:
             try: args2.append(self.converter(arg))
-            except OptError, e:
+            except OptError as e:
                 if self.name is None: raise
                 else: raise OptError("For %r: %s" % (self.name, e))
         del args[:]   # We consume all arguments remaining

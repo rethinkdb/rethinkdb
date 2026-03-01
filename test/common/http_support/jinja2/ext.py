@@ -382,7 +382,7 @@ class InternationalizationExtension(Extension):
             if variables:
                 node = nodes.Mod(node, nodes.Dict([
                     nodes.Pair(nodes.Const(key), value)
-                    for key, value in variables.items()
+                    for key, value in list(variables.items())
                 ]))
         return nodes.Output([node])
 

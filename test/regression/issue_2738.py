@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
-from __future__ import print_function
+
 
 import os, sys, time, threading, traceback
 
@@ -33,7 +33,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
             while not stopping:
                 r.db_create("db1").run(conn1)
                 r.db_drop("db1").run(conn1)
-        except Exception, e:
+        except Exception as e:
             traceback.print_exc(e)
             sys.exit("Aborting because of error in side thread")
     thr = threading.Thread(target=other_thread)
@@ -42,7 +42,7 @@ with driver.Cluster(initial_servers=numNodes, output_folder='.', wait_until_read
     print("Starting creation/destruction of db2 on server2 (%.2fs)" % (time.time() - startTime))
     
     conn2 = r.connect("localhost", server2.driver_port)
-    for i in xrange(1, 501):
+    for i in range(1, 501):
         r.db_create("db2").run(conn2)
         r.db_drop("db2").run(conn2)
         issues = list(r.db('rethinkdb').table('current_issues').filter(r.row["type"] != "memory_error").run(conn2))

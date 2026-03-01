@@ -134,5 +134,5 @@ void directory_map_write_manager_t<key_t, value_t>::stream_to_conn(
     conns.erase(conns_entry);
 }
 
-#endif /* RPC_DIRECTORY_MAP_WRITE_MANAGER_TCC_ */
+#endif // RPC_DIRECTORY_MAP_WRITE_MANAGER_TCC_
 

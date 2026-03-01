@@ -55,4 +55,4 @@ private:
     DISABLE_COPYING(spinlock_acq_t);
 };
 
-#endif /* ARCH_SPINLOCK_HPP_ */
+#endif // ARCH_SPINLOCK_HPP_

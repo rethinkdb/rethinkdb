@@ -222,4 +222,4 @@ private:
 #endif
 };
 
-#endif /* ARCH_RUNTIME_THREAD_POOL_HPP_ */
+#endif // ARCH_RUNTIME_THREAD_POOL_HPP_

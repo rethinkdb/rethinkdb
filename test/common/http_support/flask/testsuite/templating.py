@@ -99,7 +99,7 @@ class TemplatingTestCase(FlaskTestCase):
         @app.template_filter()
         def my_reverse(s):
             return s[::-1]
-        self.assert_in('my_reverse', app.jinja_env.filters.keys())
+        self.assert_in('my_reverse', list(app.jinja_env.filters.keys()))
         self.assert_equal(app.jinja_env.filters['my_reverse'], my_reverse)
         self.assert_equal(app.jinja_env.filters['my_reverse']('abcd'), 'dcba')
 
@@ -108,7 +108,7 @@ class TemplatingTestCase(FlaskTestCase):
         def my_reverse(s):
             return s[::-1]
         app.add_template_filter(my_reverse)
-        self.assert_in('my_reverse', app.jinja_env.filters.keys())
+        self.assert_in('my_reverse', list(app.jinja_env.filters.keys()))
         self.assert_equal(app.jinja_env.filters['my_reverse'], my_reverse)
         self.assert_equal(app.jinja_env.filters['my_reverse']('abcd'), 'dcba')
 
@@ -117,7 +117,7 @@ class TemplatingTestCase(FlaskTestCase):
         @app.template_filter('strrev')
         def my_reverse(s):
             return s[::-1]
-        self.assert_in('strrev', app.jinja_env.filters.keys())
+        self.assert_in('strrev', list(app.jinja_env.filters.keys()))
         self.assert_equal(app.jinja_env.filters['strrev'], my_reverse)
         self.assert_equal(app.jinja_env.filters['strrev']('abcd'), 'dcba')
 
@@ -126,7 +126,7 @@ class TemplatingTestCase(FlaskTestCase):
         def my_reverse(s):
             return s[::-1]
         app.add_template_filter(my_reverse, 'strrev')
-        self.assert_in('strrev', app.jinja_env.filters.keys())
+        self.assert_in('strrev', list(app.jinja_env.filters.keys()))
         self.assert_equal(app.jinja_env.filters['strrev'], my_reverse)
         self.assert_equal(app.jinja_env.filters['strrev']('abcd'), 'dcba')
 
@@ -179,7 +179,7 @@ class TemplatingTestCase(FlaskTestCase):
         @app.template_test()
         def boolean(value):
             return isinstance(value, bool)
-        self.assert_in('boolean', app.jinja_env.tests.keys())
+        self.assert_in('boolean', list(app.jinja_env.tests.keys()))
         self.assert_equal(app.jinja_env.tests['boolean'], boolean)
         self.assert_true(app.jinja_env.tests['boolean'](False))
 
@@ -188,7 +188,7 @@ class TemplatingTestCase(FlaskTestCase):
         def boolean(value):
             return isinstance(value, bool)
         app.add_template_test(boolean)
-        self.assert_in('boolean', app.jinja_env.tests.keys())
+        self.assert_in('boolean', list(app.jinja_env.tests.keys()))
         self.assert_equal(app.jinja_env.tests['boolean'], boolean)
         self.assert_true(app.jinja_env.tests['boolean'](False))
 
@@ -197,7 +197,7 @@ class TemplatingTestCase(FlaskTestCase):
         @app.template_test('boolean')
         def is_boolean(value):
             return isinstance(value, bool)
-        self.assert_in('boolean', app.jinja_env.tests.keys())
+        self.assert_in('boolean', list(app.jinja_env.tests.keys()))
         self.assert_equal(app.jinja_env.tests['boolean'], is_boolean)
         self.assert_true(app.jinja_env.tests['boolean'](False))
 
@@ -206,7 +206,7 @@ class TemplatingTestCase(FlaskTestCase):
         def is_boolean(value):
             return isinstance(value, bool)
         app.add_template_test(is_boolean, 'boolean')
-        self.assert_in('boolean', app.jinja_env.tests.keys())
+        self.assert_in('boolean', list(app.jinja_env.tests.keys()))
         self.assert_equal(app.jinja_env.tests['boolean'], is_boolean)
         self.assert_true(app.jinja_env.tests['boolean'](False))
 
@@ -259,7 +259,7 @@ class TemplatingTestCase(FlaskTestCase):
         @app.template_global()
         def get_stuff():
             return 42
-        self.assert_in('get_stuff', app.jinja_env.globals.keys())
+        self.assert_in('get_stuff', list(app.jinja_env.globals.keys()))
         self.assert_equal(app.jinja_env.globals['get_stuff'], get_stuff)
         self.assert_true(app.jinja_env.globals['get_stuff'](), 42)
         with app.app_context():

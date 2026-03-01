@@ -127,7 +127,7 @@ class DebugReprGenerator(object):
             if have_extended_section:
                 buf.append('</span>')
             buf.append(right)
-            return _add_subclass_info(u''.join(buf), obj, base)
+            return _add_subclass_info(''.join(buf), obj, base)
         return proxy
 
     list_repr = _sequence_repr_maker('[', ']', list)
@@ -149,7 +149,7 @@ class DebugReprGenerator(object):
             pattern = 'ur' + pattern[1:]
         else:
             pattern = 'r' + pattern
-        return u're.compile(<span class="string regex">%s</span>)' % pattern
+        return 're.compile(<span class="string regex">%s</span>)' % pattern
 
     def string_repr(self, obj, limit=70):
         buf = ['<span class="string">']
@@ -165,11 +165,11 @@ class DebugReprGenerator(object):
         else:
             buf.append(a)
         buf.append('</span>')
-        return _add_subclass_info(u''.join(buf), obj, (bytes, text_type))
+        return _add_subclass_info(''.join(buf), obj, (bytes, text_type))
 
     def dict_repr(self, d, recursive, limit=5):
         if recursive:
-            return _add_subclass_info(u'{...}', d, dict)
+            return _add_subclass_info('{...}', d, dict)
         buf = ['{']
         have_extended_section = False
         for idx, (key, value) in enumerate(iteritems(d)):
@@ -184,19 +184,19 @@ class DebugReprGenerator(object):
         if have_extended_section:
             buf.append('</span>')
         buf.append('}')
-        return _add_subclass_info(u''.join(buf), d, dict)
+        return _add_subclass_info(''.join(buf), d, dict)
 
     def object_repr(self, obj):
         r = repr(obj)
         if PY2:
             r = r.decode('utf-8', 'replace')
-        return u'<span class="object">%s</span>' % escape(r)
+        return '<span class="object">%s</span>' % escape(r)
 
     def dispatch_repr(self, obj, recursive):
         if obj is helper:
-            return u'<span class="help">%r</span>' % helper
+            return '<span class="help">%r</span>' % helper
         if isinstance(obj, (integer_types, float, complex)):
-            return u'<span class="number">%r</span>' % obj
+            return '<span class="number">%r</span>' % obj
         if isinstance(obj, string_types):
             return self.string_repr(obj)
         if isinstance(obj, RegexType):
@@ -222,8 +222,8 @@ class DebugReprGenerator(object):
             info = '?'
         if PY2:
             info = info.decode('utf-8', 'ignore')
-        return u'<span class="brokenrepr">&lt;broken repr (%s)&gt;' \
-               u'</span>' % escape(info.strip())
+        return '<span class="brokenrepr">&lt;broken repr (%s)&gt;' \
+               '</span>' % escape(info.strip())
 
     def repr(self, obj):
         recursive = False
@@ -263,7 +263,7 @@ class DebugReprGenerator(object):
         return self.render_object_dump(items, title, repr)
 
     def dump_locals(self, d):
-        items = [(key, self.repr(value)) for key, value in d.items()]
+        items = [(key, self.repr(value)) for key, value in list(d.items())]
         return self.render_object_dump(items, 'Local variables in frame')
 
     def render_object_dump(self, items, title, repr=None):

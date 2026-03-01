@@ -257,4 +257,4 @@ typedef artificial_stack_context_ref_t coro_context_ref_t;
 #endif
 
 #endif /* !defined(_WIN32) */
-#endif /* ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_ */
+#endif // ARCH_RUNTIME_CONTEXT_SWITCHING_HPP_

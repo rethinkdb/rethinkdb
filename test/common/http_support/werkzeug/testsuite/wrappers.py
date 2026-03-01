@@ -80,8 +80,8 @@ class WrappersTestCase(WerkzeugTestCase):
 
         # get requests
         response = client.get('/?foo=bar&foo=hehe')
-        self.assert_strict_equal(response['args'], MultiDict([('foo', u'bar'), ('foo', u'hehe')]))
-        self.assert_strict_equal(response['args_as_list'], [('foo', [u'bar', u'hehe'])])
+        self.assert_strict_equal(response['args'], MultiDict([('foo', 'bar'), ('foo', 'hehe')]))
+        self.assert_strict_equal(response['args_as_list'], [('foo', ['bar', 'hehe'])])
         self.assert_strict_equal(response['form'], MultiDict())
         self.assert_strict_equal(response['form_as_list'], [])
         self.assert_strict_equal(response['data'], b'')
@@ -90,9 +90,9 @@ class WrappersTestCase(WerkzeugTestCase):
         # post requests with form data
         response = client.post('/?blub=blah', data='foo=blub+hehe&blah=42',
                                content_type='application/x-www-form-urlencoded')
-        self.assert_strict_equal(response['args'], MultiDict([('blub', u'blah')]))
-        self.assert_strict_equal(response['args_as_list'], [('blub', [u'blah'])])
-        self.assert_strict_equal(response['form'], MultiDict([('foo', u'blub hehe'), ('blah', u'42')]))
+        self.assert_strict_equal(response['args'], MultiDict([('blub', 'blah')]))
+        self.assert_strict_equal(response['args_as_list'], [('blub', ['blah'])])
+        self.assert_strict_equal(response['form'], MultiDict([('foo', 'blub hehe'), ('blah', '42')]))
         self.assert_strict_equal(response['data'], b'')
         # currently we do not guarantee that the values are ordered correctly
         # for post data.
@@ -102,10 +102,10 @@ class WrappersTestCase(WerkzeugTestCase):
         # patch requests with form data
         response = client.patch('/?blub=blah', data='foo=blub+hehe&blah=42',
                                 content_type='application/x-www-form-urlencoded')
-        self.assert_strict_equal(response['args'], MultiDict([('blub', u'blah')]))
-        self.assert_strict_equal(response['args_as_list'], [('blub', [u'blah'])])
+        self.assert_strict_equal(response['args'], MultiDict([('blub', 'blah')]))
+        self.assert_strict_equal(response['args_as_list'], [('blub', ['blah'])])
         self.assert_strict_equal(response['form'],
-                                 MultiDict([('foo', u'blub hehe'), ('blah', u'42')]))
+                                 MultiDict([('foo', 'blub hehe'), ('blah', '42')]))
         self.assert_strict_equal(response['data'], b'')
         self.assert_environ(response['environ'], 'PATCH')
 
@@ -113,11 +113,11 @@ class WrappersTestCase(WerkzeugTestCase):
         json = b'{"foo": "bar", "blub": "blah"}'
         response = client.post('/?a=b', data=json, content_type='application/json')
         self.assert_strict_equal(response['data'], json)
-        self.assert_strict_equal(response['args'], MultiDict([('a', u'b')]))
+        self.assert_strict_equal(response['args'], MultiDict([('a', 'b')]))
         self.assert_strict_equal(response['form'], MultiDict())
 
     def test_query_string_is_bytes(self):
-        req = wrappers.Request.from_values(u'/?foo=%2f')
+        req = wrappers.Request.from_values('/?foo=%2f')
         self.assert_strict_equal(req.query_string, b'foo=%2f')
 
     def test_access_route(self):
@@ -134,13 +134,13 @@ class WrappersTestCase(WerkzeugTestCase):
 
     def test_url_request_descriptors(self):
         req = wrappers.Request.from_values('/bar?foo=baz', 'http://example.com/test')
-        self.assert_strict_equal(req.path, u'/bar')
-        self.assert_strict_equal(req.full_path, u'/bar?foo=baz')
-        self.assert_strict_equal(req.script_root, u'/test')
-        self.assert_strict_equal(req.url, u'http://example.com/test/bar?foo=baz')
-        self.assert_strict_equal(req.base_url, u'http://example.com/test/bar')
-        self.assert_strict_equal(req.url_root, u'http://example.com/test/')
-        self.assert_strict_equal(req.host_url, u'http://example.com/')
+        self.assert_strict_equal(req.path, '/bar')
+        self.assert_strict_equal(req.full_path, '/bar?foo=baz')
+        self.assert_strict_equal(req.script_root, '/test')
+        self.assert_strict_equal(req.url, 'http://example.com/test/bar?foo=baz')
+        self.assert_strict_equal(req.base_url, 'http://example.com/test/bar')
+        self.assert_strict_equal(req.url_root, 'http://example.com/test/')
+        self.assert_strict_equal(req.host_url, 'http://example.com/')
         self.assert_strict_equal(req.host, 'example.com')
         self.assert_strict_equal(req.scheme, 'http')
 
@@ -150,20 +150,20 @@ class WrappersTestCase(WerkzeugTestCase):
     def test_url_request_descriptors_query_quoting(self):
         next = 'http%3A%2F%2Fwww.example.com%2F%3Fnext%3D%2F'
         req = wrappers.Request.from_values('/bar?next=' + next, 'http://example.com/')
-        self.assert_equal(req.path, u'/bar')
-        self.assert_strict_equal(req.full_path, u'/bar?next=' + next)
-        self.assert_strict_equal(req.url, u'http://example.com/bar?next=' + next)
+        self.assert_equal(req.path, '/bar')
+        self.assert_strict_equal(req.full_path, '/bar?next=' + next)
+        self.assert_strict_equal(req.url, 'http://example.com/bar?next=' + next)
 
     def test_url_request_descriptors_hosts(self):
         req = wrappers.Request.from_values('/bar?foo=baz', 'http://example.com/test')
         req.trusted_hosts = ['example.com']
-        self.assert_strict_equal(req.path, u'/bar')
-        self.assert_strict_equal(req.full_path, u'/bar?foo=baz')
-        self.assert_strict_equal(req.script_root, u'/test')
-        self.assert_strict_equal(req.url, u'http://example.com/test/bar?foo=baz')
-        self.assert_strict_equal(req.base_url, u'http://example.com/test/bar')
-        self.assert_strict_equal(req.url_root, u'http://example.com/test/')
-        self.assert_strict_equal(req.host_url, u'http://example.com/')
+        self.assert_strict_equal(req.path, '/bar')
+        self.assert_strict_equal(req.full_path, '/bar?foo=baz')
+        self.assert_strict_equal(req.script_root, '/test')
+        self.assert_strict_equal(req.url, 'http://example.com/test/bar?foo=baz')
+        self.assert_strict_equal(req.base_url, 'http://example.com/test/bar')
+        self.assert_strict_equal(req.url_root, 'http://example.com/test/')
+        self.assert_strict_equal(req.host_url, 'http://example.com/')
         self.assert_strict_equal(req.host, 'example.com')
         self.assert_strict_equal(req.scheme, 'http')
 
@@ -199,8 +199,8 @@ class WrappersTestCase(WerkzeugTestCase):
 
     def test_base_response(self):
         # unicode
-        response = wrappers.BaseResponse(u'öäü')
-        self.assert_strict_equal(response.get_data(), u'öäü'.encode('utf-8'))
+        response = wrappers.BaseResponse('öäü')
+        self.assert_strict_equal(response.get_data(), 'öäü'.encode('utf-8'))
 
         # writing
         response = wrappers.Response('foo')
@@ -380,7 +380,7 @@ class WrappersTestCase(WerkzeugTestCase):
             content_type='application/x-www-form-urlencoded')
 
         self.assert_equal(req.data, b'')
-        self.assert_equal(req.form['foo'], u'Hello World')
+        self.assert_equal(req.form['foo'], 'Hello World')
 
     def test_get_data_method_parsing_caching_behavior(self):
         data = b'foo=Hello+World'
@@ -389,13 +389,13 @@ class WrappersTestCase(WerkzeugTestCase):
 
         # get_data() caches, so form stays available
         self.assert_equal(req.get_data(), data)
-        self.assert_equal(req.form['foo'], u'Hello World')
+        self.assert_equal(req.form['foo'], 'Hello World')
         self.assert_equal(req.get_data(), data)
 
         # here we access the form data first, caching is bypassed
         req = wrappers.Request.from_values('/', method='POST', data=data,
             content_type='application/x-www-form-urlencoded')
-        self.assert_equal(req.form['foo'], u'Hello World')
+        self.assert_equal(req.form['foo'], 'Hello World')
         self.assert_equal(req.get_data(), b'')
 
         # Another case is uncached get data which trashes everything
@@ -410,7 +410,7 @@ class WrappersTestCase(WerkzeugTestCase):
         req = wrappers.Request.from_values('/', method='POST', data=data,
             content_type='application/x-www-form-urlencoded')
         self.assert_equal(req.get_data(parse_form_data=True), b'')
-        self.assert_equal(req.form['foo'], u'Hello World')
+        self.assert_equal(req.form['foo'], 'Hello World')
 
     def test_etag_response_mixin(self):
         response = wrappers.Response('Hello World')
@@ -474,7 +474,7 @@ class WrappersTestCase(WerkzeugTestCase):
         resp = wrappers.Response()
         resp.www_authenticate.type = 'basic'
         resp.www_authenticate.realm = 'Testing'
-        self.assert_strict_equal(resp.headers['WWW-Authenticate'], u'Basic realm="Testing"')
+        self.assert_strict_equal(resp.headers['WWW-Authenticate'], 'Basic realm="Testing"')
         resp.www_authenticate.realm = None
         resp.www_authenticate.type = None
         assert 'WWW-Authenticate' not in resp.headers
@@ -656,8 +656,8 @@ class WrappersTestCase(WerkzeugTestCase):
 
     def test_urlfication(self):
         resp = wrappers.Response()
-        resp.headers['Location'] = u'http://üser:pässword@☃.net/påth'
-        resp.headers['Content-Location'] = u'http://☃.net/'
+        resp.headers['Location'] = 'http://üser:pässword@☃.net/påth'
+        resp.headers['Content-Location'] = 'http://☃.net/'
         headers = resp.get_wsgi_headers(create_environ())
         self.assert_equal(headers['location'], \
             'http://%C3%BCser:p%C3%A4ssword@xn--n3h.net/p%C3%A5th')
@@ -665,7 +665,7 @@ class WrappersTestCase(WerkzeugTestCase):
 
     def test_new_response_iterator_behavior(self):
         req = wrappers.Request.from_values()
-        resp = wrappers.Response(u'Hello Wörld!')
+        resp = wrappers.Response('Hello Wörld!')
 
         def get_content_length(resp):
             headers = resp.get_wsgi_headers(req.environ)
@@ -673,20 +673,20 @@ class WrappersTestCase(WerkzeugTestCase):
 
         def generate_items():
             yield "Hello "
-            yield u"Wörld!"
+            yield "Wörld!"
 
         # werkzeug encodes when set to `data` now, which happens
         # if a string is passed to the response object.
-        self.assert_equal(resp.response, [u'Hello Wörld!'.encode('utf-8')])
-        self.assert_equal(resp.get_data(), u'Hello Wörld!'.encode('utf-8'))
+        self.assert_equal(resp.response, ['Hello Wörld!'.encode('utf-8')])
+        self.assert_equal(resp.get_data(), 'Hello Wörld!'.encode('utf-8'))
         self.assert_equal(get_content_length(resp), 13)
         assert not resp.is_streamed
         assert resp.is_sequence
 
         # try the same for manual assignment
-        resp.set_data(u'Wörd')
-        self.assert_equal(resp.response, [u'Wörd'.encode('utf-8')])
-        self.assert_equal(resp.get_data(), u'Wörd'.encode('utf-8'))
+        resp.set_data('Wörd')
+        self.assert_equal(resp.response, ['Wörd'.encode('utf-8')])
+        self.assert_equal(resp.get_data(), 'Wörd'.encode('utf-8'))
         self.assert_equal(get_content_length(resp), 5)
         assert not resp.is_streamed
         assert resp.is_sequence
@@ -695,8 +695,8 @@ class WrappersTestCase(WerkzeugTestCase):
         resp.response = generate_items()
         assert resp.is_streamed
         assert not resp.is_sequence
-        self.assert_equal(resp.get_data(), u'Hello Wörld!'.encode('utf-8'))
-        self.assert_equal(resp.response, [b'Hello ', u'Wörld!'.encode('utf-8')])
+        self.assert_equal(resp.get_data(), 'Hello Wörld!'.encode('utf-8'))
+        self.assert_equal(resp.response, [b'Hello ', 'Wörld!'.encode('utf-8')])
         assert not resp.is_streamed
         assert resp.is_sequence
 
@@ -707,8 +707,8 @@ class WrappersTestCase(WerkzeugTestCase):
         assert not resp.is_sequence
         self.assert_raises(RuntimeError, lambda: resp.get_data())
         resp.make_sequence()
-        self.assert_equal(resp.get_data(), u'Hello Wörld!'.encode('utf-8'))
-        self.assert_equal(resp.response, [b'Hello ', u'Wörld!'.encode('utf-8')])
+        self.assert_equal(resp.get_data(), 'Hello Wörld!'.encode('utf-8'))
+        self.assert_equal(resp.response, [b'Hello ', 'Wörld!'.encode('utf-8')])
         assert not resp.is_streamed
         assert resp.is_sequence
 
@@ -750,7 +750,7 @@ class WrappersTestCase(WerkzeugTestCase):
 
         assert type(req.args) is dict
         assert type(req.values) is CombinedMultiDict
-        self.assert_equal(req.values['foo'], u'baz')
+        self.assert_equal(req.values['foo'], 'baz')
 
         req = wrappers.Request.from_values(headers={
             'Cookie':   'foo=bar'
@@ -831,8 +831,8 @@ class WrappersTestCase(WerkzeugTestCase):
         class ModifiedRequest(wrappers.Request):
             url_charset = 'euc-kr'
 
-        req = ModifiedRequest.from_values(u'/?foo=정상처리'.encode('euc-kr'))
-        self.assert_strict_equal(req.args['foo'], u'정상처리')
+        req = ModifiedRequest.from_values('/?foo=정상처리'.encode('euc-kr'))
+        self.assert_strict_equal(req.args['foo'], '정상처리')
 
 def suite():
     suite = unittest.TestSuite()

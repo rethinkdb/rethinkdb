@@ -798,6 +798,9 @@ message Term {
         BIT_NOT = 194;
         BIT_SAL = 195;
         BIT_SAR = 196;
+
+        // String formatting
+        FORMAT = 197;
     }
     optional TermType type = 1;
 

@@ -14,7 +14,7 @@ def random_key(opts):
     # keys.
     suf = opts.get("keysuffix", "")
     return "".join(random.choice("0123456789abcdefghijklmnopqrstuvwxyz")
-        for i in xrange(random.randint(1, opts["keysize"] - len(suf)))) + suf
+        for i in range(random.randint(1, opts["keysize"] - len(suf)))) + suf
 
 def random_value(opts):
     # Most of the time we want to use small values, but we also want to test large values sometimes.
@@ -56,7 +56,7 @@ def random_action(opts, mc, clone, deleted):
             # We check thoroughly after every test anyway
             return
         if not clone: return
-        verify(opts, mc, clone, deleted, random.choice(clone.keys()))
+        verify(opts, mc, clone, deleted, random.choice(list(clone.keys())))
 
     elif what_to_do < 0.25:
         # Check a deleted or nonexistent key
@@ -72,7 +72,7 @@ def random_action(opts, mc, clone, deleted):
         # Set
         if random.random() < 0.3 and clone:
             # An existing key
-            key = random.choice(clone.keys())
+            key = random.choice(list(clone.keys()))
         else:
             # A new key
             key = random_key(opts)
@@ -87,7 +87,7 @@ def random_action(opts, mc, clone, deleted):
     else:
         # Delete
         if not clone: return
-        key = random.choice(clone.keys())
+        key = random.choice(list(clone.keys()))
         del clone[key]
         deleted.add(key)
         ok = mc.delete(key)
@@ -134,12 +134,12 @@ if __name__ == "__main__":
     if opts["load"] is None:
         clone, deleted = {}, set()
     else:
-        print "Loading from %r..." % opts["load"]
-        with open(opts["load"]) as f:
+        print("Loading from %r..." % opts["load"])
+        with open(opts["load"], "rb") as f:
             clone, deleted = pickle.load(f)
     with memcached_workload_common.make_memcache_connection(opts) as mc:
         test(opts, mc, clone, deleted)
     if opts["save"] is not None:
-        print "Saving to %r..." % opts["save"]
-        with open(opts["save"], "w") as f:
+        print("Saving to %r..." % opts["save"])
+        with open(opts["save"], "wb") as f:
             pickle.dump((clone, deleted), f)

@@ -35,5 +35,5 @@ private:
     direct_query_bcard_t::read_mailbox_t read_mailbox;
 };
 
-#endif /* CLUSTERING_QUERY_ROUTING_DIRECT_QUERY_SERVER_HPP_ */
+#endif // CLUSTERING_QUERY_ROUTING_DIRECT_QUERY_SERVER_HPP_
 

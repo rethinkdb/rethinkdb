@@ -1,4 +1,7 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+#ifndef UNITTEST_CLUSTERING_UTILS_RAFT_HPP_
+#define UNITTEST_CLUSTERING_UTILS_RAFT_HPP_
+
 #include <map>
 
 #include "unittest/gtest.hpp"
@@ -171,3 +174,4 @@ void do_writes_raft(dummy_raft_cluster_t *cluster, int expect, int ms);
 
 }   /* namespace unittest */
 
+#endif  // UNITTEST_CLUSTERING_UTILS_RAFT_HPP_

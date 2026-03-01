@@ -2060,5 +2060,5 @@ void raft_member_t<state_t>::leader_append_log_entry(
     leader_update_match_index(this_member_id, ps().log.get_latest_index(), mutex_acq);
 }
 
-#endif /* CLUSTERING_GENERIC_RAFT_CORE_TCC_ */
+#endif // CLUSTERING_GENERIC_RAFT_CORE_TCC_
 

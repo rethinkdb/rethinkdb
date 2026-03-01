@@ -153,7 +153,7 @@ unaligned<block_id_t> *internal_node_block_ids(void *buf) {
 
 ref_info_t big_ref_info(max_block_size_t block_size, int64_t size,
                         int maxreflen, int64_t *blockid_count_out) {
-    rassert(size > int64_t(maxreflen - big_size_offset(maxreflen)));
+    rassert(size > static_cast<int64_t>(maxreflen - big_size_offset(maxreflen)));
     int64_t max_blockid_count = (maxreflen - block_ids_offset(maxreflen)) / sizeof(block_id_t);
 
     int64_t block_count = ceil_divide(size, leaf_size(block_size));
@@ -808,5 +808,3 @@ bool blob_t::remove_level(buf_parent_t parent, int *levels_ref) {
     *levels_ref = levels - 1;
     return true;
 }
-
-

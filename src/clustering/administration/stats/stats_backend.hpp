@@ -76,4 +76,4 @@ private:
     admin_identifier_format_t admin_format;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_STATS_STATS_BACKEND_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_STATS_STATS_BACKEND_HPP_

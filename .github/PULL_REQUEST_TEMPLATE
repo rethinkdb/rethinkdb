@@ -1,4 +1,11 @@
-- [ ] I have read and agreed to the RethinkDB Contributor License Agreement http://rethinkdb.com/community/cla/
-
-### Description
+## Description
 <Please fill in the description of your pull request here. Thank you for your contribution!>
+
+## Checklist
+- [ ] I have read and understood the [Developer's Certificate of Origin] and
+  added `Signed-off-by: <YOUR NAME>` to the commit trail where `<YOUR NAME>` is
+  my name.
+
+<!-- Links -->
+
+[Developer's Certificate of Origin]: https://github.com/rethinkdb/rethinkdb/blob/main/CONTRIBUTING.md#developers-certificate-of-origin

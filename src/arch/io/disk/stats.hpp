@@ -33,4 +33,4 @@ private:
     perfmon_multi_membership_t stats_membership;
 };
 
-#endif /* ARCH_IO_DISK_STATS_HPP_ */
+#endif // ARCH_IO_DISK_STATS_HPP_

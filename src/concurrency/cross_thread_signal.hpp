@@ -70,4 +70,4 @@ private:
     cross_thread_signal_subscription_t subs;
 };
 
-#endif /* CONCURRENCY_CROSS_THREAD_SIGNAL_HPP_ */
+#endif // CONCURRENCY_CROSS_THREAD_SIGNAL_HPP_

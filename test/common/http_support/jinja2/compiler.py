@@ -1031,7 +1031,7 @@ class CodeGenerator(NodeVisitor):
                                discarded_names[0])
             else:
                 self.writeline('context.exported_vars.difference_'
-                               'update((%s))' % ', '.join(imap(repr, discarded_names)))
+                               'update((%s))' % ', '.join(map(repr, discarded_names)))
 
     def visit_For(self, node, frame):
         # when calculating the nodes for the inner frame we have to exclude
@@ -1367,7 +1367,7 @@ class CodeGenerator(NodeVisitor):
                                    public_names[0])
                 else:
                     self.writeline('context.exported_vars.update((%s))' %
-                                   ', '.join(imap(repr, public_names)))
+                                   ', '.join(map(repr, public_names)))
 
     # -- Expression Visitors
 

@@ -25,5 +25,5 @@ void backfill_debug_dump_log(const store_key_t &key);
 #define backfill_debug_dump_log(key) ((void)0)
 #endif /* ENABLE_BACKFILL_DEBUG */
 
-#endif /* BTREE_BACKFILL_DEBUG_HPP_ */
+#endif // BTREE_BACKFILL_DEBUG_HPP_
 

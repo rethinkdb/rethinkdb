@@ -78,4 +78,4 @@ private:
     non_transitive_issue_tracker_t non_transitive_issue_tracker;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_ISSUES_ISSUES_BACKEND_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_ISSUES_ISSUES_BACKEND_HPP_

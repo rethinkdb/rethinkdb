@@ -168,4 +168,4 @@ private:
     DISABLE_COPYING(semaphore_acq_t);
 };
 
-#endif /* CONCURRENCY_SEMAPHORE_HPP_ */
+#endif // CONCURRENCY_SEMAPHORE_HPP_

@@ -41,4 +41,4 @@ void static_header_read(
 // Blocks, must be run in a coroutine
 void migrate_static_header(file_t *file, size_t data_size);
 
-#endif /* SERIALIZER_LOG_STATIC_HEADER_HPP_ */
+#endif // SERIALIZER_LOG_STATIC_HEADER_HPP_

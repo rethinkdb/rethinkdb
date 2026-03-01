@@ -41,5 +41,5 @@ void table_generate_config(
         THROWS_ONLY(interrupted_exc_t, no_such_table_exc_t, failed_table_op_exc_t,
             admin_op_exc_t);
 
-#endif /* CLUSTERING_ADMINISTRATION_TABLES_GENERATE_CONFIG_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_TABLES_GENERATE_CONFIG_HPP_
 

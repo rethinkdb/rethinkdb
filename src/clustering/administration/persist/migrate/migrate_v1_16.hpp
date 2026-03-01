@@ -19,4 +19,4 @@ void migrate_auth_metadata_to_v2_1(io_backender_t *io_backender,
                                    metadata_file_t::write_txn_t *out,
                                    signal_t *interruptor);
 
-#endif /* CLUSTERING_ADMINISTRATION_PERSIST_MIGRATE_MIGRATE_V1_16_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_PERSIST_MIGRATE_MIGRATE_V1_16_HPP_

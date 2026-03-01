@@ -27,4 +27,4 @@ std::string strdirname(const std::string path) {
 #endif
 }
 
-#endif
+#endif  // ARCH_FILESYSTEM_HPP_

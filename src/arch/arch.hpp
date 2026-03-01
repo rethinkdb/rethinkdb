@@ -13,4 +13,4 @@ void co_read(file_t *file, int64_t offset, size_t length, void *buf, file_accoun
 void co_write(file_t *file, int64_t offset, size_t length, void *buf, file_account_t *account,
               file_t::wrap_in_datasyncs_t wrap_in_datasyncs);
 
-#endif /* ARCH_ARCH_HPP_ */
+#endif // ARCH_ARCH_HPP_

@@ -169,4 +169,4 @@ private:
     DISABLE_COPYING(fake_activity_logger_t);
 };
 
-#endif /* ACTIVITY_LOGGER_HPP_ */
+#endif // ACTIVITY_LOGGER_HPP_

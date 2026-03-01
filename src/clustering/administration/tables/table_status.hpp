@@ -59,5 +59,5 @@ private:
     namespace_repo_t *namespace_repo;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_STATUS_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_TABLES_TABLE_STATUS_HPP_
 

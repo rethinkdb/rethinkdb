@@ -156,7 +156,7 @@ class FilterTestCase(JinjaTestCase):
             def __init__(self, username):
                 self.username = username
         tmpl = env.from_string('''{{ users|join(', ', 'username') }}''')
-        assert tmpl.render(users=map(User, ['foo', 'bar'])) == 'foo, bar'
+        assert tmpl.render(users=list(map(User, ['foo', 'bar']))) == 'foo, bar'
 
     def test_last(self):
         tmpl = env.from_string('''{{ foo|last }}''')
@@ -315,7 +315,7 @@ class FilterTestCase(JinjaTestCase):
             def __str__(self):
                 return text_type(self.value)
         tmpl = env.from_string('''{{ items|sort(attribute='value')|join }}''')
-        assert tmpl.render(items=map(Magic, [3, 2, 4, 1])) == '1234'
+        assert tmpl.render(items=list(map(Magic, [3, 2, 4, 1]))) == '1234'
 
     def test_groupby(self):
         tmpl = env.from_string('''
@@ -384,7 +384,7 @@ class FilterTestCase(JinjaTestCase):
 
     def test_forceescape(self):
         tmpl = env.from_string('{{ x|forceescape }}')
-        assert tmpl.render(x=Markup('<div />')) == u'&lt;div /&gt;'
+        assert tmpl.render(x=Markup('<div />')) == '&lt;div /&gt;'
 
     def test_safe(self):
         env = Environment(autoescape=True)
@@ -398,11 +398,11 @@ class FilterTestCase(JinjaTestCase):
         tmpl = env.from_string('{{ "Hello, world!"|urlencode }}')
         assert tmpl.render() == 'Hello%2C%20world%21'
         tmpl = env.from_string('{{ o|urlencode }}')
-        assert tmpl.render(o=u"Hello, world\u203d") == "Hello%2C%20world%E2%80%BD"
+        assert tmpl.render(o="Hello, world\u203d") == "Hello%2C%20world%E2%80%BD"
         assert tmpl.render(o=(("f", 1),)) == "f=1"
         assert tmpl.render(o=(('f', 1), ("z", 2))) == "f=1&amp;z=2"
-        assert tmpl.render(o=((u"\u203d", 1),)) == "%E2%80%BD=1"
-        assert tmpl.render(o={u"\u203d": 1}) == "%E2%80%BD=1"
+        assert tmpl.render(o=(("\u203d", 1),)) == "%E2%80%BD=1"
+        assert tmpl.render(o={"\u203d": 1}) == "%E2%80%BD=1"
         assert tmpl.render(o={0: 1}) == "0=1"
 
     def test_simple_map(self):

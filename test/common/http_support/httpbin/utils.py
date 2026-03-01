@@ -19,7 +19,7 @@ def weighted_choice(choices):
     eg. weighted_choice([('val1', 5), ('val2', 0.3), ('val3', 1)])
 
     """
-    values, weights = zip(*choices)
+    values, weights = list(zip(*choices))
     total = 0
     cum_weights = []
     for w in weights:

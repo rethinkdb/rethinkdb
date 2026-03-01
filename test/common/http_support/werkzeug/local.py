@@ -19,7 +19,7 @@ try:
     from greenlet import getcurrent as get_ident
 except ImportError:
     try:
-        from thread import get_ident
+        from _thread import get_ident
     except ImportError:
         from _thread import get_ident
 
@@ -55,7 +55,7 @@ class Local(object):
         object.__setattr__(self, '__ident_func__', get_ident)
 
     def __iter__(self):
-        return iter(self.__storage__.items())
+        return iter(list(self.__storage__.items()))
 
     def __call__(self, proxy):
         """Create a proxy for a name."""
@@ -322,7 +322,7 @@ class LocalProxy(object):
 
     def __unicode__(self):
         try:
-            return unicode(self._get_current_object())
+            return str(self._get_current_object())
         except RuntimeError:
             return repr(self)
 
@@ -388,7 +388,7 @@ class LocalProxy(object):
     __invert__ = lambda x: ~(x._get_current_object())
     __complex__ = lambda x: complex(x._get_current_object())
     __int__ = lambda x: int(x._get_current_object())
-    __long__ = lambda x: long(x._get_current_object())
+    __long__ = lambda x: int(x._get_current_object())
     __float__ = lambda x: float(x._get_current_object())
     __oct__ = lambda x: oct(x._get_current_object())
     __hex__ = lambda x: hex(x._get_current_object())

@@ -231,7 +231,7 @@ class BugFixTestCase(JinjaTestCase):
             'standard.html': '''
         {% block content %}&nbsp;{% endblock %}
         '''
-        })).get_template("test.html").render().split() == [u'outer_box', u'my_macro']
+        })).get_template("test.html").render().split() == ['outer_box', 'my_macro']
 
     def test_double_extends(self):
         """Ensures that a template with more than 1 {% extends ... %} usage

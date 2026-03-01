@@ -293,5 +293,5 @@ private:
         table_basic_configs;
 };
 
-#endif /* CLUSTERING_TABLE_MANAGER_TABLE_META_CLIENT_HPP_ */
+#endif // CLUSTERING_TABLE_MANAGER_TABLE_META_CLIENT_HPP_
 

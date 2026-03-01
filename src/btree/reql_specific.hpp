@@ -206,5 +206,5 @@ void get_btree_superblock_and_txn_for_reading(
         scoped_ptr_t<real_superblock_t> *got_superblock_out,
         scoped_ptr_t<txn_t> *txn_out);
 
-#endif /* BTREE_REQL_SPECIFIC_HPP_ */
+#endif // BTREE_REQL_SPECIFIC_HPP_
 
