@@ -340,7 +340,9 @@ enum header_states
   , h_transfer_encoding
   , h_upgrade
 
+  , h_matching_transfer_encoding_token_start
   , h_matching_transfer_encoding_chunked
+  , h_matching_transfer_encoding_token
   , h_matching_connection_keep_alive
   , h_matching_connection_close
 
@@ -1360,6 +1362,7 @@ size_t http_parser_execute (http_parser *parser,
                 parser->header_state = h_general;
               } else if (parser->index == sizeof(TRANSFER_ENCODING)-2) {
                 parser->header_state = h_transfer_encoding;
+                parser->flags |= F_TRANSFER_ENCODING;
               }
               break;
 
@@ -1446,8 +1449,12 @@ size_t http_parser_execute (http_parser *parser,
             if ('c' == c) {
               parser->header_state = h_matching_transfer_encoding_chunked;
             } else {
-              parser->header_state = h_general;
+              parser->header_state = h_matching_transfer_encoding_token;
             }
+            break;
+
+          /* Multi-value `Transfer-Encoding` header */
+          case h_matching_transfer_encoding_token_start:
             break;
 
           case h_content_length:
@@ -1530,15 +1537,40 @@ size_t http_parser_execute (http_parser *parser,
           }
 
           /* Transfer-Encoding: chunked */
+          case h_matching_transfer_encoding_token_start:
+            /* looking for 'Transfer-Encoding: chunked' */
+            if ('c' == c) {
+              parser->h_state = h_matching_transfer_encoding_chunked;
+            } else if (STRICT_TOKEN(c)) {
+              /* TODO(indutny): similar code below does this, but why?
+                * At the very least it seems to be inconsistent given that
+                * h_matching_transfer_encoding_token does not check for
+                * `STRICT_TOKEN`
+                */
+              parser->h_state = h_matching_transfer_encoding_token;
+            } else if (c == ' ' || c == '\t') {
+              /* Skip lws */
+            } else {
+              parser->h_state = h_general;
+            }
+            break;
+
           case h_matching_transfer_encoding_chunked:
             parser->index++;
             if (parser->index > sizeof(CHUNKED)-1
                 || c != CHUNKED[parser->index]) {
-              parser->header_state = h_general;
+              parser->header_state = h_matching_transfer_encoding_token;
             } else if (parser->index == sizeof(CHUNKED)-2) {
               parser->header_state = h_transfer_encoding_chunked;
             }
             break;
+
+          case h_matching_transfer_encoding_token:
+              if (ch == ',') {
+                h_state = h_matching_transfer_encoding_token_start;
+                parser->index = 0;
+              }
+              break;
 
           /* looking for 'Connection: keep-alive' */
           case h_matching_connection_keep_alive:
@@ -1697,6 +1729,29 @@ size_t http_parser_execute (http_parser *parser,
         } else if (parser->flags & F_CHUNKED) {
           /* chunked encoding - ignore Content-Length header */
           parser->state = s_chunk_size_start;
+        } else if (parser->flags & F_TRANSFER_ENCODING) {
+          if (parser->type == HTTP_REQUEST && !lenient) {
+          {
+            /* RFC 7230 3.3.3 */
+
+            /* If a Transfer-Encoding header field
+             * is present in a request and the chunked transfer coding is not
+             * the final encoding, the message body length cannot be determined
+             * reliably; the server MUST respond with the 400 (Bad Request)
+             * status code and then close the connection.
+             */
+             SET_ERRNO(HPE_INVALID_TRANSFER_ENCODING);
+             return p-data;
+          } else {
+            /* RFC 7230 3.3.3 */
+
+            /* If a Transfer-Encoding header field is present in a response and
+             * the chunked transfer coding is not the final encoding, the
+             * message body length is determined by reading the connection until
+             * it is closed by the server.
+             */
+            parser->state = s_body_identity_eof
+          }
         } else {
           if (parser->content_length == 0) {
             /* Content-Length header given but zero: Content-Length: 0\r\n */
@@ -1941,6 +1996,12 @@ http_message_needs_eof (const http_parser *parser)
       parser->status_code == 304 ||     /* Not Modified */
       parser->flags & F_SKIPBODY) {     /* response to a HEAD request */
     return 0;
+  }
+
+  /* RFC 7230 3.3.3, see `s_headers_almost_done` */
+  if ((parser->flags & F_TRANSFER_ENCODING) &&
+      (parser->flags & F_CHUNKED) == 0) {
+    return 1;
   }
 
   if ((parser->flags & F_CHUNKED) || parser->content_length != ULLONG_MAX) {
