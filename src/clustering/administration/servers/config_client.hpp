@@ -104,5 +104,5 @@ private:
         ::all_subs_t server_connectivity_subscription;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_SERVERS_CONFIG_CLIENT_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_SERVERS_CONFIG_CLIENT_HPP_
 

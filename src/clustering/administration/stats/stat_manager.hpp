@@ -50,5 +50,5 @@ bool fetch_stats_from_server(
         ql::datum_t *stats_out,
         admin_err_t *error_out);
 
-#endif /* CLUSTERING_ADMINISTRATION_STATS_STAT_MANAGER_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_STATS_STAT_MANAGER_HPP_
 

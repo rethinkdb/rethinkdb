@@ -14,7 +14,7 @@
 #include "containers/scoped.hpp"
 #include "serializer/log/config.hpp"
 
-#define NULL_OFFSET int64_t(-1)
+#define NULL_OFFSET static_cast<int64_t>(-1)
 
 class extent_zone_t;
 
@@ -155,4 +155,4 @@ private:
 
     DISABLE_COPYING(extent_manager_t);
 };
-#endif /* SERIALIZER_LOG_EXTENT_MANAGER_HPP_ */
+#endif // SERIALIZER_LOG_EXTENT_MANAGER_HPP_

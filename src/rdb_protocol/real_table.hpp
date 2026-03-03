@@ -130,5 +130,5 @@ private:
     table_meta_client_t *m_table_meta_client;
 };
 
-#endif /* RDB_PROTOCOL_REAL_TABLE_HPP_ */
+#endif // RDB_PROTOCOL_REAL_TABLE_HPP_
 

@@ -124,4 +124,4 @@ void set_secondary_index(buf_lock_t *sindex_block, uuid_u id,
 // to. `drop_sindex` Does both and should be used publicly.
 bool delete_secondary_index(buf_lock_t *sindex_block, const sindex_name_t &name);
 
-#endif /* BTREE_SECONDARY_OPERATIONS_HPP_ */
+#endif // BTREE_SECONDARY_OPERATIONS_HPP_

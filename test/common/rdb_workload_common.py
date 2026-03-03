@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from __future__ import print_function
+
 
 import contextlib, time
 
@@ -28,7 +28,7 @@ def insert_many(host="localhost", port=28015, database="test", table=None, count
     def gen(i):
         return {'val': "X" * (i % 100)}
 
-    if isinstance(table, str) or isinstance(table, unicode):
+    if isinstance(table, str) or isinstance(table, str):
         table = r.db(database).table(table)
 
     batch_size = 1000

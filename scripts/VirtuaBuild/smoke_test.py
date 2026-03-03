@@ -36,21 +36,21 @@ elif opts["pkg_type"] == "deb":
     def uninstall(cmd_name):
         return "which %s | xargs readlink -f | xargs dpkg -S | sed 's/^\(.*\):.*$/\\1/' | xargs dpkg -r" % cmd_name
 else:
-    print >>sys.stderr, "Error: Unknown package type."
+    print("Error: Unknown package type.", file=sys.stderr)
     exit(0)
 
 def purge_installed_packages():
     try:
         old_binaries_raw = exec_command(["ls", "/usr/bin/rethinkdb*"], shell = True).stdout.readlines()
-    except Exception, e:
-        print "Nothing to remove."
+    except Exception as e:
+        print("Nothing to remove.")
         return
-    old_binaries = map(lambda x: x.strip('\n'), old_binaries_raw)
-    print "Binaries scheduled for removal: ", old_binaries
+    old_binaries = [x.strip('\n') for x in old_binaries_raw]
+    print("Binaries scheduled for removal: ", old_binaries)
 
     try:
     	exec_command(uninstall(old_binaries[0]), shell = True)
-    except Exception, e:
+    except Exception as e:
         exec_command('rm -f ' + old_binaries[0])
     purge_installed_packages()
 
@@ -59,7 +59,7 @@ def exec_command(cmd, bg = False, shell = False):
         cmd = cmd.split(" ")
     elif type(cmd) == type([]) and shell:
         cmd = " ".join(cmd)
-    print cmd
+    print(cmd)
     if bg:
         return subprocess.Popen(cmd, stdout = subprocess.PIPE, shell = shell) # doesn't actually run in background: it just skips the waiting part
     else:
@@ -77,7 +77,7 @@ def wait_until_started_up(proc, host, port, timeout = 600):
         s = socket.socket()
         try:
             s.connect((host, port))
-        except socket.error, e:
+        except socket.error as e:
             time.sleep(1)
         else:
             break
@@ -93,9 +93,9 @@ def test_against(host, port, timeout = 600):
         while not temp and time.time() < time_limit:
             try:
                 temp = mc.set("test", "test")
-                print temp
-            except Exception, e:
-                print e
+                print(temp)
+            except Exception as e:
+                print(e)
                 pass
             time.sleep(1)
 
@@ -121,23 +121,23 @@ def test_against(host, port, timeout = 600):
 cur_dir = exec_command("pwd").stdout.readline().strip('\n')
 p = exec_command("find build/%s -name *.%s" % (opts["mode"], opts["pkg_type"]))
 raw = p.stdout.readlines()
-res_paths = map(lambda x: os.path.join(cur_dir, x.strip('\n')), raw)
-print "Packages to install:", res_paths
+res_paths = [os.path.join(cur_dir, x.strip('\n')) for x in raw]
+print("Packages to install:", res_paths)
 failed_test = False
 
 for path in res_paths:
-    print "TESTING A NEW PACKAGE"
+    print("TESTING A NEW PACKAGE")
 
-    print "Uninstalling old packages..."
+    print("Uninstalling old packages...")
     purge_installed_packages()
-    print "Done uninstalling..."
+    print("Done uninstalling...")
 
-    print "Installing RethinkDB..."
+    print("Installing RethinkDB...")
     target_binary_name = exec_command(get_binary(path), shell = True).stdout.readlines()[0].strip('\n')
-    print "Target binary name:", target_binary_name
+    print("Target binary name:", target_binary_name)
     exec_command(install(path))
 
-    print "Starting RethinkDB..."
+    print("Starting RethinkDB...")
 
     exec_command("rm -rf rethinkdb_data")
     exec_command("rm -f core.*")
@@ -149,15 +149,15 @@ for path in res_paths:
     ip = s.getsockname()[0]
     s.close()
 
-    print "IP Address detected:", ip
+    print("IP Address detected:", ip)
 
     wait_until_started_up(proc, ip, base_port)
 
-    print "Testing..."
+    print("Testing...")
 
     res = test_against(ip, base_port)
 
-    print "Tests completed. Killing instance now..."
+    print("Tests completed. Killing instance now...")
     proc.send_signal(signal.SIGINT)
 
     timeout = 60 # 1 minute to shut down
@@ -166,17 +166,17 @@ for path in res_paths:
         pass
 
     if proc.poll() != 0:
-        print "RethinkDB failed to shut down properly. (TEST FAILED)"
+        print("RethinkDB failed to shut down properly. (TEST FAILED)")
         failed_test = False
 
     if res != (num_keys, num_keys):
-        print "Done: FAILED"
-        print "Results: %d successful sets, %d successful gets (%d total)" % (res[0], res[1], num_keys)
+        print("Done: FAILED")
+        print("Results: %d successful sets, %d successful gets (%d total)" % (res[0], res[1], num_keys))
         failed_test = True
     else:
-        print "Done: PASSED"
+        print("Done: PASSED")
 
-print "Done."
+print("Done.")
 
 if failed_test:
     exit(1)

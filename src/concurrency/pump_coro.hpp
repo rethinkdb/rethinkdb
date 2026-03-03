@@ -86,5 +86,5 @@ private:
     auto_drainer_t drainer;
 };
 
-#endif /* CONCURRENCY_PUMP_CORO_HPP_ */
+#endif // CONCURRENCY_PUMP_CORO_HPP_
 

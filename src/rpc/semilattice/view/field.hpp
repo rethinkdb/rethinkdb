@@ -32,4 +32,4 @@ std::shared_ptr<semilattice_readwrite_view_t<inner_t> > metadata_field(
 
 #include "rpc/semilattice/view/field.tcc"
 
-#endif /* RPC_SEMILATTICE_VIEW_FIELD_HPP_ */
+#endif // RPC_SEMILATTICE_VIEW_FIELD_HPP_

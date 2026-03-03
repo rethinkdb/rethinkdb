@@ -115,5 +115,5 @@ private:
     std::string m_primary_key_name;
 };
 
-#endif /* RDB_PROTOCOL_ARTIFICIAL_TABLE_ARTIFICIAL_TABLE_HPP_ */
+#endif // RDB_PROTOCOL_ARTIFICIAL_TABLE_ARTIFICIAL_TABLE_HPP_
 

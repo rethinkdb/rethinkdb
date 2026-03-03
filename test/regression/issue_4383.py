@@ -81,13 +81,13 @@ with driver.Cluster(initial_servers=['source1', 'source2', 'target'], output_fol
     utils.print_with_time("Checking that table is available for writes")
     try:
         tbl.wait(wait_for="ready_for_writes", timeout=30).run(conn)
-    except r.ReqlRuntimeError, e:
+    except r.ReqlRuntimeError as e:
         status = r.db("rethinkdb").table("_debug_table_status").nth(0).run(conn)
         pprint.pprint(status)
         raise
     try:
         tbl.wait(wait_for="ready_for_writes", timeout=3).run(conn_target)
-    except r.ReqlRuntimeError, e:
+    except r.ReqlRuntimeError as e:
         pprint.pprint(r.db("rethinkdb").table("_debug_table_status").nth(0).run(conn_target))
         raise
 

@@ -19,7 +19,7 @@
     :copyright: (c) 2014 by the Werkzeug Team, see AUTHORS for more details.
     :license: BSD, see LICENSE for more details.
 """
-from urlparse import urlparse
+from urllib.parse import urlparse
 from warnings import warn
 
 from werkzeug.datastructures import Headers
@@ -124,7 +124,7 @@ class GuardedIterator(object):
 
     def __init__(self, iterator, headers_set, chunks):
         self._iterator = iterator
-        self._next = iter(iterator).next
+        self._next = iter(iterator).__next__
         self.closed = False
         self.headers_set = headers_set
         self.chunks = chunks
@@ -132,7 +132,7 @@ class GuardedIterator(object):
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         if self.closed:
             warn(WSGIWarning('iterated over closed app_iter'),
                  stacklevel=2)

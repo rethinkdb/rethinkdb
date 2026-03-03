@@ -212,4 +212,4 @@ private:
     callable_type inner_lens;
 };
 
-#endif /* CONTAINERS_INCREMENTAL_LENSES_HPP_ */
+#endif // CONTAINERS_INCREMENTAL_LENSES_HPP_

@@ -257,13 +257,13 @@ tests:
 
     - cd: r.wait()
       ot:
-        py: err('AttributeError', "'module' object has no attribute 'wait'", [])
+        py: err('AttributeError', "'RethinkDB' object has no attribute 'wait'", [])
         # different sub-versions of node have different messages #5617
         js: err('TypeError')
         rb: err('ReqlQueryLogicError', '`wait` can only be called on a table or database.', [])
     - cd: r.rebalance()
       ot:
-        py: err('AttributeError', "'module' object has no attribute 'rebalance'", [])
+        py: err('AttributeError', "'RethinkDB' object has no attribute 'rebalance'", [])
         # different sub-versions of node have different messages #5617
         js: err('TypeError')
         rb: err('ReqlQueryLogicError', '`rebalance` can only be called on a table or database.', [])
@@ -350,7 +350,7 @@ tests:
       js: r.wait({waitFor:'all_replicas_ready', timeout:5})
       rb: r.wait(:wait_for=>'all_replicas_ready', :timeout => 5)
       ot:
-        py: err('AttributeError', "'module' object has no attribute 'wait'", [])
+        py: err('AttributeError', "'RethinkDB' object has no attribute 'wait'", [])
         # different sub-versions of node have different messages #5617
         js: err('TypeError')
         rb: err('ReqlQueryLogicError', '`wait` can only be called on a table or database.', [])

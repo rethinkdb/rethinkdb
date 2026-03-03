@@ -1,6 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
-#ifndef RPC_DIRECTORY_WRITE_MAP_MANAGER_HPP_
-#define RPC_DIRECTORY_WRITE_MAP_MANAGER_HPP_
+#ifndef RPC_DIRECTORY_MAP_WRITE_MANAGER_HPP_
+#define RPC_DIRECTORY_MAP_WRITE_MANAGER_HPP_
 
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/new_semaphore.hpp"
@@ -63,5 +63,5 @@ private:
         ::all_subs_t connections_subs;
 };
 
-#endif /* RPC_DIRECTORY_WRITE_MAP_MANAGER_HPP_ */
+#endif // RPC_DIRECTORY_MAP_WRITE_MANAGER_HPP_
 

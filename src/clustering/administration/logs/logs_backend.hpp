@@ -93,4 +93,4 @@ private:
     admin_identifier_format_t identifier_format;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_LOGS_LOGS_BACKEND_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_LOGS_LOGS_BACKEND_HPP_

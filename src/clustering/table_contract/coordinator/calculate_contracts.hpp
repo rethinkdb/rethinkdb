@@ -16,5 +16,5 @@ void calculate_all_contracts(
         std::set<branch_id_t> *remove_branches,
         branch_history_t *add_branches_out);
 
-#endif /* CLUSTERING_TABLE_CONTRACT_COORDINATOR_CALCULATE_CONTRACTS_HPP_ */
+#endif // CLUSTERING_TABLE_CONTRACT_COORDINATOR_CALCULATE_CONTRACTS_HPP_
 

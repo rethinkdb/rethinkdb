@@ -50,4 +50,4 @@ private:
     object_buffer_t<cross_thread_semaphore_t<extproc_worker_t>::lock_t> worker_lock;
 };
 
-#endif /* EXTPROC_EXTPROC_JOB_HPP_ */
+#endif // EXTPROC_EXTPROC_JOB_HPP_

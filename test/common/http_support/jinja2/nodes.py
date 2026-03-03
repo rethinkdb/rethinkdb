@@ -137,7 +137,7 @@ class Node(with_metaclass(NodeType, object)):
                     len(self.fields),
                     len(self.fields) != 1 and 's' or ''
                 ))
-            for name, arg in izip(self.fields, fields):
+            for name, arg in zip(self.fields, fields):
                 setattr(self, name, arg)
         for attr in self.attributes:
             setattr(self, attr, attributes.pop(attr, None))

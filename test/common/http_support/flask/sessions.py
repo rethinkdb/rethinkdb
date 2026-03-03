@@ -77,10 +77,10 @@ class TaggedJSONSerializer(object):
                 try:
                     return text_type(value)
                 except UnicodeError:
-                    raise UnexpectedUnicodeError(u'A byte string with '
-                        u'non-ASCII data was passed to the session system '
-                        u'which can only store unicode strings.  Consider '
-                        u'base64 encoding your string (String was %r)' % value)
+                    raise UnexpectedUnicodeError('A byte string with '
+                        'non-ASCII data was passed to the session system '
+                        'which can only store unicode strings.  Consider '
+                        'base64 encoding your string (String was %r)' % value)
             return value
         return json.dumps(_tag(value), separators=(',', ':'))
 

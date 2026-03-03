@@ -69,4 +69,4 @@ private:
     DISABLE_COPYING(unlimited_fifo_queue_t);
 };
 
-#endif /* CONCURRENCY_QUEUE_UNLIMITED_FIFO_HPP_ */
+#endif // CONCURRENCY_QUEUE_UNLIMITED_FIFO_HPP_

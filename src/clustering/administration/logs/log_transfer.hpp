@@ -58,4 +58,4 @@ std::vector<log_message_t> fetch_log_file(
     signal_t *interruptor)
     THROWS_ONLY(log_transfer_exc_t, log_read_exc_t, interrupted_exc_t);
 
-#endif /* CLUSTERING_ADMINISTRATION_LOGS_LOG_TRANSFER_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_LOGS_LOG_TRANSFER_HPP_

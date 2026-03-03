@@ -203,5 +203,5 @@ private:
 };
 }  // namespace metadata
 
-#endif /* CLUSTERING_ADMINISTRATION_PERSIST_FILE_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_PERSIST_FILE_HPP_
 

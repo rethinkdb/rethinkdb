@@ -27,4 +27,4 @@ typedef void tls_ctx_t;
 #endif /* ENABLE_TLS */
 
 
-#endif /* ARCH_IO_OPENSSL_HPP_ */
+#endif // ARCH_IO_OPENSSL_HPP_

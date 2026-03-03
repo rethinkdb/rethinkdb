@@ -76,4 +76,4 @@ private:
                                 force_yield_t force_yield);
 };
 
-#endif /* RPC_MAILBOX_MAILBOX_HPP_ */
+#endif // RPC_MAILBOX_MAILBOX_HPP_

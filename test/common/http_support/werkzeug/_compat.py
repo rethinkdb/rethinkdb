@@ -4,7 +4,7 @@ import functools
 try:
     import builtins
 except ImportError:
-    import __builtin__ as builtins
+    import builtins as builtins
 
 
 PY2 = sys.version_info[0] == 2
@@ -12,10 +12,10 @@ PY2 = sys.version_info[0] == 2
 _identity = lambda x: x
 
 if PY2:
-    unichr = unichr
-    text_type = unicode
-    string_types = (str, unicode)
-    integer_types = (int, long)
+    chr = chr
+    text_type = str
+    string_types = (str, str)
+    integer_types = (int, int)
     int_to_byte = chr
 
     iterkeys = lambda d, *args, **kwargs: d.iterkeys(*args, **kwargs)
@@ -59,11 +59,11 @@ if PY2:
         del cls.__bool__
         return cls
 
-    from itertools import imap, izip, ifilter
-    range_type = xrange
+    
+    range_type = range
 
-    from StringIO import StringIO
-    from cStringIO import StringIO as BytesIO
+    from io import StringIO
+    from io import StringIO as BytesIO
     NativeStringIO = BytesIO
 
     def make_literal_wrapper(reference):
@@ -101,7 +101,7 @@ if PY2:
             return None
         if isinstance(x, (bytes, bytearray, buffer)):
             return bytes(x)
-        if isinstance(x, unicode):
+        if isinstance(x, str):
             return x.encode(charset, errors)
         raise TypeError('Expected bytes')
 
@@ -111,7 +111,7 @@ if PY2:
         return x.encode(charset, errors)
 
 else:
-    unichr = chr
+    chr = chr
     text_type = str
     string_types = (str, )
     integer_types = (int, )
@@ -126,7 +126,7 @@ else:
     int_to_byte = operator.methodcaller('to_bytes', 1, 'big')
 
     def iter_bytes(b):
-        return map(int_to_byte, b)
+        return list(map(int_to_byte, b))
 
     def reraise(tp, value, tb=None):
         if value.__traceback__ is not tb:

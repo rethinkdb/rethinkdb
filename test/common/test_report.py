@@ -1,6 +1,6 @@
 # Copyright 2010-2016 RethinkDB, all rights reserved.
 
-from __future__ import print_function
+
 
 import json, os, re, subprocess
 
@@ -68,10 +68,10 @@ def gen_report(test_root, tests):
   rethinkdb_version = check_output([os.path.dirname(__file__) + "/../../scripts/gen-version.sh"])
   
   reportData = {
-    "buildbot": buildbot,
-    "tests": tests_param,
-    "rethinkdb_version": rethinkdb_version,
-    "git_info": git_info,
+    "buildbot": str(buildbot),
+    "tests": str(tests_param),
+    "rethinkdb_version": str(rethinkdb_version),
+    "git_info": str(git_info),
     "passed_test_count": passed,
     "total_test_count": total
   }

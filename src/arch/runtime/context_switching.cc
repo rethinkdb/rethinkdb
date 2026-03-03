@@ -264,6 +264,8 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     // The ARM64 ABI requires the stack pointer to always be 16-byte-aligned at
     // all registers.
     const size_t min_frame = 1;
+#elif defined(__riscv)
+    const size_t min_frame = 1;
 #elif defined(__powerpc64__)
     const size_t min_frame = 4;
 #endif
@@ -292,6 +294,8 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     sp -= 8; // r4-r11.
 #elif defined(__arm64__) || defined(__aarch64__)
     sp -= 20; // d8-d15 + x19-x30 + x30
+#elif defined(__riscv)
+    sp -= 12; // s0-s11
 #elif defined(__s390x__)
     sp -= 16; // r6-r13 and f8-f15.
 #elif defined (__powerpc64__)
@@ -457,7 +461,7 @@ void context_switch(artificial_stack_context_ref_t *current_context_out, artific
 }
 
 asm(
-#if defined(__i386__) || defined(__x86_64__) || defined(__arm__) || defined(__arm64__) || defined(__aarch64__) || defined (__s390x__) || defined (__powerpc64__)
+#if defined(__i386__) || defined(__x86_64__) || defined(__arm__) || defined(__arm64__) || defined(__aarch64__) || defined (__riscv) || defined (__s390x__) || defined (__powerpc64__)
 // We keep architecture-specific code interleaved in order to enforce commonality.
 #if defined(__x86_64__)
 #if defined(__LP64__) || defined(__LLP64__)
@@ -476,6 +480,8 @@ asm(
     /* `current_pointer_out` is in `%rdi`. `dest_pointer` is in `%rsi`. */
 #elif defined(__arm__)
     /* `current_pointer_out` is in `r0`. `dest_pointer` is in `r1` */
+#elif defined(__riscv)
+    /* `current_pointer_out` is in `a0`. `dest_pointer` is in `a1` */
 #elif defined(__s390x_)
     /* `current_pointer_out` is in `%r2`. `dest_pointer` is in `%r3`. */
 #elif defined(__powerpc64__)
@@ -518,6 +524,22 @@ asm(
     "stp x27, x28, [sp, #0x80]\n"
     "stp x29, x30, [sp, #0x90]\n"
     "str x30, [sp, #0xa0]\n"
+#elif defined(__riscv)
+    // Preserve s0-s11 and the return address (ra).
+    "addi sp, sp, -112\n"
+    "sd s0, 0(sp)\n"
+    "sd s1, 8(sp)\n"
+    "sd s2, 16(sp)\n"
+    "sd s3, 24(sp)\n"
+    "sd s4, 32(sp)\n"
+    "sd s5, 40(sp)\n"
+    "sd s6, 48(sp)\n"
+    "sd s7, 56(sp)\n"
+    "sd s8, 64(sp)\n"
+    "sd s9, 72(sp)\n"
+    "sd s10, 80(sp)\n"
+    "sd s11, 88(sp)\n"
+    "sd ra, 96(sp)\n"
 #elif defined(__s390x__)
     // Preserve r6-r13, the return address (r14), and f8-f15.
     "aghi %r15, -136\n"
@@ -573,6 +595,9 @@ asm(
     /* On ARM64, the first argument is in `x0`. `sp` is the stack pointer and `x4` is a scratch register. */
     "mov x4, sp\n"
     "str x4, [x0]\n"
+#elif defined(__riscv)
+    /*On riscv64, the first argument is in `a0`. `sp` is the stack pointer. */
+    "sd sp, 0(a0)\n"
 #elif defined(__s390x__)
     /* On s390x, the first argument is in r2. r15 is the stack pointer. */
     "stg %r15, 0(%r2)\n"
@@ -595,6 +620,9 @@ asm(
 #elif defined(__arm64__) || defined(__aarch64__)
     /* On ARM64, the second argument is in `x1` */
     "mov sp, x1\n"
+#elif defined(__riscv)
+    /* On riscv64, the second argument is in `a1` */
+    "mv sp, a1\n"
 #elif defined(__s390x__)
     /* On s390x, the second argument is in r3 */
     "lgr %r15, %r3\n"
@@ -631,6 +659,21 @@ asm(
     "ldp x29, x30, [sp, #0x90]\n"
     "ldr x4, [sp, #0xa0]\n"
     "add sp, sp, #0xb0\n"
+#elif defined(__riscv)
+    "ld s0, 0(sp)\n"
+    "ld s1, 8(sp)\n"
+    "ld s2, 16(sp)\n"
+    "ld s3, 24(sp)\n"
+    "ld s4, 32(sp)\n"
+    "ld s5, 40(sp)\n"
+    "ld s6, 48(sp)\n"
+    "ld s7, 56(sp)\n"
+    "ld s8, 64(sp)\n"
+    "ld s9, 72(sp)\n"
+    "ld s10, 80(sp)\n"
+    "ld s11, 88(sp)\n"
+    "ld ra, 96(sp)\n"
+    "addi sp, sp, 112\n"
 #elif defined(__s390x__)
     "lmg %r6, %r14, 64(%r15)\n"
     "ld %f8, 0(%r15)\n"
@@ -683,6 +726,9 @@ asm(
     /* Above, we stored the `x30` the return address in a variable register `x4` so the ret instruction will
     return it to jump. */
     "ret x4\n"
+#elif defined(__riscv)
+    /* Above, we poped the return address (ra) off the stack */
+    "ret\n"
 #elif defined(__s390x__)
     /* Above, we popped the return address (r14) off the stack. */
     "br %r14\n"

@@ -184,10 +184,10 @@ def htmlsafe_dumps(obj, **kwargs):
        filter.  Alternatively use ``|tojson|forceescape``.
     """
     rv = dumps(obj, **kwargs) \
-        .replace(u'<', u'\\u003c') \
-        .replace(u'>', u'\\u003e') \
-        .replace(u'&', u'\\u0026') \
-        .replace(u"'", u'\\u0027')
+        .replace('<', '\\u003c') \
+        .replace('>', '\\u003e') \
+        .replace('&', '\\u0026') \
+        .replace("'", '\\u0027')
     if not _slash_escape:
         rv = rv.replace('\\/', '/')
     return rv
@@ -195,7 +195,7 @@ def htmlsafe_dumps(obj, **kwargs):
 
 def htmlsafe_dump(obj, fp, **kwargs):
     """Like :func:`htmlsafe_dumps` but writes into a file object."""
-    fp.write(unicode(htmlsafe_dumps(obj, **kwargs)))
+    fp.write(str(htmlsafe_dumps(obj, **kwargs)))
 
 
 def jsonify(*args, **kwargs):

@@ -9,7 +9,7 @@
     :license: BSD, see LICENSE for more details.
 """
 
-from __future__ import with_statement
+
 
 import unittest
 from datetime import datetime
@@ -28,12 +28,12 @@ from werkzeug._compat import text_type, implements_iterator
 class GeneralUtilityTestCase(WerkzeugTestCase):
 
     def test_redirect(self):
-        resp = utils.redirect(u'/füübär')
+        resp = utils.redirect('/füübär')
         self.assert_in(b'/f%C3%BC%C3%BCb%C3%A4r', resp.get_data())
         self.assert_equal(resp.headers['Location'], '/f%C3%BC%C3%BCb%C3%A4r')
         self.assert_equal(resp.status_code, 302)
 
-        resp = utils.redirect(u'http://☃.net/', 307)
+        resp = utils.redirect('http://☃.net/', 307)
         self.assert_in(b'http://xn--n3h.net/', resp.get_data())
         self.assert_equal(resp.headers['Location'], 'http://xn--n3h.net/')
         self.assert_equal(resp.status_code, 307)
@@ -46,7 +46,7 @@ class GeneralUtilityTestCase(WerkzeugTestCase):
         # Make sure all headers are native keys.  This was a bug at one point
         # due to an incorrect conversion.
         resp = utils.redirect('http://example.com/', 305)
-        for key, value in resp.headers.items():
+        for key, value in list(resp.headers.items()):
             self.assert_equal(type(key), str)
             self.assert_equal(type(value), text_type)
         self.assert_equal(resp.headers['Location'], 'http://example.com/')
@@ -125,7 +125,7 @@ class GeneralUtilityTestCase(WerkzeugTestCase):
         self.assert_equal(utils.escape(Foo('<foo>')), '<foo>')
 
     def test_unescape(self):
-        self.assert_equal(utils.unescape('&lt;&auml;&gt;'), u'<ä>')
+        self.assert_equal(utils.unescape('&lt;&auml;&gt;'), '<ä>')
 
     def test_run_wsgi_app(self):
         def foo(environ, start_response):
@@ -176,12 +176,12 @@ class GeneralUtilityTestCase(WerkzeugTestCase):
         import cgi
         from werkzeug.debug import DebuggedApplication
         self.assert_is(utils.import_string('cgi.escape'), cgi.escape)
-        self.assert_is(utils.import_string(u'cgi.escape'), cgi.escape)
+        self.assert_is(utils.import_string('cgi.escape'), cgi.escape)
         self.assert_is(utils.import_string('cgi:escape'), cgi.escape)
         self.assert_is_none(utils.import_string('XXXXXXXXXXXX', True))
         self.assert_is_none(utils.import_string('cgi.XXXXXXXXXXXX', True))
-        self.assert_is(utils.import_string(u'cgi.escape'), cgi.escape)
-        self.assert_is(utils.import_string(u'werkzeug.debug.DebuggedApplication'), DebuggedApplication)
+        self.assert_is(utils.import_string('cgi.escape'), cgi.escape)
+        self.assert_is(utils.import_string('werkzeug.debug.DebuggedApplication'), DebuggedApplication)
         self.assert_raises(ImportError, utils.import_string, 'XXXXXXXXXXXXXXXX')
         self.assert_raises(ImportError, utils.import_string, 'cgi.XXXXXXXXXX')
 
@@ -274,7 +274,7 @@ class GeneralUtilityTestCase(WerkzeugTestCase):
                           'My_cool_movie.mov')
         self.assert_equal(utils.secure_filename('../../../etc/passwd'),
                           'etc_passwd')
-        self.assert_equal(utils.secure_filename(u'i contain cool \xfcml\xe4uts.txt'),
+        self.assert_equal(utils.secure_filename('i contain cool \xfcml\xe4uts.txt'),
                           'i_contain_cool_umlauts.txt')
 
 

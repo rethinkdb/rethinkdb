@@ -42,4 +42,4 @@ private:
     DISABLE_COPYING(one_waiter_cond_t);
 };
 
-#endif /* CONCURRENCY_COND_VAR_HPP_ */
+#endif // CONCURRENCY_COND_VAR_HPP_

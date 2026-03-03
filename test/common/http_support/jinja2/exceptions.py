@@ -28,7 +28,7 @@ class TemplateError(Exception):
                     return message.decode('utf-8', 'replace')
 
         def __unicode__(self):
-            return self.message or u''
+            return self.message or ''
     else:
         def __init__(self, message=None):
             Exception.__init__(self, message)
@@ -71,8 +71,8 @@ class TemplatesNotFound(TemplateNotFound):
 
     def __init__(self, names=(), message=None):
         if message is None:
-            message = u'none of the templates given were found: ' + \
-                      u', '.join(imap(text_type, names))
+            message = 'none of the templates given were found: ' + \
+                      ', '.join(map(text_type, names))
         TemplateNotFound.__init__(self, names and names[-1] or None, message)
         self.templates = list(names)
 
@@ -113,7 +113,7 @@ class TemplateSyntaxError(TemplateError):
             if line:
                 lines.append('    ' + line.strip())
 
-        return u'\n'.join(lines)
+        return '\n'.join(lines)
 
 
 class TemplateAssertionError(TemplateSyntaxError):

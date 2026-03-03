@@ -90,5 +90,5 @@ cpu_contracts_t quick_contract_temp_voters_hand_over(
 
 } /* namespace unittest */
 
-#endif /* UNITTEST_CLUSTERING_CONTRACT_UTILS_HPP_ */
+#endif // UNITTEST_CLUSTERING_CONTRACT_UTILS_HPP_
 

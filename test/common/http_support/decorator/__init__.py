@@ -1,1 +1,1 @@
-from decorator import *
+from .decorator import *

@@ -46,5 +46,5 @@ archive_result_t deserialize_universal(read_stream_t *s, peer_id_t *peer_id);
 
 void debug_print(printf_buffer_t *buf, const peer_id_t &peer_id);
 
-#endif /* RPC_CONNECTIVITY_PEER_ID_HPP_ */
+#endif // RPC_CONNECTIVITY_PEER_ID_HPP_
 

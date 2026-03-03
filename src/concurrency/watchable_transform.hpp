@@ -251,5 +251,5 @@ private:
 
 #include "concurrency/watchable_transform.tcc"
 
-#endif /* CONCURRENCY_WATCHABLE_TRANSFORM_HPP_ */
+#endif // CONCURRENCY_WATCHABLE_TRANSFORM_HPP_
 

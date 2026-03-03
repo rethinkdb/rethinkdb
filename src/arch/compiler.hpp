@@ -35,4 +35,4 @@
 
 #endif
 
-#endif
+#endif  // ARCH_COMPILER_HPP_

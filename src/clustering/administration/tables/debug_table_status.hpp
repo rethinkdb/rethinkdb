@@ -44,5 +44,5 @@ private:
                 auth::permission_error_t);
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_TABLES_DEBUG_TABLE_STATUS_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_TABLES_DEBUG_TABLE_STATUS_HPP_
 

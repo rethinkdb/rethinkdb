@@ -53,5 +53,5 @@ metadata_file_t::key_t<raft_log_entry_t<table_raft_state_t> >
 metadata_file_t::key_t<branch_birth_certificate_t>
     mdprefix_branch_birth_certificate();
 
-#endif /* CLUSTERING_ADMINISTRATION_PERSIST_FILE_KEYS_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_PERSIST_FILE_KEYS_HPP_
 

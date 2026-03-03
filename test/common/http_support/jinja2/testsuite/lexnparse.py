@@ -82,15 +82,15 @@ class LexerTestCase(JinjaTestCase):
                                              "<li>1</li>\n  <li>2</li>\n</ul>")
 
     def test_string_escapes(self):
-        for char in u'\0', u'\u2668', u'\xe4', u'\t', u'\r', u'\n':
+        for char in '\0', '\u2668', '\xe4', '\t', '\r', '\n':
             tmpl = env.from_string('{{ %s }}' % jinja_string_repr(char))
             assert tmpl.render() == char
-        assert env.from_string('{{ "\N{HOT SPRINGS}" }}').render() == u'\u2668'
+        assert env.from_string('{{ "\N{HOT SPRINGS}" }}').render() == '\u2668'
 
     def test_bytefallback(self):
         from pprint import pformat
-        tmpl = env.from_string(u'''{{ 'foo'|pprint }}|{{ 'bär'|pprint }}''')
-        assert tmpl.render() == pformat('foo') + '|' + pformat(u'bär')
+        tmpl = env.from_string('''{{ 'foo'|pprint }}|{{ 'bär'|pprint }}''')
+        assert tmpl.render() == pformat('foo') + '|' + pformat('bär')
 
     def test_operators(self):
         from jinja2.lexer import operators
@@ -374,7 +374,7 @@ class SyntaxTestCase(JinjaTestCase):
         assert tmpl.render() == 'foobarbaz'
 
     def test_notin(self):
-        bar = range(100)
+        bar = list(range(100))
         tmpl = env.from_string('''{{ not 42 in bar }}''')
         assert tmpl.render(bar=bar) == text_type(not 42 in bar)
 
@@ -383,7 +383,7 @@ class SyntaxTestCase(JinjaTestCase):
             def __getitem__(self, x):
                 return x
         t = env.from_string('{{ foo[1, 2] }}')
-        assert t.render(foo=Foo()) == u'(1, 2)'
+        assert t.render(foo=Foo()) == '(1, 2)'
 
     def test_raw2(self):
         tmpl = env.from_string('{% raw %}{{ FOO }} and {% BAR %}{% endraw %}')
@@ -493,7 +493,7 @@ hello
     <% for item in seq %>
 ${item} ## the rest of the stuff
    <% endfor %>''')
-        assert tmpl.render(seq=range(5)) == \
+        assert tmpl.render(seq=list(range(5))) == \
                 ''.join('%s\n' % x for x in range(5))
         
     def test_lstrip_angle_bracket_compact(self):
@@ -504,7 +504,7 @@ ${item} ## the rest of the stuff
     <%for item in seq%>
 ${item} ## the rest of the stuff
    <%endfor%>''')
-        assert tmpl.render(seq=range(5)) == \
+        assert tmpl.render(seq=list(range(5))) == \
                 ''.join('%s\n' % x for x in range(5))
         
     def test_php_syntax_with_manual(self):
@@ -515,7 +515,7 @@ ${item} ## the rest of the stuff
     <? for item in seq -?>
         <?= item ?>
     <?- endfor ?>''')
-        assert tmpl.render(seq=range(5)) == '01234'
+        assert tmpl.render(seq=list(range(5))) == '01234'
 
     def test_php_syntax(self):
         env = Environment('<?', '?>', '<?=', '?>', '<!--', '-->',
@@ -525,7 +525,7 @@ ${item} ## the rest of the stuff
     <? for item in seq ?>
         <?= item ?>
     <? endfor ?>''')
-        assert tmpl.render(seq=range(5)) == ''.join('        %s\n' % x for x in range(5))
+        assert tmpl.render(seq=list(range(5))) == ''.join('        %s\n' % x for x in range(5))
 
     def test_php_syntax_compact(self):
         env = Environment('<?', '?>', '<?=', '?>', '<!--', '-->',
@@ -535,7 +535,7 @@ ${item} ## the rest of the stuff
     <?for item in seq?>
         <?=item?>
     <?endfor?>''')
-        assert tmpl.render(seq=range(5)) == ''.join('        %s\n' % x for x in range(5))
+        assert tmpl.render(seq=list(range(5))) == ''.join('        %s\n' % x for x in range(5))
 
     def test_erb_syntax(self):
         env = Environment('<%', '%>', '<%=', '%>', '<%#', '%>',
@@ -551,7 +551,7 @@ ${item} ## the rest of the stuff
     <%= item %>
     <% endfor %>
 ''')
-        assert tmpl.render(seq=range(5)) == ''.join('    %s\n' % x for x in range(5))
+        assert tmpl.render(seq=list(range(5))) == ''.join('    %s\n' % x for x in range(5))
 
     def test_erb_syntax_with_manual(self):
         env = Environment('<%', '%>', '<%=', '%>', '<%#', '%>',
@@ -561,7 +561,7 @@ ${item} ## the rest of the stuff
     <% for item in seq -%>
         <%= item %>
     <%- endfor %>''')
-        assert tmpl.render(seq=range(5)) == '01234'
+        assert tmpl.render(seq=list(range(5))) == '01234'
 
     def test_erb_syntax_no_lstrip(self):
         env = Environment('<%', '%>', '<%=', '%>', '<%#', '%>',
@@ -571,7 +571,7 @@ ${item} ## the rest of the stuff
     <%+ for item in seq -%>
         <%= item %>
     <%- endfor %>''')
-        assert tmpl.render(seq=range(5)) == '    01234'
+        assert tmpl.render(seq=list(range(5))) == '    01234'
 
     def test_comment_syntax(self):
         env = Environment('<!--', '-->', '${', '}', '<!--#', '-->',
@@ -581,7 +581,7 @@ ${item} ## the rest of the stuff
 <!-- for item in seq --->
     ${item}
 <!--- endfor -->''')
-        assert tmpl.render(seq=range(5)) == '01234'
+        assert tmpl.render(seq=list(range(5))) == '01234'
 
 def suite():
     suite = unittest.TestSuite()

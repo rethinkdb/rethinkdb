@@ -1,7 +1,7 @@
 
 version=1.60.0
 
-src_url=http://sourceforge.net/projects/boost/files/boost/${version}/boost_${version//./_}.tar.bz2
+src_url=https://archives.boost.io/release/${version}/source/boost_${version//./_}.tar.bz2
 src_url_sha256=686affff989ac2488f79a97b9479efb9f2abae035b5ed4d8226de6857933fd3b
 
 pkg_install-include () {

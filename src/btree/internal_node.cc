@@ -374,7 +374,12 @@ btree_internal_pair *get_pair_by_index(internal_node_t *node, int index) {
 }
 
 int get_offset_index(const internal_node_t *node, const btree_key_t *key) {
-    return std::lower_bound(node->pair_offsets, node->pair_offsets+node->npairs-1, (uint16_t) internal_key_comp::faux_offset, internal_key_comp(node, key)) - node->pair_offsets;
+    return std::lower_bound(
+        node->pair_offsets, 
+        node->pair_offsets + node->npairs - 1, 
+        static_cast<uint16_t>(internal_key_comp::faux_offset), 
+        internal_key_comp(node, key)
+    ) - node->pair_offsets;
 }
 
 int nodecmp(const internal_node_t *node1, const internal_node_t *node2) {

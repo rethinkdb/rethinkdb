@@ -30,5 +30,5 @@ private:
         region_t, backfill_progress_tracker_t::progress_tracker_t> > progress_trackers;
 };
 
-#endif /* CLUSTERING_TABLE_MANAGER_BACKFILL_PROGRESS_TRACKER_HPP_ */
+#endif // CLUSTERING_TABLE_MANAGER_BACKFILL_PROGRESS_TRACKER_HPP_
 

@@ -61,5 +61,4 @@ private:
 
 } // namespace ql
 
-#endif
-// RDB_PROTOCOL_ORDER_UTIL_HPP_
+#endif // RDB_PROTOCOL_ORDER_UTIL_HPP_

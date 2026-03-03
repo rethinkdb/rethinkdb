@@ -71,5 +71,5 @@ private:
     scoped_ptr_t<primary_dispatcher_t::dispatchee_registration_t> registration;
 };
 
-#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_LOCAL_REPLICA_HPP_ */
+#endif // CLUSTERING_IMMEDIATE_CONSISTENCY_LOCAL_REPLICATOR_HPP_
 

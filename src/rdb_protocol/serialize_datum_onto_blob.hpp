@@ -41,4 +41,4 @@ inline void datum_deserialize_from_blob(buf_parent_t parent, blob_t *blob,
 }
 
 
-#endif /* RDB_PROTOCOL_SERIALIZE_DATUM_ONTO_BLOB_HPP_ */
+#endif // RDB_PROTOCOL_SERIALIZE_DATUM_ONTO_BLOB_HPP_

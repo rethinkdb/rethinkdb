@@ -102,5 +102,5 @@ public:
     }
 };
 
-#endif /* CONCURRENCY_CORO_POOL_HPP_ */
+#endif // CONCURRENCY_CORO_POOL_HPP_
 

@@ -523,5 +523,5 @@ private:
     DISABLE_COPYING(rdb_context_t);
 };
 
-#endif /* RDB_PROTOCOL_CONTEXT_HPP_ */
+#endif // RDB_PROTOCOL_CONTEXT_HPP_
 

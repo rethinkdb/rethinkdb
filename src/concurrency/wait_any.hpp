@@ -45,4 +45,4 @@ private:
     DISABLE_COPYING(wait_any_t);
 };
 
-#endif /* CONCURRENCY_WAIT_ANY_HPP_ */
+#endif // CONCURRENCY_WAIT_ANY_HPP_

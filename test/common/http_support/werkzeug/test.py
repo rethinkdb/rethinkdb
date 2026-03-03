@@ -17,13 +17,13 @@ from tempfile import TemporaryFile
 from io import BytesIO
 
 try:
-    from urllib2 import Request as U2Request
+    from urllib.request import Request as U2Request
 except ImportError:
     from urllib.request import Request as U2Request
 try:
-    from http.cookiejar import CookieJar
+    from .http.cookiejar import CookieJar
 except ImportError: # Py2
-    from cookielib import CookieJar
+    from http.cookiejar import CookieJar
 
 from werkzeug._compat import iterlists, iteritems, itervalues, to_bytes, \
      string_types, text_type, reraise, wsgi_encoding_dance, \

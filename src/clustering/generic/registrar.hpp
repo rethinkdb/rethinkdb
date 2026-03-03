@@ -191,4 +191,4 @@ private:
     DISABLE_COPYING(registrar_t);
 };
 
-#endif /* CLUSTERING_GENERIC_REGISTRAR_HPP_ */
+#endif // CLUSTERING_GENERIC_REGISTRAR_HPP_

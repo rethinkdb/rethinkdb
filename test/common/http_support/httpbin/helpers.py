@@ -15,7 +15,7 @@ from werkzeug.http import parse_authorization_header
 from flask import request, make_response
 
 try:
-    from urlparse import urlparse, urlunparse
+    from urllib.parse import urlparse, urlunparse
 except ImportError:
     from urllib.parse import urlparse, urlunparse
 
@@ -98,7 +98,7 @@ def get_files():
 
     files = dict()
 
-    for k, v in request.files.items():
+    for k, v in list(request.files.items()):
         content_type = request.files[k].content_type or 'application/octet-stream'
         val = json_safe(v.read(), content_type)
         if files.get(k):
@@ -114,7 +114,7 @@ def get_files():
 def get_headers(hide_env=True):
     """Returns headers dict from request context."""
 
-    headers = dict(request.headers.items())
+    headers = dict(list(request.headers.items()))
 
     if hide_env and ('show_env' not in request.args):
         for key in ENV_HEADERS:
@@ -123,7 +123,7 @@ def get_headers(hide_env=True):
             except KeyError:
                 pass
 
-    return CaseInsensitiveDict(headers.items())
+    return CaseInsensitiveDict(list(headers.items()))
 
 
 def semiflatten(multi):
@@ -132,7 +132,7 @@ def semiflatten(multi):
     will have the plain value."""
     if multi:
         result = multi.to_dict(flat=False)
-        for k, v in result.items():
+        for k, v in list(result.items()):
             if len(v) == 1:
                 result[k] = v[0]
         return result
@@ -252,7 +252,7 @@ def HA1(realm, username, password):
     HA1 = md5(A1) = MD5(username:realm:password)
     """
     if not realm:
-        realm = u''
+        realm = ''
     return H(b":".join([username.encode('utf-8'),
                            realm.encode('utf-8'),
                            password.encode('utf-8')]))

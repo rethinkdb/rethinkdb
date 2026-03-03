@@ -106,5 +106,5 @@ private:
     repeating_timer_t remove_machinery_timer;
 };
 
-#endif /* RDB_PROTOCOL_ARTIFICIAL_TABLE_CFEED_BACKEND_HPP_ */
+#endif // RDB_PROTOCOL_ARTIFICIAL_TABLE_CFEED_BACKEND_HPP_
 

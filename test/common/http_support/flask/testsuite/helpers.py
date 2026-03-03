@@ -46,9 +46,9 @@ class JSONTestCase(FlaskTestCase):
             return flask.request.get_json()
 
         c = app.test_client()
-        resp = c.get('/', data=u'"Hällo Wörld"'.encode('iso-8859-15'),
+        resp = c.get('/', data='"Hällo Wörld"'.encode('iso-8859-15'),
                      content_type='application/json; charset=iso-8859-15')
-        self.assert_equal(resp.data, u'Hällo Wörld'.encode('utf-8'))
+        self.assert_equal(resp.data, 'Hällo Wörld'.encode('utf-8'))
 
     def test_jsonify(self):
         d = dict(a=23, b=42, c=[1, 2, 3])
@@ -70,13 +70,13 @@ class JSONTestCase(FlaskTestCase):
 
         app.config['JSON_AS_ASCII'] = True
         with app.app_context():
-            rv = flask.json.dumps(u'\N{SNOWMAN}')
+            rv = flask.json.dumps('\N{SNOWMAN}')
             self.assert_equal(rv, '"\\u2603"')
 
         app.config['JSON_AS_ASCII'] = False
         with app.app_context():
-            rv = flask.json.dumps(u'\N{SNOWMAN}')
-            self.assert_equal(rv, u'"\u2603"')
+            rv = flask.json.dumps('\N{SNOWMAN}')
+            self.assert_equal(rv, '"\u2603"')
 
     def test_json_attr(self):
         app = flask.Flask(__name__)
@@ -94,7 +94,7 @@ class JSONTestCase(FlaskTestCase):
         render = flask.render_template_string
         with app.test_request_context():
             rv = flask.json.htmlsafe_dumps('</script>')
-            self.assert_equal(rv, u'"\\u003c/script\\u003e"')
+            self.assert_equal(rv, '"\\u003c/script\\u003e"')
             self.assert_equal(type(rv), text_type)
             rv = render('{{ "</script>"|tojson }}')
             self.assert_equal(rv, '"\\u003c/script\\u003e"')
@@ -153,9 +153,9 @@ class JSONTestCase(FlaskTestCase):
         def index():
             return flask.request.args['foo']
 
-        rv = app.test_client().get(u'/?foo=정상처리'.encode('euc-kr'))
+        rv = app.test_client().get('/?foo=정상처리'.encode('euc-kr'))
         self.assert_equal(rv.status_code, 200)
-        self.assert_equal(rv.data, u'정상처리'.encode('utf-8'))
+        self.assert_equal(rv.data, '정상처리'.encode('utf-8'))
 
     if not has_encoding('euc-kr'):
         test_modified_url_encoding = None
@@ -164,7 +164,7 @@ class JSONTestCase(FlaskTestCase):
         app = flask.Flask(__name__)
         app.testing = True
         self.assert_equal(app.config['JSON_SORT_KEYS'], True)
-        d = dict.fromkeys(range(20), 'foo')
+        d = dict.fromkeys(list(range(20)), 'foo')
 
         @app.route('/')
         def index():

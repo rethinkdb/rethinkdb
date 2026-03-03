@@ -59,5 +59,5 @@ archive_result_t deserialize_universal(read_stream_t *s, server_id_t *server_id)
 
 void debug_print(printf_buffer_t *buf, const server_id_t &server_id);
 
-#endif /* RPC_CONNECTIVITY_SERVER_ID_HPP_ */
+#endif // RPC_CONNECTIVITY_SERVER_ID_HPP_
 

@@ -103,5 +103,5 @@ private:
     std::map<std::string, doc_t *> docs;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_CLUSTER_CONFIG_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_CLUSTER_CONFIG_HPP_
 

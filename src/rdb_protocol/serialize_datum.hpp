@@ -104,4 +104,4 @@ archive_result_t deserialize(read_stream_t *s, datum_t *datum) {
 // that would be appropriate for the bits in the pair offsets array, which is a
 // relatively scarce resource.
 
-#endif /* RDB_PROTOCOL_SERIALIZE_DATUM_HPP_ */
+#endif // RDB_PROTOCOL_SERIALIZE_DATUM_HPP_

@@ -29,9 +29,9 @@ def load_files(file1, file2):
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print """
+        print("""
         Usage: python comparison.py <file1> <file2>
         Where file1 and file2 are the names of the files in results/ and file1 is the recent results
-        """
+        """)
     else:
         load_files(sys.argv[1], sys.argv[2])

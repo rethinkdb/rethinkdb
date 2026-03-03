@@ -180,5 +180,4 @@ private:
     scoped_ptr_t<registrant_t<remote_replicator_client_bcard_t> > registrant_;
 };
 
-#endif /* CLUSTERING_IMMEDIATE_CONSISTENCY_REMOTE_REPLICATOR_HPP_ */
-
+#endif  // CLUSTERING_IMMEDIATE_CONSISTENCY_REMOTE_REPLICATOR_CLIENT_HPP_

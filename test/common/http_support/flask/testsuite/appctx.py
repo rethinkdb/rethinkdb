@@ -89,7 +89,7 @@ class AppContextTestCase(FlaskTestCase):
                     pass
             self.assert_true(flask._request_ctx_stack.top.request.environ
                 ['werkzeug.request'] is not None)
-            return u''
+            return ''
         c = app.test_client()
         c.get('/')
         self.assertEqual(called, ['request', 'app'])

@@ -128,5 +128,5 @@ extern bool cJSON_Equal(cJSON *x, cJSON *y);
 }
 #endif
 
-#endif /* CJSON_CJSON_HPP_ */
+#endif // CJSON_CJSON_HPP_
 

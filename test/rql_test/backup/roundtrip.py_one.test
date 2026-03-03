@@ -135,7 +135,7 @@ class BackupRoundtrip(BackupTesting):
                             }
                         ]
                     },
-                    'binary':    self.r.binary(bytes(bytearray(random.getrandbits(8) for _ in xrange(10)))),
+                    'binary':    self.r.binary(bytes(bytearray(random.getrandbits(8) for _ in range(10)))),
                     'time':      self.r.time(
                                     random.randint(1400, 9999),
                                     random.randint(1, 12),

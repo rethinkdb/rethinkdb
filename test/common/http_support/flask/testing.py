@@ -17,7 +17,7 @@ from flask import _request_ctx_stack
 try:
     from werkzeug.urls import url_parse
 except ImportError:
-    from urlparse import urlsplit as url_parse
+    from urllib.parse import urlsplit as url_parse
 
 
 def make_test_environ_builder(app, path='/', base_url=None, *args, **kwargs):

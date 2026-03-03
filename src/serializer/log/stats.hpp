@@ -43,4 +43,4 @@ struct log_serializer_stats_t {
     perfmon_multi_membership_t stats_membership;
 };
 
-#endif /* SERIALIZER_LOG_STATS_HPP_ */
+#endif // SERIALIZER_LOG_STATS_HPP_

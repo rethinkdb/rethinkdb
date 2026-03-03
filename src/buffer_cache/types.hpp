@@ -39,4 +39,4 @@ struct block_magic_t {
 
 void debug_print(printf_buffer_t *buf, block_magic_t magic);
 
-#endif /* BUFFER_CACHE_TYPES_HPP_ */
+#endif // BUFFER_CACHE_TYPES_HPP_

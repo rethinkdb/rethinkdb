@@ -366,5 +366,5 @@ protected:
     virtual ~table_persistence_interface_t() { }
 };
 
-#endif /* CLUSTERING_TABLE_MANAGER_TABLE_METADATA_HPP_ */
+#endif // CLUSTERING_TABLE_MANAGER_TABLE_METADATA_HPP_
 

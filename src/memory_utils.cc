@@ -23,7 +23,7 @@ void *raw_malloc_aligned(size_t size, size_t alignment) {
         crash_oom();
     }
 #else
-    int res = posix_memalign(&ptr, alignment, size);  // NOLINT(runtime/rethinkdb_fn)
+    int res = posix_memalign(&ptr, alignment, size);
     if (res != 0) {
         if (res == EINVAL) {
             crash_or_trap("posix_memalign with bad alignment: %zu.", alignment);
@@ -52,7 +52,7 @@ void raw_free_aligned(void *ptr) {
 }
 
 void *rmalloc(size_t size) {
-    void *res = malloc(size);  // NOLINT(runtime/rethinkdb_fn)
+    void *res = malloc(size);
     if (UNLIKELY(res == nullptr && size != 0)) {
         crash_oom();
     }
@@ -60,7 +60,7 @@ void *rmalloc(size_t size) {
 }
 
 void *rrealloc(void *ptr, size_t size) {
-    void *res = realloc(ptr, size);  // NOLINT(runtime/rethinkdb_fn)
+    void *res = realloc(ptr, size);
     if (UNLIKELY(res == nullptr && size != 0)) {
         crash_oom();
     }

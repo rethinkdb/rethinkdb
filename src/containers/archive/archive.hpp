@@ -166,7 +166,7 @@ struct serialize_universal_size_t;
         if (res == -1) {                                                \
             return archive_result_t::SOCK_ERROR;                        \
         }                                                               \
-        if (res < int64_t(sizeof(typ2))) {                              \
+        if (res < static_cast<int64_t>(sizeof(typ2))) {                              \
             return archive_result_t::SOCK_EOF;                          \
         }                                                               \
         if (u.v < typ2(lo) || u.v > typ2(hi)) {                         \
@@ -207,7 +207,7 @@ struct serialize_universal_size_t;
             *x = valgrind_undefined<typ>(0);                            \
             return archive_result_t::SOCK_ERROR;                        \
         }                                                               \
-        if (res < int64_t(sizeof(typ))) {                               \
+        if (res < static_cast<int64_t>(sizeof(typ))) {                               \
             *x = valgrind_undefined<typ>(0);                            \
             return archive_result_t::SOCK_EOF;                          \
         }                                                               \

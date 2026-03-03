@@ -21,7 +21,7 @@ def populate_table(conn):
     assert res["tables_created"] == 1
     next_id = 0
     while next_id < num_rows:
-        batch = [{'id':next_id + i, 'data': r.random(1, 100)} for i in xrange(min(1000, num_rows - next_id))]
+        batch = [{'id':next_id + i, 'data': r.random(1, 100)} for i in range(min(1000, num_rows - next_id))]
         next_id += len(batch)
         r.db(dbName).table(tableName).insert(batch).run(conn)
 
@@ -34,7 +34,7 @@ def replace_rows(host, port, ready_event, start_event):
     ready_event.set()
     start_event.wait()
     try:
-        for i in xrange(num_rows // 2):
+        for i in range(num_rows // 2):
             r.db(dbName).table(tableName).get(i).update({'data': r.random(1, 100)}, non_atomic=True).run(conn)
     except Exception as ex:
         if ex.message != "Connection is closed." and ex.message != "Connection is broken.":
@@ -47,7 +47,7 @@ def delete_rows(host, port, ready_event, start_event):
     ready_event.set()
     start_event.wait()
     try:
-        for i in xrange(num_rows // 2, num_rows):
+        for i in range(num_rows // 2, num_rows):
             r.db(dbName).table(tableName).get(i).delete().run(conn)
     except Exception as ex:
         if ex.message != "Connection is closed." and ex.message != "Connection is broken.":
@@ -116,8 +116,8 @@ with driver.Process(name='.', command_prefix=command_prefix, extra_options=serve
     
     if len(rows) != pkey_count or pkey_count != sindex_count:
         utils.print_with_time("ERROR: inconsistent row counts between the primary and secondary indexes.")
-        print("  primary - %d" % pkey_count)
-        print("  secondary - %d (%d)" % (sindex_count, len(rows)))
+        print(("  primary - %d" % pkey_count))
+        print(("  secondary - %d (%d)" % (sindex_count, len(rows))))
     
     conn.close()
 

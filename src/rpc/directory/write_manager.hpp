@@ -57,4 +57,4 @@ private:
     DISABLE_COPYING(directory_write_manager_t);
 };
 
-#endif /* RPC_DIRECTORY_WRITE_MANAGER_HPP_ */
+#endif // RPC_DIRECTORY_WRITE_MANAGER_HPP_

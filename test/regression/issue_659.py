@@ -3,7 +3,7 @@
 
 '''Lowering the number of replicas results in strange behavior'''
 
-from __future__ import print_function
+
 
 import os, sys, time
 
@@ -71,7 +71,7 @@ class ReplicaChangeRegrssion(rdb_unittest.RdbTestCase):
                     .count() \
                     .run(self.conn) == 1, "No backfill job found in `rethinkdb.jobs`."
                 break
-            except Exception, e:
+            except Exception as e:
                 last_error = e
             time.sleep(0.02)
         else:

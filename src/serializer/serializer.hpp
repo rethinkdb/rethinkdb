@@ -128,4 +128,4 @@ private:
 };
 
 
-#endif /* SERIALIZER_SERIALIZER_HPP_ */
+#endif // SERIALIZER_SERIALIZER_HPP_

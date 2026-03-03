@@ -70,4 +70,4 @@ private:
     DISABLE_COPYING(repeating_timer_t);
 };
 
-#endif /* ARCH_TIMING_HPP_ */
+#endif // ARCH_TIMING_HPP_

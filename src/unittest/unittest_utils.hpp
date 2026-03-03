@@ -94,4 +94,4 @@ std::string encode_le32(uint32_t x);
     }                                                                   \
     TPTEST(group, name)
 
-#endif /* UNITTEST_UNITTEST_UTILS_HPP_ */
+#endif // UNITTEST_UNITTEST_UTILS_HPP_

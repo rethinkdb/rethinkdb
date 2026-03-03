@@ -174,4 +174,4 @@ RDB_DECLARE_SERIALIZABLE(jobs_manager_business_card_t);
 
 #include "clustering/administration/jobs/report.tcc"
 
-#endif /* CLUSTERING_ADMINISTRATION_JOBS_REPORT_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_JOBS_REPORT_HPP_

@@ -187,5 +187,5 @@ private:
     watchable_subscription_t<bool> raft_readiness_subs;
 };
 
-#endif /* CLUSTERING_TABLE_MANAGER_TABLE_MANAGER_HPP_ */
+#endif // CLUSTERING_TABLE_MANAGER_TABLE_MANAGER_HPP_
 

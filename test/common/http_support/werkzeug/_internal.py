@@ -28,7 +28,7 @@ _cookie_params = set((b'expires', b'path', b'comment',
                       b'version'))
 _legal_cookie_chars = (string.ascii_letters +
                        string.digits +
-                       u"!#$%&'*+-.^_`|~:").encode('ascii')
+                       "!#$%&'*+-.^_`|~:").encode('ascii')
 
 _cookie_quoting_map = {
     b',' : b'\\054',
@@ -90,7 +90,7 @@ def _log(type, message, *args, **kwargs):
 def _parse_signature(func):
     """Return a signature object for the function."""
     if hasattr(func, 'im_func'):
-        func = func.im_func
+        func = func.__func__
 
     # if we have a cached validator for this function, return it
     parse = _signature_cache.get(func)
@@ -157,7 +157,7 @@ def _date_to_unix(arg):
     """
     if isinstance(arg, datetime):
         arg = arg.utctimetuple()
-    elif isinstance(arg, (int, long, float)):
+    elif isinstance(arg, (int, float)):
         return int(arg)
     year, month, day, hour, minute, second = arg[:6]
     days = date(year, month, 1).toordinal() - _epoch_ord + day - 1
@@ -351,7 +351,7 @@ def _easteregg(app=None):
         import base64
         import zlib
         return zlib.decompress(base64.b64decode(gyver)).decode('ascii')
-    gyver = u'\n'.join([x + (77 - len(x)) * u' ' for x in bzzzzzzz(b'''
+    gyver = '\n'.join([x + (77 - len(x)) * ' ' for x in bzzzzzzz(b'''
 eJyFlzuOJDkMRP06xRjymKgDJCDQStBYT8BCgK4gTwfQ2fcFs2a2FzvZk+hvlcRvRJD148efHt9m
 9Xz94dRY5hGt1nrYcXx7us9qlcP9HHNh28rz8dZj+q4rynVFFPdlY4zH873NKCexrDM6zxxRymzz
 4QIxzK4bth1PV7+uHn6WXZ5C4ka/+prFzx3zWLMHAVZb8RRUxtFXI5DTQ2n3Hi2sNI+HK43AOWSY
@@ -390,7 +390,7 @@ mj2Z/FM1vQWgDynsRwNvrWnJHlespkrp8+vO1jNaibm+PhqXPPv30YwDZ6jApe3wUjFQobghvW9p
         if app is not None and environ.get('QUERY_STRING') != 'macgybarchakku':
             return app(environ, injecting_start_response)
         injecting_start_response('200 OK', [('Content-Type', 'text/html')])
-        return [(u'''
+        return [('''
 <!DOCTYPE html>
 <html>
 <head>

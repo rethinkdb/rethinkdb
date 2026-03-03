@@ -62,4 +62,4 @@ private:
 };
 
 #include "containers/priority_queue.tcc"
-#endif /* CONTAINERS_PRIORITY_QUEUE_HPP_ */
+#endif // CONTAINERS_PRIORITY_QUEUE_HPP_

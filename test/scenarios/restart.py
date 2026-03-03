@@ -23,7 +23,6 @@ class ChangePrimary(rdb_unittest.RdbTestCase):
     server_extra_options = serve_options
     
     def test_workload(self):
-        
         server = self.cluster[0]
         
         utils.print_with_time("Running first workload")

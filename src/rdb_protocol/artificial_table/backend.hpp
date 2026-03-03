@@ -125,5 +125,5 @@ private:
     cross_thread_mutex_t transaction_mutex;
 };
 
-#endif /* RDB_PROTOCOL_ARTIFICIAL_TABLE_BACKEND_HPP_ */
+#endif // RDB_PROTOCOL_ARTIFICIAL_TABLE_BACKEND_HPP_
 

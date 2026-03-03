@@ -85,5 +85,5 @@ private:
     server_config_client_t *server_config_client;
 };
 
-#endif /* CLUSTERING_ADMINISTRATION_TABLES_TABLE_CONFIG_HPP_ */
+#endif // CLUSTERING_ADMINISTRATION_TABLES_TABLE_CONFIG_HPP_
 

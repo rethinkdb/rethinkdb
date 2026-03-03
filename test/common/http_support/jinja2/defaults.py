@@ -40,4 +40,4 @@ DEFAULT_NAMESPACE = {
 
 
 # export all constants
-__all__ = tuple(x for x in locals().keys() if x.isupper())
+__all__ = tuple(x for x in list(locals().keys()) if x.isupper())

@@ -53,5 +53,5 @@ lifetime_t<T> make_lifetime(T &&value) {
     return lifetime_t<T>(std::forward<T>(value));
 }
 
-#endif /* CONTAINERS_LIFETIME_HPP_ */
+#endif // CONTAINERS_LIFETIME_HPP_
 

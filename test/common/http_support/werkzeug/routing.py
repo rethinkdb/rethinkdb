@@ -652,7 +652,7 @@ class Rule(RuleFactory):
         if self.build_only:
             return
         regex = r'^%s%s$' % (
-            u''.join(regex_parts),
+            ''.join(regex_parts),
             (not self.is_leaf or not self.strict_slashes) and
                 '(?<!/)(?P<__suffix__>/?)' or ''
         )
@@ -718,7 +718,7 @@ class Rule(RuleFactory):
                 processed.add(data)
             else:
                 add(url_quote(to_bytes(data, self.map.charset), safe='/:|+'))
-        domain_part, url = (u''.join(tmp)).split(u'|', 1)
+        domain_part, url = (''.join(tmp)).split('|', 1)
 
         if append_unknown:
             query_vars = MultiDict(values)
@@ -727,7 +727,7 @@ class Rule(RuleFactory):
                     del query_vars[key]
 
             if query_vars:
-                url += u'?' + url_encode(query_vars, charset=self.map.charset,
+                url += '?' + url_encode(query_vars, charset=self.map.charset,
                                         sort=self.map.sort_parameters,
                                         key=self.map.sort_key)
 
@@ -807,18 +807,18 @@ class Rule(RuleFactory):
     @native_string_result
     def __repr__(self):
         if self.map is None:
-            return u'<%s (unbound)>' % self.__class__.__name__
+            return '<%s (unbound)>' % self.__class__.__name__
         tmp = []
         for is_dynamic, data in self._trace:
             if is_dynamic:
-                tmp.append(u'<%s>' % data)
+                tmp.append('<%s>' % data)
             else:
                 tmp.append(data)
-        return u'<%s %s%s -> %s>' % (
+        return '<%s %s%s -> %s>' % (
             self.__class__.__name__,
-            repr((u''.join(tmp)).lstrip(u'|')).lstrip(u'u'),
-            self.methods is not None and u' (%s)' %
-                u', '.join(self.methods) or u'',
+            repr((''.join(tmp)).lstrip('|')).lstrip('u'),
+            self.methods is not None and ' (%s)' %
+                ', '.join(self.methods) or '',
             self.endpoint
         )
 
@@ -1187,7 +1187,7 @@ class Map(object):
                 # in a 404 error on matching.
                 subdomain = '<invalid>'
             else:
-                subdomain = '.'.join(filter(None, cur_server_name[:offset]))
+                subdomain = '.'.join([_f for _f in cur_server_name[:offset] if _f])
 
         def _get_wsgi_string(name):
             val = environ.get(name)
@@ -1227,8 +1227,8 @@ class MapAdapter(object):
         self.map = map
         self.server_name = to_unicode(server_name)
         script_name = to_unicode(script_name)
-        if not script_name.endswith(u'/'):
-            script_name += u'/'
+        if not script_name.endswith('/'):
+            script_name += '/'
         self.script_name = script_name
         self.subdomain = to_unicode(subdomain)
         self.url_scheme = to_unicode(url_scheme)
@@ -1378,7 +1378,7 @@ class MapAdapter(object):
             query_args = self.query_args
         method = (method or self.default_method).upper()
 
-        path = u'%s|/%s' % (self.map.host_matching and self.server_name or
+        path = '%s|/%s' % (self.map.host_matching and self.server_name or
                             self.subdomain, path_info.lstrip('/'))
 
         have_match_for = set()
@@ -1473,7 +1473,7 @@ class MapAdapter(object):
             subdomain = self.subdomain
         else:
             subdomain = to_unicode(subdomain, 'ascii')
-        return (subdomain and subdomain + u'.' or u'') + self.server_name
+        return (subdomain and subdomain + '.' or '') + self.server_name
 
     def get_default_redirect(self, rule, method, values, query_args):
         """A helper that returns the URL to redirect to if it finds one.

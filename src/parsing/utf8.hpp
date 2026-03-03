@@ -131,4 +131,4 @@ typedef iterator_t<const char *> array_iterator_t;
 
 } // namespace utf8
 
-#endif /* PARSING_UTF8_HPP_ */
+#endif // PARSING_UTF8_HPP_

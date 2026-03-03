@@ -294,4 +294,4 @@ inline bool left_is_higher_priority(const fifo_enforcer_sink_t::internal_exit_wr
 }
 
 
-#endif /* CONCURRENCY_FIFO_ENFORCER_HPP_ */
+#endif // CONCURRENCY_FIFO_ENFORCER_HPP_
