@@ -269,6 +269,22 @@ All fixes have been verified:
 * Startup test: Server starts and shuts down cleanly
 * Error messages: Custom error messages verified in binary
 * Architecture support: x86_64, ARM64, RISC-V
+
+#### New Unit Tests
+
+* Added `src/unittest/js_engine_test.cc`
+  * Tests for JavaScript engine type parsing
+  * Tests for engine name conversion
+  * Tests for default engine validation
+  * Tests for datum type handling
+  * Tests for uninitialized datum comparison (Issue #3568)
+
+#### Updated Test Infrastructure
+
+* Updated JSON tracking files for issue management
+  * `crash_issues.json`: 17 issues marked FIXED
+  * `memory_issues.json`: 2 issues marked FIXED
+  * `other_fixable.json`: 7 issues marked FIXED
 * JavaScript engine: All engines (quickjs, v8-jitless) compile and link
 * Guarantee failures: All replaced with graceful error handling
 
