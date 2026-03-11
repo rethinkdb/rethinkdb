@@ -164,9 +164,11 @@ bool parse_meminfo_file(const std::string &contents, uint64_t *mem_avail_out) {
 #else
     uint64_t memfree = 0;
     uint64_t cached = 0;
+    uint64_t buffers = 0;
 
     bool seen_memfree = false;
     bool seen_cached = false;
+    bool seen_buffers = false;
 
     size_t offset = 0;
     std::string name;
@@ -191,15 +193,24 @@ bool parse_meminfo_file(const std::string &contents, uint64_t *mem_avail_out) {
             }
             seen_cached = true;
             cached = value * KILOBYTE;
+        } else if (name == "Buffers") {
+            if (seen_buffers) {
+                return false;
+            }
+            if (unit != "kB") {
+                return false;
+            }
+            seen_buffers = true;
+            buffers = value * KILOBYTE;
         }
 
-        if (seen_memfree && seen_cached) {
+        if (seen_memfree && seen_cached && seen_buffers) {
             break;
         }
     }
 
     if (seen_memfree && seen_cached) {
-        *mem_avail_out = memfree + cached;
+        *mem_avail_out = memfree + cached + buffers;
         return true;
     } else {
         return false;

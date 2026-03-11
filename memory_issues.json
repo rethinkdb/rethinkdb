@@ -1,0 +1,266 @@
+[
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 7120,
+    "state": "OPEN",
+    "title": "Add \"Buffers\" from /proc/meminfo in parse_meminfo_file to determine available memory",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/7120"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6948,
+    "state": "OPEN",
+    "title": "Rethinkdb memory usage increasing over-time",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6948"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6433,
+    "state": "OPEN",
+    "title": "RethinkDB can fail with huge memory allocation",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6433"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6236,
+    "state": "OPEN",
+    "title": "v 2.3.5-windows Memory leak",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6236"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxODk4NTEwMw==",
+        "name": "tp:enhancement",
+        "description": "",
+        "color": "02e10c"
+      }
+    ],
+    "number": 5944,
+    "state": "OPEN",
+    "title": "Out-of-memory temporary results and ordering",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5944"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxODk4NTMyOQ==",
+        "name": "pr:high",
+        "description": "",
+        "color": "e10c02"
+      }
+    ],
+    "number": 5865,
+    "state": "OPEN",
+    "title": "Memory leak?",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5865"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 5498,
+    "state": "OPEN",
+    "title": "Server does not automatically detect container memory limits",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5498"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      }
+    ],
+    "number": 5408,
+    "state": "OPEN",
+    "title": "`Guarantee failed: [cache_entry->ref_count == 0]` on shutdown",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5408"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjE2NzQxNg==",
+        "login": "VeXocide",
+        "name": "Jeroen Habraken"
+      }
+    ],
+    "labels": [],
+    "number": 5274,
+    "state": "OPEN",
+    "title": "test failure on interface.server_config reading cache_size_mb change from server_status",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5274"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzNDQ4Njk4Mw==",
+        "name": "tp:performance",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 4920,
+    "state": "OPEN",
+    "title": "Investigate RapidJSON MemoryPoolAllocator issue on ARM",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4920"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjUwNTM2NQ==",
+        "login": "danielmewes",
+        "name": "Daniel Mewes"
+      }
+    ],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxOTcwMDk2Mg==",
+        "name": "tp:hygiene",
+        "description": "",
+        "color": "ededed"
+      }
+    ],
+    "number": 4554,
+    "state": "OPEN",
+    "title": "Document the cache and serializer internals",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4554"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzNDQ4Njk4Mw==",
+        "name": "tp:performance",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 4306,
+    "state": "OPEN",
+    "title": "Think about page-alignment's effect on CPU cache associativity.",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4306"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxODk4NTEwMw==",
+        "name": "tp:enhancement",
+        "description": "",
+        "color": "02e10c"
+      }
+    ],
+    "number": 4245,
+    "state": "OPEN",
+    "title": "getCache, kind of memcached integration",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4245"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 3565,
+    "state": "OPEN",
+    "title": "Detect low memory conditions and raise cluster issue",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3565"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMjYzMzA1OQ==",
+        "name": "cp:testing",
+        "description": "",
+        "color": "ededed"
+      },
+      {
+        "id": "MDU6TGFiZWwyMDQ3ODY5ODgz",
+        "name": "Admin UI",
+        "description": "",
+        "color": "fef2c0"
+      }
+    ],
+    "number": 3424,
+    "state": "OPEN",
+    "title": "Add better load tests for test/memcached_workloads/simulate_web_ui.py",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3424"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzNDQ4Njk4Mw==",
+        "name": "tp:performance",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 2274,
+    "state": "OPEN",
+    "title": "Optimize memory allocation on NUMA systems (regression)",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2274"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 2136,
+    "state": "OPEN",
+    "title": "Data structure memory usage optimization in the cache.",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2136"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 2128,
+    "state": "OPEN",
+    "title": "Avoid excessive copy-on-write copying of memory buffers in the cache when flushing.",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2128"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 2125,
+    "state": "OPEN",
+    "title": "Perfmons for the alt cache.",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2125"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 1771,
+    "state": "OPEN",
+    "title": "Memory table",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/1771"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzNDQ4Njk4Mw==",
+        "name": "tp:performance",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 1644,
+    "state": "OPEN",
+    "title": "Creating many tables eats memory",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/1644"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 1375,
+    "state": "OPEN",
+    "title": "Introduce a per-query memory limit",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/1375"
+  }
+]

@@ -1,0 +1,302 @@
+[
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 7124,
+    "state": "OPEN",
+    "title": "error: to_string called on an uninitialized ip_address_t, addr_type: 0 compiling rethinkdb on Raspberry",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/7124"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6862,
+    "state": "OPEN",
+    "title": "RethinkDB crash on querying table",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6862"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6861,
+    "state": "OPEN",
+    "title": "Server crash when create new table",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6861"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6815,
+    "state": "OPEN",
+    "title": "rethinkdb crash when adding a new server",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6815"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6721,
+    "state": "OPEN",
+    "title": "RethinkDB 2.3.6 crashes on Cubietruck(ARM) /  ARMBian/ Debian GNU/Linux 9.7 (stretch)",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6721"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6719,
+    "state": "OPEN",
+    "title": "RethinkDB crash after 2 years",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6719"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6477,
+    "state": "OPEN",
+    "title": "arm allwinner a10 h2+ crashes when try to create databse table or insert data",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6477"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxOTQ3MjcyNDA=",
+        "name": "not reproduced yet",
+        "description": "",
+        "color": "c7def8"
+      },
+      {
+        "id": "MDU6TGFiZWwyMDQ3ODY4MTQ5",
+        "name": "triaged",
+        "description": "The issue is reviewed and made a decision on it",
+        "color": "13cbf4"
+      }
+    ],
+    "number": 6464,
+    "state": "OPEN",
+    "title": "r.js(\"1\") crashed the worker",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6464"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      },
+      {
+        "id": "MDU6TGFiZWwxODk4NTMyOQ==",
+        "name": "pr:high",
+        "description": "",
+        "color": "e10c02"
+      }
+    ],
+    "number": 6345,
+    "state": "OPEN",
+    "title": "Node crash with \"Guarantee failed: [refcount == 0]\"",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6345"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6314,
+    "state": "OPEN",
+    "title": "RethinkDB crashes on Ubuntu 16.04 ARM",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6314"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMjYzMzA1OQ==",
+        "name": "cp:testing",
+        "description": "",
+        "color": "ededed"
+      },
+      {
+        "id": "MDU6TGFiZWw3NDg5MjEwMg==",
+        "name": "good_for_contributors",
+        "description": "",
+        "color": "009800"
+      }
+    ],
+    "number": 6222,
+    "state": "OPEN",
+    "title": "test-runner doesn't print server logs when a server crashes.",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6222"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      }
+    ],
+    "number": 5353,
+    "state": "OPEN",
+    "title": "Rethread crash during huge network transfer",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5353"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      }
+    ],
+    "number": 5332,
+    "state": "OPEN",
+    "title": "Crash on shutdown in artifical table cfeed machinery",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5332"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      }
+    ],
+    "number": 5309,
+    "state": "OPEN",
+    "title": "coroutine stack overflow crashes on OS X",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5309"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      }
+    ],
+    "number": 4872,
+    "state": "OPEN",
+    "title": "Crash during table fuzzing: `Guarantee failed: [pair.second] key for entry_t already exists`",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4872"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjUwNTM2NQ==",
+        "login": "danielmewes",
+        "name": "Daniel Mewes"
+      }
+    ],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzNDQ4Njk4Mw==",
+        "name": "tp:performance",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 3833,
+    "state": "OPEN",
+    "title": "Server crashes every time for r.table('t').group()",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3833"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjU1MjkxMA==",
+        "login": "Tryneus",
+        "name": ""
+      }
+    ],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      },
+      {
+        "id": "MDU6TGFiZWwzMjYzMzA1OQ==",
+        "name": "cp:testing",
+        "description": "",
+        "color": "ededed"
+      }
+    ],
+    "number": 3707,
+    "state": "OPEN",
+    "title": "ClusteringReactor.TwoShardsTwoNodes crash on Linux Arch",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3707"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjE3NzcxMzQ=",
+        "login": "mlucy",
+        "name": "Michael Lucy"
+      }
+    ],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxOTcwMDk2Mg==",
+        "name": "tp:hygiene",
+        "description": "",
+        "color": "ededed"
+      }
+    ],
+    "number": 3568,
+    "state": "OPEN",
+    "title": "Should `datum_t() == datum_t()` crash or not?",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3568"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxOTcwMDk2Mg==",
+        "name": "tp:hygiene",
+        "description": "",
+        "color": "ededed"
+      }
+    ],
+    "number": 3092,
+    "state": "OPEN",
+    "title": "Why did `return ql::datum_t(std::move(instance->\u200bheader_fields));` cause crashes?",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3092"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMzc4NjQ1Ng==",
+        "name": "cp:packaging",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 2327,
+    "state": "OPEN",
+    "title": "restart on crash",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2327"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjU1MjkxMA==",
+        "login": "Tryneus",
+        "name": ""
+      }
+    ],
+    "labels": [],
+    "number": 2102,
+    "state": "OPEN",
+    "title": "getaddrinfo() error crash",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2102"
+  }
+]

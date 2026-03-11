@@ -60,6 +60,8 @@ None.
 
 ### Contributors ###
 
+@marchon marchon@gmail.com 
+
 * Security audit and fixes by AI assistant
 * CVE-2016-4303 fix cherry-picked from PR #7163 by Yan Naing Tun
 * Server name warning fix from PR #7187 by Shasha-17

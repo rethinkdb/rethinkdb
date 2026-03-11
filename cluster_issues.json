@@ -1,0 +1,819 @@
+[
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 7158,
+    "state": "OPEN",
+    "title": "Failed to remove a node from the cluster",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/7158"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 7131,
+    "state": "OPEN",
+    "title": "cluster connect/reconnect timeout",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/7131"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 7129,
+    "state": "OPEN",
+    "title": "Reasonable to change hard-coded cluster size?",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/7129"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6961,
+    "state": "OPEN",
+    "title": "Connectivity cluster tag mismatch error",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6961"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6880,
+    "state": "OPEN",
+    "title": "Connecting a re-provisioned server brings down the entire cluster",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6880"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6856,
+    "state": "OPEN",
+    "title": "Damaged Rethinkdb Cluster :: Guarantee failed: [token.has()] ",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6856"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6849,
+    "state": "OPEN",
+    "title": "Proxy loses state from cluster",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6849"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "LA_kwDOAGJ1Mc70_Hd2",
+        "name": "question",
+        "description": "",
+        "color": "F1F040"
+      }
+    ],
+    "number": 6520,
+    "state": "OPEN",
+    "title": "Multi-node Cluster Issue ",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6520"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6442,
+    "state": "OPEN",
+    "title": "High idle-load on 4 node cluster",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6442"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxODk4NTEwMw==",
+        "name": "tp:enhancement",
+        "description": "",
+        "color": "02e10c"
+      }
+    ],
+    "number": 6130,
+    "state": "OPEN",
+    "title": "cluster reconnect try time",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6130"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 5934,
+    "state": "OPEN",
+    "title": "Node restarts with no error message",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5934"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzNjk5MjA5Mg==",
+        "name": "cp:devops",
+        "description": "",
+        "color": "d4c5f9"
+      }
+    ],
+    "number": 5897,
+    "state": "OPEN",
+    "title": "Add features required for smoother clustering in containerized / scheduled environments",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5897"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxODk4NTEwMw==",
+        "name": "tp:enhancement",
+        "description": "",
+        "color": "02e10c"
+      },
+      {
+        "id": "MDU6TGFiZWwzNDQ4Njk4Mw==",
+        "name": "tp:performance",
+        "description": "",
+        "color": "444444"
+      },
+      {
+        "id": "MDU6TGFiZWw1MzI2Njc3MA==",
+        "name": "cp:clustering",
+        "description": "",
+        "color": "207de5"
+      }
+    ],
+    "number": 5852,
+    "state": "OPEN",
+    "title": "Why don't we use sctp for cluster connections?",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5852"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxODk4NTMyOQ==",
+        "name": "pr:high",
+        "description": "",
+        "color": "e10c02"
+      },
+      {
+        "id": "MDU6TGFiZWwxOTQzODk1MDU=",
+        "name": "JavaScript / Coffee",
+        "description": "",
+        "color": "fef2c0"
+      }
+    ],
+    "number": 5625,
+    "state": "OPEN",
+    "title": "Not following semver breaks node.js driver",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5625"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxOTcwMDk2Mg==",
+        "name": "tp:hygiene",
+        "description": "",
+        "color": "ededed"
+      }
+    ],
+    "number": 5598,
+    "state": "OPEN",
+    "title": "Weird relationship between `db_config_artificial_table_backend_t` and `real_reql_cluster_interface_t`",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5598"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 5587,
+    "state": "OPEN",
+    "title": "Instances in rethinkdb cluster got disconnected without any reason",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5587"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      },
+      {
+        "id": "MDU6TGFiZWw1MzI2Njc3MA==",
+        "name": "cp:clustering",
+        "description": "",
+        "color": "207de5"
+      }
+    ],
+    "number": 5584,
+    "state": "OPEN",
+    "title": "Backtrace on unit.ClusteringRaft",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5584"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWw1MzI2Njc3MA==",
+        "name": "cp:clustering",
+        "description": "",
+        "color": "207de5"
+      }
+    ],
+    "number": 5562,
+    "state": "OPEN",
+    "title": "Improve connection behavior when part of the cluster (e.g. proxy) is behind firewall",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5562"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      }
+    ],
+    "number": 5504,
+    "state": "OPEN",
+    "title": "On mixed-architecture cluster: Error in replication after node reconnect",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5504"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjE2NzQxNg==",
+        "login": "VeXocide",
+        "name": "Jeroen Habraken"
+      }
+    ],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      },
+      {
+        "id": "MDU6TGFiZWwzNDQ4Njk4Mw==",
+        "name": "tp:performance",
+        "description": "",
+        "color": "444444"
+      },
+      {
+        "id": "MDU6TGFiZWwyMDYyOTE4NjQ=",
+        "name": "windows",
+        "description": "",
+        "color": "bfe5bf"
+      }
+    ],
+    "number": 5377,
+    "state": "OPEN",
+    "title": "ClusteringRaft.Fuzzer failures on Windows",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5377"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWw1MzI2Njc3MA==",
+        "name": "cp:clustering",
+        "description": "",
+        "color": "207de5"
+      }
+    ],
+    "number": 5279,
+    "state": "OPEN",
+    "title": "Throttling makes cluster unavailable",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5279"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzNDQ4Njk4Mw==",
+        "name": "tp:performance",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 5218,
+    "state": "OPEN",
+    "title": "Query taking a long time to execute in 32 node cluster",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5218"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWw1MzI2Njc3MA==",
+        "name": "cp:clustering",
+        "description": "",
+        "color": "207de5"
+      }
+    ],
+    "number": 5000,
+    "state": "OPEN",
+    "title": "check cluster for time skew issues",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5000"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWw1MzI2Njc3MA==",
+        "name": "cp:clustering",
+        "description": "",
+        "color": "207de5"
+      }
+    ],
+    "number": 4898,
+    "state": "OPEN",
+    "title": "Proposal: Avoid table/db name conflicts in fully connected clusters",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4898"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      }
+    ],
+    "number": 4556,
+    "state": "OPEN",
+    "title": "improve message on updating nonexistent rows in rethinkdb.cluster_config",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4556"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxOTQzODk1MDU=",
+        "name": "JavaScript / Coffee",
+        "description": "",
+        "color": "fef2c0"
+      }
+    ],
+    "number": 4553,
+    "state": "OPEN",
+    "title": "Node.js client driver does not exit at end of administration commands shell script",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4553"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjE2NzQxNg==",
+        "login": "VeXocide",
+        "name": "Jeroen Habraken"
+      }
+    ],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      }
+    ],
+    "number": 4550,
+    "state": "OPEN",
+    "title": "Intermittent ClusteringRaft.Failover unit test failure",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4550"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjE3NzcxMzQ=",
+        "login": "mlucy",
+        "name": "Michael Lucy"
+      }
+    ],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxOTcwMDk2Mg==",
+        "name": "tp:hygiene",
+        "description": "",
+        "color": "ededed"
+      }
+    ],
+    "number": 4412,
+    "state": "OPEN",
+    "title": "Clean up query/cluster exceptions/errors",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4412"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwyMDQ3ODY5ODgz",
+        "name": "Admin UI",
+        "description": "",
+        "color": "fef2c0"
+      }
+    ],
+    "number": 4392,
+    "state": "OPEN",
+    "title": "Add WebUI interface for emergency cluster repair",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4392"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMjYzMzA1OQ==",
+        "name": "cp:testing",
+        "description": "",
+        "color": "ededed"
+      }
+    ],
+    "number": 4341,
+    "state": "OPEN",
+    "title": "error_tolerant tests do not check that cluster is useable after workload",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4341"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxOTcwMDk2Mg==",
+        "name": "tp:hygiene",
+        "description": "",
+        "color": "ededed"
+      },
+      {
+        "id": "MDU6TGFiZWwzNDQ4Njk4Mw==",
+        "name": "tp:performance",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 4041,
+    "state": "OPEN",
+    "title": "Move TCP buffering out of linux_tcp_conn_t and into cluster",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4041"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzNDQ4Njk4Mw==",
+        "name": "tp:performance",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 4013,
+    "state": "OPEN",
+    "title": "Optimize intra-cluster messaging",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4013"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWw0MDU1ODY3Mg==",
+        "name": "tp:ReQL_proposal",
+        "description": "",
+        "color": "0052cc"
+      }
+    ],
+    "number": 3902,
+    "state": "OPEN",
+    "title": "Suggestion: reading from and writing to streams from a node via r.pipe(src_stream, dest_stream) and r.node(name).openStream(path) \u2192 stream",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3902"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxOTQzODk1MDU=",
+        "name": "JavaScript / Coffee",
+        "description": "",
+        "color": "fef2c0"
+      }
+    ],
+    "number": 3771,
+    "state": "OPEN",
+    "title": "Proposal: adopt rethinkdbdash as our official JS/node driver",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3771"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 3603,
+    "state": "OPEN",
+    "title": "node: add .then() to prototype methods so i don't have to do `.run()` all the time",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3603"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxOTQzODk1MDU=",
+        "name": "JavaScript / Coffee",
+        "description": "",
+        "color": "fef2c0"
+      }
+    ],
+    "number": 3602,
+    "state": "OPEN",
+    "title": "node: create a subinstance of `rethinkdb` so i don't have to `.run(conn)` everything",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3602"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxOTQzODk1MDU=",
+        "name": "JavaScript / Coffee",
+        "description": "",
+        "color": "fef2c0"
+      }
+    ],
+    "number": 3600,
+    "state": "OPEN",
+    "title": "node: cursors should be readable object streams",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3600"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwyMDQ3ODY5ODgz",
+        "name": "Admin UI",
+        "description": "",
+        "color": "fef2c0"
+      }
+    ],
+    "number": 3481,
+    "state": "OPEN",
+    "title": "Show server ghost issue in web UI after a server has been removed from the cluster",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3481"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 3331,
+    "state": "OPEN",
+    "title": "On out of disk make node proxy",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3331"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "LA_kwDOAGJ1Mc70_Rla",
+        "name": "ecosystem",
+        "description": "Issues related to the space between the database and the outside world (but not drivers).",
+        "color": "f9d0c4"
+      }
+    ],
+    "number": 3217,
+    "state": "OPEN",
+    "title": "Improve integration with node discovery tools",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3217"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxODk4NTEwMw==",
+        "name": "tp:enhancement",
+        "description": "",
+        "color": "02e10c"
+      }
+    ],
+    "number": 3145,
+    "state": "OPEN",
+    "title": "SSL for intracluster and driver communications",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3145"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjc0MzEzNjE=",
+        "login": "larkost",
+        "name": "Karl Kuehn"
+      }
+    ],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMjYzMzA1OQ==",
+        "name": "cp:testing",
+        "description": "",
+        "color": "ededed"
+      }
+    ],
+    "number": 2824,
+    "state": "OPEN",
+    "title": "driver.Metacluster sometimes hides exception backtraces",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2824"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 2621,
+    "state": "OPEN",
+    "title": "Live cluster upgrades",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2621"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxOTcwMDk2Mg==",
+        "name": "tp:hygiene",
+        "description": "",
+        "color": "ededed"
+      }
+    ],
+    "number": 2592,
+    "state": "OPEN",
+    "title": "auth_metadata_superblock_t and cluster_metadata_superblock_t should have __attribute__((packed)).",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2592"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxOTcwMDk2Mg==",
+        "name": "tp:hygiene",
+        "description": "",
+        "color": "ededed"
+      }
+    ],
+    "number": 2590,
+    "state": "OPEN",
+    "title": "write_blob in clustering/administration/persist.cc duplicates behavior of serialize_onto_blob.",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2590"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 2564,
+    "state": "OPEN",
+    "title": "Cluster query language version upgrades.",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2564"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzNDQ4Njk4Mw==",
+        "name": "tp:performance",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 2539,
+    "state": "OPEN",
+    "title": "Oversharding makes cluster slow",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2539"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxODk4NTEwMw==",
+        "name": "tp:enhancement",
+        "description": "",
+        "color": "02e10c"
+      },
+      {
+        "id": "MDU6TGFiZWwzNDQ4Njk4Mw==",
+        "name": "tp:performance",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 2331,
+    "state": "OPEN",
+    "title": "Open extra intra-cluster connections during poor network conditions",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2331"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjU1MjkxMA==",
+        "login": "Tryneus",
+        "name": ""
+      }
+    ],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWw3NDg5MjEwMg==",
+        "name": "good_for_contributors",
+        "description": "",
+        "color": "009800"
+      },
+      {
+        "id": "MDU6TGFiZWwxNjg0NDI3ODE=",
+        "name": "quick_to_fix",
+        "description": "",
+        "color": "e0e5a0"
+      }
+    ],
+    "number": 2191,
+    "state": "OPEN",
+    "title": "rethinkdb export - Catch error when connecting to the intra cluster port",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2191"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWw1MzI2Njc3MA==",
+        "name": "cp:clustering",
+        "description": "",
+        "color": "207de5"
+      }
+    ],
+    "number": 2119,
+    "state": "OPEN",
+    "title": "Proposal for clustering - Avoid routing all queries to the master",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2119"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxODk4NTMyOQ==",
+        "name": "pr:high",
+        "description": "",
+        "color": "e10c02"
+      }
+    ],
+    "number": 1905,
+    "state": "OPEN",
+    "title": "Connecting two different clusters together",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/1905"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWw1MzI2Njc3MA==",
+        "name": "cp:clustering",
+        "description": "",
+        "color": "207de5"
+      }
+    ],
+    "number": 1738,
+    "state": "OPEN",
+    "title": "Rethink blocks connecting to stopped node in cluster",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/1738"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxODk4NTEwMw==",
+        "name": "tp:enhancement",
+        "description": "",
+        "color": "02e10c"
+      }
+    ],
+    "number": 1114,
+    "state": "OPEN",
+    "title": "Have a cluster issue for when disk performance degrades",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/1114"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMjYzMzA1OQ==",
+        "name": "cp:testing",
+        "description": "",
+        "color": "ededed"
+      }
+    ],
+    "number": 931,
+    "state": "OPEN",
+    "title": "Test index creation interruption in a cluster",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/931"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWw1MzI2Njc3MA==",
+        "name": "cp:clustering",
+        "description": "",
+        "color": "207de5"
+      },
+      {
+        "id": "MDU6TGFiZWwyMDQ3ODY4MTQ5",
+        "name": "triaged",
+        "description": "The issue is reviewed and made a decision on it",
+        "color": "13cbf4"
+      }
+    ],
+    "number": 83,
+    "state": "OPEN",
+    "title": "Adding a new machine to cluster results in \"duplicate database\" issue",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/83"
+  }
+]

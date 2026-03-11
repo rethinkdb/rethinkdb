@@ -349,8 +349,11 @@ std::string ip_address_t::to_string() const {
             // Add on the scope id (which is only valid for link-local addresses)
             result += strprintf("%%%d", ipv6_scope_id);
         }
+    } else if (addr_type == RDB_UNSPEC_ADDR) {
+        // Handle uninitialized addresses gracefully
+        return "<uninitialized>";
     } else {
-        crash("to_string called on an uninitialized ip_address_t, addr_type: %d",
+        crash("to_string called on an ip_address_t with unknown addr_type: %d",
               addr_type);
     }
 

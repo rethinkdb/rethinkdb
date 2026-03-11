@@ -1,0 +1,394 @@
+[
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 7005,
+    "state": "OPEN",
+    "title": "Guarantee failed: [get_safety_boundary() >= num_elements]",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/7005"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6995,
+    "state": "OPEN",
+    "title": "ReqlTimeoutError: Could not connect to [ip], operation timed out.",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6995"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6962,
+    "state": "OPEN",
+    "title": "Guarantee failed: [iterator_and_is_new.second] value to be inserted already exists.",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6962"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      }
+    ],
+    "number": 6656,
+    "state": "OPEN",
+    "title": "Rethinkdb `db.wait()` fails with timeout when tables are all ready",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6656"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      },
+      {
+        "id": "MDU6TGFiZWwxODk4NTMyOQ==",
+        "name": "pr:high",
+        "description": "",
+        "color": "e10c02"
+      }
+    ],
+    "number": 6623,
+    "state": "OPEN",
+    "title": "Guarantee issues coming randomly",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6623"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6444,
+    "state": "OPEN",
+    "title": "Guarantee failed: [pair.second] key for entry_t already exists",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6444"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxOTQzODk1MDU=",
+        "name": "JavaScript / Coffee",
+        "description": "",
+        "color": "fef2c0"
+      }
+    ],
+    "number": 6290,
+    "state": "OPEN",
+    "title": "Uncatchable ReqlTimeoutError on wrong database password",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6290"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxODk4NTEwMw==",
+        "name": "tp:enhancement",
+        "description": "",
+        "color": "02e10c"
+      }
+    ],
+    "number": 6128,
+    "state": "OPEN",
+    "title": "How to guarantee delivery with changefeeds",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6128"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxODk4NTEwMw==",
+        "name": "tp:enhancement",
+        "description": "",
+        "color": "02e10c"
+      }
+    ],
+    "number": 6122,
+    "state": "OPEN",
+    "title": "guarantee changefeed add/remove order",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6122"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWw1MzI2Njc3MA==",
+        "name": "cp:clustering",
+        "description": "",
+        "color": "207de5"
+      }
+    ],
+    "number": 5616,
+    "state": "OPEN",
+    "title": "raft election timeouts seem too common",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5616"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      },
+      {
+        "id": "MDU6TGFiZWwxOTQzODk0NzY=",
+        "name": "Ruby",
+        "description": "",
+        "color": "fef2c0"
+      }
+    ],
+    "number": 5503,
+    "state": "OPEN",
+    "title": "ruby rethink driver does not seem to honour timeout flag",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5503"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxODk4NjQ4MA==",
+        "name": "cp:reql",
+        "description": "",
+        "color": "02d7e1"
+      },
+      {
+        "id": "MDU6TGFiZWw1MzI2Njc3MA==",
+        "name": "cp:clustering",
+        "description": "",
+        "color": "207de5"
+      }
+    ],
+    "number": 5422,
+    "state": "OPEN",
+    "title": "Write acknowledgement: \"all\" as a possible option for consistency guarantee",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5422"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 5259,
+    "state": "OPEN",
+    "title": "Error in src/serializer/log/lba/disk_extent.cc: Guarantee failed: [e->ser_block_size <= std::numeric_limits<uint16_t>::max()]",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5259"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 5257,
+    "state": "OPEN",
+    "title": "Better report raft election timeouts",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5257"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxOTQzODk0NDc=",
+        "name": "Python",
+        "description": "",
+        "color": "fef2c0"
+      }
+    ],
+    "number": 5024,
+    "state": "OPEN",
+    "title": "Change timeout message for changefeeds",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5024"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjE2NzQxNg==",
+        "login": "VeXocide",
+        "name": "Jeroen Habraken"
+      }
+    ],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      }
+    ],
+    "number": 4824,
+    "state": "OPEN",
+    "title": "\"Guarantee failed: [committed == active_config.config]\" in Raft fuzzer test",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4824"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 4651,
+    "state": "OPEN",
+    "title": "Hostname and port in `ReqlAuthError` and `ReqlTimeoutError` messages",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4651"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 3698,
+    "state": "OPEN",
+    "title": "Guarantee failed with 1.11 data directory",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3698"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxOTQzODk0NDc=",
+        "name": "Python",
+        "description": "",
+        "color": "fef2c0"
+      },
+      {
+        "id": "MDU6TGFiZWwxOTQzODk0NzY=",
+        "name": "Ruby",
+        "description": "",
+        "color": "fef2c0"
+      },
+      {
+        "id": "MDU6TGFiZWwxOTQzODk1MDU=",
+        "name": "JavaScript / Coffee",
+        "description": "",
+        "color": "fef2c0"
+      }
+    ],
+    "number": 3573,
+    "state": "OPEN",
+    "title": "Configurable timeout for queries",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3573"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 3328,
+    "state": "OPEN",
+    "title": "AddressSanitizer: stack-buffer-underflow in intrusive_list.hpp:18",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3328"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 3326,
+    "state": "OPEN",
+    "title": "AddressSanitizer: heap-buffer-overflow in coroutines.cc:91 TLS_get_cglobals",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3326"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjU1MjkxMA==",
+        "login": "Tryneus",
+        "name": ""
+      }
+    ],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWw3NDg5MjEwMg==",
+        "name": "good_for_contributors",
+        "description": "",
+        "color": "009800"
+      },
+      {
+        "id": "MDU6TGFiZWwxNjg0NDI3ODE=",
+        "name": "quick_to_fix",
+        "description": "",
+        "color": "e0e5a0"
+      }
+    ],
+    "number": 2317,
+    "state": "OPEN",
+    "title": "Improve the driver error message on connection timeout",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2317"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjU1MjkxMA==",
+        "login": "Tryneus",
+        "name": ""
+      }
+    ],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWw3NDg5MjEwMg==",
+        "name": "good_for_contributors",
+        "description": "",
+        "color": "009800"
+      },
+      {
+        "id": "MDU6TGFiZWwyMDQ3ODY5ODgz",
+        "name": "Admin UI",
+        "description": "",
+        "color": "fef2c0"
+      }
+    ],
+    "number": 2316,
+    "state": "OPEN",
+    "title": "Make the connection timeout configurable in the data explorer",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2316"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWw0MDU1ODY3Mg==",
+        "name": "tp:ReQL_proposal",
+        "description": "",
+        "color": "0052cc"
+      }
+    ],
+    "number": 2049,
+    "state": "OPEN",
+    "title": "r.timeout()",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2049"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWw3NDg5MjEwMg==",
+        "name": "good_for_contributors",
+        "description": "",
+        "color": "009800"
+      },
+      {
+        "id": "MDU6TGFiZWwxNjg0NDI3ODE=",
+        "name": "quick_to_fix",
+        "description": "",
+        "color": "e0e5a0"
+      }
+    ],
+    "number": 1586,
+    "state": "OPEN",
+    "title": "Add timeout to noreply_wait on close() and reconnect()",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/1586"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      },
+      {
+        "id": "MDU6TGFiZWwxODk4NjQ4MA==",
+        "name": "cp:reql",
+        "description": "",
+        "color": "02d7e1"
+      }
+    ],
+    "number": 1455,
+    "state": "OPEN",
+    "title": "Integer overflow with insertAt and more!",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/1455"
+  }
+]

@@ -394,7 +394,11 @@ join_results_t connectivity_cluster_t::run_t::join_blocking(
     }
 
     // Make sure the peer address isn't bogus
-    guarantee(peer.ips().size() > 0);
+    if (peer.ips().size() == 0) {
+        logWRN("Attempted to join peer with no valid IP addresses. "
+               "This may happen if a server was removed from the cluster.");
+        return join_results;
+    }
 
     // Attempt to connect to all known ip addresses of the peer
 
@@ -1345,9 +1349,13 @@ join_result_t connectivity_cluster_t::run_t::handle(
                 `heartbeat_manager_t` as soon as the heartbeat arrived. */
                 if (tag != heartbeat_tag) {
                     cluster_message_handler_t *handler = parent->message_handlers[tag];
-                    guarantee(handler != nullptr, "Got a message for an unfamiliar tag. "
-                        "Apparently we aren't compatible with the cluster on the other "
-                        "end.");
+                    if (handler == nullptr) {
+                        logERR("Received message with unfamiliar tag %d from peer. "
+                               "This may indicate version incompatibility or message "
+                               "corruption. Closing connection.", tag);
+                        // Close connection gracefully instead of crashing
+                        break;
+                    }
 
                     /* If you really want to support old cluster versions, the
                     resolved_version should be passed into the on_message() handler. */

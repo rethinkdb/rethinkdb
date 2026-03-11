@@ -1,0 +1,684 @@
+[
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMzc4MjU4NQ==",
+        "name": "cp:build",
+        "description": "",
+        "color": "444444"
+      },
+      {
+        "id": "MDU6TGFiZWwzMzc4NjQ1Ng==",
+        "name": "cp:packaging",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 6993,
+    "state": "OPEN",
+    "title": "RethinkDB v2.4.1 centos requires protobuf on aarch64",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6993"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMzc4MjU4NQ==",
+        "name": "cp:build",
+        "description": "",
+        "color": "444444"
+      },
+      {
+        "id": "MDU6TGFiZWwxNjg0NDI3ODE=",
+        "name": "quick_to_fix",
+        "description": "",
+        "color": "e0e5a0"
+      },
+      {
+        "id": "MDU6TGFiZWwyMDQ3ODY4MTQ5",
+        "name": "triaged",
+        "description": "The issue is reviewed and made a decision on it",
+        "color": "13cbf4"
+      }
+    ],
+    "number": 6952,
+    "state": "OPEN",
+    "title": "build fails on AArch64, Fedora 33 ",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6952"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6936,
+    "state": "OPEN",
+    "title": "2.4.1 windows build fails",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6936"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMzc4MjU4NQ==",
+        "name": "cp:build",
+        "description": "",
+        "color": "444444"
+      },
+      {
+        "id": "MDU6TGFiZWwzMzc4NjQ1Ng==",
+        "name": "cp:packaging",
+        "description": "",
+        "color": "444444"
+      },
+      {
+        "id": "MDU6TGFiZWwyMDQ3ODY4MTQ5",
+        "name": "triaged",
+        "description": "The issue is reviewed and made a decision on it",
+        "color": "13cbf4"
+      }
+    ],
+    "number": 6932,
+    "state": "OPEN",
+    "title": "Add Mac ARM build",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6932"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMzc4MjU4NQ==",
+        "name": "cp:build",
+        "description": "",
+        "color": "444444"
+      },
+      {
+        "id": "MDU6TGFiZWwyMDQ3ODY4MTQ5",
+        "name": "triaged",
+        "description": "The issue is reviewed and made a decision on it",
+        "color": "13cbf4"
+      }
+    ],
+    "number": 6873,
+    "state": "OPEN",
+    "title": "ArchLinux - Build issues and fixes",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6873"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6867,
+    "state": "OPEN",
+    "title": "Reproducible builds",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6867"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6699,
+    "state": "OPEN",
+    "title": "Compiling 2.3.x for aarch64",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6699"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjI1ODQzNw==",
+        "login": "srh",
+        "name": "Sam Hughes"
+      }
+    ],
+    "labels": [],
+    "number": 6531,
+    "state": "OPEN",
+    "title": "Request Update To Allow Builds With VS2017",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6531"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6473,
+    "state": "OPEN",
+    "title": "Cannot build rethinkdb on windows",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6473"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxODk4NTEwMw==",
+        "name": "tp:enhancement",
+        "description": "",
+        "color": "02e10c"
+      },
+      {
+        "id": "MDU6TGFiZWwzMzc4MjU4NQ==",
+        "name": "cp:build",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 6337,
+    "state": "OPEN",
+    "title": "Support building against musl",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6337"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 6279,
+    "state": "OPEN",
+    "title": "Segmentation fault in thread_pool.cc on ARM",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6279"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxODk4NTEwMw==",
+        "name": "tp:enhancement",
+        "description": "",
+        "color": "02e10c"
+      },
+      {
+        "id": "MDU6TGFiZWwzMzc4NjQ1Ng==",
+        "name": "cp:packaging",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 6201,
+    "state": "OPEN",
+    "title": "Package build fails on Raspberry Pi",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6201"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMzc4MjU4NQ==",
+        "name": "cp:build",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 6153,
+    "state": "OPEN",
+    "title": "Cross compiling to ARM Cortex A9",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6153"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMzc4MjU4NQ==",
+        "name": "cp:build",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 6001,
+    "state": "OPEN",
+    "title": "rework build system linker dependency system",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6001"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjcwNjg1NA==",
+        "login": "AtnNn",
+        "name": "Etienne Laurin"
+      }
+    ],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxODk4NTEwMw==",
+        "name": "tp:enhancement",
+        "description": "",
+        "color": "02e10c"
+      },
+      {
+        "id": "MDU6TGFiZWwzMzc4MjU4NQ==",
+        "name": "cp:build",
+        "description": "",
+        "color": "444444"
+      },
+      {
+        "id": "MDU6TGFiZWw3NDg5MjEwMg==",
+        "name": "good_for_contributors",
+        "description": "",
+        "color": "009800"
+      },
+      {
+        "id": "MDU6TGFiZWwxNjg0NDI3ODE=",
+        "name": "quick_to_fix",
+        "description": "",
+        "color": "e0e5a0"
+      }
+    ],
+    "number": 5998,
+    "state": "OPEN",
+    "title": "Build recently modified cc files first",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5998"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 5893,
+    "state": "OPEN",
+    "title": "mysterious connection latency when building deb package of PR #5720",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5893"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMzc4MjU4NQ==",
+        "name": "cp:build",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 5620,
+    "state": "OPEN",
+    "title": "decouple the driver building from `./configure`",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5620"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      }
+    ],
+    "number": 5322,
+    "state": "OPEN",
+    "title": "Segmentation fault in `read_response_t` on ARM",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5322"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMzc4MjU4NQ==",
+        "name": "cp:build",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 5276,
+    "state": "OPEN",
+    "title": "Bundled ICU in bundled V8 detects the wrong compiler",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5276"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWw0MDU1ODY3Mg==",
+        "name": "tp:ReQL_proposal",
+        "description": "",
+        "color": "0052cc"
+      }
+    ],
+    "number": 5149,
+    "state": "OPEN",
+    "title": "Compare-and-swap (CAS) command as a building block for synchronization primitives",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5149"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 5094,
+    "state": "OPEN",
+    "title": "build on netbsd",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5094"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMzc4MjU4NQ==",
+        "name": "cp:build",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 5062,
+    "state": "OPEN",
+    "title": "Compile fails with error: unused parameter \u2018filename\u2019 [-Werror=unused-parameter]",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5062"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxNzg1NzY3NA==",
+        "name": "tp:bug",
+        "description": "",
+        "color": "e102d8"
+      },
+      {
+        "id": "MDU6TGFiZWwyMDQ3ODY5ODgz",
+        "name": "Admin UI",
+        "description": "",
+        "color": "fef2c0"
+      }
+    ],
+    "number": 4992,
+    "state": "OPEN",
+    "title": "web UI: indexes still show \"building\" after they are done constructing",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4992"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMzc4MjU4NQ==",
+        "name": "cp:build",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 4671,
+    "state": "OPEN",
+    "title": "Add '-Wconversion' to compile flags",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4671"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMzc4MjU4NQ==",
+        "name": "cp:build",
+        "description": "",
+        "color": "444444"
+      },
+      {
+        "id": "MDU6TGFiZWwzMzc4NjQ1Ng==",
+        "name": "cp:packaging",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 4540,
+    "state": "OPEN",
+    "title": "give better error messages for build downloads",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4540"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMzc4MjU4NQ==",
+        "name": "cp:build",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 4523,
+    "state": "OPEN",
+    "title": "Warning: swp{b} use is deprecated for ARMv6 and ARMv7",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4523"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzNDQ4Njk4Mw==",
+        "name": "tp:performance",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 4167,
+    "state": "OPEN",
+    "title": "CPU hogs with \"rethinkdb index-rebuild\"",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4167"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxOTcwMDk2Mg==",
+        "name": "tp:hygiene",
+        "description": "",
+        "color": "ededed"
+      }
+    ],
+    "number": 4165,
+    "state": "OPEN",
+    "title": "Improve detection, selection and use of compiler and platform specific features.",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4165"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxODk4NTEwMw==",
+        "name": "tp:enhancement",
+        "description": "",
+        "color": "02e10c"
+      },
+      {
+        "id": "MDU6TGFiZWwxOTQzODk1MDU=",
+        "name": "JavaScript / Coffee",
+        "description": "",
+        "color": "fef2c0"
+      }
+    ],
+    "number": 4160,
+    "state": "OPEN",
+    "title": "Driver method for executing the output of .build()",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4160"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjc0MzEzNjE=",
+        "login": "larkost",
+        "name": "Karl Kuehn"
+      }
+    ],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMzc4MjU4NQ==",
+        "name": "cp:build",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 3677,
+    "state": "OPEN",
+    "title": "building os x package: Failed to create OpenGL context for accelerator",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3677"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjc0MzEzNjE=",
+        "login": "larkost",
+        "name": "Karl Kuehn"
+      }
+    ],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMjYzMzA1OQ==",
+        "name": "cp:testing",
+        "description": "",
+        "color": "ededed"
+      }
+    ],
+    "number": 3668,
+    "state": "OPEN",
+    "title": "`static_cluster.rget-huge` failing on buildbot builds",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3668"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "LA_kwDOAGJ1Mc70_Rla",
+        "name": "ecosystem",
+        "description": "Issues related to the space between the database and the outside world (but not drivers).",
+        "color": "f9d0c4"
+      }
+    ],
+    "number": 3410,
+    "state": "OPEN",
+    "title": "Write a Juju charm for easy cloud deployment",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3410"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjcwNjg1NA==",
+        "login": "AtnNn",
+        "name": "Etienne Laurin"
+      }
+    ],
+    "labels": [],
+    "number": 3295,
+    "state": "OPEN",
+    "title": "`src/build.mk` doesn't pass CXXFLAGS to CXX when linking.",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3295"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxODk4NTMyOQ==",
+        "name": "pr:high",
+        "description": "",
+        "color": "e10c02"
+      }
+    ],
+    "number": 3282,
+    "state": "OPEN",
+    "title": "tracking_allocator code doesn't compile",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3282"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjc0MzEzNjE=",
+        "login": "larkost",
+        "name": "Karl Kuehn"
+      }
+    ],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMjYzMzA1OQ==",
+        "name": "cp:testing",
+        "description": "",
+        "color": "ededed"
+      }
+    ],
+    "number": 3165,
+    "state": "OPEN",
+    "title": "Interface for latest tested buildbot artifacts ",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3165"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjcwNjg1NA==",
+        "login": "AtnNn",
+        "name": "Etienne Laurin"
+      }
+    ],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMzc4MjU4NQ==",
+        "name": "cp:build",
+        "description": "",
+        "color": "444444"
+      }
+    ],
+    "number": 2700,
+    "state": "OPEN",
+    "title": "Files in `mk/gen` should instead be placed in the build directory",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2700"
+  },
+  {
+    "assignees": [],
+    "labels": [],
+    "number": 2651,
+    "state": "OPEN",
+    "title": "make release/debug build a ./configure option rather than a ENV variable",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2651"
+  },
+  {
+    "assignees": [
+      {
+        "id": "MDQ6VXNlcjcwNjg1NA==",
+        "login": "AtnNn",
+        "name": "Etienne Laurin"
+      }
+    ],
+    "labels": [],
+    "number": 2417,
+    "state": "OPEN",
+    "title": "Alignment trap and alignment exception on ARM",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2417"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwzMzc4MjU4NQ==",
+        "name": "cp:build",
+        "description": "",
+        "color": "444444"
+      },
+      {
+        "id": "MDU6TGFiZWwzNDQ4Njk4Mw==",
+        "name": "tp:performance",
+        "description": "",
+        "color": "444444"
+      },
+      {
+        "id": "MDU6TGFiZWwxNjg0NDI3ODE=",
+        "name": "quick_to_fix",
+        "description": "",
+        "color": "e0e5a0"
+      }
+    ],
+    "number": 1931,
+    "state": "OPEN",
+    "title": "Compile release binaries with link-time optimizations",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/1931"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWwxOTcwMDk2Mg==",
+        "name": "tp:hygiene",
+        "description": "",
+        "color": "ededed"
+      }
+    ],
+    "number": 1923,
+    "state": "OPEN",
+    "title": "Investigate -march=native compiler flag",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/1923"
+  },
+  {
+    "assignees": [],
+    "labels": [
+      {
+        "id": "MDU6TGFiZWw3NDg5MjEwMg==",
+        "name": "good_for_contributors",
+        "description": "",
+        "color": "009800"
+      }
+    ],
+    "number": 1235,
+    "state": "OPEN",
+    "title": "Add README files to `drivers/*/` with build instructions",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/1235"
+  }
+]
