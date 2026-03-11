@@ -161,8 +161,10 @@ void migrate_server(const server_id_t &server_id,
                     metadata_file_t::write_txn_t *out,
                     signal_t *interruptor) {
     auto self_it = metadata.servers.servers.find(server_id);
-    guarantee(self_it != metadata.servers.servers.end(),
-              "Migration of cluster metadata failed, could not find own server config.");
+    if (self_it == metadata.servers.servers.end()) {
+        fail_due_to_user_error("Migration of cluster metadata failed, could not find "
+                               "own server config in the cluster metadata.");
+    }
     if (self_it->second.is_deleted()) {
         fail_due_to_user_error("Migration of cluster metadata failed because "
                                "this server was already deleted from the cluster.");

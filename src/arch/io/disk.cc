@@ -243,8 +243,15 @@ void linux_file_t::set_file_size(int64_t new_size) {
         }
 
         void on_io_failure(int errsv, int64_t offset, int64_t) {
-            crash("ftruncate failed.  (%s) (target size = %" PRIi64 ")",
-                  errno_string(errsv).c_str(), offset);
+            if (errsv == ENOSPC) {
+                fail_due_to_user_error("ftruncate failed: disk is full. (target size = %" PRIi64 ")", offset);
+            } else {
+                logERR("ftruncate failed.  (%s) (target size = %" PRIi64 ")",
+                       errno_string(errsv).c_str(), offset);
+                // Don't crash on IO errors - propagate the error gracefully
+                fail_due_to_user_error("ftruncate failed: %s (target size = %" PRIi64 ")",
+                                       errno_string(errsv).c_str(), offset);
+            }
         }
 
         auto_drainer_t::lock_t lock;

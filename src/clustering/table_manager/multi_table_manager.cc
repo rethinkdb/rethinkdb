@@ -550,9 +550,19 @@ void multi_table_manager_t::on_get_status(
             rwlock_in_line_t table_lock_in_line(&it->second->access_rwlock, access_t::read);
             global_mutex_acq.reset();
             wait_interruptible(table_lock_in_line.read_signal(), interruptor);
+            // Issue #6849: For proxy servers, we should never have ACTIVE tables
+            // because proxies don't host data. If we somehow get into a bad state,
+            // log a warning and skip this table rather than crashing.
             if (it->second->status == table_t::status_t::ACTIVE) {
-                it->second->active->manager.get_status(
-                    request, interruptor, &responses[table_id]);
+                if (is_proxy_server) {
+                    logWRN("Proxy server has an ACTIVE table entry for table %s. "
+                           "This is unexpected and may indicate state corruption. "
+                           "Skipping status response for this table.",
+                           uuid_to_str(table_id).c_str());
+                } else {
+                    it->second->active->manager.get_status(
+                        request, interruptor, &responses[table_id]);
+                }
             }
         }
     }

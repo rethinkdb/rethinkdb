@@ -181,10 +181,10 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
             while (cache_entry->ref_count > 0 && !shutdown_timeout.is_pulsed()) {
                 coro_t::yield();
             }
-            // Log but don't crash if refs still exist
+            // Log but don't crash if refs still exist - proceed with cleanup
             if (cache_entry->ref_count > 0) {
-                logERR("namespace_repo_t: Shutdown proceeding with %d active references",
-                       cache_entry->ref_count);
+                logERR("namespace_repo_t: Shutdown proceeding with %d active references, "
+                       "forcing cleanup", cache_entry->ref_count);
             }
         }
     }

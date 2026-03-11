@@ -17,7 +17,11 @@ pkg_install () {
 pkg_install-windows () {
     pkg_copy_src_to_build
 
-    in_dir "$build_dir" "$MSBUILD" /nologo /maxcpucount /p:Configuration=$CONFIGURATION /p:Platform=$PLATFORM /p:PlatformToolset=v141 /p:WindowsTargetPlatformVersion=10.0.19041.0 re2.vcxproj 
+    # Allow toolset override via VCTOOLS_VERSION environment variable
+    local toolset="${VCTOOLS_VERSION:-v141}"
+    local windows_sdk="${WINDOWSSDKVERSION:-10.0.19041.0}"
+    
+    in_dir "$build_dir" "$MSBUILD" /nologo /maxcpucount /p:Configuration=$CONFIGURATION /p:Platform=$PLATFORM /p:PlatformToolset=$toolset /p:WindowsTargetPlatformVersion=$windows_sdk re2.vcxproj 
 
     cp "$build_dir/$PLATFORM/$CONFIGURATION/re2.lib" "$windows_deps_libs/"
 }

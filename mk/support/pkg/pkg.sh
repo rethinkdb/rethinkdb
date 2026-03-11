@@ -280,7 +280,11 @@ with_vs_env () {
     # ^^ Afaict GNU make is not setting anything that is seen by this
     # shell script (but I haven't tested on Windows).  Just saying.
 
-    env -u MAKE -u MAKEFLAGS cmd /c "$vcvarsall" "$machine" "--vcvars_ver=14.1" "&&" "$@"
+    # Support VS2017, VS2019, and VS2022 through VCVARS_VER environment variable
+    # VS2017 (v141) uses 14.1, VS2019/2022 (v142/v143) can use their respective versions
+    local vcvars_ver="${VCVARS_VER:-14.1}"
+
+    env -u MAKE -u MAKEFLAGS cmd /c "$vcvarsall" "$machine" "--vcvars_ver=$vcvars_ver" "&&" "$@"
 }
 
 error () {

@@ -40,8 +40,12 @@ pkg_install () (
 pkg_install-windows () {
     pkg_copy_src_to_build
 
+    # Support VS2017, VS2019, and VS2022 through environment variables
+    local vs_generator="${VS_GENERATOR:-Visual Studio 17 2022}"
+    local toolset="${VCTOOLS_VERSION:-v141}"
+    
     rm -rf "$build_dir/cmake"/{CMakeCache.txt,CMakeFiles}
-    in_dir "$build_dir/cmake" "$CMAKE" -G "Visual Studio 17 2022" -T "v141" -A "$PLATFORM" -DCMAKE_INSTALL_PREFIX=../out -DCMAKE_BUILD_TYPE="$CONFIGURATION" -Dprotobuf_BUILD_TESTS=OFF
+    in_dir "$build_dir/cmake" "$CMAKE" -G "$vs_generator" -T "$toolset" -A "$PLATFORM" -DCMAKE_INSTALL_PREFIX=../out -DCMAKE_BUILD_TYPE="$CONFIGURATION" -Dprotobuf_BUILD_TESTS=OFF
     in_dir "$build_dir/cmake" "$CMAKE" --build . --config "$CONFIGURATION"
     in_dir "$build_dir/cmake" "$CMAKE" --build . --config "$CONFIGURATION" --target install
 

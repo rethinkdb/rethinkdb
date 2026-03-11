@@ -26,8 +26,12 @@ pkg_install-windows () {
         out=gtestd.lib
     fi
 
+    # Support VS2017, VS2019, and VS2022 through environment variables
+    local vs_generator="${VS_GENERATOR:-Visual Studio 17 2022}"
+    local toolset="${VCTOOLS_VERSION:-v141}"
+
     rm -rf "$build_dir/googletest"/{CMakeCache.txt,CMakeFiles}
-    in_dir "$build_dir/googletest" "$CMAKE" -G "Visual Studio 17 2022" -T "v141" -A "$PLATFORM"
+    in_dir "$build_dir/googletest" "$CMAKE" -G "$vs_generator" -T "$toolset" -A "$PLATFORM"
     in_dir "$build_dir/googletest" "$CMAKE" --build . --config "$CONFIGURATION"
 
     cp "$build_dir/googletest/$CONFIGURATION/$out" "$windows_deps_libs/gtest.lib"
