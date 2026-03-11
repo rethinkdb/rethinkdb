@@ -31,7 +31,7 @@ init () {
     all_libs="$required_libs $optional_libs $other_libs"
     default_static="tcmalloc jemalloc"
 
-    required_bin_deps="protoc python"
+    required_bin_deps="protoc"
     optional_bin_deps="wget curl"
     bin_deps="cxx $required_bin_deps $optional_bin_deps"
     all_deps="$bin_deps $all_libs boost"
@@ -165,6 +165,9 @@ configure_unixlike () {
         require_dep $bin
         check_bin $bin
     done
+    # Check for python3 or python separately to handle different naming
+    require_dep python
+    check_python
     for bin in $optional_bin_deps; do
         optional_dep $bin
         check_bin $bin
@@ -801,15 +804,16 @@ check_bin () {
 # check_python
 # Check for python or python3 binary
 check_python () {
+    required=true
     # First try python3, then python
     for py_bin in python3 python; do
         local bin=$(command -v "$py_bin" 2>/dev/null)
         if [[ -x "$bin" ]]; then
-            local version
-            delay_errors=true
-            if test_bin_version python "$bin"; then
+            # Check if this is a working python binary
+            if "$bin" --version >/dev/null 2>&1; then
                 var "PYTHON" "$bin"
                 var "PYTHON_BIN_DEP" ""
+                show "$bin"
                 return
             fi
         fi

@@ -3762,7 +3762,46 @@ client_t::client_t(
 {
     guarantee(manager != NULL);
 }
-client_t::~client_t() { }
+client_t::~client_t() {
+    // During destruction, we need to stop all subscriptions and clean up feeds.
+    // The drainer will wait for all pending operations to complete.
+    // We need to mark feeds as detached and stop their subscriptions to ensure
+    // proper cleanup and avoid memory leaks.
+    if (!feeds.empty()) {
+        // Acquire the drainer lock to ensure we're the only ones accessing feeds.
+        // Use try_lock to handle the case where the drainer is already draining.
+        auto_drainer_t::lock_t lock;
+        try {
+            lock = drainer.lock();
+        } catch (const std::exception &) {
+            // Drainer is already draining, proceed without lock
+            // This is safe because no new operations can start during destruction
+        }
+        
+        rwlock_in_line_t spot(&feeds_lock, access_t::write);
+        spot.write_signal()->wait_lazily_unordered();
+        
+        // Stop all subscriptions on each feed before clearing
+        for (auto &feed_pair : feeds) {
+            real_feed_t *feed = feed_pair.second.get();
+            if (feed != nullptr) {
+                // Mark as detached first to prevent new operations
+                feed->mark_detached();
+                // Stop all subscriptions using the feed's drainer lock
+                if (lock.has_lock()) {
+                    try {
+                        auto_drainer_t::lock_t feed_lock = feed->get_drainer_lock();
+                        feed->stop_subs(feed_lock);
+                    } catch (const std::exception &) {
+                        // If we can't get the lock, the feed is already being cleaned up
+                    }
+                }
+            }
+        }
+        // The map will be cleared automatically when the destructor completes,
+        // deleting the feed objects
+    }
+}
 
 scoped_ptr_t<subscription_t> new_sub(
     env_t *env,
