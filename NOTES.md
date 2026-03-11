@@ -88,6 +88,17 @@ None.
   * Fix shutdown guarantee failure (Issue #5408)
     * Add graceful error handling for ref_count cleanup
     * Prevents crashes during clean shutdown
+  * Fix disk I/O crash prevention
+    * Replace crash() with error return for bad file access mode
+    * Replace guarantee_err with error logging for realpath failure
+    * Improves robustness for file system errors
+  * Fix serializer crash prevention
+    * Replace crash() with fail_due_to_user_error for rename failure
+    * Prevents server crash on file rename errors
+  * Fix changefeed memory leak (Issue #6948)
+    * Add proper cleanup in client destructor
+    * Mark feeds as detached and stop subscriptions
+    * Prevents memory leaks when clients disconnect
 
 ### Testing ###
 
