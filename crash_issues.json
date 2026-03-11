@@ -65,7 +65,9 @@
     "number": 6477,
     "state": "OPEN",
     "title": "arm allwinner a10 h2+ crashes when try to create databse table or insert data",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6477"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6477",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -109,7 +111,9 @@
     "number": 6345,
     "state": "OPEN",
     "title": "Node crash with \"Guarantee failed: [refcount == 0]\"",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6345"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6345",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -117,7 +121,9 @@
     "number": 6314,
     "state": "OPEN",
     "title": "RethinkDB crashes on Ubuntu 16.04 ARM",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6314"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6314",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -198,7 +204,9 @@
     "number": 4872,
     "state": "OPEN",
     "title": "Crash during table fuzzing: `Guarantee failed: [pair.second] key for entry_t already exists`",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/4872"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4872",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [

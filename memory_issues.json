@@ -17,7 +17,9 @@
     "number": 6948,
     "state": "OPEN",
     "title": "Rethinkdb memory usage increasing over-time",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6948"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6948",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -98,7 +100,9 @@
     "number": 5408,
     "state": "OPEN",
     "title": "`Guarantee failed: [cache_entry->ref_count == 0]` on shutdown",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/5408"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5408",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [

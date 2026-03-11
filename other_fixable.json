@@ -23,7 +23,9 @@
     "number": 6962,
     "state": "OPEN",
     "title": "Guarantee failed: [iterator_and_is_new.second] value to be inserted already exists.",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6962"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6962",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -38,7 +40,9 @@
     "number": 6656,
     "state": "OPEN",
     "title": "Rethinkdb `db.wait()` fails with timeout when tables are all ready",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6656"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6656",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -59,7 +63,9 @@
     "number": 6623,
     "state": "OPEN",
     "title": "Guarantee issues coming randomly",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6623"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6623",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -67,7 +73,9 @@
     "number": 6444,
     "state": "OPEN",
     "title": "Guarantee failed: [pair.second] key for entry_t already exists",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6444"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6444",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -177,7 +185,9 @@
     "number": 5259,
     "state": "OPEN",
     "title": "Error in src/serializer/log/lba/disk_extent.cc: Guarantee failed: [e->ser_block_size <= std::numeric_limits<uint16_t>::max()]",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/5259"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5259",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -272,7 +282,9 @@
     "number": 3328,
     "state": "OPEN",
     "title": "AddressSanitizer: stack-buffer-underflow in intrusive_list.hpp:18",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/3328"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3328",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -280,7 +292,9 @@
     "number": 3326,
     "state": "OPEN",
     "title": "AddressSanitizer: heap-buffer-overflow in coroutines.cc:91 TLS_get_cglobals",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/3326"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3326",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [

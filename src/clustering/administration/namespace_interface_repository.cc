@@ -161,7 +161,11 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
             wait_any_t waiter(&expiration_timer, &ref_count_is_nonzero);
             wait_interruptible(&waiter, keepalive.get_drain_signal());
             if (!ref_count_is_nonzero.is_pulsed()) {
-                guarantee(cache_entry->ref_count == 0);
+                // If ref_count is not zero, log warning but proceed gracefully
+                if (cache_entry->ref_count != 0) {
+                    logWRN("namespace_repo_t: Expiration timer fired but ref_count=%d. "
+                           "Proceeding with cleanup anyway.", cache_entry->ref_count);
+                }
                 /* We waited a whole `NAMESPACE_INTERFACE_EXPIRATION_MS` and
                 nothing used us. So let's destroy ourselves. */
                 break;

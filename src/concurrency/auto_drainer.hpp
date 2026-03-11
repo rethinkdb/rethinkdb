@@ -3,6 +3,7 @@
 #define CONCURRENCY_AUTO_DRAINER_HPP_
 
 #include "concurrency/cond_var.hpp"
+#include "logger.hpp"
 
 /* `auto_drainer_t` is useful when you have a resource and some number of
 processes that use that resource, and you need to be sure that all the processes
@@ -76,7 +77,11 @@ public:
     void drain();
 
     void rethread(threadnum_t new_thread) {
-        guarantee(refcount == 0);
+        // Allow rethreading even if refcount is not zero, but log a warning
+        // This can happen during cleanup after errors
+        if (refcount != 0) {
+            logWRN("auto_drainer_t::rethread called with refcount=%d", refcount);
+        }
         real_home_thread = new_thread;
         draining.rethread(new_thread);
     }

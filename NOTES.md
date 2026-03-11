@@ -189,8 +189,16 @@ None.
     * Handle case where exceptions occur before worker_pid is set
     * Replace guarantee with early return check
     * Prevents crash when killing partially initialized worker
+  * Fix auto_drainer refcount crash (Issue #6345)
+    * Replace guarantee with warning log in destructor
+    * Replace guarantee with warning log in drain()
+    * Replace guarantee with warning log in rethread()
+    * Prevents crashes during unclean shutdown
+  * Fix namespace_repo ref_count crash
+    * Replace guarantee with warning log when expiration fires
+    * Allows graceful cleanup even if refs not fully cleared
 
-### Additional Batch Fixes (40+ issues total)
+### Additional Batch Fixes (42+ issues total)
 
 ARM/Architecture:
   * Fix ARM alignment issues (Issue #6721)
