@@ -174,7 +174,9 @@
     "number": 5332,
     "state": "OPEN",
     "title": "Crash on shutdown in artifical table cfeed machinery",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/5332"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5332",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],

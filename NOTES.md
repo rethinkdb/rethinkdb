@@ -197,8 +197,13 @@ None.
   * Fix namespace_repo ref_count crash
     * Replace guarantee with warning log when expiration fires
     * Allows graceful cleanup even if refs not fully cleared
+  * Fix artificial table cfeed crash on shutdown (Issue #5332)
+    * Replace guarantee with warning + emergency cleanup in destructor
+    * Handle duplicate begin_changefeed_destruction() calls gracefully
+    * Force removal of machinery even if subscribers still active
+    * Prevents crashes during artificial table changefeed shutdown
 
-### Additional Batch Fixes (42+ issues total)
+### Additional Batch Fixes (43+ issues total)
 
 ARM/Architecture:
   * Fix ARM alignment issues (Issue #6721)

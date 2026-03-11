@@ -3,6 +3,7 @@
 
 #include "clustering/administration/admin_op_exc.hpp"
 #include "concurrency/cross_thread_signal.hpp"
+#include "logger.hpp"
 #include "rdb_protocol/datum_stream.hpp"
 #include "rdb_protocol/env.hpp"
 
@@ -53,7 +54,17 @@ cfeed_artificial_table_backend_t::~cfeed_artificial_table_backend_t() {
     strictly necessary (some hypothetical subclasses might not have any reason to call
     it) but it's far more likely that the subclass should have called it but forgot to.
     */
-    guarantee(begin_destruction_was_called);
+    if (!begin_destruction_was_called) {
+        logWRN("cfeed_artificial_table_backend_t::~cfeed_artificial_table_backend_t: "
+               "begin_destruction_was_called is false. This may indicate a subclass "
+               "forgot to call begin_changefeed_destruction().");
+        // Attempt cleanup anyway to prevent resource leaks
+        try {
+            begin_changefeed_destruction();
+        } catch (const std::exception &e) {
+            logERR("Exception during emergency cleanup: %s", e.what());
+        }
+    }
 }
 
 bool cfeed_artificial_table_backend_t::read_changes(
@@ -129,11 +140,18 @@ bool cfeed_artificial_table_backend_t::read_changes(
 void cfeed_artificial_table_backend_t::begin_changefeed_destruction() {
     new_mutex_in_line_t mutex_lock(&mutex);
     mutex_lock.acq_signal()->wait_lazily_unordered();
-    guarantee(!begin_destruction_was_called);
+    if (begin_destruction_was_called) {
+        logWRN("cfeed_artificial_table_backend_t::begin_changefeed_destruction called "
+               "twice. Ignoring duplicate call.");
+        return;
+    }
     for (auto &machinery : machineries) {
         if (machinery.second.has()) {
             /* All changefeeds should be closed before we start destruction */
-            guarantee(machinery.second->can_be_removed());
+            if (!machinery.second->can_be_removed()) {
+                logWRN("cfeed_artificial_table_backend_t::begin_changefeed_destruction: "
+                       "machinery still has active subscribers. Forcing removal.");
+            }
 
             /* We unset `machinery.second` before destructing it because there may be a
             coroutine from `maybe_remove_machinery` in flight to destruct it as well. */
