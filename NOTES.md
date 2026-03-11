@@ -170,8 +170,13 @@ None.
     * Cap block size to uint16_t::max instead of crashing
     * Log error for corrupted or incompatible LBA entries
     * Handle data corruption gracefully in serializer
+  * Fix db.wait() timeout inefficiency (Issue #6656)
+    * Optimize wait_for_many_tables_readiness to only recheck non-ready tables
+    * Previously rechecked ALL tables after ANY table was not ready
+    * Reduces total wait time when multiple tables are becoming ready
+    * Helps prevent timeouts when tables are actually ready but checks were slow
 
-### Additional Batch Fixes (35+ issues total)
+### Additional Batch Fixes (36+ issues total)
 
 ARM/Architecture:
   * Fix ARM alignment issues (Issue #6721)
