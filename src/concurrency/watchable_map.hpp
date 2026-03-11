@@ -138,6 +138,10 @@ public:
     public:
         entry_t() : parent(nullptr) { }
         entry_t(watchable_map_var_t *parent, const key_t &key, const value_t &value);
+        // Constructor that updates existing entry instead of crashing
+        struct update_if_exists_t { };
+        entry_t(watchable_map_var_t *parent, const key_t &key, const value_t &value,
+                update_if_exists_t);
         entry_t(const entry_t &) = delete;
         entry_t(entry_t &&);
         ~entry_t();

@@ -1455,6 +1455,12 @@ datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
 datum_t datum_t::unchecked_get(size_t index) const {
     if (data.get_internal_type() == internal_type_t::BUF_R_ARRAY) {
         const size_t offset = datum_get_element_offset(data.buf_ref, index);
+        // offset == 0 indicates corruption detected in datum_get_element_offset
+        // Return null datum instead of crashing
+        if (offset == 0 && index > 0) {
+            logERR("Corrupted datum array element at index %zu, returning null", index);
+            return datum_t::null();
+        }
         return datum_deserialize_from_buf(data.buf_ref, offset);
     } else {
         r_sanity_check(data.get_internal_type() == internal_type_t::R_ARRAY);
@@ -1481,6 +1487,11 @@ std::pair<datum_string_t, datum_t> datum_t::get_pair(size_t index) const {
 std::pair<datum_string_t, datum_t> datum_t::unchecked_get_pair(size_t index) const {
     if (data.get_internal_type() == internal_type_t::BUF_R_OBJECT) {
         const size_t offset = datum_get_element_offset(data.buf_ref, index);
+        // offset == 0 indicates corruption detected in datum_get_element_offset
+        if (offset == 0 && index > 0) {
+            logERR("Corrupted datum object pair at index %zu, returning empty pair", index);
+            return std::make_pair(datum_string_t(), datum_t::null());
+        }
         return datum_deserialize_pair_from_buf(data.buf_ref, offset);
     } else {
         r_sanity_check(data.get_internal_type() == internal_type_t::R_OBJECT);

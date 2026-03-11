@@ -889,7 +889,41 @@ size_t datum_get_array_size(const shared_buf_ref_t<char> &array) {
     guarantee_deserialization(deserialize_varint_uint64(&sz_read_stream, &num_elements),
                               "datum decode array");
     guarantee(num_elements <= std::numeric_limits<size_t>::max());
-    return static_cast<size_t>(num_elements);
+    
+    // Validate that buffer is large enough for header + offset table
+    // This protects against corrupted data claiming more elements than possible
+    const size_t header_size = static_cast<size_t>(sz_read_stream.tell());
+    const datum_offset_size_t offset_size = get_offset_size_from_inner_size(ser_size);
+    size_t serialized_offset_size;
+    switch (offset_size) {
+    case datum_offset_size_t::U8BIT:
+        serialized_offset_size = 1; break;
+    case datum_offset_size_t::U16BIT:
+        serialized_offset_size = 2; break;
+    case datum_offset_size_t::U32BIT:
+        serialized_offset_size = 4; break;
+    case datum_offset_size_t::U64BIT:
+        serialized_offset_size = 8; break;
+    default:
+        unreachable();
+    }
+    
+    const size_t num_elements_sz = static_cast<size_t>(num_elements);
+    // Calculate minimum size: header + offset table (num_elements-1 entries) + at least 1 data byte
+    const size_t min_data_size = (num_elements_sz > 0) ? 1 : 0;
+    const size_t min_buffer_size = header_size + 
+                                   ((num_elements_sz > 0) ? (num_elements_sz - 1) : 0) * serialized_offset_size +
+                                   min_data_size;
+    
+    if (min_buffer_size > array.get_safety_boundary()) {
+        logERR("Corrupted datum array detected: buffer too small for claimed size. "
+               "Buffer size: %zu, claimed elements: %zu, minimum required: %zu, ser_size: %zu",
+               array.get_safety_boundary(), num_elements_sz, min_buffer_size, ser_size);
+        // Return 0 elements on corruption to prevent crashes
+        return 0;
+    }
+    
+    return num_elements_sz;
 }
 
 /* The format of `array` is:

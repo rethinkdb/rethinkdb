@@ -98,9 +98,12 @@ void minidir_read_manager_t<key_t, value_t>::on_update(
                 });
             } else {
                 /* We are creating a new key */
+                // Use update_if_exists_t constructor to handle race condition
+                // where map_var might already have the key (e.g., after reconnection)
                 link_data->map.insert(std::make_pair(*key,
                     typename watchable_map_var_t<key_t, value_t>::entry_t(
-                        &map_var, *key, *value)));
+                        &map_var, *key, *value,
+                        typename watchable_map_var_t<key_t, value_t>::entry_t::update_if_exists_t())));
             }
         } else {
             /* We are deleting an existing key. (Or maybe the key doesn't exist, and this

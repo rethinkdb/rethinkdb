@@ -71,6 +71,26 @@ public:
         it = iterator_and_is_new.first;
     }
 
+    // Variant that updates existing entry instead of crashing
+    // Returns true if a new entry was created, false if existing entry was updated
+    bool reset_or_update(std::map<key_t, value_t> *m, const key_t &key, const value_t &value) {
+        reset();
+        map = m;
+        auto existing_it = map->find(key);
+        if (existing_it != map->end()) {
+            // Update existing entry
+            existing_it->second = value;
+            it = existing_it;
+            return false;
+        } else {
+            // Insert new entry
+            auto result = map->insert(std::make_pair(key, value));
+            guarantee(result.second, "insert failed unexpectedly");
+            it = result.first;
+            return true;
+        }
+    }
+
 private:
     std::map<key_t, value_t> *map;
     typename std::map<key_t, value_t>::iterator it;
