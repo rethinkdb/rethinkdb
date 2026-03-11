@@ -8,7 +8,7 @@
 namespace unittest {
 
 // Test that engine types can be parsed correctly
-TEST(JS Engine, ParseEngineNames) {
+TEST(JSEngine, ParseEngineNames) {
     using namespace rethinkdb::js;
     
     EXPECT_EQ(js_engine_type_t::V8_JITLESS, parse_js_engine_name("v8-jitless"));
@@ -25,7 +25,7 @@ TEST(JS Engine, ParseEngineNames) {
 }
 
 // Test that engine names can be converted back to strings
-TEST(JS Engine, GetEngineNames) {
+TEST(JSEngine, GetEngineNames) {
     using namespace rethinkdb::js;
     
     EXPECT_EQ("v8-jitless", get_js_engine_name(js_engine_type_t::V8_JITLESS));
@@ -37,7 +37,7 @@ TEST(JS Engine, GetEngineNames) {
 }
 
 // Test that the default engine is valid
-TEST(JS Engine, DefaultEngine) {
+TEST(JSEngine, DefaultEngine) {
     using namespace rethinkdb::js;
     
     js_engine_type_t default_engine = get_default_js_engine();
@@ -47,7 +47,7 @@ TEST(JS Engine, DefaultEngine) {
 }
 
 // Test datum conversion helpers (if available)
-TEST(JS Engine, DatumTypes) {
+TEST(JSEngine, DatumTypes) {
     // Test that datum types work correctly with JS engines
     ql::datum_t null_datum = ql::datum_t::null();
     EXPECT_TRUE(null_datum.has());
@@ -70,7 +70,7 @@ TEST(JS Engine, DatumTypes) {
 }
 
 // Test that uninitialized datum comparison works correctly
-TEST(JS Engine, UninitializedDatumComparison) {
+TEST(JSEngine, UninitializedDatumComparison) {
     ql::datum_t uninitialized1;
     ql::datum_t uninitialized2;
     ql::datum_t null_datum = ql::datum_t::null();
