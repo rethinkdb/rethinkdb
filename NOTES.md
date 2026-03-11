@@ -78,6 +78,16 @@ None.
   * Fix datum deserialization bounds checking (Issue #7005)
     * Add validation before buffer access
     * Return safe defaults instead of crashing on corrupted data
+  * Add container memory limit detection (Issue #5498)
+    * Read cgroup v1/v2 memory limits from /sys/fs/cgroup
+    * Prevents OOM kills in Docker/Kubernetes environments
+    * Falls back to system memory if not in container
+  * Increase hard-coded shard limit (Issue #7129)
+    * Increase max_shards from 64 to 256
+    * Enables larger deployments with more fine-grained sharding
+  * Fix shutdown guarantee failure (Issue #5408)
+    * Add graceful error handling for ref_count cleanup
+    * Prevents crashes during clean shutdown
 
 ### Testing ###
 
