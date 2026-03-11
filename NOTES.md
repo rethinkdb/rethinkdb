@@ -1,3 +1,53 @@
+# Release 2.4.7 (Night of the Living Dead)
+
+Released on 2026-03-11.
+
+Feature release adding pluggable JavaScript engine support. This
+release introduces the ability to select from multiple JavaScript engines
+at build time, with V8 (jitless) available as a high-performance,
+high-security option for production deployments.
+
+### API-breaking changes ###
+
+None.
+
+### New Features ###
+
+* Server
+  * Pluggable JavaScript engine architecture
+    * New `--js-engine` configure option to select JavaScript engine
+    * Supported engines: quickjs (default), v8-jitless, v8, quickjs-ng, 
+      duktape, hermes
+    * Engine abstraction layer in `src/extproc/js_engine.hpp`
+    * Factory pattern for engine instantiation
+    * See `JS-Engines.md` for detailed comparison and selection guide
+  * V8 JavaScript engine support (jitless mode by default)
+    * Significantly improved r.js() performance (3-5x faster than QuickJS)
+    * Full modern ECMAScript support (ES2023+)
+    * Jitless mode eliminates JIT-related security vulnerabilities
+    * 512MB memory limit per JS worker for resource control
+    * Graceful error handling with detailed error messages
+  * Documentation
+    * `JS-Engines.md` - JavaScript engine comparison and technical details
+    * `How-To-Select-Your-JS-Engine.md` - Engine selection guide
+
+### Build System Changes ###
+
+* New configure options:
+  * `--js-engine=ENGINE` - Select JavaScript engine (default: quickjs)
+  * Available engines: quickjs, v8-jitless, v8, quickjs-ng, duktape, hermes
+* V8 integration with automatic dependency fetching (experimental)
+* Updated mk/support/pkg scripts for V8 build
+
+### Security Improvements ###
+
+* V8 jitless mode available - eliminates JIT spraying attack surface
+* Memory limits enforced per JavaScript worker process
+* Sandboxed execution with restricted global access
+* All previous 2.4.6 security fixes included
+
+---
+
 # Release 2.4.6 (Night of the Living Dead)
 
 Released on 2026-03-11.

@@ -74,6 +74,9 @@ include $(TOP)/mk/check-env.mk
 # Require pipe-stderr
 include $(TOP)/mk/pipe-stderr.mk
 
+# JavaScript engine configuration
+include $(TOP)/mk/js-engine.mk
+
 # The cached list of phony targets
 PHONY_LIST = var-%
 -include $(TOP)/mk/gen/phony-list.mk

@@ -22,12 +22,17 @@ init () {
     min_nmake_version=14.0
     min_cl_version=19.0
 
-    must_fetch_list='quickjs'
-    please_fetch_list="gtest re2 $must_fetch_list"
+    # JavaScript engine options: v8, v8-jitless, quickjs, quickjs-ng, quickjspp, duktape, hermes
+    # Default is quickjs for compatibility (v8-jitless recommended for production)
+    default_js_engine='quickjs'
+    supported_js_engines='v8 v8-jitless quickjs quickjs-ng quickjspp duktape hermes'
+    
+    must_fetch_list='v8'
+    please_fetch_list="gtest re2 quickjs"
 
     optional_libs="gtest termcap boost_system"
-    required_libs="protobuf re2 z crypto ssl curl quickjs"
-    other_libs="tcmalloc jemalloc"
+    required_libs="protobuf re2 z crypto ssl curl"
+    other_libs="tcmalloc jemalloc v8 $supported_js_engines"
     all_libs="$required_libs $optional_libs $other_libs"
     default_static="tcmalloc jemalloc"
 
@@ -49,6 +54,10 @@ configure () {
     show "$BASH_VERSION"
     var FETCH_LIST ""
     var FETCH_VERSIONS ""
+    
+    # Set default JS engine if not specified
+    js_engine=${js_engine:-$default_js_engine}
+    
     for var in $allowed_arg_vars; do
         local val
         if lookup "$arg_vars" $var val; then
@@ -62,6 +71,10 @@ configure () {
     else
         configure_unixlike
     fi
+    
+    # Configure JavaScript engine
+    configure_js_engine
+    
     require Installation prefix
     var PREFIX ${arg_prefix:-/usr/local}
     require Configuration prefix
@@ -236,6 +249,34 @@ configure_unixlike () {
     fi
 }
 
+configure_js_engine () {
+    require "JavaScript Engine"
+    var JS_ENGINE "$js_engine"
+    show "$js_engine"
+    
+    # Set engine-specific configuration
+    case "$js_engine" in
+        v8|v8-jitless)
+            var V8_JITLESS "$([ "$js_engine" = "v8-jitless" ] && echo "yes" || echo "no")"
+            must_fetch_list="$must_fetch_list v8"
+            ;;
+        quickjs|quickjs-ng|quickjspp)
+            must_fetch_list="$must_fetch_list quickjs"
+            ;;
+        duktape)
+            must_fetch_list="$must_fetch_list duktape"
+            ;;
+        hermes)
+            must_fetch_list="$must_fetch_list hermes"
+            ;;
+    esac
+    
+    # Export the engine for the build system
+    var JS_ENGINE_CFLAGS ""
+    var JS_ENGINE_LDFLAGS ""
+    var JS_ENGINE_LIBS ""
+}
+
 configure_windows () {
     for tool in msbuild vcvarsall cmake; do
         require $tool
@@ -373,6 +414,7 @@ read_args () {
             --with-tcmalloc) $no_arg; set_custom_allocator tcmalloc ;;
             --with-jemalloc) $no_arg; set_custom_allocator jemalloc ;;
             --with-system-malloc) $no_arg; set_custom_allocator system ;;
+            --js-engine) $has_arg; set_js_engine "$arg" ;;
             --ccache) $no_arg; use_ccache=true ;;
             --prefix) $has_arg; arg_prefix=$arg ;;
             --sysconfdir) $has_arg; arg_sysconfdir=$arg ;;
@@ -398,6 +440,14 @@ set_custom_allocator () {
         die "incompatible options: --with-$custom_allocator and --with-$1"
     fi
     custom_allocator=$1
+}
+
+set_js_engine () {
+    local engine=$1
+    if ! contains "$supported_js_engines" "$engine"; then
+        die "Unknown JavaScript engine: $engine. Supported engines: $supported_js_engines"
+    fi
+    js_engine=$engine
 }
 
 # Description of some of the dependencies
@@ -443,6 +493,8 @@ EOF
   --with-tcmalloc         Use TCMalloc
   --with-jemalloc         Use jemalloc (default on Linux)
   --with-system-malloc    Use the system malloc (default on OS X)
+  --js-engine <engine>    JavaScript engine: quickjs (default), v8-jitless,
+                          v8, quickjs-ng, quickjspp, duktape, or hermes
   --ccache                Speed up the build using ccache
   --windows-platform      Windows platform: Win32 (32 bit, default) or x64 (64 bit)
 EOF
