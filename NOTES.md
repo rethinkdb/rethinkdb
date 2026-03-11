@@ -1,3 +1,69 @@
+# Release 2.4.6 (Night of the Living Dead)
+
+Released on 2026-03-11.
+
+Security and stability fix release.  This release addresses multiple
+security vulnerabilities and bug fixes to improve overall system
+reliability and security posture.
+
+### API-breaking changes ###
+
+None.
+
+### Security Fixes ###
+
+* Server
+  * Fix timing side-channel vulnerability in authentication key comparison
+    that could leak key length information (CVE-2025-XXXX)
+    * Remove early return on size mismatch in timing_sensitive_equals()
+    * Implement constant-time comparison using unified loop with zero-padding
+  * Fix non-constant-time string comparison in SCRAM-SHA-256 authentication
+    * Use crypto::compare_equal() for client proof verification
+    * Prevents timing attacks on password verification
+  * Fix buffer overflow vulnerability in cJSON string parsing (CVE-2016-4303)
+    * Add bounds checking for UTF-16 surrogate pairs
+    * Add unicode validation to prevent invalid character sequences
+    * Credit: Dave McDaniel, Cisco Talos
+  * Strengthen SASLPrep implementation for username/password normalization
+    * Add ASCII-only validation to prevent Unicode equivalence attacks
+    * Reject non-ASCII characters that require normalization
+    * Reject ASCII control characters
+  * Increase PBKDF2 iteration count for password migration
+    * Change from 1 to 4096 iterations for migrated passwords
+    * Improves resistance to brute-force attacks
+  * Add security warning for default empty admin password
+
+### Bug Fixes ###
+
+* Server
+  * Fix null pointer dereferences from unchecked map::find() results in:
+    * perfmon_collection_repo.cc
+    * namespace_interface_repository.cc
+    * s2polygon.cc
+  * Fix unsigned integer underflow bugs that could cause crashes:
+    * changefeed.cc, control.cc, seq.cc: Fix loop bounds checking
+    * calculate_contracts.cc: Add empty() check before subtraction
+    * internal_node.cc: Add bounds check for offset calculation
+    * js_pprint.cc: Fix reverse loop variable type
+  * Fix uninitialized variable bugs:
+    * profile.hpp: Add in-class initializers for start_t, split_t, sample_t
+    * term_storage.cc: Initialize info member in default constructor
+  * Fix signed/unsigned comparison mismatches:
+    * parallel_traversal.cc: Use ssize_t for loop variable
+    * leaf_node.cc: Use size_t for count variables
+  * Fix cJSON buffer safety issues:
+    * Replace unsafe strcpy() with memcpy()
+    * Add integer overflow checks before memory allocation
+    * Replace sprintf() with snprintf() with proper bounds
+  * Fix iterator invalidation in changefeed.hpp truncate_top()
+  * Suppress redundant --server-name warning when names match
+
+### Contributors ###
+
+* Security audit and fixes by AI assistant
+* CVE-2016-4303 fix cherry-picked from PR #7163 by Yan Naing Tun
+* Server name warning fix from PR #7187 by Shasha-17
+
 # Release 2.4.5 (Night of the Living Dead)
 
 Released around November 2025.
