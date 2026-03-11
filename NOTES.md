@@ -181,8 +181,12 @@ None.
     * Prevents heap-buffer-overflow in TLS_get_cglobals() access
     * Add defensive null check in intrusive_list_node_t constructor
     * Prevents stack-buffer-underflow on corrupted memory
+  * Fix directory read manager race condition
+    * Handle connection close during initialization wait
+    * Replace guarantee with graceful error return
+    * Prevents crashes during rapid connect/disconnect cycles
 
-### Additional Batch Fixes (38+ issues total)
+### Additional Batch Fixes (39+ issues total)
 
 ARM/Architecture:
   * Fix ARM alignment issues (Issue #6721)

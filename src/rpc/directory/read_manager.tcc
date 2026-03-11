@@ -227,7 +227,14 @@ void directory_read_manager_t<metadata_t>::propagate_update(
                 wait_interruptible(&wait_for_initialization, &interruptor2);
                 mutex_assertion_lock.reset(&mutex_assertion);
                 it = connection_map.find(connection);
-                guarantee(it != connection_map.end());
+                if (it == connection_map.end()) {
+                    /* Connection was closed while we were waiting for initialization.
+                    This can happen during rapid connect/disconnect cycles. Log and return
+                    gracefully instead of crashing. */
+                    logWRN("Directory update for connection %p failed: connection closed "
+                           "during initialization wait", connection);
+                    return;
+                }
             }
             connection_info = it->second;
             connection_info_keepalive =
