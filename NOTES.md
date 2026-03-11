@@ -57,6 +57,18 @@ None.
     * Replace sprintf() with snprintf() with proper bounds
   * Fix iterator invalidation in changefeed.hpp truncate_top()
   * Suppress redundant --server-name warning when names match
+  * Fix cluster crash when re-provisioned server connects (Issue #6880)
+    * Replace guarantee with graceful error handling for empty peer addresses
+    * Prevents entire cluster crash when server is removed and re-added
+  * Fix tag mismatch guarantee crash (Issue #6961)
+    * Log error and close connection gracefully instead of crashing
+    * Improves robustness against message corruption
+  * Fix uninitialized ip_address_t crash on ARM platforms (Issue #7124)
+    * Return '<uninitialized>' instead of crashing
+    * Prevents server crash with unusual network configurations
+  * Fix memory calculation to include Buffers from /proc/meminfo (Issue #7120)
+    * Improves accuracy of available memory detection
+    * Better cache size calculation on Linux systems
 
 ### Contributors ###
 
