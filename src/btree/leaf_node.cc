@@ -1666,7 +1666,7 @@ void erase_deletions(
     was pointing to a deletion entry that's been erased, we need to remove that entry
     from `pair_offsets`. */
     int src = 0, dst = 0;
-    int num_deleted = deletion_offsets.size();
+    size_t num_deleted = deletion_offsets.size();
     for (; src < node->num_pairs; ++src) {
         uint16_t off = node->pair_offsets[src];
         auto it = deletion_offsets.find(off);

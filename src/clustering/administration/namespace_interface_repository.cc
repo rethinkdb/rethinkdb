@@ -74,8 +74,9 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
     keepalive.assert_is_holding(&cache->drainer);
     threadnum_t thread = get_thread_id();
 
-    namespace_cache_entry_t *cache_entry =
-        cache->entries.find(table_id)->second.get();
+    auto it = cache->entries.find(table_id);
+    guarantee(it != cache->entries.end());
+    namespace_cache_entry_t *cache_entry = it->second.get();
     guarantee(!cache_entry->namespace_interface.get_ready_signal()->is_pulsed());
 
     /* We want to extract the entries in the directory that are for this table. This is

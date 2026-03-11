@@ -1,10 +1,13 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/auth/scram_authenticator.hpp"
 
+#include <cstring>
+
 #include "clustering/administration/auth/authentication_error.hpp"
 #include "clustering/administration/auth/password.hpp"
 #include "clustering/administration/auth/username.hpp"
 #include "crypto/base64.hpp"
+#include "crypto/compare_equal.hpp"
 #include "crypto/error.hpp"
 #include "crypto/hash.hpp"
 #include "crypto/hmac.hpp"
@@ -125,13 +128,25 @@ std::string scram_authenticator_t::next_message(std::string const &message)
                                 throw authentication_error_t(20, "Other error");
                             }
                             break;
-                        case 'p':
-                            if (attribute.second !=
-                                    crypto::base64_encode(client_proof)) {
+                        case 'p': {
+                            std::string decoded_client_proof;
+                            try {
+                                decoded_client_proof = crypto::base64_decode(attribute.second);
+                            } catch (crypto::error_t const &) {
+                                throw authentication_error_t(10, "Invalid encoding");
+                            }
+                            if (decoded_client_proof.size() != client_proof.size()) {
+                                throw authentication_error_t(12, "Wrong password");
+                            }
+                            std::array<unsigned char, SHA256_DIGEST_LENGTH> client_proof_array;
+                            memcpy(client_proof_array.data(), decoded_client_proof.data(),
+                                   SHA256_DIGEST_LENGTH);
+                            if (!crypto::compare_equal(client_proof_array, client_proof)) {
                                 throw authentication_error_t(12, "Wrong password");
                             }
                             m_state = state_t::AUTHENTICATED;
                             break;
+                        }
                         case 'm':
                             throw authentication_error_t(11, "Extensions not supported");
                         default:

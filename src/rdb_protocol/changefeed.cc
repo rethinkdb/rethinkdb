@@ -1830,7 +1830,7 @@ real_feed_t::real_feed_t(auto_drainer_t::lock_t _client_lock,
             // the queue logic actually does something (since mailboxes are
             // generally ordered right now).
 #ifndef NDEBUG
-            for (size_t i = 0; i < queues.size()-1; ++i) {
+            for (size_t i = 0; i + 1 < queues.size(); ++i) {
                 res.first->second->map.push(
                     stamped_msg_t(
                         server_uuid,

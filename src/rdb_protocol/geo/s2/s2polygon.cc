@@ -227,7 +227,9 @@ bool S2Polygon::ContainsChild(S2Loop* a, S2Loop* b, LoopMap const& loop_map) {
   // constructed correctly.
 
   if (a == b) return true;
-  vector<S2Loop*> const& children = loop_map.find(a)->second;
+  auto it = loop_map.find(a);
+  guarantee(it != loop_map.end());
+  vector<S2Loop*> const& children = it->second;
   for (size_t i = 0; i < children.size(); ++i) {
     if (ContainsChild(children[i], b, loop_map)) return true;
   }

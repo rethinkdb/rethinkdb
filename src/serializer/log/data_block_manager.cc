@@ -1014,6 +1014,10 @@ void data_block_manager_t::run_gc(gc_state_t *gc_state) {
         gc_one_extent(gc_state);
 
         if (state == state_shutting_down) {
+            // SAFETY: This self-deletion is safe because:
+            // 1. We remove from active_gcs first, so no other code can find gc_state
+            // 2. No code accesses gc_state after delete - we return immediately
+            // 3. gc_state->current_entry is not accessed here (set to nullptr earlier)
             active_gcs.remove(gc_state);
             gc_index_write_semaphore.set_capacity(
                 std::max<int64_t>(1, active_gcs.size()));
@@ -1025,6 +1029,10 @@ void data_block_manager_t::run_gc(gc_state_t *gc_state) {
         }
     }
 
+    // SAFETY: This self-deletion is safe because:
+    // 1. We remove from active_gcs first, so no other code can find gc_state
+    // 2. No code accesses gc_state after delete - we return immediately
+    // 3. collected_gc_index_writes entries for this gc_state have been cleared
     active_gcs.remove(gc_state);
     gc_index_write_semaphore.set_capacity(std::max<int64_t>(1, active_gcs.size()));
     delete gc_state;

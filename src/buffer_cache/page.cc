@@ -385,6 +385,10 @@ void page_t::remove_snapshotter(page_cache_t *page_cache) {
         rassert(waiters_.empty());
 
         page_cache->evicter().remove_page(this);
+        // SAFETY: This is safe because:
+        // 1. remove_page() does not block or access page members after removal
+        // 2. No code accesses 'this' after delete - callers return immediately
+        // 3. All callers (page_ptr_t::reset_page_ptr) null out their pointer first
         delete this;
     }
 }

@@ -57,7 +57,7 @@ private:
                base_exc_t::LOGIC,
                "Cannot call `branch` term with an even number of arguments.");
 
-        for (size_t i = 0; i < args->num_args()-1; i += 2) {
+        for (size_t i = 0; i + 1 < args->num_args(); i += 2) {
             scoped_ptr_t<val_t> v = args->arg(env, i);
             if (v->as_bool()) {
                 return args->arg(env, i+1);

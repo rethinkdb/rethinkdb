@@ -62,7 +62,7 @@ void migrate_auth_metadata_v2_1_to_v2_3(metadata_file_t::write_txn_t *txn,
     auth_semilattice_metadata_t new_metadata;
     auth::password_t admin_pw(
         old_auth_key,
-        1 /* 1 iteration, since auth_key was already insecure. */);
+        auth::password_t::default_iteration_count /* Use secure iteration count */);
     auto admin_pair = std::make_pair(
         auth::username_t("admin"),
         versioned_t<optional<auth::user_t>>::make_with_manual_timestamp(

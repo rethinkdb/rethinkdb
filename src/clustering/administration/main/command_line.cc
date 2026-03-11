@@ -1508,6 +1508,8 @@ std::string parse_initial_password_option(
         return *initial_password_str;
     } else {
         // The default is an empty admin password
+        logWRN("Using default empty admin password. This is insecure. "
+               "Set a password with --initial-password or the web admin interface.");
         return "";
     }
 }
@@ -2366,9 +2368,13 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         if (is_new_directory) {
             server_name = parse_server_name_option(opts);
         } else {
-            if (static_cast<bool>(get_optional_option(opts, "--server-name"))) {
-                fprintf(stderr, "WARNING: ignoring --server-name because this server "
-                    "already has a name.\n");
+            optional<std::string> opt_server_name = get_optional_option(opts, "--server-name");
+            if (static_cast<bool>(opt_server_name)) {
+                name_string_t parsed_name;
+                if (parsed_name.assign_value(*opt_server_name) && parsed_name != server_name) {
+                    fprintf(stderr, "WARNING: ignoring --server-name because this server "
+                        "already has a name.\n");
+                }
             }
         }
 

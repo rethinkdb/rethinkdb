@@ -41,7 +41,7 @@ bool query_type_is_valid(Query::QueryType query_type) {
 generated_term_t::generated_term_t(Term::TermType _type, backtrace_id_t _bt) :
         type(_type), bt(_bt) { }
 
-raw_term_t::raw_term_t() { }
+raw_term_t::raw_term_t() : info() { }
 
 raw_term_t::raw_term_t(const term_variant_t &source) {
     class param_visitor_t : public boost::static_visitor<void> {

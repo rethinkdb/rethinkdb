@@ -398,7 +398,7 @@ void delete_pair(internal_node_t *node, uint16_t offset) {
     btree_internal_pair *pair_to_delete = get_pair(node, offset);
     btree_internal_pair *front_pair = get_pair(node, node->frontmost_offset);
     const size_t shift = pair_size(pair_to_delete);
-    const size_t size = offset - node->frontmost_offset;
+    const size_t size = (offset >= node->frontmost_offset) ? (offset - node->frontmost_offset) : 0;
 
     rassert(node->magic == internal_node_t::expected_magic);
     memmove(reinterpret_cast<char *>(front_pair) + shift, front_pair, size);

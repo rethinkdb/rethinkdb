@@ -185,8 +185,8 @@ private:
                                           args_t *args,
                                           eval_flags_t) const {
         std::vector<counted_t<datum_stream_t> > streams;
-        streams.reserve(args->num_args() - 1);
-        for (size_t i = 0; i < args->num_args() - 1; ++i) {
+        streams.reserve(args->num_args() >= 1 ? args->num_args() - 1 : 0);
+        for (size_t i = 0; i + 1 < args->num_args(); ++i) {
             streams.push_back(args->arg(env, i)->as_seq(env->env));
         }
 
