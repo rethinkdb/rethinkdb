@@ -239,6 +239,54 @@ bool get_proc_status_current_swap_usage(uint64_t *swap_usage_out) {
 #endif
 }
 
+// Try to read cgroup memory limit (for containers)
+bool get_cgroup_memory_limit(uint64_t *limit_out) {
+#if defined(_WIN32)
+    return false;
+#else
+    // Try cgroup v2 first (memory.max)
+    std::string v2_contents;
+    bool v2_ok;
+    thread_pool_t::run_in_blocker_pool([&]() {
+        v2_ok = blocking_read_file("/sys/fs/cgroup/memory.max", &v2_contents);
+    });
+    if (v2_ok) {
+        // Parse the value (can be "max" for unlimited)
+        v2_contents.erase(v2_contents.find_last_not_of(" \n\r\t") + 1);
+        if (v2_contents != "max" && !v2_contents.empty()) {
+            try {
+                *limit_out = std::stoull(v2_contents);
+                return true;
+            } catch (...) {
+                // Fall through to cgroup v1
+            }
+        }
+    }
+    
+    // Try cgroup v1 (memory.limit_in_bytes)
+    std::string v1_contents;
+    bool v1_ok;
+    thread_pool_t::run_in_blocker_pool([&]() {
+        v1_ok = blocking_read_file("/sys/fs/cgroup/memory/memory.limit_in_bytes", &v1_contents);
+    });
+    if (v1_ok) {
+        try {
+            uint64_t limit = std::stoull(v1_contents);
+            // Check if limit is actually set (not max uint64)
+            uint64_t max_limit = static_cast<uint64_t>(-1);
+            if (limit > 0 && limit < max_limit) {
+                *limit_out = limit;
+                return true;
+            }
+        } catch (...) {
+            // Ignore parse errors
+        }
+    }
+    
+    return false;
+#endif
+}
+
 bool get_proc_meminfo_available_memory_size(uint64_t *mem_avail_out) {
     std::string contents;
     bool ok;
@@ -337,19 +385,39 @@ uint64_t get_avail_mem_size() {
     return v_free_count * page_size;
 #else  // defined(_WIN32)/defined(__MACH__)/defined(__FreeBSD__)/...
     uint64_t page_size = sysconf(_SC_PAGESIZE);
-    {
-        uint64_t memory;
-        if (get_proc_meminfo_available_memory_size(&memory)) {
-            return memory;
-        } else {
-            logERR("Could not parse /proc/meminfo, so we will treat cached file memory "
-                "as if it were unavailable.");
-
-            // This just returns what /proc/meminfo would report as "MemFree".
-            uint64_t avail_mem_pages = sysconf(_SC_AVPHYS_PAGES);
-
-            return avail_mem_pages * page_size;
+    
+    // Check for cgroup memory limit first (for containers)
+    uint64_t cgroup_limit;
+    bool has_cgroup_limit = get_cgroup_memory_limit(&cgroup_limit);
+    
+    uint64_t system_memory;
+    if (get_proc_meminfo_available_memory_size(&system_memory)) {
+        if (has_cgroup_limit) {
+            // In a container, use the minimum of cgroup limit and system available
+            uint64_t cgroup_avail = cgroup_limit;
+            if (cgroup_avail < system_memory) {
+                logNTC("Detected container memory limit: %" PRIu64 " MB "
+                       "(system reports %" PRIu64 " MB available)",
+                       cgroup_avail / MEGABYTE, system_memory / MEGABYTE);
+            }
+            return std::min(cgroup_avail, system_memory);
         }
+        return system_memory;
+    } else {
+        logERR("Could not parse /proc/meminfo, so we will treat cached file memory "
+            "as if it were unavailable.");
+
+        if (has_cgroup_limit) {
+            // Use cgroup limit as fallback
+            logNTC("Using container memory limit: %" PRIu64 " MB",
+                   cgroup_limit / MEGABYTE);
+            return cgroup_limit;
+        }
+        
+        // This just returns what /proc/meminfo would report as "MemFree".
+        uint64_t avail_mem_pages = sysconf(_SC_AVPHYS_PAGES);
+
+        return avail_mem_pages * page_size;
     }
 #endif  // defined(_WIN32)/defined(__MACH__)/defined(__FreeBSD__)/...
 }

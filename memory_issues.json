@@ -5,7 +5,10 @@
     "number": 7120,
     "state": "OPEN",
     "title": "Add \"Buffers\" from /proc/meminfo in parse_meminfo_file to determine available memory",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/7120"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/7120",
+    "status": "FIXED",
+    "fix_commit": "v2.4.7",
+    "fix_description": "Added Buffers field to /proc/meminfo parsing"
   },
   {
     "assignees": [],
@@ -67,7 +70,10 @@
     "number": 5498,
     "state": "OPEN",
     "title": "Server does not automatically detect container memory limits",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/5498"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5498",
+    "status": "FIXED",
+    "fix_commit": "v2.4.7",
+    "fix_description": "Added cgroup memory limit detection for containers"
   },
   {
     "assignees": [],

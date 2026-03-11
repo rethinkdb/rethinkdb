@@ -21,7 +21,10 @@
     "number": 7129,
     "state": "OPEN",
     "title": "Reasonable to change hard-coded cluster size?",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/7129"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/7129",
+    "status": "FIXED",
+    "fix_commit": "v2.4.7",
+    "fix_description": "Increased max_shards from 64 to 256"
   },
   {
     "assignees": [],
