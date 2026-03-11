@@ -185,8 +185,12 @@ None.
     * Handle connection close during initialization wait
     * Replace guarantee with graceful error return
     * Prevents crashes during rapid connect/disconnect cycles
+  * Fix extproc worker kill_process() crash
+    * Handle case where exceptions occur before worker_pid is set
+    * Replace guarantee with early return check
+    * Prevents crash when killing partially initialized worker
 
-### Additional Batch Fixes (39+ issues total)
+### Additional Batch Fixes (40+ issues total)
 
 ARM/Architecture:
   * Fix ARM alignment issues (Issue #6721)
