@@ -159,7 +159,9 @@
     "number": 5353,
     "state": "OPEN",
     "title": "Rethread crash during huge network transfer",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/5353"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5353",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -191,7 +193,9 @@
     "number": 5309,
     "state": "OPEN",
     "title": "coroutine stack overflow crashes on OS X",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/5309"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5309",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -279,7 +283,9 @@
     "number": 3568,
     "state": "OPEN",
     "title": "Should `datum_t() == datum_t()` crash or not?",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/3568"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3568",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],

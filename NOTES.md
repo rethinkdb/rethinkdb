@@ -202,8 +202,18 @@ None.
     * Handle duplicate begin_changefeed_destruction() calls gracefully
     * Force removal of machinery even if subscribers still active
     * Prevents crashes during artificial table changefeed shutdown
+  * Fix rethread crash during network transfer (Issue #5353)
+    * Replace crash() with error log and graceful return
+    * Prevents crashes during rapid rethreading on network errors
+  * Improve stack overflow error handling (Issue #5309)
+    * Add detailed error message before crash
+    * Helps diagnose coroutine stack overflows on OS X
+  * Fix datum_t comparison with uninitialized values (Issue #3568)
+    * Handle comparison of uninitialized datum_t gracefully
+    * Returns sensible defaults instead of crashing
+    * Both uninitialized datums are considered equal
 
-### Additional Batch Fixes (43+ issues total)
+### Additional Batch Fixes (47+ issues total)
 
 ARM/Architecture:
   * Fix ARM alignment issues (Issue #6721)

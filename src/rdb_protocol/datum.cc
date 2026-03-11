@@ -1816,12 +1816,22 @@ int datum_t::cmp(const datum_t &rhs) const {
         });
 }
 
-bool datum_t::operator==(const datum_t &rhs) const { return cmp(rhs) == 0; }
-bool datum_t::operator!=(const datum_t &rhs) const { return cmp(rhs) != 0; }
-bool datum_t::operator<(const datum_t &rhs) const { return cmp(rhs) < 0; }
-bool datum_t::operator<=(const datum_t &rhs) const { return cmp(rhs) <= 0; }
-bool datum_t::operator>(const datum_t &rhs) const { return cmp(rhs) > 0; }
-bool datum_t::operator>=(const datum_t &rhs) const { return cmp(rhs) >= 0; }
+bool datum_t::operator==(const datum_t &rhs) const {
+    // Handle uninitialized datum comparison gracefully
+    if (!has() && !rhs.has()) return true;  // Both uninitialized are equal
+    if (!has() || !rhs.has()) return false; // One uninitialized is not equal
+    return cmp(rhs) == 0;
+}
+bool datum_t::operator!=(const datum_t &rhs) const { return !(*this == rhs); }
+bool datum_t::operator<(const datum_t &rhs) const {
+    if (!has() && !rhs.has()) return false;
+    if (!has()) return true;   // Uninitialized is less than initialized
+    if (!rhs.has()) return false;
+    return cmp(rhs) < 0;
+}
+bool datum_t::operator<=(const datum_t &rhs) const { return *this < rhs || *this == rhs; }
+bool datum_t::operator>(const datum_t &rhs) const { return rhs < *this; }
+bool datum_t::operator>=(const datum_t &rhs) const { return rhs <= *this; }
 
 void datum_t::runtime_fail(base_exc_t::type_t exc_type,
                            const char *test, const char *file, int line,

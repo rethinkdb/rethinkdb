@@ -422,6 +422,12 @@ void linux_thread_pool_t::fatal_signal_handler(
     // SIGBUS.
     if ((signum == SIGSEGV || signum == SIGBUS)
         && is_coroutine_stack_overflow(info->si_addr)) {
+        // Stack overflow in coroutine - log detailed error before crashing
+        // This helps diagnose the issue on OS X where this is more common
+        logERR("Fatal: Callstack overflow in a coroutine at address %p. "
+               "This may be caused by deeply nested queries or large stack allocations. "
+               "Consider increasing the coroutine stack size or simplifying queries.",
+               info->si_addr);
         crash("Callstack overflow in a coroutine");
     } else if (signum == SIGSEGV) {
         crash("Segmentation fault from reading the address %p.", info->si_addr);
