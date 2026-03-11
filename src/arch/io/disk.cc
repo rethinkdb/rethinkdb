@@ -442,7 +442,8 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
         access_mode |= GENERIC_READ;
     }
     if (access_mode == 0) {
-        crash("Bad file access mode.");
+        logERR("Bad file access mode for Windows file open.");
+        return file_open_result_t(file_open_result_t::ERROR, EINVAL);
     }
 
     // TODO WINDOWS: is all this sharing necessary?
@@ -505,7 +506,8 @@ file_open_result_t open_file(const char *path, const int mode, io_backender_t *b
     } else if (mode & linux_file_t::mode_read) {
         flags |= O_RDONLY;
     } else {
-        crash("Bad file access mode.");
+        logERR("Bad file access mode for file open (neither read nor write specified).");
+        return file_open_result_t(file_open_result_t::ERROR, EINVAL);
     }
 
     // Makes writes not update the access time of the file where available.  That's more efficient.
@@ -652,7 +654,10 @@ MUST_USE int fsync_parent_directory(const char *path) {
 #else
     char absolute_path[PATH_MAX];
     char *abs_res = realpath(path, absolute_path);
-    guarantee_err(abs_res != nullptr, "Failed to determine absolute path for '%s'", path);
+    if (abs_res == nullptr) {
+        logERR("Failed to determine absolute path for '%s': %s", path, errno_string(get_errno()).c_str());
+        return get_errno();
+    }
     char *parent_path = dirname(absolute_path); // Note: modifies absolute_path
 
     // Get a file descriptor on the parent directory
