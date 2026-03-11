@@ -266,6 +266,9 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     const size_t min_frame = 1;
 #elif defined(__powerpc64__)
     const size_t min_frame = 4;
+#elif defined(__riscv)
+    // RISC-V requires 16-byte alignment
+    const size_t min_frame = 2;
 #endif
     // Zero the caller stack frame. Prevents Valgrind complaining about uninitialized
     // value errors when throwing an uncaught exception.
@@ -299,6 +302,12 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     // registers are saved and restored for powerpc.  There are no failures
     // seen during context switch on ubuntu/RHEL powerpc64le systems.
     sp -= 20; // r14-r31, toc, cr.
+#elif defined(__riscv) && (__riscv_xlen == 64)
+    // RISC-V 64-bit: s0-s11 (12 registers)
+    sp -= 12;
+#elif defined(__riscv) && (__riscv_xlen == 32)
+    // RISC-V 32-bit: s0-s11 (12 registers)
+    sp -= 12;
 #else
 #error "Unsupported architecture."
 #endif

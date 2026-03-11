@@ -15,6 +15,7 @@
 #include "containers/shared_buffer.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
+#include "logger.hpp"
 #include "rdb_protocol/error.hpp"
 
 namespace ql {
@@ -807,6 +808,15 @@ datum_t datum_deserialize_from_buf(const shared_buf_ref_t<char> &buf, size_t at_
     // child buf_ref and are done.
     // Otherwise we create a buffer_read_stream_t and deserialize the datum from
     // there.
+    
+    // Validate offset is within bounds before accessing
+    if (at_offset >= buf.get_safety_boundary()) {
+        logERR("datum_deserialize_from_buf: offset %zu exceeds buffer boundary %zu",
+               at_offset, buf.get_safety_boundary());
+        // Return null datum on bounds error instead of crashing
+        return datum_t();
+    }
+    
     buf.guarantee_in_boundary(at_offset);
     buffer_read_stream_t read_stream(buf.get() + at_offset,
                                      buf.get_safety_boundary() - at_offset);
@@ -916,15 +926,28 @@ size_t datum_get_element_offset(const shared_buf_ref_t<char> &array, size_t inde
     guarantee(index < sz);
 
     rassert(sz > 0);
+    
+    // Validate that offset calculations won't overflow
+    const size_t current_pos = static_cast<size_t>(sz_read_stream.tell());
+    const size_t max_offset = current_pos + sz * serialized_offset_size;
+    
+    if (max_offset > array.get_safety_boundary() || max_offset < current_pos) {
+        logERR("datum_array_element_offset: calculated offset %zu exceeds boundary %zu "
+               "(pos=%zu, num_elements=%zu, offset_size=%zu)",
+               max_offset, array.get_safety_boundary(), current_pos, sz, serialized_offset_size);
+        // Return 0 offset on bounds error instead of crashing  
+        return 0;
+    }
+    
     const size_t data_offset =
-        static_cast<size_t>(sz_read_stream.tell())
+        current_pos
         + (num_elements - 1) * serialized_offset_size;
 
     if (index == 0) {
         return data_offset;
     } else {
         const size_t element_offset_offset =
-            static_cast<size_t>(sz_read_stream.tell())
+            current_pos
             + (index - 1) * serialized_offset_size;
 
         array.guarantee_in_boundary(element_offset_offset);
