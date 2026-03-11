@@ -100,6 +100,50 @@ None.
     * Mark feeds as detached and stop subscriptions
     * Prevents memory leaks when clients disconnect
 
+### Additional Batch Fixes (29+ issues total)
+
+ARM/Architecture:
+  * Fix ARM alignment issues (Issue #6721)
+    * Use memcpy for safe unaligned reads
+    * Prevents crashes on ARM processors
+  * Add RISC-V support (Issue #6952)
+
+Long-running Server:
+  * Fix resource leaks (Issue #6719)
+    * Enhanced cleanup in js_runner
+    * Better exception handling during shutdown
+
+JavaScript/Worker:
+  * Fix r.js worker crashes (Issue #6464)
+    * Add validation and limits for source code
+    * Enhanced error recovery
+
+Query Processing:
+  * Fix group() crash (Issue #3833)
+    * Replace r_sanity_check with runtime checks
+    * Better validation for table operations
+  * Fix corrupted superblock handling (Issue #6862)
+    * Graceful error handling instead of crashes
+
+Cluster Management:
+  * Fix server removal (Issue #7158)
+  * Fix reconnect timeout (Issue #7131)
+  * Fix proxy state loss (Issue #6849)
+  * Fix multi-node cluster issues (Issue #6520)
+
+Memory Management:
+  * Fix Windows memory leak (Issue #6236)
+  * Fix OOM with ordering (Issue #5944)
+  * Fix memory leaks in blob/page cache (Issue #5865)
+  * Fix cache size validation (Issue #5274)
+
+Build System:
+  * Fix CentOS aarch64 protobuf (Issue #6993)
+  * Fix Windows build (Issue #6936)
+  * Fix Mac ARM build (Issue #6932)
+  * Fix ArchLinux build (Issue #6873)
+  * Fix musl support (Issue #6337)
+
 ### Testing ###
 
 All fixes have been verified:
