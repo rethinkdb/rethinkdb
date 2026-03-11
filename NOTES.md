@@ -37,12 +37,29 @@ None.
   * `--js-engine=ENGINE` - Select JavaScript engine (default: quickjs)
   * Available engines: quickjs, v8-jitless, v8, quickjs-ng, duktape, hermes
 * V8 integration with automatic dependency fetching (experimental)
-* Updated mk/support/pkg scripts for V8 build
+* Updated mk/support/pkg scripts for all JS engines:
+  * `v8.sh` - V8 engine (Google, jitless mode supported)
+  * `quickjs.sh` - QuickJS (default, small footprint)
+  * `quickjs-ng.sh` - QuickJS-NG fork (performance improvements)
+  * `duktape.sh` - Duktape (ultra-small, ES2015+)
+  * `hermes.sh` - Hermes (Facebook, mobile-optimized)
 * Security updates to external dependencies:
   * zlib: 1.2.11 -> 1.3.1 (fixes CVE-2018-25032, CVE-2022-37434)
   * openssl: 3.0.7 -> 3.0.13 (LTS security fixes)
   * curl: 7.82.0 -> 8.5.0 (multiple security fixes)
-  * re2: 2015-11-01 -> 2023-11-01 (bug fixes and improvements)
+  * re2: 2015-11-01 -> 2021-11-01 (stable version without abseil dependency)
+
+### Build Fixes ###
+
+* Fixed configure script order for JS engine dependencies
+  * Moved configure_js_engine before configure_unixlike
+  * Ensures JS engine packages are added to FETCH_LIST before dependency processing
+* Fixed QuickJS library linking
+  * Added QUICKJS_INCLUDE, QUICKJS_LIBS, and QUICKJS_LIBS_DEP macros
+* Fixed compilation errors in js_engine_factory.cc
+  * Wrapped V8-specific code in #ifdef RETHINKDB_JS_ENGINE_V8 guards
+* Fixed missing logger.hpp include in disk_extent.cc
+* Fixed peer_id print method call in read_manager.tcc
 
 ### Security Improvements ###
 

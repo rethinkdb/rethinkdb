@@ -1,8 +1,8 @@
 
-version=2023-11-01
+version=2021-11-01
 
 src_url=https://github.com/google/re2/archive/$version.tar.gz
-src_url_sha256=4e6593ac3c71de1c0f322735bc8b0492a72f66ffccfad76d604fa3ad6f120411
+src_url_sha256=8c45f7fba029ab41f2a7e6545058d9eec94eef97ce70df58e92d85cfc08b4669
 
 pkg_install-include () {
     mkdir -p "$install_dir/include/re2"

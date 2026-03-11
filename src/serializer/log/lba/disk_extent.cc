@@ -8,6 +8,7 @@
 
 #include "arch/arch.hpp"
 #include "math.hpp"
+#include "logger.hpp"
 
 lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, file_t *file, file_account_t *io_account)
     : em(_em), data(new extent_t(em, file)), count(0) {

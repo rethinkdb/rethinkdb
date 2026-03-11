@@ -7,20 +7,17 @@ version=11.9.169.7  # Stable V8 version with good jitless support
 
 # Use depot_tools to fetch V8 (Google's build system)
 depot_tools_url="https://chromium.googlesource.com/chromium/tools/depot_tools.git"
-depot_tools_dir="$build_dir/depot_tools"
 
-# Alternative: Use pre-built V8 static libraries from GitHub releases
-# For production builds, fetching and building V8 is time-consuming
-# This script supports both approaches
-
-fetch_v8_source () {
-    # Check if we should use pre-built libraries
-    if [ "${V8_USE_PREBUILT:-0}" = "1" ]; then
-        fetch_prebuilt_v8
-        return
+pkg_install-include () {
+    mkdir -p "$install_dir/include"
+    if [ -d "$src_dir/include" ]; then
+        cp -r "$src_dir/include"/* "$install_dir/include/"
     fi
-    
+}
+
+pkg_fetch () {
     # Fetch depot_tools
+    local depot_tools_dir="$build_dir/depot_tools"
     if [ ! -d "$depot_tools_dir" ]; then
         git clone --depth 1 "$depot_tools_url" "$depot_tools_dir"
     fi
@@ -42,23 +39,8 @@ fetch_v8_source () {
     gclient sync -D
 }
 
-fetch_prebuilt_v8 () {
-    # For CI/CD and faster builds, use pre-built V8 libraries
-    # These are platform-specific
-    local platform=$(uname -m)
-    local os=$(uname -s | tr '[:upper:]' '[:lower:]')
-    
-    local prebuilt_url="https://github.com/rethinkdb/v8-prebuilt/releases/download/v${version}/v8-${os}-${platform}.tar.gz"
-    
-    curl -L "$prebuilt_url" | tar -xzf - -C "$build_dir"
-}
-
-build_v8 () {
-    if [ "${V8_USE_PREBUILT:-0}" = "1" ]; then
-        # Pre-built libraries already extracted
-        return
-    fi
-    
+pkg_build () {
+    local depot_tools_dir="$build_dir/depot_tools"
     cd "$build_dir/v8/v8"
     export PATH="$depot_tools_dir:$PATH"
     
@@ -99,46 +81,35 @@ build_v8 () {
     ninja -C out.gn/release v8_monolith
 }
 
-install_v8 () {
+pkg_install () {
+    pkg_build
+    
     local include_dir="$install_dir/include"
     local lib_dir="$install_dir/lib"
     
     mkdir -p "$include_dir" "$lib_dir"
     
-    if [ "${V8_USE_PREBUILT:-0}" = "1" ]; then
-        # Copy pre-built files
-        cp -r "$build_dir/include"/* "$include_dir/"
-        cp -r "$build_dir/lib"/* "$lib_dir/"
-    else
-        # Copy built files
-        cd "$build_dir/v8/v8"
-        
-        # Copy headers
-        cp -r include/* "$include_dir/"
-        
-        # Copy static library
-        cp out.gn/release/obj/libv8_monolith.a "$lib_dir/"
-        
-        # Copy additional required libraries
-        if [ -f out.gn/release/obj/third_party/icu/libicuuc.a ]; then
-            cp out.gn/release/obj/third_party/icu/libicuuc.a "$lib_dir/"
-        fi
+    # Copy built files
+    cd "$build_dir/v8/v8"
+    
+    # Copy headers
+    cp -r include/* "$include_dir/"
+    
+    # Copy static library
+    cp out.gn/release/obj/libv8_monolith.a "$lib_dir/"
+    
+    # Copy additional required libraries
+    if [ -f out.gn/release/obj/third_party/icu/libicuuc.a ]; then
+        cp out.gn/release/obj/third_party/icu/libicuuc.a "$lib_dir/"
     fi
 }
 
-# Main package interface
-case "${1:-}" in
-    fetch)
-        fetch_v8_source
-        ;;
-    build)
-        build_v8
-        ;;
-    install)
-        install_v8
-        ;;
-    *)
-        echo "Usage: $0 {fetch|build|install}"
-        exit 1
-        ;;
-esac
+pkg_link-flags () {
+    local flags="$install_dir/lib/libv8_monolith.a"
+    if [ -f "$install_dir/lib/libicuuc.a" ]; then
+        flags="$flags -licuuc"
+    fi
+    # V8 needs these system libraries
+    flags="$flags -lpthread -ldl"
+    echo "$flags"
+}

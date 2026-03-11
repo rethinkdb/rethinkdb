@@ -118,7 +118,7 @@ void directory_read_manager_t<metadata_t>::handle_connection(
     // Check for duplicate connection - this can happen during rapid reconnect
     if (connection_map.find(connection) != connection_map.end()) {
         logWRN("Duplicate connection attempt in directory_read_manager for peer %s. "
-               "Ignoring duplicate.", connection->get_peer_id().print().c_str());
+               "Ignoring duplicate.", uuid_to_str(connection->get_peer_id().get_uuid()).c_str());
         return;
     }
 

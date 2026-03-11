@@ -252,6 +252,9 @@ RT_CXXFLAGS += -I$(PROTO_DIR)
 
 SOURCES := $(shell find $(SOURCE_DIR) -name '*.cc' -not -name '\.*')
 
+# Filter out unused JavaScript engine implementations
+SOURCES := $(filter-out $(JS_ENGINE_EXCLUDE),$(SOURCES))
+
 SERVER_EXEC_SOURCES := $(filter-out $(SOURCE_DIR)/unittest/%,$(SOURCES))
 
 QL2_PROTO_NAMES := rdb_protocol/ql2

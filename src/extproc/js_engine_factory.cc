@@ -6,7 +6,26 @@
 #include <memory>
 #include <stdexcept>
 
+// Include engine-specific headers based on build configuration
+#if defined(RETHINKDB_JS_ENGINE_V8)
 #include "extproc/js_engine_v8.hpp"
+#endif
+
+#if defined(RETHINKDB_JS_ENGINE_QUICKJS)
+#include "extproc/js_engine_quickjs.hpp"
+#endif
+
+#if defined(RETHINKDB_JS_ENGINE_QUICKJS_NG)
+#include "extproc/js_engine_quickjs_ng.hpp"
+#endif
+
+#if defined(RETHINKDB_JS_ENGINE_DUKTAPE)
+#include "extproc/js_engine_duktape.hpp"
+#endif
+
+#if defined(RETHINKDB_JS_ENGINE_HERMES)
+#include "extproc/js_engine_hermes.hpp"
+#endif
 
 // Forward declarations for engine-specific implementations
 namespace rethinkdb {
@@ -15,11 +34,13 @@ namespace js {
 // Engine factory implementation
 std::unique_ptr<js_engine_t> create_js_engine(js_engine_type_t type) {
     switch (type) {
+#if defined(RETHINKDB_JS_ENGINE_V8)
         case js_engine_type_t::V8_JITLESS:
             return create_v8_jitless_engine();
             
         case js_engine_type_t::V8_FULL:
             return create_v8_full_engine();
+#endif
             
 #if defined(RETHINKDB_JS_ENGINE_QUICKJS)
         case js_engine_type_t::QUICKJS:

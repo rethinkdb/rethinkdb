@@ -65,15 +65,15 @@ configure () {
             var $var "$val"
         fi
     done
+    # Configure JavaScript engine first (needed for must_fetch_list)
+    configure_js_engine
+    
     check_windows
     if $windows; then
         configure_windows
     else
         configure_unixlike
     fi
-    
-    # Configure JavaScript engine
-    configure_js_engine
     
     require Installation prefix
     var PREFIX ${arg_prefix:-/usr/local}
@@ -262,6 +262,11 @@ configure_js_engine () {
             ;;
         quickjs|quickjs-ng|quickjspp)
             must_fetch_list="$must_fetch_list quickjs"
+            # Set up include paths and library for quickjs (normally done by fetch_lib)
+            macro "QUICKJS_INCLUDE" "-isystem \$(SUPPORT_BUILD_DIR)/quickjs_\$(quickjs_VERSION)/include"
+            macro "QUICKJS_INCLUDE_DEP" "\$(SUPPORT_BUILD_DIR)/quickjs_\$(quickjs_VERSION)/include"
+            macro "QUICKJS_LIBS" "\$(SUPPORT_BUILD_DIR)/quickjs_\$(quickjs_VERSION)/lib/quickjs/libquickjs.a"
+            macro "QUICKJS_LIBS_DEP" "\$(SUPPORT_BUILD_DIR)/quickjs_\$(quickjs_VERSION)/lib/quickjs/libquickjs.a"
             ;;
         duktape)
             must_fetch_list="$must_fetch_list duktape"
