@@ -4,6 +4,27 @@ version=3.19.4
 src_url=https://github.com/google/protobuf/releases/download/v$version/protobuf-cpp-$version.tar.gz
 src_url_sha256=89ac31a93832e204db6d73b1e80f39f142d5747b290f17340adce5be5b122f94
 
+# Detect architecture for cross-compilation settings
+pkg_get_arch () {
+    case "$($CXX -dumpmachine)" in
+        aarch64*|arm64*)
+            echo "aarch64"
+            ;;
+        arm*)
+            echo "arm"
+            ;;
+        x86_64*)
+            echo "x86_64"
+            ;;
+        i?86*)
+            echo "x86"
+            ;;
+        *)
+            echo ""
+            ;;
+    esac
+}
+
 pkg_install-include () {
     in_dir "$src_dir/src" find . \( -name "*.h" -o -name "*.inc" \) | while read -r file; do
         mkdir -p "$install_dir/include/$(dirname "$file")"
@@ -15,6 +36,7 @@ pkg_install () (
     pkg_copy_src_to_build
 
     configure_flags="--libdir=${install_dir}/lib"
+    local arch=$(pkg_get_arch)
 
     if [[ "$CROSS_COMPILING" = 1 ]]; then
         cross_build_dir=$build_dir/cross_build
@@ -26,6 +48,13 @@ pkg_install () (
                 in_dir "$cross_build_dir" ./configure --enable-static --disable-shared
                 in_dir "$cross_build_dir" $EXTERN_MAKE
             )
+        fi
+    elif [[ -n "$arch" ]] && [[ "$arch" != "x86_64" ]] && [[ "$arch" != "x86" ]]; then
+        # For non-x86 architectures (ARM, AArch64, etc.), we may need to use system protoc
+        # because the fetched protobuf might not build correctly
+        local system_protoc=$(command -v protoc 2>/dev/null || echo "")
+        if [[ -n "$system_protoc" ]] && [[ "$system_protoc" != "$install_dir"* ]]; then
+            configure_flags="$configure_flags --with-protoc=$system_protoc"
         fi
     fi
 
@@ -41,8 +70,26 @@ pkg_install-windows () {
     pkg_copy_src_to_build
 
     # Support VS2017, VS2019, and VS2022 through environment variables
-    local vs_generator="${VS_GENERATOR:-Visual Studio 17 2022}"
+    # Auto-detect VS version from MSBuild path if VS_GENERATOR not explicitly set
+    local vs_generator="${VS_GENERATOR:-}"
     local toolset="${VCTOOLS_VERSION:-v141}"
+    
+    if [[ -z "$vs_generator" ]]; then
+        if [[ -n "${MSBUILD:-}" ]]; then
+            if [[ "$MSBUILD" == *"2022"* ]] || [[ "$MSBUILD" == *"17."* ]]; then
+                vs_generator="Visual Studio 17 2022"
+                toolset="${VCTOOLS_VERSION:-v143}"
+            elif [[ "$MSBUILD" == *"2019"* ]] || [[ "$MSBUILD" == *"16."* ]]; then
+                vs_generator="Visual Studio 16 2019"
+                toolset="${VCTOOLS_VERSION:-v142}"
+            else
+                vs_generator="Visual Studio 15 2017"
+            fi
+        else
+            # Default to VS2022 if MSBuild not detected
+            vs_generator="Visual Studio 17 2022"
+        fi
+    fi
     
     rm -rf "$build_dir/cmake"/{CMakeCache.txt,CMakeFiles}
     in_dir "$build_dir/cmake" "$CMAKE" -G "$vs_generator" -T "$toolset" -A "$PLATFORM" -DCMAKE_INSTALL_PREFIX=../out -DCMAKE_BUILD_TYPE="$CONFIGURATION" -Dprotobuf_BUILD_TESTS=OFF

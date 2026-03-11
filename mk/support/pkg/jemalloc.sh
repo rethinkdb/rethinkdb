@@ -9,6 +9,11 @@ pkg_install () {
     if [[ "$CROSS_COMPILING" = 1 ]]; then
         configure_flags+=" --host=$($CXX -dumpmachine)"
     fi
+    
+    # On musl systems, disable jezone allocator which can cause issues
+    if is_musl_libc 2>/dev/null || [[ "$($CXX -dumpmachine)" == *"musl"* ]]; then
+        configure_flags+=" --disable-jezone"
+    fi
 
     pkg_copy_src_to_build
     pkg_configure ${configure_flags:-}

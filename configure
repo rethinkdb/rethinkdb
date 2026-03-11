@@ -91,21 +91,34 @@ configure_unixlike () {
         is_musl=true
     fi
     
+    # Detect macOS version for Apple Silicon support
+    local macos_version=""
+    if [[ "$MACHINE" == *"apple-darwin"* ]]; then
+        macos_version=$(sw_vers -productVersion 2>/dev/null || echo "")
+    fi
+    
     case "${MACHINE#*-}" in
         *apple-darwin*)
             var OS "Darwin"
             default_allocator=$default_allocator_osx
             var PTHREAD_LIBS "" ;
-            var RT_LIBS "" ;;
+            var RT_LIBS ""
+            # For Apple Silicon (ARM64) Macs, adjust minimum version
+            if [[ "${MACHINE%%-*}" == "arm64" ]] || [[ "${MACHINE%%-*}" == "aarch64" ]]; then
+                # Apple Silicon requires macOS 11.0+
+                osx_min_version=11.0
+            fi
+            ;;
         *linux*)
             var OS "Linux"
             default_allocator=$default_allocator_linux
             var PTHREAD_LIBS -pthread ;
             var RT_LIBS -lrt ;;
-        *linux-musl*|*alpine*)
+        *linux-musl*|*alpine*|*musl*)
             var OS "Linux"
             default_allocator=$default_allocator_linux
             var PTHREAD_LIBS -pthread ;
+            # musl libc doesn't need -lrt (it has those functions in libc)
             var RT_LIBS ""
             is_musl=true ;;
         *freebsd*)
@@ -125,13 +138,13 @@ configure_unixlike () {
             if ! $is_musl; then
                 var_append LDFLAGS -ldl
             fi
-            # On ARM architectures, system protobuf may not work correctly
-            # Automatically fetch protobuf and protoc to ensure compatibility
+            # On ARM architectures, the fetched protobuf may not work correctly
+            # Try to use system protobuf first if available, otherwise fetch it
             if ! $allow_fetch; then
-                final_warning="ARM support is still experimental. Consider using --allow-fetch for better compatibility"
+                final_warning="ARM support is still experimental. Consider using --allow-fetch if you encounter issues"
             else
-                # Add protobuf to fetch list for ARM architectures
-                please_fetch_list="$please_fetch_list protobuf"
+                # Only fetch protobuf if system version is not available/working
+                # This will be determined later in test_protobuf
                 final_warning="ARM support is still experimental"
             fi
             ;;
@@ -146,6 +159,21 @@ configure_unixlike () {
     require "Build Architecture"
     var GCC_ARCH $(uname -m | grep '^[A-Za-z0-9_]*$' | head -n 1)
     var GCC_ARCH_REDUCED $(echo "$GCC_ARCH" | sed -e 's/^i[56]86$$/i486/g')
+    
+    # Detect Linux distribution for specific workarounds
+    local distro=""
+    if [[ "$OS" = "Linux" ]]; then
+        if [[ -f /etc/arch-release ]]; then
+            distro="arch"
+            # Arch Linux with newer clang may need specific flags
+            if [ "$COMPILER" = CLANG ]; then
+                var_append CXXFLAGS -D_GNU_SOURCE
+            fi
+        elif [[ -f /etc/alpine-release ]]; then
+            distro="alpine"
+        fi
+    fi
+    
     if [ "$COMPILER" = CLANG ]; then
         require stdlib
         case "$OS" in
@@ -257,10 +285,11 @@ main () {
     trap - EXIT
 
     if ! $failed; then
-        write "CONFIGURE_STATUS := success" 3>> "$config"
+        # Update the CONFIGURE_STATUS line to success (we overwrite by appending, make uses last value)
+        echo "CONFIGURE_STATUS := success" >> "$config"
         echo "* Wrote configuration to $config"
     else
-        write "CONFIGURE_STATUS := failed" 3>> "$config"
+        echo "CONFIGURE_STATUS := failed" >> "$config"
         echo "* Aborting configure"
         exit 1
     fi
@@ -1153,6 +1182,14 @@ test_protobuf () {
             "$PROTOC" "$pbdir/test.proto" --cpp_out=. 2>&1 &&
             $CXX "$pbdir/test.pb.cc" "$pbdir/main.cc" -I "$root" $PROTOBUF_LIBS $PTHREAD_LIBS $M_LIBS ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} -o "$pbdir/a.out" 2>&1)
     then
+        # On ARM architectures, the system protobuf might not work correctly
+        # Try fetching protobuf instead
+        if $allow_fetch && [[ "${MACHINE%%-*}" == "arm"* || "${MACHINE%%-*}" == "aarch64"* || "${MACHINE%%-*}" == "arm64"* ]]; then
+            show "fetch (system protobuf failed on ARM)"
+            fetch_lib protobuf
+            fetch_bin protoc
+            return
+        fi
         error_details="$out"
         error "Unable to compile sample protobuf file. Try running ./configure with the --fetch protoc option"
         return

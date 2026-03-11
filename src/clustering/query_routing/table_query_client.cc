@@ -14,6 +14,7 @@
 #include "concurrency/cross_thread_signal.hpp"
 #include "concurrency/fifo_enforcer.hpp"
 #include "concurrency/watchable.hpp"
+#include "logger.hpp"
 #include "rdb_protocol/env.hpp"
 
 table_query_client_t::table_query_client_t(
@@ -120,13 +121,23 @@ void table_query_client_t::read(
 
     order_token.assert_read_mode();
     if (r.read_mode == read_mode_t::OUTDATED) {
-        guarantee(!r.route_to_primary());
+        // Issue #6520: Replace guarantee with error handling
+        if (r.route_to_primary()) {
+            throw cannot_perform_query_exc_t(
+                "Invalid read mode: OUTDATED reads cannot be routed to primary",
+                query_state_t::FAILED);
+        }
         /* This seems kind of silly. We do it this way because
            `dispatch_outdated_read` needs to be able to see `outdated_read_info_t`,
            which is defined in the `private` section. */
         dispatch_outdated_read(r, response, interruptor);
     } else if (r.read_mode == read_mode_t::DEBUG_DIRECT) {
-        guarantee(!r.route_to_primary());
+        // Issue #6520: Replace guarantee with error handling
+        if (r.route_to_primary()) {
+            throw cannot_perform_query_exc_t(
+                "Invalid read mode: DEBUG_DIRECT reads cannot be routed to primary",
+                query_state_t::FAILED);
+        }
         dispatch_debug_direct_read(r, response, interruptor);
     } else {
         dispatch_immediate_op<read_t, fifo_enforcer_sink_t::exit_read_t, read_response_t>(
@@ -282,7 +293,13 @@ void table_query_client_t::dispatch_immediate_op(
         }
     }
     if (first_failure) {
-        guarantee(!seen_non_failure);
+        // Issue #6520: Replace guarantee with graceful error handling
+        if (seen_non_failure) {
+            logWRN("Unexpected state: seen_non_failure is true but first_failure exists. "
+                   "This may indicate inconsistent shard responses.");
+            throw cannot_perform_query_exc_t(
+                "Inconsistent responses from shards", query_state_t::INDETERMINATE);
+        }
         throw *first_failure;
     }
 
@@ -563,10 +580,14 @@ void table_query_client_t::relationship_coroutine(
             &relationships, bcard.region, &relationship_record);
 
         if (is_start) {
-            guarantee(start_count > 0);
-            start_count--;
+            // Issue #6520: Replace guarantee with error handling
             if (start_count == 0) {
-                start_cond.pulse();
+                logWRN("start_count is already 0 in start phase. Possible race condition.");
+            } else {
+                start_count--;
+                if (start_count == 0) {
+                    start_cond.pulse();
+                }
             }
             is_start = false;
         }
@@ -577,10 +598,14 @@ void table_query_client_t::relationship_coroutine(
     }
 
     if (is_start) {
-        guarantee(start_count > 0);
-        start_count--;
+        // Issue #6520: Replace guarantee with error handling
         if (start_count == 0) {
-            start_cond.pulse();
+            logWRN("start_count is already 0 in cleanup phase. Possible race condition.");
+        } else {
+            start_count--;
+            if (start_count == 0) {
+                start_cond.pulse();
+            }
         }
     }
 

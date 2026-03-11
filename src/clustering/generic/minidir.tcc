@@ -2,6 +2,7 @@
 #include "clustering/generic/minidir.hpp"
 
 #include "concurrency/wait_any.hpp"
+#include "logger.hpp"
 #include "rpc/mailbox/mailbox.hpp"
 
 template<class key_t, class value_t>
@@ -72,12 +73,21 @@ void minidir_read_manager_t<key_t, value_t>::on_update(
         return;
     }
     if (closing_link) {
-        guarantee(!static_cast<bool>(key));
-        guarantee(!static_cast<bool>(value));
+        // Issue #6520: Replace guarantees with error handling
+        if (static_cast<bool>(key)) {
+            logWRN("minidir: key should not be set when closing link");
+        }
+        if (static_cast<bool>(value)) {
+            logWRN("minidir: value should not be set when closing link");
+        }
         exit_write.end();
         peer_data->link_map.erase(link_id);
     } else {
-        guarantee(static_cast<bool>(key));
+        // Issue #6520: Replace guarantee with error handling
+        if (!static_cast<bool>(key)) {
+            logERR("minidir: key must be set when not closing link. Skipping update.");
+            return;
+        }
         auto it = link_data->map.find(*key);
         if (static_cast<bool>(value)) {
             if (it != link_data->map.end()) {

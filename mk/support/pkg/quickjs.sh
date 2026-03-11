@@ -46,10 +46,23 @@ pkg_install-windows () {
     pkg_copy_src_to_build
 
     # Allow toolset override via VCTOOLS_VERSION environment variable
+    # Support VS2017 (v141), VS2019 (v142), and VS2022 (v143)
     local toolset="${VCTOOLS_VERSION:-v141}"
     local windows_sdk="${WINDOWSSDKVERSION:-10.0.19041.0}"
+    local vs_version="${VS_VERSION:-vs2017}"
 
-    in_dir "$build_dir" premake5 vs2017
-    in_dir "$build_dir" "$MSBUILD" /nologo /p:Configuration=$CONFIGURATION /p:Platform=$PLATFORM /p:PlatformToolset=$toolset /p:WindowsTargetPlatformVersion=$windows_sdk .build/vs2017/quickjs.vcxproj
+    # Detect Visual Studio version from MSBuild path if available
+    if [[ -n "${MSBUILD:-}" ]]; then
+        if [[ "$MSBUILD" == *"2022"* ]] || [[ "$MSBUILD" == *"17."* ]]; then
+            vs_version="vs2022"
+            toolset="${VCTOOLS_VERSION:-v143}"
+        elif [[ "$MSBUILD" == *"2019"* ]] || [[ "$MSBUILD" == *"16."* ]]; then
+            vs_version="vs2019"
+            toolset="${VCTOOLS_VERSION:-v142}"
+        fi
+    fi
+
+    in_dir "$build_dir" premake5 $vs_version
+    in_dir "$build_dir" "$MSBUILD" /nologo /p:Configuration=$CONFIGURATION /p:Platform=$PLATFORM /p:PlatformToolset=$toolset /p:WindowsTargetPlatformVersion=$windows_sdk .build/$vs_version/quickjs.vcxproj
     cp "$build_dir/.bin/$CONFIGURATION/$PLATFORM/quickjs.lib" "$windows_deps_libs"
 }

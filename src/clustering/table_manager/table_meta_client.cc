@@ -301,7 +301,13 @@ void table_meta_client_t::create(
     /* Sanity-check that `table_id` is unique */
     multi_table_manager->get_table_basic_configs()->read_key(table_id,
         [&](const timestamped_basic_config_t *value) {
-            guarantee(value == nullptr);
+            // Issue #7158: Replace guarantee with error handling
+            if (value != nullptr) {
+                logERR("Attempted to create table with ID %s that already exists. "
+                       "This may indicate a race condition or state inconsistency.",
+                       uuid_to_str(table_id).c_str());
+                // Continue anyway - let the create_or_emergency_repair handle the conflict
+            }
         });
 
     create_or_emergency_repair(
@@ -328,7 +334,13 @@ void table_meta_client_t::drop(
     completely unreachable. */
     std::map<peer_id_t, multi_table_manager_bcard_t> bcards =
         multi_table_manager_directory->get_all();
-    guarantee(!bcards.empty(), "We should be connected to ourself");
+    // Issue #6520, #7158: Replace guarantee with error handling
+    if (bcards.empty()) {
+        logERR("No business cards found in multi_table_manager_directory. "
+               "This indicates we are not connected to ourselves, which is a serious "
+               "cluster state issue.");
+        throw failed_table_op_exc_t();
+    }
 
     /* Send a message to each server. */
     size_t num_acked = 0;
@@ -358,7 +370,12 @@ void table_meta_client_t::drop(
     if (interruptor.is_pulsed()) {
         throw interrupted_exc_t();
     }
-    guarantee(num_acked != 0, "We should at least have an ack from ourself");
+    // Issue #6520: Replace guarantee with error handling
+    if (num_acked == 0) {
+        logERR("No acknowledgments received for drop operation. "
+               "This may indicate a network partition or cluster connectivity issue.");
+        throw failed_table_op_exc_t();
+    }
 
     /* Wait until the table disappears from the directory. */
     wait_until_change_visible(

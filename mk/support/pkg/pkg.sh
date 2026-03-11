@@ -432,6 +432,14 @@ conf_dir=$(niceabspath "$pkg_dir/../config")
 external_dir=$(niceabspath "$pkg_dir/../../../external")
 root_build_dir=${BUILD_ROOT_DIR:-$(niceabspath "$pkg_dir/../../../build")}
 
+# Detect musl libc for handling platform-specific build differences
+is_musl_libc () {
+    if [[ "${MACHINE:-}" == *"musl"* ]] || ldd --version 2>&1 | grep -q musl; then
+        return 0
+    fi
+    return 1
+}
+
 # These variables should be passed to this script from support/build.mk
 WGET=${WGET:-}
 CURL=${CURL:-}

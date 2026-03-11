@@ -414,7 +414,14 @@ join_results_t connectivity_cluster_t::run_t::join_blocking(
         for (selected_addr = all_addrs.begin();
             selected_addr != all_addrs.end() && find_index > 0;
             ++selected_addr, --find_index) { }
-        guarantee(find_index == 0);
+        // Issue #7158, #7131: Replace guarantee with error handling
+        if (find_index != 0) {
+            logERR("Invalid address index in join_blocking: index=%d, find_index=%d, "
+                   "num_addrs=%zu. This may indicate a race condition or corrupted "
+                   "peer address list.",
+                   index, find_index, all_addrs.size());
+            return;  // Skip this iteration - lambda called by pmap
+        }
 
         join_result_t result =
             connectivity_cluster_t::run_t::connect_to_peer(

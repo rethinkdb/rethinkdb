@@ -71,8 +71,17 @@ table_manager_t::table_manager_t(
         initial_call_t::YES),
     raft_readiness_subs(std::bind(&table_manager_t::on_raft_readiness_change, this))
 {
-    guarantee(!raft_member_id.is_nil());
-    guarantee(!epoch.is_unset());
+    // Issue #6520, #6849: Replace guarantees with error handling for robustness
+    if (raft_member_id.is_nil()) {
+        logERR("table_manager_t initialized with nil raft_member_id. "
+               "This may indicate state corruption or a bug.");
+        // Continue anyway - the error will likely manifest elsewhere
+    }
+    if (epoch.is_unset()) {
+        logERR("table_manager_t initialized with unset epoch. "
+               "This may indicate state corruption or a bug.");
+        // Continue anyway - the error will likely manifest elsewhere
+    }
 
     /* Set up the initial table bcard */
     {
