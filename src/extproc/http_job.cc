@@ -804,7 +804,18 @@ header_parser_singleton_t::parse(const std::string &header) {
             ql::datum_t(std::move(instance->link_headers));
     }
 
-    ql::datum_t parsed_header = ql::datum_t(std::move(instance->header_fields));
+    // Create datum from header_fields
+    // Note: std::move here transfers ownership, so we must be careful not to
+    // access header_fields after this point until clear() is called
+    ql::datum_t parsed_header;
+    try {
+        parsed_header = ql::datum_t(std::move(instance->header_fields));
+    } catch (const std::exception &e) {
+        logERR("http_job: Failed to create datum from header_fields: %s", e.what());
+        // Return empty object on error
+        instance->header_fields.clear();
+        return ql::datum_t::empty_object();
+    }
     instance->header_fields.clear();
     return parsed_header;
 }

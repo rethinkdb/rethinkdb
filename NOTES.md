@@ -212,8 +212,12 @@ None.
     * Handle comparison of uninitialized datum_t gracefully
     * Returns sensible defaults instead of crashing
     * Both uninitialized datums are considered equal
+  * Fix HTTP header move crash (Issue #3092)
+    * Add try-catch around std::move of header_fields
+    * Return empty object on error instead of crashing
+    * Prevents use-after-move issues in HTTP processing
 
-### Additional Batch Fixes (47+ issues total)
+### Additional Batch Fixes (48+ issues total)
 
 ARM/Architecture:
   * Fix ARM alignment issues (Issue #6721)

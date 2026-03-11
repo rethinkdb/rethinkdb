@@ -300,7 +300,9 @@
     "number": 3092,
     "state": "OPEN",
     "title": "Why did `return ql::datum_t(std::move(instance->\u200bheader_fields));` cause crashes?",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/3092"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3092",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
