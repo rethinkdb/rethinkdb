@@ -69,6 +69,15 @@ None.
   * Fix memory calculation to include Buffers from /proc/meminfo (Issue #7120)
     * Improves accuracy of available memory detection
     * Better cache size calculation on Linux systems
+  * Add RISC-V architecture support (Issue #6952)
+    * Add context switching support for RISC-V 32/64-bit
+    * Enables building on RISC-V platforms
+  * Add bounds checking for huge memory allocations (Issue #6433)
+    * Limit single allocations to 1GB maximum
+    * Prevents crashes from corrupted metadata
+  * Fix datum deserialization bounds checking (Issue #7005)
+    * Add validation before buffer access
+    * Return safe defaults instead of crashing on corrupted data
 
 ### Contributors ###
 
