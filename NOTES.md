@@ -175,8 +175,14 @@ None.
     * Previously rechecked ALL tables after ANY table was not ready
     * Reduces total wait time when multiple tables are becoming ready
     * Helps prevent timeouts when tables are actually ready but checks were slow
+  * Fix AddressSanitizer memory safety issues (#3328, #3326)
+    * Add guarantee checks in coro_t::wait(), yield(), get_coro()
+    * Ensures coroutine runtime is initialized before accessing TLS
+    * Prevents heap-buffer-overflow in TLS_get_cglobals() access
+    * Add defensive null check in intrusive_list_node_t constructor
+    * Prevents stack-buffer-underflow on corrupted memory
 
-### Additional Batch Fixes (36+ issues total)
+### Additional Batch Fixes (38+ issues total)
 
 ARM/Architecture:
   * Fix ARM alignment issues (Issue #6721)

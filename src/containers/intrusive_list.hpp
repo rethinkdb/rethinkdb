@@ -15,7 +15,11 @@ public:
     }
 
 protected:
-    intrusive_list_node_t() : prev_(nullptr), next_(nullptr) { }
+    intrusive_list_node_t() : prev_(nullptr), next_(nullptr) {
+        // Defensive check for AddressSanitizer issue #3328
+        // Ensure we're not being constructed on a null or invalid pointer
+        rassert(this != nullptr, "intrusive_list_node_t constructed on null pointer");
+    }
     ~intrusive_list_node_t() {
         guarantee(prev_ == nullptr,
                   "non-detached intrusive list node destroyed");

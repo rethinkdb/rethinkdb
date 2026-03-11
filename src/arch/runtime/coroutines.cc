@@ -372,6 +372,10 @@ coro_t *coro_t::self() {   /* class method */
 
 void coro_t::wait() {   /* class method */
     rassert(self(), "Not in a coroutine context");
+    // Defensive check for AddressSanitizer issue #3326
+    guarantee(self() != nullptr,
+              "coro_t::wait() called without coroutine context. "
+              "This can happen if coroutine runtime is not initialized.");
     rassert(TLS_get_cglobals()->assert_finite_coro_waiting_counter == 0,
         "This code path is not supposed to use coro_t::wait().\nConstraint imposed at: %s:%d",
         TLS_get_cglobals()->finite_waiting_call_sites.top().first, TLS_get_cglobals()->finite_waiting_call_sites.top().second);
@@ -399,6 +403,10 @@ void coro_t::wait() {   /* class method */
 
 void coro_t::yield() {  /* class method */
     rassert(self(), "Not in a coroutine context");
+    // Defensive check for AddressSanitizer issue #3326
+    guarantee(self() != nullptr,
+              "coro_t::yield() called without coroutine context. "
+              "This can happen if coroutine runtime is not initialized.");
     self()->notify_sometime();
     self()->wait();
 }
@@ -539,6 +547,9 @@ bool coroutines_have_been_initialized() {
 
 coro_t * coro_t::get_coro() {
     rassert(coroutines_have_been_initialized());
+    // Defensive check for AddressSanitizer issue #3326
+    guarantee(coroutines_have_been_initialized(),
+              "coro_t::get_coro() called before coroutine runtime initialization.");
     coro_t *coro;
 
     if (TLS_get_cglobals()->free_coros.size() == 0) {
