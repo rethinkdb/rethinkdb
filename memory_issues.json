@@ -35,7 +35,9 @@
     "number": 6236,
     "state": "OPEN",
     "title": "v 2.3.5-windows Memory leak",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6236"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6236",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -50,7 +52,9 @@
     "number": 5944,
     "state": "OPEN",
     "title": "Out-of-memory temporary results and ordering",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/5944"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5944",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -65,7 +69,9 @@
     "number": 5865,
     "state": "OPEN",
     "title": "Memory leak?",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/5865"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5865",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -106,7 +112,9 @@
     "number": 5274,
     "state": "OPEN",
     "title": "test failure on interface.server_config reading cache_size_mb change from server_status",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/5274"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5274",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],

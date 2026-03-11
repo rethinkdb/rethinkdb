@@ -18,7 +18,9 @@
     "number": 6993,
     "state": "OPEN",
     "title": "RethinkDB v2.4.1 centos requires protobuf on aarch64",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6993"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6993",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -55,7 +57,9 @@
     "number": 6936,
     "state": "OPEN",
     "title": "2.4.1 windows build fails",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6936"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6936",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -82,7 +86,9 @@
     "number": 6932,
     "state": "OPEN",
     "title": "Add Mac ARM build",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6932"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6932",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -103,7 +109,9 @@
     "number": 6873,
     "state": "OPEN",
     "title": "ArchLinux - Build issues and fixes",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6873"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6873",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -162,7 +170,9 @@
     "number": 6337,
     "state": "OPEN",
     "title": "Support building against musl",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6337"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6337",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],

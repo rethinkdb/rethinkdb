@@ -15,7 +15,9 @@
     "number": 6862,
     "state": "OPEN",
     "title": "RethinkDB crash on querying table",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6862"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6862",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -23,7 +25,9 @@
     "number": 6861,
     "state": "OPEN",
     "title": "Server crash when create new table",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6861"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6861",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -31,7 +35,9 @@
     "number": 6815,
     "state": "OPEN",
     "title": "rethinkdb crash when adding a new server",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6815"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6815",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -39,7 +45,9 @@
     "number": 6721,
     "state": "OPEN",
     "title": "RethinkDB 2.3.6 crashes on Cubietruck(ARM) /  ARMBian/ Debian GNU/Linux 9.7 (stretch)",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6721"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6721",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -47,7 +55,9 @@
     "number": 6719,
     "state": "OPEN",
     "title": "RethinkDB crash after 2 years",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6719"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6719",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -76,7 +86,9 @@
     "number": 6464,
     "state": "OPEN",
     "title": "r.js(\"1\") crashed the worker",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6464"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6464",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -207,7 +219,9 @@
     "number": 3833,
     "state": "OPEN",
     "title": "Server crashes every time for r.table('t').group()",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/3833"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3833",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [

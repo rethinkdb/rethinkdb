@@ -5,7 +5,9 @@
     "number": 7158,
     "state": "OPEN",
     "title": "Failed to remove a node from the cluster",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/7158"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/7158",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -13,7 +15,9 @@
     "number": 7131,
     "state": "OPEN",
     "title": "cluster connect/reconnect timeout",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/7131"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/7131",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -61,7 +65,9 @@
     "number": 6849,
     "state": "OPEN",
     "title": "Proxy loses state from cluster",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6849"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6849",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -76,7 +82,9 @@
     "number": 6520,
     "state": "OPEN",
     "title": "Multi-node Cluster Issue ",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6520"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6520",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
