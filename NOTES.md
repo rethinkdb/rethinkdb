@@ -38,6 +38,11 @@ None.
   * Available engines: quickjs, v8-jitless, v8, quickjs-ng, duktape, hermes
 * V8 integration with automatic dependency fetching (experimental)
 * Updated mk/support/pkg scripts for V8 build
+* Security updates to external dependencies:
+  * zlib: 1.2.11 -> 1.3.1 (fixes CVE-2018-25032, CVE-2022-37434)
+  * openssl: 3.0.7 -> 3.0.13 (LTS security fixes)
+  * curl: 7.82.0 -> 8.5.0 (multiple security fixes)
+  * re2: 2015-11-01 -> 2023-11-01 (bug fixes and improvements)
 
 ### Security Improvements ###
 
