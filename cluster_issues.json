@@ -24,7 +24,8 @@
     "url": "https://github.com/rethinkdb/rethinkdb/issues/7129",
     "status": "FIXED",
     "fix_commit": "v2.4.7",
-    "fix_description": "Increased max_shards from 64 to 256"
+    "fix_description": "Increased max_shards from 64 to 256",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -32,7 +33,9 @@
     "number": 6961,
     "state": "OPEN",
     "title": "Connectivity cluster tag mismatch error",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6961"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6961",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
@@ -40,7 +43,9 @@
     "number": 6880,
     "state": "OPEN",
     "title": "Connecting a re-provisioned server brings down the entire cluster",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6880"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6880",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],

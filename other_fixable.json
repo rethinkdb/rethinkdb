@@ -5,7 +5,9 @@
     "number": 7005,
     "state": "OPEN",
     "title": "Guarantee failed: [get_safety_boundary() >= num_elements]",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/7005"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/7005",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],

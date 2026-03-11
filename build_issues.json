@@ -45,7 +45,9 @@
     "number": 6952,
     "state": "OPEN",
     "title": "build fails on AArch64, Fedora 33 ",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/6952"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6952",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],

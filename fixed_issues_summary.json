@@ -1,0 +1,56 @@
+[
+  {
+    "number": 5498,
+    "title": "Server does not automatically detect container memory limits",
+    "file": "memory_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6433,
+    "title": "RethinkDB can fail with huge memory allocation",
+    "file": "memory_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6880,
+    "title": "Connecting a re-provisioned server brings down the entire cluster",
+    "file": "cluster_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6952,
+    "title": "build fails on AArch64, Fedora 33 ",
+    "file": "build_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6961,
+    "title": "Connectivity cluster tag mismatch error",
+    "file": "cluster_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 7005,
+    "title": "Guarantee failed: [get_safety_boundary() >= num_elements]",
+    "file": "other_fixable.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 7120,
+    "title": "Add \"Buffers\" from /proc/meminfo in parse_meminfo_file to determine available memory",
+    "file": "memory_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 7124,
+    "title": "error: to_string called on an uninitialized ip_address_t, addr_type: 0 compiling rethinkdb on Raspberry",
+    "file": "crash_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 7129,
+    "title": "Reasonable to change hard-coded cluster size?",
+    "file": "cluster_issues.json",
+    "fix_version": "v2.4.7"
+  }
+]

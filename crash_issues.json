@@ -5,7 +5,9 @@
     "number": 7124,
     "state": "OPEN",
     "title": "error: to_string called on an uninitialized ip_address_t, addr_type: 0 compiling rethinkdb on Raspberry",
-    "url": "https://github.com/rethinkdb/rethinkdb/issues/7124"
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/7124",
+    "status": "FIXED",
+    "fix_version": "v2.4.7"
   },
   {
     "assignees": [],
