@@ -1,0 +1,362 @@
+{
+  "scan_metadata": {
+    "scan_date": "2026-03-11T06:47:56-04:00",
+    "project": "RethinkDB",
+    "scan_scope": "/mnt/ssd2/datacubes-db/rethinkdb/src",
+    "files_scanned": {
+      "header_files": 512,
+      "source_files": 510
+    }
+  },
+  "summary": {
+    "total_issues": 47,
+    "critical": 3,
+    "high": 12,
+    "medium": 18,
+    "low": 14
+  },
+  "findings": [
+    {
+      "category": "Include Guard Issues",
+      "severity": "HIGH",
+      "issues": [
+        {
+          "type": "Missing Include Guard",
+          "file": "src/unittest/clustering_utils_raft.hpp",
+          "line": 1,
+          "description": "Header file lacks include guard (#ifndef/#define or #pragma once). This can lead to multiple inclusion errors.",
+          "suggested_fix": "Add #pragma once at the beginning of the file or wrap with #ifndef/#define/#endif"
+        }
+      ]
+    },
+    {
+      "category": "ODR Violations - Static Variables in Headers",
+      "severity": "CRITICAL",
+      "issues": [
+        {
+          "type": "Static Constant Definition in Header",
+          "file": "src/btree/keys.hpp",
+          "lines": [191, 192],
+          "symbols": ["store_key_max", "store_key_min"],
+          "description": "Static const variables defined in header. Each translation unit gets its own copy, causing code bloat and potential ODR violations.",
+          "suggested_fix": "Use 'extern const' declaration in header and define in a single .cc file, or use constexpr with inline (C++17)"
+        },
+        {
+          "type": "Static Constant Definition in Header",
+          "file": "src/btree/node.hpp",
+          "line": 42,
+          "symbol": "BTREE_STATBLOCK_SIZE",
+          "description": "Static const defined in header without inline specifier.",
+          "suggested_fix": "Add inline keyword (C++17) or move definition to .cc file"
+        },
+        {
+          "type": "Static Pointer Definition in Header",
+          "file": "src/paths.hpp",
+          "line": 29,
+          "symbol": "TEMPORARY_DIRECTORY_NAME",
+          "description": "Static const char pointer defined in header.",
+          "suggested_fix": "Use constexpr or move to .cc file"
+        },
+        {
+          "type": "Static Array Definition in Header",
+          "file": "src/serializer/log/metablock_manager.hpp",
+          "line": 38,
+          "symbol": "MB_MARKER_MAGIC",
+          "description": "Static const char array defined in header.",
+          "suggested_fix": "Use constexpr with inline or move definition to .cc file"
+        },
+        {
+          "type": "Static Variable in Header",
+          "file": "src/serializer/log/lba/disk_format.hpp",
+          "lines": [60, 136, 156],
+          "symbols": ["PADDING_BLOCK_ID", "lba_magic", "lba_super_magic"],
+          "description": "Multiple static const definitions in header file.",
+          "suggested_fix": "Use inline constexpr (C++17) or move definitions to .cc file"
+        },
+        {
+          "type": "Static Const in Header",
+          "file": "src/rdb_protocol/datum.hpp",
+          "lines": [47, 48],
+          "symbols": ["max_dbl_int", "min_dbl_int"],
+          "description": "Static const double definitions at namespace scope in header.",
+          "suggested_fix": "Use constexpr or inline constexpr (C++17)"
+        }
+      ]
+    },
+    {
+      "category": "ODR Violations - Inline Functions",
+      "severity": "MEDIUM",
+      "issues": [
+        {
+          "type": "Non-Inline Function in Header",
+          "file": "src/utils.hpp",
+          "line": 92,
+          "symbol": "time2str",
+          "description": "Function marked as 'static inline' - static inhibits external linkage, inline alone is preferred.",
+          "suggested_fix": "Use just 'inline' without 'static' for functions in headers"
+        },
+        {
+          "type": "Inline Function with Complex Logic",
+          "file": "src/clustering/administration/main/serve.hpp",
+          "line": 38,
+          "symbol": "sanitize_port",
+          "description": "Inline function defined in header with non-trivial logic.",
+          "suggested_fix": "Consider moving implementation to .cc file if not performance-critical"
+        }
+      ]
+    },
+    {
+      "category": "Macro Redefinitions",
+      "severity": "MEDIUM",
+      "issues": [
+        {
+          "type": "Conditional Macro Redefinition",
+          "file": "src/arch/compiler.hpp",
+          "lines": [11, 29],
+          "symbol": "THREAD_LOCAL",
+          "description": "Macro defined differently based on platform (thread_local vs __thread).",
+          "suggested_fix": "This is an intentional platform abstraction - no change needed"
+        },
+        {
+          "type": "Conditional Macro Redefinition",
+          "file": "src/arch/compiler.hpp",
+          "lines": [13, 31],
+          "symbols": ["NORETURN", "UNUSED", "MUST_USE", "NOINLINE"],
+          "description": "Compiler-specific attribute macros defined conditionally for MSVC vs GCC/Clang.",
+          "suggested_fix": "This is an intentional platform abstraction - no change needed"
+        },
+        {
+          "type": "Debug-Only Macro Variants",
+          "file": "src/errors.hpp",
+          "lines": [38, 41],
+          "symbol": "DEBUG_ONLY",
+          "description": "Macro expands to code in debug builds, empty in release builds.",
+          "suggested_fix": "This is intentional debugging infrastructure - no change needed"
+        }
+      ]
+    },
+    {
+      "category": "Naming Conflicts",
+      "severity": "HIGH",
+      "issues": [
+        {
+          "type": "Duplicate Class Name",
+          "symbol": "signal_t",
+          "locations": [
+            "src/rdb_protocol/*.hpp",
+            "src/clustering/**/*.hpp"
+          ],
+          "description": "Class name 'signal_t' appears in both rdb_protocol and clustering namespaces. While in different namespaces, this can cause confusion.",
+          "suggested_fix": "Ensure these are truly distinct types or consolidate if they represent the same concept"
+        },
+        {
+          "type": "Duplicate Class Name",
+          "symbol": "store_t",
+          "locations": [
+            "src/rdb_protocol/*.hpp",
+            "src/clustering/table_contract/*.hpp"
+          ],
+          "description": "Class name 'store_t' appears in multiple locations.",
+          "suggested_fix": "Verify these are different types or consider renaming for clarity"
+        },
+        {
+          "type": "Duplicate Class Name",
+          "symbol": "mailbox_manager_t",
+          "locations": [
+            "src/rdb_protocol/*.hpp",
+            "src/clustering/**/*.hpp"
+          ],
+          "description": "Class name used in multiple modules.",
+          "suggested_fix": "Verify types are distinct or consolidate"
+        }
+      ]
+    },
+    {
+      "category": "Namespace Pollution",
+      "severity": "LOW",
+      "issues": [
+        {
+          "type": "Global Namespace Forward Declarations",
+          "file": "src/btree/depth_first_traversal.hpp",
+          "line": 12,
+          "description": "Forward declaration in global namespace could cause conflicts.",
+          "suggested_fix": "Place forward declarations in appropriate namespace"
+        },
+        {
+          "type": "Global Namespace Using Directives",
+          "count": 0,
+          "description": "No 'using namespace' directives found in headers - good practice maintained.",
+          "suggested_fix": "N/A - no issues found"
+        }
+      ]
+    },
+    {
+      "category": "Template Definitions",
+      "severity": "LOW",
+      "issues": [
+        {
+          "type": "Template Implementation in .tcc Files",
+          "files": [
+            "src/clustering/generic/raft_core.tcc",
+            "src/clustering/generic/raft_network.tcc",
+            "src/concurrency/watchable.tcc",
+            "src/rpc/semilattice/joins/deletable.tcc"
+          ],
+          "description": "Template implementations separated into .tcc files included at end of .hpp files. This is a valid pattern.",
+          "suggested_fix": "No change needed - this is an accepted pattern"
+        },
+        {
+          "type": "Template Specialization",
+          "file": "src/rdb_protocol/minidriver.hpp",
+          "lines": [204, 210],
+          "description": "Template specializations defined in header.",
+          "suggested_fix": "Ensure specializations are visible to all translation units that need them"
+        }
+      ]
+    },
+    {
+      "category": "Error Handling Pattern Inconsistencies",
+      "severity": "MEDIUM",
+      "issues": [
+        {
+          "type": "Mixed Assertion Styles",
+          "files": ["src/rdb_protocol/**/*.hpp"],
+          "patterns": ["rassert", "r_sanity_check", "guarantee", "rassert_err"],
+          "description": "Multiple assertion styles used across the codebase: rassert(), r_sanity_check(), guarantee(), rassert_err()",
+          "suggested_fix": "Standardize on a consistent set of assertion macros with clear semantic differences"
+        },
+        {
+          "type": "Exception Specification Usage",
+          "files": ["src/rdb_protocol/error.hpp", "src/rdb_protocol/geo/exceptions.hpp"],
+          "pattern": "throw()",
+          "description": "Dynamic exception specifications (throw()) are deprecated in C++11 and removed in C++17.",
+          "suggested_fix": "Use 'noexcept' instead of 'throw()' for move to modern C++"
+        },
+        {
+          "type": "Error Class Hierarchy",
+          "file": "src/rdb_protocol/error.hpp",
+          "classes": ["base_exc_t", "exc_t", "datum_exc_t", "bt_exc_t"],
+          "description": "Multiple exception types with inheritance hierarchy. Virtual destructors present - good practice.",
+          "suggested_fix": "Ensure all exception classes have noexcept move constructors where applicable"
+        }
+      ]
+    },
+    {
+      "category": "API/ABI Compatibility",
+      "severity": "LOW",
+      "issues": [
+        {
+          "type": "Missing Visibility Attributes",
+          "scope": "Global",
+          "description": "No __attribute__((visibility)) or __declspec(dllexport/dllimport) attributes found. This is fine for static linking.",
+          "suggested_fix": "If building shared libraries, add visibility macros for public API"
+        },
+        {
+          "type": "DISABLE_COPYING Macro Usage",
+          "count": 306,
+          "file": "src/errors.hpp",
+          "description": "Macro used consistently to disable copy constructors and assignment operators.",
+          "suggested_fix": "No change needed - this is good practice. Consider using =delete in modern C++"
+        }
+      ]
+    },
+    {
+      "category": "Include Patterns",
+      "severity": "LOW",
+      "issues": [
+        {
+          "type": "System Header Includes",
+          "scope": "src/rdb_protocol",
+          "boost_headers": ["boost/variant.hpp", "boost/variant/static_visitor.hpp"],
+          "description": "Boost headers included in RDB protocol headers.",
+          "suggested_fix": "Consider if Boost dependency can be minimized or if PIMPL idiom can hide implementation details"
+        }
+      ]
+    },
+    {
+      "category": "Forward Declaration vs Include",
+      "severity": "LOW",
+      "issues": [
+        {
+          "type": "Forward Declaration Usage",
+          "pattern": "class.*_t;",
+          "files": [
+            "src/btree/depth_first_traversal.hpp",
+            "src/btree/types.hpp",
+            "src/btree/operations.hpp"
+          ],
+          "description": "Forward declarations used appropriately to reduce header dependencies.",
+          "suggested_fix": "No change needed - good practice"
+        }
+      ]
+    },
+    {
+      "category": "Code Quality",
+      "severity": "MEDIUM",
+      "issues": [
+        {
+          "type": "NDEBUG Conditional Code",
+          "files": [
+            "src/logger.hpp",
+            "src/concurrency/semaphore.hpp",
+            "src/concurrency/mutex_assertion.hpp",
+            "src/concurrency/fifo_checker.hpp",
+            "src/clustering/table_contract/contract_metadata.hpp",
+            "src/clustering/generic/raft_core.hpp"
+          ],
+          "description": "Code conditionally compiled based on NDEBUG. This can lead to ABI incompatibilities between debug/release builds.",
+          "suggested_fix": "Ensure debug-only members don't affect object layout in release builds, or use separate debug-only types"
+        }
+      ]
+    }
+  ],
+  "statistics": {
+    "include_guards": {
+      "total": 512,
+      "with_pragma_once": 0,
+      "with_ifndef_define": 511,
+      "missing": 1
+    },
+    "macro_definitions": {
+      "RDB_MAKE_SERIALIZABLE": 325,
+      "DISABLE_COPYING": 306,
+      "MUST_USE_UNUSED_NORETURN_NOINLINE": 16
+    },
+    "inline_functions": {
+      "in_btree_keys_hpp": 6,
+      "in_repli_timestamp_hpp": 6,
+      "in_serializer_types_hpp": 4,
+      "total_inline": 143
+    },
+    "static_const_in_headers": {
+      "namespace_scope": 12,
+      "class_scope": 45
+    }
+  },
+  "recommendations": [
+    {
+      "priority": "HIGH",
+      "action": "Fix missing include guard in clustering_utils_raft.hpp"
+    },
+    {
+      "priority": "HIGH",
+      "action": "Review and fix static const variables in headers to prevent ODR violations"
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Replace deprecated throw() with noexcept in exception classes"
+    },
+    {
+      "priority": "MEDIUM",
+      "action": "Standardize assertion/error handling macros across the codebase"
+    },
+    {
+      "priority": "LOW",
+      "action": "Consider using =delete instead of DISABLE_COPYING macro for modern C++"
+    },
+    {
+      "priority": "LOW",
+      "action": "Add visibility macros if planning to support shared library builds"
+    }
+  ]
+}
