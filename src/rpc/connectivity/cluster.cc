@@ -397,7 +397,7 @@ join_results_t connectivity_cluster_t::run_t::join_blocking(
     if (peer.ips().empty()) {
         logWRN("Peer %s has no IP addresses. Skipping connection attempt. "
                "This may happen if the server was re-provisioned.",
-               expected_server_id.has_value() ? expected_server_id->to_string().c_str() : "unknown");
+               expected_server_id.has_value() ? expected_server_id->print().c_str() : "unknown");
         return join_results;
     }
 

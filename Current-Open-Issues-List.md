@@ -57,7 +57,7 @@ if (handler == nullptr) {
 
 ### Issue #6880: Connecting Re-provisioned Server Brings Down Cluster
 
-**Status:** 🔧 READY TO IMPLEMENT  
+**Status:** ✅ COMPLETE  
 **Effort:** M (8-16 hours)  
 **Feasibility:** Medium
 
@@ -399,7 +399,7 @@ Phase 3: Testing & Integration (Week 4)
 | Issue | Status | Assigned | Start Date | End Date | Tests Pass | Notes |
 |-------|--------|----------|------------|----------|------------|-------|
 | #6961 | ✅ Complete | Done | 2026-03-11 | 2026-03-11 | Yes | Fixed in commit 7821ecc826 |
-| #6880 | 🔧 Ready | TBD | - | - | - | - |
+| #6880 | ✅ COMPLETE | Done | 2026-03-11 | 2026-03-11 | Yes | Fixed in src/rpc/connectivity/cluster.cc and src/clustering/administration/servers/auto_reconnect.cc |
 | #6290 | ✅ COMPLETE | Done | 2026-03-11 | 2026-03-11 | Yes | Fixed in src/client_protocol/server.cc - auth errors sent immediately
 | #6952 | ✅ COMPLETE | - | 2026-03-11 | 2026-03-11 | Syntax verified | Fixed in src/arch/runtime/context_switching.cc - added _M_ARM64 detection |
 | #7156 | ✅ COMPLETE | - | 2026-03-11 | 2026-03-11 | Pending Pi5 test | Fixed in mk/support/pkg/jemalloc.sh |

@@ -63,7 +63,7 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
     // Issue #6880: Check if we have any IP addresses for this server
     if (last_known_address.ips().empty()) {
         logWRN("Cannot reconnect to server %s: no IP addresses known",
-               server.to_string().c_str());
+               server.print().c_str());
         return;
     }
 
