@@ -82,16 +82,16 @@ See `TODOLIST.md` for prioritized action items.
   * 🟡 Medium (11 issues): Performance, reliability
   * 🟢 Low (5 issues): Features, documentation
 
-**Completed Fixes:**
+**Completed Fixes (7 Critical Issues):**
 1. ✅ **#6961** - Fixed tag mismatch crash (replaced guarantee with graceful error handling)
 2. ✅ **#6952** - Fixed AArch64/Fedora 33 build (added _M_ARM64 detection)
 3. ✅ **#7156** - Fixed Raspberry Pi 5 page size (jemalloc --with-lg-page)
 4. ✅ **#6531** - Fixed VS2017 support (vswhere.exe detection)
+5. ✅ **#6880** - Fixed cluster crash when re-provisioning servers (empty IP handling)
+6. ✅ **#6290** - Fixed authentication timeout error handling (immediate error return)
+7. ✅ **#6932** - Added Mac ARM (Apple Silicon) support (macos-14 CI runner)
 
-**Remaining Top Priority:**
-1. #6880 - Fix cluster crash when re-provisioning servers
-2. #6290 - Fix authentication timeout error handling
-3. #6932 - Mac ARM (Apple Silicon) support
+**All Critical Priority Issues Complete!** 🎉
 
 ---
 
