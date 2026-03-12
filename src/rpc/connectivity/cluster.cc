@@ -394,7 +394,12 @@ join_results_t connectivity_cluster_t::run_t::join_blocking(
     }
 
     // Make sure the peer address isn't bogus
-    guarantee(peer.ips().size() > 0);
+    if (peer.ips().empty()) {
+        logWRN("Peer %s has no IP addresses. Skipping connection attempt. "
+               "This may happen if the server was re-provisioned.",
+               expected_server_id.has_value() ? expected_server_id->print().c_str() : "unknown");
+        return join_results;
+    }
 
     // Attempt to connect to all known ip addresses of the peer
 
@@ -410,7 +415,14 @@ join_results_t connectivity_cluster_t::run_t::join_blocking(
         for (selected_addr = all_addrs.begin();
             selected_addr != all_addrs.end() && find_index > 0;
             ++selected_addr, --find_index) { }
-        guarantee(find_index == 0);
+        // Issue #7158, #7131: Replace guarantee with error handling
+        if (find_index != 0) {
+            logERR("Invalid address index in join_blocking: index=%d, find_index=%d, "
+                   "num_addrs=%zu. This may indicate a race condition or corrupted "
+                   "peer address list.",
+                   index, find_index, all_addrs.size());
+            return;  // Skip this iteration - lambda called by pmap
+        }
 
         join_result_t result =
             connectivity_cluster_t::run_t::connect_to_peer(
@@ -1345,9 +1357,14 @@ join_result_t connectivity_cluster_t::run_t::handle(
                 `heartbeat_manager_t` as soon as the heartbeat arrived. */
                 if (tag != heartbeat_tag) {
                     cluster_message_handler_t *handler = parent->message_handlers[tag];
-                    guarantee(handler != nullptr, "Got a message for an unfamiliar tag. "
-                        "Apparently we aren't compatible with the cluster on the other "
-                        "end.");
+                    if (handler == nullptr) {
+                        logERR("Received message with unfamiliar tag %d from peer. "
+                               "This may indicate version incompatibility or message "
+                               "corruption. Closing connection.", tag);
+                        // Close connection gracefully instead of crashing
+                        conn->shutdown_read();
+                        break;
+                    }
 
                     /* If you really want to support old cluster versions, the
                     resolved_version should be passed into the on_message() handler. */

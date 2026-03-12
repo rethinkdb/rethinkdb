@@ -99,11 +99,21 @@ void server_name_cache_updater_t::update_blocking(signal_t *interruptor) {
                 change_token = raft->propose_change(
                     &change_lock, table_raft_state_t::change_t(change));
 
+            // Issue #6856: Handle case where propose_change returns null
+            // This can happen if we lose leadership or cluster state changes
+            // between checking readiness and proposing the change.
             change_ok = change_token.has();
 
-            /* Note that we don't wait on the change token. We know we won't
-            start a redundant change because we always compute the change by
-            comparing to `get_latest_state()`. */
+            if (change_ok) {
+                /* Wait for the change to be committed to ensure it succeeds.
+                This prevents us from thinking a change succeeded when it
+                might have been lost due to a leadership change. */
+                wait_interruptible(change_token->get_ready_signal(), interruptor);
+                change_ok = change_token->wait();
+            }
+
+            /* Note that we won't start a redundant change because we always
+            compute the change by comparing to `get_latest_state()`. */
         } else {
             change_ok = true;
         }

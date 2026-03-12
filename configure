@@ -22,16 +22,21 @@ init () {
     min_nmake_version=14.0
     min_cl_version=19.0
 
-    must_fetch_list='quickjs'
-    please_fetch_list="gtest re2 $must_fetch_list"
+    # JavaScript engine options: v8, v8-jitless, quickjs, quickjs-ng, quickjspp, duktape, hermes
+    # Default is quickjs for compatibility (v8-jitless recommended for production)
+    default_js_engine='quickjs'
+    supported_js_engines='v8 v8-jitless quickjs quickjs-ng quickjspp duktape hermes'
+    
+    must_fetch_list='v8'
+    please_fetch_list="gtest re2 quickjs"
 
     optional_libs="gtest termcap boost_system"
-    required_libs="protobuf re2 z crypto ssl curl quickjs"
-    other_libs="tcmalloc jemalloc"
+    required_libs="protobuf re2 z crypto ssl curl"
+    other_libs="tcmalloc jemalloc v8 $supported_js_engines"
     all_libs="$required_libs $optional_libs $other_libs"
     default_static="tcmalloc jemalloc"
 
-    required_bin_deps="protoc python"
+    required_bin_deps="protoc"
     optional_bin_deps="wget curl"
     bin_deps="cxx $required_bin_deps $optional_bin_deps"
     all_deps="$bin_deps $all_libs boost"
@@ -49,6 +54,10 @@ configure () {
     show "$BASH_VERSION"
     var FETCH_LIST ""
     var FETCH_VERSIONS ""
+    
+    # Set default JS engine if not specified
+    js_engine=${js_engine:-$default_js_engine}
+    
     for var in $allowed_arg_vars; do
         local val
         if lookup "$arg_vars" $var val; then
@@ -56,12 +65,16 @@ configure () {
             var $var "$val"
         fi
     done
+    # Configure JavaScript engine first (needed for must_fetch_list)
+    configure_js_engine
+    
     check_windows
     if $windows; then
         configure_windows
     else
         configure_unixlike
     fi
+    
     require Installation prefix
     var PREFIX ${arg_prefix:-/usr/local}
     require Configuration prefix
@@ -84,17 +97,45 @@ configure_unixlike () {
     show "`uname -msr`"
     check_cross_compiling
     require "Host Operating System"
+    
+    # Detect musl libc
+    local is_musl=false
+    if [[ "$MACHINE" == *"musl"* ]] || ldd --version 2>&1 | grep -q musl; then
+        is_musl=true
+    fi
+    
+    # Detect macOS version for Apple Silicon support
+    local macos_version=""
+    if [[ "$MACHINE" == *"apple-darwin"* ]]; then
+        macos_version=$(sw_vers -productVersion 2>/dev/null || echo "")
+    fi
+    
     case "${MACHINE#*-}" in
         *apple-darwin*)
             var OS "Darwin"
             default_allocator=$default_allocator_osx
             var PTHREAD_LIBS "" ;
-            var RT_LIBS "" ;;
+            var RT_LIBS ""
+            # Detect Apple Silicon (ARM64) Macs
+            if [[ "${MACHINE%%-*}" == "arm64" ]] || [[ "${MACHINE%%-*}" == "aarch64" ]] || [[ "$(uname -m)" == "arm64" ]]; then
+                # Apple Silicon requires macOS 11.0+
+                osx_min_version=11.0
+                var TARGET_ARCH "arm64"
+                log "Detected Apple Silicon (ARM64)"
+            fi
+            ;;
         *linux*)
             var OS "Linux"
             default_allocator=$default_allocator_linux
             var PTHREAD_LIBS -pthread ;
             var RT_LIBS -lrt ;;
+        *linux-musl*|*alpine*|*musl*)
+            var OS "Linux"
+            default_allocator=$default_allocator_linux
+            var PTHREAD_LIBS -pthread ;
+            # musl libc doesn't need -lrt (it has those functions in libc)
+            var RT_LIBS ""
+            is_musl=true ;;
         *freebsd*)
             var OS "FreeBSD"
             default_allocator=$default_allocator_freebsd
@@ -108,8 +149,20 @@ configure_unixlike () {
         x86_64|i?86)
             true ;;
         arm*|arm64*|aarch64*)
-            var_append LDFLAGS -ldl
-            final_warning="ARM support is still experimental" ;;
+            # Only add -ldl for non-musl systems (musl has dlopen in libc)
+            if ! $is_musl; then
+                var_append LDFLAGS -ldl
+            fi
+            # On ARM architectures, the fetched protobuf may not work correctly
+            # Try to use system protobuf first if available, otherwise fetch it
+            if ! $allow_fetch; then
+                final_warning="ARM support is still experimental. Consider using --allow-fetch if you encounter issues"
+            else
+                # Only fetch protobuf if system version is not available/working
+                # This will be determined later in test_protobuf
+                final_warning="ARM support is still experimental"
+            fi
+            ;;
         s390x)
             final_warning="s390x support is still experimental" ;;
         ppc64le|powerpc64le|powerpc64el)
@@ -121,6 +174,21 @@ configure_unixlike () {
     require "Build Architecture"
     var GCC_ARCH $(uname -m | grep '^[A-Za-z0-9_]*$' | head -n 1)
     var GCC_ARCH_REDUCED $(echo "$GCC_ARCH" | sed -e 's/^i[56]86$$/i486/g')
+    
+    # Detect Linux distribution for specific workarounds
+    local distro=""
+    if [[ "$OS" = "Linux" ]]; then
+        if [[ -f /etc/arch-release ]]; then
+            distro="arch"
+            # Arch Linux with newer clang may need specific flags
+            if [ "$COMPILER" = CLANG ]; then
+                var_append CXXFLAGS -D_GNU_SOURCE
+            fi
+        elif [[ -f /etc/alpine-release ]]; then
+            distro="alpine"
+        fi
+    fi
+    
     if [ "$COMPILER" = CLANG ]; then
         require stdlib
         case "$OS" in
@@ -140,6 +208,9 @@ configure_unixlike () {
         require_dep $bin
         check_bin $bin
     done
+    # Check for python3 or python separately to handle different naming
+    require_dep python
+    check_python
     for bin in $optional_bin_deps; do
         optional_dep $bin
         check_bin $bin
@@ -180,6 +251,39 @@ configure_unixlike () {
     fi
 }
 
+configure_js_engine () {
+    require "JavaScript Engine"
+    var JS_ENGINE "$js_engine"
+    show "$js_engine"
+    
+    # Set engine-specific configuration
+    case "$js_engine" in
+        v8|v8-jitless)
+            var V8_JITLESS "$([ "$js_engine" = "v8-jitless" ] && echo "yes" || echo "no")"
+            must_fetch_list="$must_fetch_list v8"
+            ;;
+        quickjs|quickjs-ng|quickjspp)
+            must_fetch_list="$must_fetch_list quickjs"
+            # Set up include paths and library for quickjs (normally done by fetch_lib)
+            macro "QUICKJS_INCLUDE" "-isystem \$(SUPPORT_BUILD_DIR)/quickjs_\$(quickjs_VERSION)/include"
+            macro "QUICKJS_INCLUDE_DEP" "\$(SUPPORT_BUILD_DIR)/quickjs_\$(quickjs_VERSION)/include"
+            macro "QUICKJS_LIBS" "\$(SUPPORT_BUILD_DIR)/quickjs_\$(quickjs_VERSION)/lib/quickjs/libquickjs.a"
+            macro "QUICKJS_LIBS_DEP" "\$(SUPPORT_BUILD_DIR)/quickjs_\$(quickjs_VERSION)/lib/quickjs/libquickjs.a"
+            ;;
+        duktape)
+            must_fetch_list="$must_fetch_list duktape"
+            ;;
+        hermes)
+            must_fetch_list="$must_fetch_list hermes"
+            ;;
+    esac
+    
+    # Export the engine for the build system
+    var JS_ENGINE_CFLAGS ""
+    var JS_ENGINE_LDFLAGS ""
+    var JS_ENGINE_LIBS ""
+}
+
 configure_windows () {
     for tool in msbuild vcvarsall cmake; do
         require $tool
@@ -199,7 +303,7 @@ configure_windows () {
     done
     fetch_bin protoc
     optional Python
-    check_bin python
+    check_python
 }
 
 # Entry point
@@ -229,10 +333,11 @@ main () {
     trap - EXIT
 
     if ! $failed; then
-        write "CONFIGURE_STATUS := success" 3>> "$config"
+        # Update the CONFIGURE_STATUS line to success (we overwrite by appending, make uses last value)
+        echo "CONFIGURE_STATUS := success" >> "$config"
         echo "* Wrote configuration to $config"
     else
-        write "CONFIGURE_STATUS := failed" 3>> "$config"
+        echo "CONFIGURE_STATUS := failed" >> "$config"
         echo "* Aborting configure"
         exit 1
     fi
@@ -316,6 +421,7 @@ read_args () {
             --with-tcmalloc) $no_arg; set_custom_allocator tcmalloc ;;
             --with-jemalloc) $no_arg; set_custom_allocator jemalloc ;;
             --with-system-malloc) $no_arg; set_custom_allocator system ;;
+            --js-engine) $has_arg; set_js_engine "$arg" ;;
             --ccache) $no_arg; use_ccache=true ;;
             --prefix) $has_arg; arg_prefix=$arg ;;
             --sysconfdir) $has_arg; arg_sysconfdir=$arg ;;
@@ -341,6 +447,14 @@ set_custom_allocator () {
         die "incompatible options: --with-$custom_allocator and --with-$1"
     fi
     custom_allocator=$1
+}
+
+set_js_engine () {
+    local engine=$1
+    if ! contains "$supported_js_engines" "$engine"; then
+        die "Unknown JavaScript engine: $engine. Supported engines: $supported_js_engines"
+    fi
+    js_engine=$engine
 }
 
 # Description of some of the dependencies
@@ -386,6 +500,8 @@ EOF
   --with-tcmalloc         Use TCMalloc
   --with-jemalloc         Use jemalloc (default on Linux)
   --with-system-malloc    Use the system malloc (default on OS X)
+  --js-engine <engine>    JavaScript engine: quickjs (default), v8-jitless,
+                          v8, quickjs-ng, quickjspp, duktape, or hermes
   --ccache                Speed up the build using ccache
   --windows-platform      Windows platform: Win32 (32 bit, default) or x64 (64 bit)
 EOF
@@ -773,6 +889,31 @@ check_bin () {
     var "$(uc $1)_BIN_DEP" ""
 }
 
+# check_python
+# Check for python or python3 binary
+check_python () {
+    required=true
+    # First try python3, then python
+    for py_bin in python3 python; do
+        local bin=$(command -v "$py_bin" 2>/dev/null)
+        if [[ -x "$bin" ]]; then
+            # Check if this is a working python binary
+            if "$bin" --version >/dev/null 2>&1; then
+                var "PYTHON" "$bin"
+                var "PYTHON_BIN_DEP" ""
+                show "$bin"
+                return
+            fi
+        fi
+    done
+    # If we get here, neither python nor python3 was found
+    if fetch_allowed $(bin_pkg_name "python"); then
+        fetch_bin "python"
+    else
+        not_found "PYTHON"
+    fi
+}
+
 # Invoke pkg.sh with the required environment variables
 pkg () {
     FETCH_LIST="$FETCH_LIST" PLATFORM="${PLATFORM:-}" OS="$OS" bash $root/mk/support/pkg/pkg.sh "$@"
@@ -1100,6 +1241,14 @@ test_protobuf () {
             "$PROTOC" "$pbdir/test.proto" --cpp_out=. 2>&1 &&
             $CXX "$pbdir/test.pb.cc" "$pbdir/main.cc" -I "$root" $PROTOBUF_LIBS $PTHREAD_LIBS $M_LIBS ${CXXFLAGS:-} ${LDFLAGS:-} ${LIB_SEARCH_PATHS:-} -o "$pbdir/a.out" 2>&1)
     then
+        # On ARM architectures, the system protobuf might not work correctly
+        # Try fetching protobuf instead
+        if $allow_fetch && [[ "${MACHINE%%-*}" == "arm"* || "${MACHINE%%-*}" == "aarch64"* || "${MACHINE%%-*}" == "arm64"* ]]; then
+            show "fetch (system protobuf failed on ARM)"
+            fetch_lib protobuf
+            fetch_bin protoc
+            return
+        fi
         error_details="$out"
         error "Unable to compile sample protobuf file. Try running ./configure with the --fetch protoc option"
         return
@@ -1238,13 +1387,84 @@ check_vs_bin () {
     local ucname=$(uc $1)
     local exe=${!ucname:-}
     if [[ -z "$exe" ]] || ! lookup "$arg_vars" $ucname exe; then
-        # TODO: what is a better way to find these?
-        for it in /cygdrive/*/Program\ Files*/Microsoft\ Visual\ Studio/2022/*/{MSBuild/Current,VC/Auxiliary/Build,Common7/IDE/CommonExtensions/Microsoft/CMake/CMake}{,/Bin}/$1.{exe,bat}; do
+        # First try vswhere.exe to locate Visual Studio 2017+ installations
+        # vswhere is the official Microsoft tool for locating VS installations
+        local vswhere_path=""
+        for it in /cygdrive/*/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/Installer/vswhere.exe \
+                  /cygdrive/*/Program\ Files/Microsoft\ Visual\ Studio/Installer/vswhere.exe; do
             case "$it" in
                 *\**) ;;
-                *) exe=$it; break;;
+                *)
+                    if [[ -x "$it" ]]; then
+                        vswhere_path="$it"
+                        break
+                    fi
+                    ;;
             esac
         done
+
+        # If vswhere found, use it to locate the requested tool
+        if [[ -n "$vswhere_path" ]]; then
+            local vs_install_path
+            # Get the installation path of the latest VS version
+            vs_install_path=$("$vswhere_path" -latest -property installationPath 2>/dev/null | tr -d '\r')
+            if [[ -n "$vs_install_path" ]]; then
+                # Convert Windows path to Cygwin path
+                local cyg_vs_path="/cygdrive${vs_install_path//:/}"
+                case "$1" in
+                    msbuild)
+                        for it in "$cyg_vs_path"/MSBuild/Current/Bin/$1.exe \
+                                  "$cyg_vs_path"/MSBuild/15.0/Bin/$1.exe; do
+                            if [[ -x "$it" ]]; then
+                                exe="$it"
+                                break
+                            fi
+                        done
+                        ;;
+                    vcvarsall)
+                        for it in "$cyg_vs_path"/VC/Auxiliary/Build/$1.bat; do
+                            if [[ -f "$it" ]]; then
+                                exe="$it"
+                                break
+                            fi
+                        done
+                        ;;
+                    cmake)
+                        for it in "$cyg_vs_path"/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/$1.exe; do
+                            if [[ -x "$it" ]]; then
+                                exe="$it"
+                                break
+                            fi
+                        done
+                        ;;
+                esac
+            fi
+        fi
+
+        # Fall back to legacy detection if vswhere not found or tool not found
+        if [[ -z "$exe" ]]; then
+            # Search for Visual Studio 2017, 2019, and 2022
+            # Try VS2022 first, then VS2019, then VS2017
+            for vsver in 2022 2019 2017; do
+                for it in /cygdrive/*/Program\ Files*/Microsoft\ Visual\ Studio/$vsver/*/{MSBuild/Current,VC/Auxiliary/Build,Common7/IDE/CommonExtensions/Microsoft/CMake/CMake}{,/Bin}/$1.{exe,bat}; do
+                    case "$it" in
+                        *\**) ;;
+                        *) exe=$it; break 2;;
+                    esac
+                done
+            done
+            # Also try BuildTools installations
+            if [[ -z "$exe" ]]; then
+                for vsver in 2022 2019 2017; do
+                    for it in /cygdrive/*/Program\ Files*/Microsoft\ Visual\ Studio/$vsver/BuildTools/{MSBuild/Current,VC/Auxiliary/Build,Common7/IDE/CommonExtensions/Microsoft/CMake/CMake}{,/Bin}/$1.{exe,bat}; do
+                        case "$it" in
+                            *\**) ;;
+                            *) exe=$it; break 2;;
+                        esac
+                    done
+                done
+            fi
+        fi
     fi
 
     if [[ -n "$exe" ]]; then

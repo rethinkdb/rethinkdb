@@ -329,7 +329,9 @@ std::map<std::string, std::pair<sindex_config_t, sindex_status_t> > store_t::sin
         try {
             deserialize_sindex_info_or_crash(pair.second.opaque_definition, &disk_info);
         } catch (const archive_exc_t &) {
-            crash("corrupted sindex definition");
+            logERR("corrupted sindex definition for index '%s' - skipping", pair.first.name.c_str());
+            // Skip this corrupted index instead of crashing
+            continue;
         }
 
         res->first.func = disk_info.mapping;

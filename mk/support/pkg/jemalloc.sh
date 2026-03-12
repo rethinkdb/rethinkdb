@@ -9,6 +9,22 @@ pkg_install () {
     if [[ "$CROSS_COMPILING" = 1 ]]; then
         configure_flags+=" --host=$($CXX -dumpmachine)"
     fi
+    
+    # On musl systems, disable jezone allocator which can cause issues
+    if is_musl_libc 2>/dev/null || [[ "$($CXX -dumpmachine)" == *"musl"* ]]; then
+        configure_flags+=" --disable-jezone"
+    fi
+
+    # Detect system page size and configure jemalloc accordingly
+    # Fixes issue #7156: Raspberry Pi 5 uses 16KB pages instead of 4KB
+    local page_size=$(getconf PAGE_SIZE 2>/dev/null || echo 4096)
+    local lg_page=12
+    if [ "$page_size" = "16384" ]; then
+        lg_page=14
+    elif [ "$page_size" = "65536" ]; then
+        lg_page=16
+    fi
+    configure_flags+=" --with-lg-page=$lg_page"
 
     pkg_copy_src_to_build
     pkg_configure ${configure_flags:-}

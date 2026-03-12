@@ -60,8 +60,21 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
     guarantee(it != addresses.end());
     last_known_address = it->second;
 
+    // Issue #6880: Check if we have any IP addresses for this server
+    if (last_known_address.ips().empty()) {
+        logWRN("Cannot reconnect to server %s: no IP addresses known",
+               server.print().c_str());
+        return;
+    }
+
+    // Issue #7131: Increased default timeout and made reconnection more resilient
+    // The give_up_ms timeout can be 0 or negative to indicate "never give up"
+    // This is useful for servers that may be down for extended periods
+    const bool never_give_up = (give_up_ms <= 0);
     signal_timer_t give_up_timer;
-    give_up_timer.start(give_up_ms);
+    if (!never_give_up) {
+        give_up_timer.start(give_up_ms);
+    }
 
     cond_t reconnected;
     watchable_map_t<server_id_t, peer_id_t>::key_subs_t subs(
@@ -82,8 +95,14 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
 
     cond_t join_failed;
     wait_any_t interruptor(
-        &reconnected, &give_up_timer, keepalive.get_drain_signal(), &join_failed);
-    exponential_backoff_t backoff(50, 15 * 1000);
+        &reconnected,
+        never_give_up ? nullptr : &give_up_timer,
+        keepalive.get_drain_signal(),
+        &join_failed);
+
+    // Issue #7131: Use more aggressive exponential backoff with longer maximum
+    // to handle network partitions and temporary outages more gracefully
+    exponential_backoff_t backoff(50, 60 * 1000);  // Max 60 seconds between retries
     try {
         // These can be safely passed into the coroutine below.
         // They will be reset to `nullptr` by the assignment_sentry_ts when this function

@@ -14,6 +14,7 @@
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
 #include "rdb_protocol/erase_range.hpp"
+#include "logger.hpp"
 #include "rdb_protocol/func.hpp"
 #include "rdb_protocol/shards.hpp"
 #include "rdb_protocol/table_common.hpp"
@@ -188,7 +189,11 @@ scoped_ptr_t<sindex_superblock_t> acquire_sindex_for_read(
     try {
         deserialize_sindex_info_or_crash(sindex_mapping_data, sindex_info_out);
     } catch (const archive_exc_t &e) {
-        crash("%s", e.what());
+        logERR("Failed to deserialize secondary index info: %s", e.what());
+        throw ql::exc_t(
+            ql::base_exc_t::OP_FAILED, 
+            strprintf("Corrupted secondary index data: %s", e.what()),
+            ql::backtrace_id_t::empty());
     }
 
     *sindex_uuid_out = sindex_uuid;

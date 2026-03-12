@@ -153,8 +153,12 @@ void extproc_worker_t::released(bool user_error, signal_t *user_interruptor) {
 }
 
 void extproc_worker_t::kill_process() {
-    // TODO: this guarantee is violated when certain exception occur before worker_pid is set
-    guarantee(worker_pid != INVALID_PROCESS_ID);
+    // Check if worker_pid is valid before trying to kill it
+    // This can happen when exceptions occur before worker_pid is set
+    if (worker_pid == INVALID_PROCESS_ID) {
+        logDBG("extproc_worker_t::kill_process() called with invalid worker_pid");
+        return;
+    }
 
 #ifdef _WIN32
     BOOL res;

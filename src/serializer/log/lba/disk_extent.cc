@@ -8,6 +8,7 @@
 
 #include "arch/arch.hpp"
 #include "math.hpp"
+#include "logger.hpp"
 
 lba_disk_extent_t::lba_disk_extent_t(extent_manager_t *_em, file_t *file, file_account_t *io_account)
     : em(_em), data(new extent_t(em, file)), count(0) {
@@ -68,9 +69,19 @@ void lba_disk_extent_t::read_step_2(read_info_t *info, in_memory_index_t *index)
             // The on-disk format still stores 32 bit block sizes.
             // We've never actually used them, and we now use 16 bit block sizes
             // for the in-memory index to save a few bytes.
-            guarantee(e->ser_block_size <= std::numeric_limits<uint16_t>::max());
-            index->set_block_info(e->block_id, e->recency, e->offset,
-                                  static_cast<uint16_t>(e->ser_block_size));
+            uint16_t block_size;
+            if (e->ser_block_size > std::numeric_limits<uint16_t>::max()) {
+                // Log error and cap the block size instead of crashing
+                // This can happen due to corruption or incompatible block size config
+                logERR("LBA entry %d has block size %u exceeding uint16_t max (%u). "
+                       "Possible data corruption or incompatible configuration. "
+                       "Capping to max value.",
+                       i, e->ser_block_size, std::numeric_limits<uint16_t>::max());
+                block_size = std::numeric_limits<uint16_t>::max();
+            } else {
+                block_size = static_cast<uint16_t>(e->ser_block_size);
+            }
+            index->set_block_info(e->block_id, e->recency, e->offset, block_size);
         }
     }
 

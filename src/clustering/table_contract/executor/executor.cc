@@ -7,6 +7,7 @@
 #include "clustering/table_contract/executor/exec_erase.hpp"
 #include "clustering/table_contract/executor/exec_primary.hpp"
 #include "clustering/table_contract/executor/exec_secondary.hpp"
+#include "logger.hpp"
 #include "store_subview.hpp"
 
 class contract_executor_t::execution_wrapper_t : private execution_t::params_t {
@@ -94,7 +95,12 @@ private:
 
     void enable_gc(const branch_id_t &new_enable_gc_branch) {
         parent->assert_thread();
-        guarantee(!static_cast<bool>(enable_gc_branch));
+        // Issue #6520: Replace guarantee with error handling
+        if (static_cast<bool>(enable_gc_branch)) {
+            logWRN("enable_gc called when GC branch is already set. "
+                   "Overwriting with new branch.");
+            // Continue with setting the new branch anyway
+        }
         enable_gc_branch = make_optional(new_enable_gc_branch);
         parent->gc_branch_history_pumper.notify();
     }

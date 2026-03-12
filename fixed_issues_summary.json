@@ -1,0 +1,176 @@
+[
+  {
+    "number": 3833,
+    "title": "Server crashes every time for r.table('t').group()",
+    "file": "crash_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 5274,
+    "title": "test failure on interface.server_config reading cache_size_mb change from server_status",
+    "file": "memory_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 5498,
+    "title": "Server does not automatically detect container memory limits",
+    "file": "memory_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 5865,
+    "title": "Memory leak?",
+    "file": "memory_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 5944,
+    "title": "Out-of-memory temporary results and ordering",
+    "file": "memory_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6236,
+    "title": "v 2.3.5-windows Memory leak",
+    "file": "memory_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6337,
+    "title": "Support building against musl",
+    "file": "build_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6433,
+    "title": "RethinkDB can fail with huge memory allocation",
+    "file": "memory_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6464,
+    "title": "r.js(\"1\") crashed the worker",
+    "file": "crash_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6520,
+    "title": "Multi-node Cluster Issue ",
+    "file": "cluster_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6719,
+    "title": "RethinkDB crash after 2 years",
+    "file": "crash_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6721,
+    "title": "RethinkDB 2.3.6 crashes on Cubietruck(ARM) /  ARMBian/ Debian GNU/Linux 9.7 (stretch)",
+    "file": "crash_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6815,
+    "title": "rethinkdb crash when adding a new server",
+    "file": "crash_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6849,
+    "title": "Proxy loses state from cluster",
+    "file": "cluster_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6861,
+    "title": "Server crash when create new table",
+    "file": "crash_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6862,
+    "title": "RethinkDB crash on querying table",
+    "file": "crash_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6873,
+    "title": "ArchLinux - Build issues and fixes",
+    "file": "build_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6880,
+    "title": "Connecting a re-provisioned server brings down the entire cluster",
+    "file": "cluster_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6932,
+    "title": "Add Mac ARM build",
+    "file": "build_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6936,
+    "title": "2.4.1 windows build fails",
+    "file": "build_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6952,
+    "title": "build fails on AArch64, Fedora 33 ",
+    "file": "build_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6961,
+    "title": "Connectivity cluster tag mismatch error",
+    "file": "cluster_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 6993,
+    "title": "RethinkDB v2.4.1 centos requires protobuf on aarch64",
+    "file": "build_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 7005,
+    "title": "Guarantee failed: [get_safety_boundary() >= num_elements]",
+    "file": "other_fixable.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 7120,
+    "title": "Add \"Buffers\" from /proc/meminfo in parse_meminfo_file to determine available memory",
+    "file": "memory_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 7124,
+    "title": "error: to_string called on an uninitialized ip_address_t, addr_type: 0 compiling rethinkdb on Raspberry",
+    "file": "crash_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 7129,
+    "title": "Reasonable to change hard-coded cluster size?",
+    "file": "cluster_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 7131,
+    "title": "cluster connect/reconnect timeout",
+    "file": "cluster_issues.json",
+    "fix_version": "v2.4.7"
+  },
+  {
+    "number": 7158,
+    "title": "Failed to remove a node from the cluster",
+    "file": "cluster_issues.json",
+    "fix_version": "v2.4.7"
+  }
+]

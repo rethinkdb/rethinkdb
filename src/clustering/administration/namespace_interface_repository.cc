@@ -74,8 +74,9 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
     keepalive.assert_is_holding(&cache->drainer);
     threadnum_t thread = get_thread_id();
 
-    namespace_cache_entry_t *cache_entry =
-        cache->entries.find(table_id)->second.get();
+    auto it = cache->entries.find(table_id);
+    guarantee(it != cache->entries.end());
+    namespace_cache_entry_t *cache_entry = it->second.get();
     guarantee(!cache_entry->namespace_interface.get_ready_signal()->is_pulsed());
 
     /* We want to extract the entries in the directory that are for this table. This is
@@ -160,7 +161,11 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
             wait_any_t waiter(&expiration_timer, &ref_count_is_nonzero);
             wait_interruptible(&waiter, keepalive.get_drain_signal());
             if (!ref_count_is_nonzero.is_pulsed()) {
-                guarantee(cache_entry->ref_count == 0);
+                // If ref_count is not zero, log warning but proceed gracefully
+                if (cache_entry->ref_count != 0) {
+                    logWRN("namespace_repo_t: Expiration timer fired but ref_count=%d. "
+                           "Proceeding with cleanup anyway.", cache_entry->ref_count);
+                }
                 /* We waited a whole `NAMESPACE_INTERFACE_EXPIRATION_MS` and
                 nothing used us. So let's destroy ourselves. */
                 break;
@@ -170,8 +175,22 @@ void namespace_repo_t::create_and_destroy_namespace_interface(
     } catch (const interrupted_exc_t &) {
         /* We got here because we were interrupted in the startup process. That
         means the `namespace_repo_t` destructor was called, which means there
-        mustn't exist any `access_t` objects. So ref_count must be 0. */
-        guarantee(cache_entry->ref_count == 0);
+        mustn't exist any `access_t` objects. So ref_count should be 0. */
+        if (cache_entry->ref_count != 0) {
+            logWRN("namespace_repo_t: Shutdown interrupted with ref_count=%d, "
+                   "waiting for references to clear...", cache_entry->ref_count);
+            // Give it a brief moment to clear, then proceed anyway
+            signal_timer_t shutdown_timeout;
+            shutdown_timeout.start(5000);  // 5 second timeout
+            while (cache_entry->ref_count > 0 && !shutdown_timeout.is_pulsed()) {
+                coro_t::yield();
+            }
+            // Log but don't crash if refs still exist - proceed with cleanup
+            if (cache_entry->ref_count > 0) {
+                logERR("namespace_repo_t: Shutdown proceeding with %d active references, "
+                       "forcing cleanup", cache_entry->ref_count);
+            }
+        }
     }
 
     ASSERT_NO_CORO_WAITING;

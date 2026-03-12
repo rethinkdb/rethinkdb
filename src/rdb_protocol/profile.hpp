@@ -32,7 +32,7 @@ struct start_t {
     start_t();
     explicit start_t(const std::string &description);
     std::string description_;
-    ticks_t when_;
+    ticks_t when_ = 0;
 };
 
 RDB_DECLARE_SERIALIZABLE(start_t);
@@ -41,7 +41,7 @@ struct split_t {
     split_t();
     explicit split_t(size_t n_parallel_jobs);
 
-    size_t n_parallel_jobs_;
+    size_t n_parallel_jobs_ = 0;
 };
 
 RDB_DECLARE_SERIALIZABLE(split_t);
@@ -51,8 +51,8 @@ struct sample_t {
     sample_t(const std::string &description, ticks_t mean_duration, size_t n_samples);
 
     std::string description_;
-    ticks_t mean_duration_;
-    size_t n_samples_;
+    ticks_t mean_duration_ = 0;
+    size_t n_samples_ = 0;
 };
 
 RDB_DECLARE_SERIALIZABLE(sample_t);

@@ -9,6 +9,17 @@
 buf_ptr_t buf_ptr_t::alloc_uninitialized(block_size_t size) {
     guarantee(size.ser_value() != 0);
     const size_t count = compute_aligned_block_size(size);
+    
+    // Sanity check: prevent unreasonably large allocations
+    // that may indicate corrupted metadata
+    const size_t MAX_REASONABLE_ALLOCATION = 1ULL * 1024 * 1024 * 1024; // 1GB
+    if (count > MAX_REASONABLE_ALLOCATION) {
+        crash("Attempted to allocate %zu bytes, which exceeds the maximum "
+              "reasonable allocation of %zu bytes. This may indicate "
+              "corrupted block size metadata (reported size: %u).",
+              count, MAX_REASONABLE_ALLOCATION, size.ser_value());
+    }
+    
     buf_ptr_t ret;
     ret.block_size_ = size;
     ret.ser_buffer_ = scoped_device_block_aligned_ptr_t<ser_buffer_t>(count);

@@ -2,6 +2,9 @@
 #include "clustering/administration/persist/raft_storage_interface.hpp"
 
 #include "clustering/administration/persist/file_keys.hpp"
+#include "logger.hpp"
+
+#include <stdexcept>
 
 RDB_IMPL_SERIALIZABLE_3_SINCE_v2_1(table_raft_stored_header_t,
     current_term, voted_for, commit_index);
@@ -9,7 +12,11 @@ RDB_IMPL_SERIALIZABLE_4_SINCE_v2_1(table_raft_stored_snapshot_t,
     snapshot_state, snapshot_config, log_prev_index, log_prev_term);
 
 raft_log_index_t str_to_log_index(const std::string &str) {
-    guarantee(str.size() == 16);
+    // Handle corrupted/malformed log index gracefully
+    if (str.size() != 16) {
+        logERR("Invalid log index string size: expected 16, got %zu", str.size());
+        throw std::runtime_error("corrupted log index: invalid size");
+    }
     raft_log_index_t index = 0;
     for (size_t i = 0; i < 16; ++i) {
         raft_log_index_t val;
@@ -18,7 +25,8 @@ raft_log_index_t str_to_log_index(const std::string &str) {
         } else if (str[i] >= 'a' && str[i] <= 'f') {
             val = 10 + (str[i] - 'a');
         } else {
-            crash("bad character in str_to_log_index()");
+            logERR("bad character in str_to_log_index() at position %zu: '%c'", i, str[i]);
+            throw std::runtime_error("corrupted log index: bad character");
         }
         index += val << ((15 - i) * 4);
     }

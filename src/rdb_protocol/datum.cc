@@ -1455,6 +1455,12 @@ datum_t datum_t::get(size_t index, throw_bool_t throw_bool) const {
 datum_t datum_t::unchecked_get(size_t index) const {
     if (data.get_internal_type() == internal_type_t::BUF_R_ARRAY) {
         const size_t offset = datum_get_element_offset(data.buf_ref, index);
+        // offset == 0 indicates corruption detected in datum_get_element_offset
+        // Return null datum instead of crashing
+        if (offset == 0 && index > 0) {
+            logERR("Corrupted datum array element at index %zu, returning null", index);
+            return datum_t::null();
+        }
         return datum_deserialize_from_buf(data.buf_ref, offset);
     } else {
         r_sanity_check(data.get_internal_type() == internal_type_t::R_ARRAY);
@@ -1481,6 +1487,11 @@ std::pair<datum_string_t, datum_t> datum_t::get_pair(size_t index) const {
 std::pair<datum_string_t, datum_t> datum_t::unchecked_get_pair(size_t index) const {
     if (data.get_internal_type() == internal_type_t::BUF_R_OBJECT) {
         const size_t offset = datum_get_element_offset(data.buf_ref, index);
+        // offset == 0 indicates corruption detected in datum_get_element_offset
+        if (offset == 0 && index > 0) {
+            logERR("Corrupted datum object pair at index %zu, returning empty pair", index);
+            return std::make_pair(datum_string_t(), datum_t::null());
+        }
         return datum_deserialize_pair_from_buf(data.buf_ref, offset);
     } else {
         r_sanity_check(data.get_internal_type() == internal_type_t::R_OBJECT);
@@ -1805,12 +1816,22 @@ int datum_t::cmp(const datum_t &rhs) const {
         });
 }
 
-bool datum_t::operator==(const datum_t &rhs) const { return cmp(rhs) == 0; }
-bool datum_t::operator!=(const datum_t &rhs) const { return cmp(rhs) != 0; }
-bool datum_t::operator<(const datum_t &rhs) const { return cmp(rhs) < 0; }
-bool datum_t::operator<=(const datum_t &rhs) const { return cmp(rhs) <= 0; }
-bool datum_t::operator>(const datum_t &rhs) const { return cmp(rhs) > 0; }
-bool datum_t::operator>=(const datum_t &rhs) const { return cmp(rhs) >= 0; }
+bool datum_t::operator==(const datum_t &rhs) const {
+    // Handle uninitialized datum comparison gracefully
+    if (!has() && !rhs.has()) return true;  // Both uninitialized are equal
+    if (!has() || !rhs.has()) return false; // One uninitialized is not equal
+    return cmp(rhs) == 0;
+}
+bool datum_t::operator!=(const datum_t &rhs) const { return !(*this == rhs); }
+bool datum_t::operator<(const datum_t &rhs) const {
+    if (!has() && !rhs.has()) return false;
+    if (!has()) return true;   // Uninitialized is less than initialized
+    if (!rhs.has()) return false;
+    return cmp(rhs) < 0;
+}
+bool datum_t::operator<=(const datum_t &rhs) const { return *this < rhs || *this == rhs; }
+bool datum_t::operator>(const datum_t &rhs) const { return rhs < *this; }
+bool datum_t::operator>=(const datum_t &rhs) const { return rhs <= *this; }
 
 void datum_t::runtime_fail(base_exc_t::type_t exc_type,
                            const char *test, const char *file, int line,

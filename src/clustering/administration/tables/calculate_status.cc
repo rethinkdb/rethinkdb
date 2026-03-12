@@ -47,24 +47,38 @@ size_t wait_for_many_tables_readiness(
         table_meta_client_t *table_meta_client,
         signal_t *interruptor)
         THROWS_ONLY(interrupted_exc_t) {
-    std::set<namespace_id_t> tables = original_tables;
-    while (true) {
-        bool all_immediate = true;
-        for (auto it = tables.begin(); it != tables.end();) {
-            try {
-                all_immediate &= wait_for_table_readiness(
-                    *it, readiness, namespace_repo, table_meta_client, interruptor);
-            } catch (const no_such_table_exc_t &) {
-                tables.erase(it++);
+    // Use a vector to track tables that need checking
+    // This allows us to only recheck tables that weren't immediately ready
+    std::vector<namespace_id_t> tables_to_check(original_tables.begin(),
+                                                 original_tables.end());
+    std::set<namespace_id_t> valid_tables(original_tables.begin(),
+                                          original_tables.end());
+    
+    while (!tables_to_check.empty()) {
+        std::vector<namespace_id_t> not_immediately_ready;
+        
+        for (const auto &table_id : tables_to_check) {
+            // Skip tables that were removed (no_such_table)
+            if (valid_tables.find(table_id) == valid_tables.end()) {
                 continue;
             }
-            ++it;
+            
+            try {
+                bool immediate = wait_for_table_readiness(
+                    table_id, readiness, namespace_repo, table_meta_client, interruptor);
+                if (!immediate) {
+                    // Table became ready but not immediately - recheck it
+                    not_immediately_ready.push_back(table_id);
+                }
+            } catch (const no_such_table_exc_t &) {
+                valid_tables.erase(table_id);
+            }
         }
-        if (all_immediate) {
-            break;
-        }
+        
+        tables_to_check = std::move(not_immediately_ready);
     }
-    return tables.size();
+    
+    return valid_tables.size();
 }
 
 void get_table_status(

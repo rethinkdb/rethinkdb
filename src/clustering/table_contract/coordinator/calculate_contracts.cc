@@ -232,7 +232,7 @@ contract_t calculate_contract(
             size_t remaining_streaming = is_streaming(old_c, acks, server_to_remove)
                                          ? num_streaming - 1
                                          : num_streaming;
-            size_t remaining_total = new_voters.size() - 1;
+            size_t remaining_total = new_voters.empty() ? 0 : new_voters.size() - 1;
             bool would_lose_majority = remaining_streaming <= remaining_total / 2;
             if (would_lose_majority || new_voters.size() <= min_voters_size) {
                 break;

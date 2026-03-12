@@ -280,7 +280,11 @@ with_vs_env () {
     # ^^ Afaict GNU make is not setting anything that is seen by this
     # shell script (but I haven't tested on Windows).  Just saying.
 
-    env -u MAKE -u MAKEFLAGS cmd /c "$vcvarsall" "$machine" "--vcvars_ver=14.1" "&&" "$@"
+    # Support VS2017, VS2019, and VS2022 through VCVARS_VER environment variable
+    # VS2017 (v141) uses 14.1, VS2019/2022 (v142/v143) can use their respective versions
+    local vcvars_ver="${VCVARS_VER:-14.1}"
+
+    env -u MAKE -u MAKEFLAGS cmd /c "$vcvarsall" "$machine" "--vcvars_ver=$vcvars_ver" "&&" "$@"
 }
 
 error () {
@@ -427,6 +431,14 @@ root_dir=$(niceabspath "$pkg_dir/../../..")
 conf_dir=$(niceabspath "$pkg_dir/../config")
 external_dir=$(niceabspath "$pkg_dir/../../../external")
 root_build_dir=${BUILD_ROOT_DIR:-$(niceabspath "$pkg_dir/../../../build")}
+
+# Detect musl libc for handling platform-specific build differences
+is_musl_libc () {
+    if [[ "${MACHINE:-}" == *"musl"* ]] || ldd --version 2>&1 | grep -q musl; then
+        return 0
+    fi
+    return 1
+}
 
 # These variables should be passed to this script from support/build.mk
 WGET=${WGET:-}

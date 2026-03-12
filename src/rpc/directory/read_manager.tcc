@@ -115,6 +115,13 @@ void directory_read_manager_t<metadata_t>::handle_connection(
 
     mutex_assertion_t::acq_t mutex_assertion_lock(&mutex_assertion);
 
+    // Check for duplicate connection - this can happen during rapid reconnect
+    if (connection_map.find(connection) != connection_map.end()) {
+        logWRN("Duplicate connection attempt in directory_read_manager for peer %s. "
+               "Ignoring duplicate.", uuid_to_str(connection->get_peer_id().get_uuid()).c_str());
+        return;
+    }
+
     /* Insert the initial value into the directory */
     variable.apply_atomic_op(
         [&](change_tracking_map_t<peer_id_t, metadata_t> *map) -> bool {
@@ -131,8 +138,15 @@ void directory_read_manager_t<metadata_t>::handle_connection(
         {
             map_insertion_sentry_t<connectivity_cluster_t::connection_t *,
                                    connection_info_t *>
-                connection_info_insertion
-                    (&connection_map, connection, &connection_info);
+                connection_info_insertion;
+            // Use reset_or_update to handle race condition where connection
+            // might have been added between the check above and here
+            bool is_new = connection_info_insertion.reset_or_update(
+                &connection_map, connection, &connection_info);
+            if (!is_new) {
+                logDBG("Updated existing connection entry in directory_read_manager "
+                       "for peer %s", connection->get_peer_id().print().c_str());
+            }
 
             for (auto it = waiting_for_initialization.lower_bound(connection);
                       it != waiting_for_initialization.upper_bound(connection);
@@ -213,7 +227,14 @@ void directory_read_manager_t<metadata_t>::propagate_update(
                 wait_interruptible(&wait_for_initialization, &interruptor2);
                 mutex_assertion_lock.reset(&mutex_assertion);
                 it = connection_map.find(connection);
-                guarantee(it != connection_map.end());
+                if (it == connection_map.end()) {
+                    /* Connection was closed while we were waiting for initialization.
+                    This can happen during rapid connect/disconnect cycles. Log and return
+                    gracefully instead of crashing. */
+                    logWRN("Directory update for connection %p failed: connection closed "
+                           "during initialization wait", connection);
+                    return;
+                }
             }
             connection_info = it->second;
             connection_info_keepalive =

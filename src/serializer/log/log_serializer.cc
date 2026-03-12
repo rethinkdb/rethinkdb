@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #include <functional>
+#include <stdexcept>
 
 #include "arch/io/disk.hpp"
 #include "arch/runtime/runtime.hpp"
@@ -86,9 +87,12 @@ void filepath_file_opener_t::move_serializer_file_to_permanent_location() {
     const int res = ::rename(temporary_file_name().c_str(), file_name().c_str());
 
     if (res != 0) {
-        crash("Could not rename database file %s to permanent location %s (%s)\n",
-              temporary_file_name().c_str(), file_name().c_str(),
-              errno_string(errno).c_str());
+        logERR("Could not rename database file %s to permanent location %s (%s)",
+               temporary_file_name().c_str(), file_name().c_str(),
+               errno_string(errno).c_str());
+        fail_due_to_user_error("Could not rename database file %s to permanent location %s: %s",
+                               temporary_file_name().c_str(), file_name().c_str(),
+                               errno_string(errno).c_str());
     }
 
     warn_fsync_parent_directory(file_name().c_str());
@@ -452,8 +456,15 @@ file_account_t *log_serializer_t::make_io_account(int priority, int outstanding_
 buf_ptr_t log_serializer_t::block_read(const counted_t<ls_block_token_pointee_t> &token,
                                      file_account_t *io_account) {
     assert_thread();
-    guarantee(token.has());
-    guarantee(state == state_ready);
+    // Handle corrupted/missing token gracefully instead of crashing
+    if (!token.has()) {
+        logERR("block_read called with invalid token");
+        throw std::runtime_error("block_read: invalid token");
+    }
+    if (state != state_ready) {
+        logERR("block_read called when serializer not ready (state=%d)", state);
+        throw std::runtime_error("block_read: serializer not ready");
+    }
 
     ticks_t pm_time;
     stats->pm_serializer_block_reads.begin(&pm_time);

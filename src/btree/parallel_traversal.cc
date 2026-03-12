@@ -164,7 +164,7 @@ public:
 
         // If we're trying to stop, don't spawn any new jobs.
         if (!interrupted) {
-            for (int i = level_counts.size() - 1; i >= 0; --i) {
+            for (ssize_t i = static_cast<ssize_t>(level_counts.size()) - 1; i >= 0; --i) {
                 if (level_counts[i] < level_max(i)) {
                     int diff = level_max(i) - level_counts[i];
 

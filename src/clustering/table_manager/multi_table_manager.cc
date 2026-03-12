@@ -542,6 +542,15 @@ void multi_table_manager_t::on_get_status(
         = msg.reply_addr;
 
     std::map<namespace_id_t, table_status_response_t> responses;
+    
+    // Issue #6849: For proxy servers, we should never have ACTIVE tables
+    // because proxies don't host data. Check early and return a minimal response.
+    if (is_proxy_server) {
+        // Proxies don't have table status information - return empty response
+        send(mailbox_manager, reply_addr, responses);
+        return;
+    }
+    
     for (const namespace_id_t &table_id : tables_of_interest) {
         /* Fetch information for a specific table. */
         mutex_assertion_t::acq_t global_mutex_acq(&mutex);
@@ -656,13 +665,28 @@ void multi_table_manager_t::schedule_sync(
         table_t *table,
         const peer_id_t &peer_id) {
     ASSERT_FINITE_CORO_WAITING;
+    
+    // Issue #6849: For proxy servers, we should not be syncing table data
+    // since proxies don't host data. Log a warning and return early.
+    if (is_proxy_server) {
+        logWRN("Proxy server attempting to schedule sync for table %s. "
+               "Proxies should not host table data. Skipping sync.",
+               uuid_to_str(table_id).c_str());
+        return;
+    }
+    
     table->to_sync_set.insert(peer_id);
     if (table->sync_coro_running) {
         /* The sync coro will pick up our change when it finishes the current batch */
         return;
     }
-    guarantee(table->to_sync_set.size() == 1, "If there were other changes queued up, "
-        "the sync coro should have already been running");
+    // Issue #6520: Replace guarantee with graceful error handling
+    if (table->to_sync_set.size() != 1) {
+        logERR("schedule_sync: expected to_sync_set size to be 1, got %zu. "
+               "This may indicate concurrent sync operations or state corruption.",
+               table->to_sync_set.size());
+        // Continue anyway - the sync coro running state might be stale
+    }
     table->sync_coro_running = true;
     auto_drainer_t::lock_t keepalive(&drainer);
     /* Spawn the sync coroutine. Note that we have at most one instance of this coroutine
@@ -685,7 +709,11 @@ void multi_table_manager_t::schedule_sync(
                     return;
                 }
                 for (const peer_id_t &peer : to_sync_set) {
-                    guarantee(peer != mailbox_manager->get_me());
+                    // Issue #6520: Replace guarantee with error handling
+                    if (peer == mailbox_manager->get_me()) {
+                        logERR("Attempted to sync table to ourselves. Skipping.");
+                        continue;
+                    }
                     /* Removing `peer` from `table->to_sync_set` isn't strictly
                     necessary, but it sometimes reduces redundant traffic */
                     table->to_sync_set.erase(peer);

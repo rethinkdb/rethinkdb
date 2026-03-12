@@ -48,9 +48,13 @@ void update_metadata_superblock_version(void *sb_void) {
 }
 
 cluster_version_t magic_to_version(block_magic_t magic) {
-    guarantee(magic.bytes[0] == metadata_sb_magic.bytes[0]);
-    guarantee(magic.bytes[1] == metadata_sb_magic.bytes[1]);
-    guarantee(magic.bytes[2] == metadata_sb_magic.bytes[2]);
+    // Check for corrupted magic bytes - use fail_due_to_user_error for graceful handling
+    if (magic.bytes[0] != metadata_sb_magic.bytes[0] ||
+        magic.bytes[1] != metadata_sb_magic.bytes[1] ||
+        magic.bytes[2] != metadata_sb_magic.bytes[2]) {
+        fail_due_to_user_error("Database file has corrupted metadata magic bytes. "
+                               "The file may be damaged or from an incompatible version.");
+    }
     switch (magic.bytes[3]) {
     case 'd': // obsolete version - v1.13
         fail_due_to_user_error("This version of RethinkDB cannot migrate in-place "

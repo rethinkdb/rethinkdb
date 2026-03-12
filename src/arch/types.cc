@@ -32,8 +32,16 @@ void linux_iocallback_t::on_io_failure(int errsv, int64_t offset, int64_t count)
         // print a backtrace in this case.
         fail_due_to_user_error("Ran out of disk space. (offset = %" PRIi64
                                ", count = %" PRIi64 ")", offset, count);
+    } else if (errsv == EIO || errsv == EACCES || errsv == EPERM) {
+        // Common IO errors that should be treated as user errors
+        fail_due_to_user_error("I/O operation failed: %s (offset = %" PRIi64 
+                               ", count = %" PRIi64 ")",
+                               errno_string(errsv).c_str(), offset, count);
     } else {
-        crash("I/O operation failed. (%s) (offset = %" PRIi64 ", count = %" PRIi64 ")",
-              errno_string(errsv).c_str(), offset, count);
+        // For other errors, log the error and fail gracefully
+        // rather than crashing immediately
+        fail_due_to_user_error("I/O operation failed: %s (offset = %" PRIi64 
+                               ", count = %" PRIi64 ")",
+                               errno_string(errsv).c_str(), offset, count);
     }
 }

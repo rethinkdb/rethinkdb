@@ -1,0 +1,343 @@
+{
+  "scan_metadata": {
+    "scan_date": "2026-03-11T06:47:56",
+    "project": "RethinkDB",
+    "source_directory": "/mnt/ssd2/datacubes-db/rethinkdb/src",
+    "files_scanned": 1022,
+    "scan_types": [
+      "buffer_overruns",
+      "use_after_free",
+      "double_free",
+      "memory_leaks",
+      "uninitialized_memory",
+      "null_pointer_dereferences",
+      "integer_overflows"
+    ]
+  },
+  "summary": {
+    "total_issues": 23,
+    "critical": 4,
+    "high": 8,
+    "medium": 7,
+    "low": 4
+  },
+  "findings": [
+    {
+      "id": "MEM-001",
+      "severity": "Critical",
+      "category": "Buffer Overrun",
+      "file": "src/unittest/btree_utils.hpp",
+      "line": 43,
+      "description": "Potential buffer overflow in short_value_buffer_t constructor. The code reads reinterpret_cast<const uint8_t *>(v)[0] + 1 bytes from v without validating that v is not NULL and that the size byte doesn't exceed the actual buffer size.",
+      "code": "memcpy(data_, v, reinterpret_cast<const uint8_t *>(v)[0] + 1);",
+      "impact": "An attacker-controlled pointer could cause arbitrary memory corruption by providing an invalid size byte.",
+      "suggested_fix": "Add bounds checking: validate v is not NULL and that the size byte (v[0]) is within acceptable limits before memcpy."
+    },
+    {
+      "id": "MEM-002",
+      "severity": "Critical",
+      "category": "Buffer Overrun",
+      "file": "src/unittest/unittest_utils.cc",
+      "line": 119,
+      "description": "Unsafe use of strcpy without bounds checking. The code uses strcpy to append a template string to a path buffer without verifying there's enough space.",
+      "code": "strcpy(path + res, tmpl); // NOLINT",
+      "impact": "If GetTempPath returns a long path, the subsequent strcpy could overflow the buffer.",
+      "suggested_fix": "Use strncpy or snprintf instead, and verify that res + strlen(tmpl) < sizeof(path)."
+    },
+    {
+      "id": "MEM-003",
+      "severity": "Critical",
+      "category": "Integer Overflow",
+      "file": "src/rdb_protocol/serialize_datum.cc",
+      "line": 134,
+      "description": "Potential integer overflow in offset calculation. The code adds elem_sizes values to next_offset without checking for overflow before the guarantee() checks.",
+      "code": "next_offset += elem_sizes[(i-1)*2].size; // The key\nnext_offset += elem_sizes[(i-1)*2+1].size; // The value",
+      "impact": "If elem_sizes contains large values, the addition could overflow, causing incorrect offset values and potential memory corruption.",
+      "suggested_fix": "Add overflow checking before additions, or use saturating arithmetic."
+    },
+    {
+      "id": "MEM-004",
+      "severity": "Critical",
+      "category": "Use-After-Free",
+      "file": "src/btree/parallel_traversal.cc",
+      "line": 278,
+      "description": "Multiple instances of 'delete this' pattern in parallel_traversal.cc. While common in C++, this pattern is dangerous and can lead to use-after-free if not carefully managed.",
+      "code": "delete this;",
+      "impact": "If any code accesses member variables after delete this is called, it results in use-after-free vulnerability.",
+      "suggested_fix": "Use std::shared_ptr or custom reference counting instead of manual delete this."
+    },
+    {
+      "id": "MEM-005",
+      "severity": "High",
+      "category": "Buffer Overrun",
+      "file": "src/containers/printf_buffer.cc",
+      "line": 50,
+      "description": "Potential buffer overflow in alloc_copy_and_format. The function allocates memory and then uses vsnprintf, but there's no verification that append_size matches what vsnprintf will actually write.",
+      "code": "DEBUG_VAR int size = vsnprintf(new_ptr + length, size_t(append_size) + 1, fmt, ap);",
+      "impact": "If format string or arguments cause vsnprintf to write more than expected, buffer overflow occurs.",
+      "suggested_fix": "Add explicit bounds checking after vsnprintf call to verify size <= append_size."
+    },
+    {
+      "id": "MEM-006",
+      "severity": "High",
+      "category": "Buffer Overrun",
+      "file": "src/cjson/cJSON.cc",
+      "line": 69,
+      "description": "Potential buffer overflow in cJSON_strdup. Uses memcpy with len = strlen(str) + 1, but no NULL check on str before strlen call.",
+      "code": "len = strlen(str) + 1;\nif (!(copy = (char*)cJSON_malloc(len))) return 0;\nmemcpy(copy,str,len);",
+      "impact": "NULL pointer dereference if str is NULL, or memory exhaustion if str is extremely long.",
+      "suggested_fix": "Add NULL check for str before calling strlen."
+    },
+    {
+      "id": "MEM-007",
+      "severity": "High",
+      "category": "Buffer Overrun",
+      "file": "src/cjson/cJSON.cc",
+      "line": 237,
+      "description": "Unbounded string parsing loop in parse_string. The code increments end_ptr without checking if it has gone past the end of the input buffer.",
+      "code": "if (*end_ptr++ == '\\\\') end_ptr++;  // Skip escaped quotes.",
+      "impact": "Malformed JSON input without closing quote could cause out-of-bounds read.",
+      "suggested_fix": "Add bounds checking to ensure end_ptr doesn't exceed buffer end."
+    },
+    {
+      "id": "MEM-008",
+      "severity": "High",
+      "category": "Integer Overflow",
+      "file": "src/rdb_protocol/geo/s2/s2loop.cc",
+      "line": 84,
+      "description": "Potential integer overflow in memory allocation size calculation.",
+      "code": "memcpy(vertices_, &vertices[0], num_vertices_ * sizeof(vertices_[0]));",
+      "impact": "If num_vertices_ is very large, the multiplication could overflow, leading to undersized allocation and subsequent buffer overflow.",
+      "suggested_fix": "Check for overflow: if (num_vertices_ > SIZE_MAX / sizeof(vertices_[0])) handle_error();"
+    },
+    {
+      "id": "MEM-009",
+      "severity": "High",
+      "category": "Integer Overflow",
+      "file": "src/rdb_protocol/geo/s2/s2polyline.cc",
+      "line": 58,
+      "description": "Potential integer overflow in memory allocation size calculation.",
+      "code": "memcpy(vertices_, &vertices[0], num_vertices_ * sizeof(vertices_[0]));",
+      "impact": "Integer overflow in size calculation could lead to heap buffer overflow.",
+      "suggested_fix": "Add overflow check before allocation and memcpy."
+    },
+    {
+      "id": "MEM-010",
+      "severity": "High",
+      "category": "Uninitialized Memory",
+      "file": "src/extproc/http_job.cc",
+      "line": 186,
+      "description": "Potential use of uninitialized data in curl read callback. The memcpy copies data from send_data without verifying all bytes are initialized.",
+      "code": "memcpy(ptr, send_data.data() + send_data_offset, bytes_to_copy);",
+      "impact": "If send_data contains uninitialized padding bytes, they could be leaked to the network.",
+      "suggested_fix": "Ensure all bytes in send_data are properly initialized."
+    },
+    {
+      "id": "MEM-011",
+      "severity": "High",
+      "category": "Buffer Overrun",
+      "file": "src/arch/io/network.cc",
+      "line": 700,
+      "description": "Potential buffer overflow in write operation. The memcpy copies data to current_write_buffer->buffer without bounds verification.",
+      "code": "memcpy(current_write_buffer->buffer + current_write_buffer->size, buf, chunk);",
+      "impact": "If chunk calculation is incorrect, could overflow write buffer.",
+      "suggested_fix": "Add explicit bounds check before memcpy to ensure current_write_buffer->size + chunk <= WRITE_CHUNK_SIZE."
+    },
+    {
+      "id": "MEM-012",
+      "severity": "Medium",
+      "category": "Memory Leak",
+      "file": "src/crypto/hmac.cc",
+      "line": 13,
+      "description": "Potential memory leak if HMAC_CTX initialization fails.",
+      "code": "HMAC_CTX *tmp = reinterpret_cast<HMAC_CTX *>(OPENSSL_malloc(sizeof(HMAC_CTX)));",
+      "impact": "Memory allocated with OPENSSL_malloc is not freed if subsequent operations fail.",
+      "suggested_fix": "Use RAII pattern or ensure proper cleanup on all error paths."
+    },
+    {
+      "id": "MEM-013",
+      "severity": "Medium",
+      "category": "Buffer Overrun",
+      "file": "src/containers/archive/buffer_stream.hpp",
+      "line": 30,
+      "description": "Potential buffer overflow in buffer_read_stream_t::read. The memcpy copies num_to_read bytes without explicit bounds verification.",
+      "code": "memcpy(p, buf_ + pos_, num_to_read);",
+      "impact": "If size_ is corrupted or num_left calculation overflows, could read past buffer end.",
+      "suggested_fix": "Add explicit bounds check: guarantee(pos_ + num_to_read <= size_);"
+    },
+    {
+      "id": "MEM-014",
+      "severity": "Medium",
+      "category": "Buffer Overrun",
+      "file": "src/btree/leaf_node.cc",
+      "line": 932,
+      "description": "Potential buffer overflow in merge routine. Memcpy operations on pair_offsets array depend on calculations involving multiple variables.",
+      "code": "memcpy(tow->pair_offsets + wpoint, fro->pair_offsets + beg, sizeof(uint16_t) * (end - beg));",
+      "impact": "If beg, end, or wpoint are not properly validated, could overflow pair_offsets array.",
+      "suggested_fix": "Add explicit bounds checks for all array indices before memcpy."
+    },
+    {
+      "id": "MEM-015",
+      "severity": "Medium",
+      "category": "Buffer Overrun",
+      "file": "src/buffer_cache/blob.cc",
+      "line": 780,
+      "description": "Potential buffer overflow in remove_level. The memcpy copies bigsize bytes to small buffer without checking if bigsize fits.",
+      "code": "memcpy(small, b, bigsize);",
+      "impact": "If bigsize exceeds the size of small buffer, overflow occurs.",
+      "suggested_fix": "Verify bigsize <= maxreflen_ before memcpy."
+    },
+    {
+      "id": "MEM-016",
+      "severity": "Medium",
+      "category": "Null Pointer Dereference",
+      "file": "src/rdb_protocol/geo/s2/s2loop.cc",
+      "line": 78,
+      "description": "Potential double-free or use-after-free. The code deletes vertices_ before checking if it's owned.",
+      "code": "if (owns_vertices_) delete[] vertices_;",
+      "impact": "If owns_vertices_ is incorrectly set, could lead to double-free or accessing freed memory.",
+      "suggested_fix": "Set vertices_ to nullptr after delete[] to prevent dangling pointer."
+    },
+    {
+      "id": "MEM-017",
+      "severity": "Medium",
+      "category": "Integer Overflow",
+      "file": "src/serializer/log/lba/extent.cc",
+      "line": 120,
+      "description": "Potential integer overflow in offset calculation for memcpy.",
+      "code": "memcpy(current_block->data.get() + (amount_filled % DEVICE_BLOCK_SIZE), buffer, chunk);",
+      "impact": "If amount_filled is very large, the modulo and addition could have unexpected behavior.",
+      "suggested_fix": "Use size_t for all size-related calculations and verify no overflow."
+    },
+    {
+      "id": "MEM-018",
+      "severity": "Low",
+      "category": "Buffer Overrun",
+      "file": "src/clustering/administration/persist/file.hpp",
+      "line": 40,
+      "description": "Potential buffer overflow in key_t::suffix. The memcpy copies s.size() bytes, but relies on prior guarantee check.",
+      "code": "memcpy(copy.key.contents() + key.size(), s.c_str(), s.size());",
+      "impact": "Low risk due to guarantee check, but direct manipulation of buffer contents is unsafe.",
+      "suggested_fix": "Use safer container types like std::vector with at() method."
+    },
+    {
+      "id": "MEM-019",
+      "severity": "Low",
+      "category": "Buffer Overrun",
+      "file": "src/client_protocol/server.cc",
+      "line": 726,
+      "description": "Stack buffer used for sensitive data. The code copies request body to a scoped_array_t buffer.",
+      "code": "memcpy(body_buf.data(), req.body.data(), req.body.size());",
+      "impact": "req.body.size() could be very large, causing stack exhaustion or memory issues.",
+      "suggested_fix": "Add size limits for req.body before allocation and memcpy."
+    },
+    {
+      "id": "MEM-020",
+      "severity": "Low",
+      "category": "Uninitialized Memory",
+      "file": "src/btree/internal_node.cc",
+      "line": 445,
+      "description": "Memcpy from temporary buffer to node buffer without full initialization verification.",
+      "code": "memcpy(new_pair, new_buf_pair, pair_size_with_key(key));",
+      "impact": "Potential use of uninitialized padding bytes in btree_internal_pair structure.",
+      "suggested_fix": "Use memset to zero-initialize buffers before use."
+    },
+    {
+      "id": "MEM-021",
+      "severity": "Low",
+      "category": "Buffer Overrun",
+      "file": "src/rdb_protocol/datum_string.cc",
+      "line": 44,
+      "description": "Memcpy uses _size parameter without explicit bounds checking.",
+      "code": "memcpy(buffer->data() + str_offset, _data, _size);",
+      "impact": "If _size is larger than the allocated buffer, overflow occurs.",
+      "suggested_fix": "Add guarantee that str_offset + _size <= buffer size."
+    },
+    {
+      "id": "MEM-022",
+      "severity": "High",
+      "category": "Buffer Overrun",
+      "file": "src/rdb_protocol/geo/s2/s2cellid.cc",
+      "line": 192,
+      "description": "Unbounded memcpy from token data to fixed-size buffer.",
+      "code": "memcpy(digits, token.data(), token.size());",
+      "impact": "If token.size() exceeds the size of digits array (16), buffer overflow occurs.",
+      "suggested_fix": "Use std::min(token.size(), sizeof(digits)) to limit copy size."
+    },
+    {
+      "id": "MEM-023",
+      "severity": "Medium",
+      "category": "Buffer Overrun",
+      "file": "src/rdb_protocol/store_send_backfill.cc",
+      "line": 195,
+      "description": "Memcpy with calculated offset could overflow if offset is incorrect.",
+      "code": "memcpy(value_out->data() + offset, b.data, b.size);",
+      "impact": "If offset + b.size exceeds value_out size, buffer overflow occurs.",
+      "suggested_fix": "Add bounds checking to ensure offset + b.size <= value_out->size()."
+    }
+  ],
+  "recommendations": [
+    {
+      "category": "General",
+      "recommendation": "Replace all instances of strcpy with strncpy or snprintf"
+    },
+    {
+      "category": "General", 
+      "recommendation": "Add bounds checking before all memcpy operations"
+    },
+    {
+      "category": "General",
+      "recommendation": "Use smart pointers (std::unique_ptr, std::shared_ptr) instead of raw pointers and manual delete"
+    },
+    {
+      "category": "General",
+      "recommendation": "Add integer overflow checks for all arithmetic operations involving memory sizes"
+    },
+    {
+      "category": "General",
+      "recommendation": "Initialize all memory buffers before use (use memset or value-initialization)"
+    },
+    {
+      "category": "General",
+      "recommendation": "Use container classes with bounds checking (e.g., std::vector::at()) instead of raw arrays"
+    },
+    {
+      "category": "General",
+      "recommendation": "Replace 'delete this' pattern with proper reference counting or smart pointers"
+    },
+    {
+      "category": "General",
+      "recommendation": "Add NULL pointer checks before dereferencing pointers, especially for external inputs"
+    },
+    {
+      "category": "Build System",
+      "recommendation": "Enable compiler security flags: -D_FORTIFY_SOURCE=2, -fstack-protector-strong, -Wformat-security"
+    },
+    {
+      "category": "Build System",
+      "recommendation": "Consider using AddressSanitizer (ASan) and UndefinedBehaviorSanitizer (UBSan) in testing builds"
+    }
+  ],
+  "files_with_most_issues": [
+    {
+      "file": "src/cjson/cJSON.cc",
+      "issue_count": 3
+    },
+    {
+      "file": "src/buffer_cache/blob.cc",
+      "issue_count": 2
+    },
+    {
+      "file": "src/btree/leaf_node.cc",
+      "issue_count": 2
+    },
+    {
+      "file": "src/rdb_protocol/geo/s2/s2loop.cc",
+      "issue_count": 2
+    },
+    {
+      "file": "src/btree/parallel_traversal.cc",
+      "issue_count": 1
+    }
+  ]
+}

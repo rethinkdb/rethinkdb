@@ -1,0 +1,213 @@
+{
+  "scan_metadata": {
+    "scan_date": "2026-03-11T06:47:56",
+    "source_directory": "/mnt/ssd2/datacubes-db/rethinkdb/src",
+    "scanner_version": "1.0",
+    "files_scanned": [
+      "src/concurrency/*.cc",
+      "src/concurrency/*.hpp",
+      "src/arch/runtime/*.cc",
+      "src/arch/runtime/*.hpp",
+      "src/rpc/**/*.cc",
+      "src/clustering/**/*.cc",
+      "src/extproc/*.cc"
+    ]
+  },
+  "summary": {
+    "total_issues": 12,
+    "critical": 2,
+    "high": 3,
+    "medium": 4,
+    "low": 3
+  },
+  "issues": [
+    {
+      "id": "THREAD-001",
+      "severity": "Critical",
+      "category": "Signal Handler Race Condition",
+      "file": "src/arch/runtime/thread_pool.cc",
+      "line_numbers": [396, 417],
+      "title": "Non-reentrant signal handlers accessing shared state",
+      "description": "The interrupt_handler() and fatal_signal_handler() functions access shared global state (linux_thread_pool_t) without proper synchronization. While sigaction() is used with SA_SIGINFO, there's potential for race conditions if signals arrive while shared structures are being modified.",
+      "code_snippet": "void linux_thread_pool_t::interrupt_handler(int signo, siginfo_t *siginfo, void *) {\n    linux_thread_pool_t *self = get_thread_pool();\n    os_signal_cond_t *interrupt_signal = self->exchange_interrupt_message(NULL);\n    ...\n}",
+      "suggested_fix": "Use atomic operations for all shared state accessed from signal handlers. Consider using signalfd() instead of traditional signal handlers for better synchronization. Ensure all accesses to interrupt_message are atomic.",
+      "cwe_ids": ["CWE-828", "CWE-662"]
+    },
+    {
+      "id": "THREAD-002",
+      "severity": "Critical",
+      "category": "Thread-Unsafe Shared Variable",
+      "file": "src/concurrency/mutex.hpp",
+      "line_numbers": [42, 50],
+      "title": "mutex_t::is_locked() lacks synchronization",
+      "description": "The is_locked() method returns the 'locked' boolean member without any synchronization. In multi-threaded scenarios with cross_thread_mutex_t usage, this could lead to torn reads and undefined behavior.",
+      "code_snippet": "bool is_locked() {\n    return locked;\n}",
+      "suggested_fix": "Add proper memory ordering (e.g., std::atomic<bool> or acquire-release semantics) or document that this method is only safe on the mutex's home thread. Consider marking the method as deprecated since mutex_t is already deprecated.",
+      "cwe_ids": ["CWE-362", "CWE-667"]
+    },
+    {
+      "id": "THREAD-003",
+      "severity": "High",
+      "category": "Condition Variable Misuse",
+      "file": "src/concurrency/cond_var.cc",
+      "line_numbers": [24, 31],
+      "title": "one_waiter_cond_t::wait_ordered() missing spurious wakeup handling",
+      "description": "The wait_ordered() method waits on a condition without checking the predicate (pulsed_) in a loop. While the class documentation states it's for single waiters, spurious wakeups can still occur in POSIX threads.",
+      "code_snippet": "void one_waiter_cond_t::wait_ordered() {\n    rassert(!waiter_);\n    if (!pulsed_) {\n        waiter_ = coro_t::self();\n        coro_t::wait();\n        rassert(pulsed_);\n    }\n}",
+      "suggested_fix": "Add a loop to re-check the condition after waking up: while (!pulsed_) { waiter_ = coro_t::self(); coro_t::wait(); }",
+      "cwe_ids": ["CWE-609"]
+    },
+    {
+      "id": "THREAD-004",
+      "severity": "High",
+      "category": "Lock Ordering Violation",
+      "file": "src/concurrency/auto_drainer.cc",
+      "line_numbers": [108, 119],
+      "title": "auto_drainer_t refcount modification without synchronization",
+      "description": "The incref() and decref() methods assert thread but don't have any explicit synchronization. While they assert they're on the correct thread, if the drainer is ever rethreaded or accessed from multiple threads, this could lead to race conditions.",
+      "code_snippet": "void auto_drainer_t::incref() {\n    assert_thread();\n    refcount++;\n}\n\nvoid auto_drainer_t::decref() {\n    assert_thread();\n    refcount--;\n    if (refcount == 0 && draining.is_pulsed()) {\n        drained.pulse();\n    }\n}",
+      "suggested_fix": "Use std::atomic<int> for refcount if there's any possibility of cross-thread access, or add stronger assertions/documentation about thread safety.",
+      "cwe_ids": ["CWE-362", "CWE-413"]
+    },
+    {
+      "id": "THREAD-005",
+      "severity": "High",
+      "category": "Race Condition",
+      "file": "src/extproc/extproc_pool.cc",
+      "line_numbers": [54, 62],
+      "title": "worker_cnt atomic operations may lack proper memory ordering",
+      "description": "The worker_cnt is declared as std::atomic<int> which is good, but the increment/decrement operations use default memory ordering (sequential consistency). While safe, this may be overkill and could impact performance. More importantly, worker_cnt is read without synchronization in dealloc_blocking().",
+      "code_snippet": "void extproc_pool_t::on_worker_acquired()\n{\n    ++worker_cnt;\n}\n\nvoid extproc_pool_t::on_worker_released()\n{\n    --worker_cnt;\n}",
+      "suggested_fix": "Consider using memory_order_relaxed for these counters if they're only used for statistics. Ensure reads in dealloc_blocking() use proper atomic loads.",
+      "cwe_ids": ["CWE-362"]
+    },
+    {
+      "id": "THREAD-006",
+      "severity": "Medium",
+      "category": "Volatile Misuse",
+      "file": "src/arch/runtime/thread_pool.hpp",
+      "line_numbers": [94],
+      "title": "Use of volatile for synchronization",
+      "description": "Using volatile bool for do_shutdown is not the correct way to achieve thread synchronization in C++. volatile does not provide memory ordering guarantees or atomicity.",
+      "code_snippet": "volatile bool do_shutdown;",
+      "suggested_fix": "Replace with std::atomic<bool> with appropriate memory ordering (e.g., std::atomic<bool> do_shutdown{false}; and use load/store with memory_order_release/acquire).",
+      "cwe_ids": ["CWE-667"]
+    },
+    {
+      "id": "THREAD-007",
+      "severity": "Medium",
+      "category": "Signal Handler Safety",
+      "file": "src/clustering/administration/logs/log_writer.cc",
+      "line_numbers": [575, 580],
+      "title": "Signal handler callback modifies volatile bool without atomicity",
+      "description": "The cancel_subscription_t writes to a volatile bool from a signal handler context. While volatile prevents caching, it doesn't guarantee atomicity on all platforms.",
+      "code_snippet": "volatile bool cancel = false;\nclass cancel_subscription_t : public signal_t::subscription_t {\n    void run() {\n        *cancel = true;\n    }\n    volatile bool *cancel;\n}",
+      "suggested_fix": "Use std::atomic<bool> or std::atomic_flag for cancellation flags accessed from signal handlers.",
+      "cwe_ids": ["CWE-828"]
+    },
+    {
+      "id": "THREAD-008",
+      "severity": "Medium",
+      "category": "Thread-Local Storage Issue",
+      "file": "src/arch/runtime/context_switching.cc",
+      "line_numbers": [54],
+      "title": "THREAD_LOCAL macro may cause issues with THREADED_COROUTINES",
+      "description": "The thread_initial_fiber variable is declared as THREAD_LOCAL but accessed from assembly/context switching code. If THREADED_COROUTINES is defined, the implementation changes significantly.",
+      "code_snippet": "THREAD_LOCAL void* thread_initial_fiber = nullptr;",
+      "suggested_fix": "Ensure proper synchronization when THREADED_COROUTINES is enabled. Add static assertions to verify TLS implementation matches build configuration.",
+      "cwe_ids": ["CWE-362"]
+    },
+    {
+      "id": "THREAD-009",
+      "severity": "Medium",
+      "category": "Lock Ordering Violation",
+      "file": "src/arch/runtime/message_hub.cc",
+      "line_numbers": [237, 263],
+      "title": "Potential lock ordering issue in push_messages()",
+      "description": "The push_messages() method acquires spinlocks on multiple threads' incoming_messages_lock_ in a loop. If multiple threads call push_messages() concurrently, this could lead to lock ordering violations or deadlocks.",
+      "code_snippet": "void linux_message_hub_t::push_messages() {\n    for (int i = 0; i < thread_pool_->n_threads; i++) {\n        if (!queue->msg_local_list.empty()) {\n            spinlock_acq_t acq(&thread_pool_->threads[i]->message_hub.incoming_messages_lock_);\n            ...\n        }\n    }\n}",
+      "suggested_fix": "Establish a global lock ordering (e.g., by thread ID) and always acquire locks in that order. Consider using a try-lock mechanism with backoff.",
+      "cwe_ids": ["CWE-833"]
+    },
+    {
+      "id": "THREAD-010",
+      "severity": "Medium",
+      "category": "Potential Deadlock",
+      "file": "src/concurrency/cross_thread_mutex.cc",
+      "line_numbers": [28, 46],
+      "title": "cross_thread_mutex_t co_lock() may block with spinlock held",
+      "description": "The co_lock() function releases the spinlock before calling coro_t::wait(), which is correct. However, if an exception occurs or the coroutine is terminated unexpectedly, the mutex state could become inconsistent.",
+      "code_snippet": "void cross_thread_mutex_t::co_lock() {\n    bool do_wait = false;\n    {\n        spinlock_acq_t acq(&spinlock);\n        if (locked_count > 0 && lock_holder != coro_t::self()) {\n            waiters.push_back(coro_t::self());\n            do_wait = true;\n        } ...\n    }\n    if (do_wait) {\n        coro_t::wait();\n    }\n}",
+      "suggested_fix": "Add exception safety guarantees and ensure the mutex state is always consistent even if coroutines are terminated unexpectedly.",
+      "cwe_ids": ["CWE-833"]
+    },
+    {
+      "id": "THREAD-011",
+      "severity": "Low",
+      "category": "Data Race",
+      "file": "src/concurrency/pmap.hpp",
+      "line_numbers": [19, 23, 44, 48],
+      "title": "pmap outstanding counter shared across coroutines",
+      "description": "The 'outstanding' counter is shared across multiple coroutines spawned by pmap. While coroutines on the same thread don't run truly concurrently, the lack of explicit synchronization could be problematic if the compiler optimizes aggressively.",
+      "code_snippet": "void operator()() {\n    (*c)(i);\n    (*outstanding)--;\n    if (*outstanding == 0) {\n        to_signal->pulse();\n    }\n}",
+      "suggested_fix": "Use std::atomic<int64_t> for the outstanding counter or document that this is safe due to cooperative multitasking.",
+      "cwe_ids": ["CWE-362"]
+    },
+    {
+      "id": "THREAD-012",
+      "severity": "Low",
+      "category": "Missing Mutex Lock",
+      "file": "src/extproc/extproc_spawner.cc",
+      "line_numbers": [23],
+      "title": "extproc_spawner_t::instance is a global singleton without synchronization",
+      "description": "The instance pointer is accessed from multiple threads without explicit synchronization. While the comment suggests it should only be accessed before/after thread pool creation, there's no enforcement.",
+      "code_snippet": "extproc_spawner_t *extproc_spawner_t::instance = nullptr;",
+      "suggested_fix": "Use std::atomic<extproc_spawner_t*> with std::memory_order_acquire/release semantics, or use std::call_once for initialization.",
+      "cwe_ids": ["CWE-362", "CWE-609"]
+    }
+  ],
+  "recommendations": [
+    {
+      "priority": "High",
+      "category": "Code Quality",
+      "description": "Audit all uses of 'volatile' for thread synchronization and replace with std::atomic where appropriate. The C++11 memory model makes volatile inappropriate for synchronization."
+    },
+    {
+      "priority": "High",
+      "category": "Signal Safety",
+      "description": "Review all signal handlers for async-signal-safety. Consider using signalfd() on Linux instead of traditional signal handlers to avoid async-signal-safety issues."
+    },
+    {
+      "priority": "Medium",
+      "category": "Lock Ordering",
+      "description": "Establish and document a global lock ordering hierarchy to prevent deadlocks. This is especially important for cross-thread operations."
+    },
+    {
+      "priority": "Medium",
+      "category": "Atomic Operations",
+      "description": "Audit all atomic operations for proper memory ordering. Use std::memory_order_relaxed only where appropriate, otherwise use acquire/release semantics."
+    },
+    {
+      "priority": "Low",
+      "category": "Documentation",
+      "description": "Add thread-safety documentation to all concurrency primitives. Document which methods are safe from which threads."
+    }
+  ],
+  "architecture_notes": {
+    "threading_model": "RethinkDB uses a cooperative coroutine model with a thread pool. Each thread has its own coroutine scheduler. Cross-thread operations use message passing through linux_message_hub_t.",
+    "key_primitives": [
+      "mutex_t - Deprecated coroutine-aware mutex",
+      "new_mutex_t - Preferred mutex using rwlock_t",
+      "cross_thread_mutex_t - Mutex usable across threads with spinlock protection",
+      "spinlock_t - Low-level spinlock using pthread_spinlock",
+      "signal_t/cond_t - Coroutine-aware condition variables",
+      "auto_drainer_t - RAII-based resource cleanup coordination"
+    ],
+    "safety_mechanisms": [
+      "home_thread_mixin_t - Asserts operations on correct thread",
+      "mutex_assertion_t - Debug-only lock checking",
+      "rwi_lock_assertion_t - Read-write-intent lock assertions",
+      "ASSERT_NO_CORO_WAITING - Prevents yielding in critical sections"
+    ]
+  }
+}

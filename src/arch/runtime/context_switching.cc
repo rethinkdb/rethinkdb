@@ -260,12 +260,15 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
 #elif defined(__arm__)
     // This slot is used to store r12.
     const size_t min_frame = 1;
-#elif defined(__arm64__) || defined(__aarch64__)
+#elif defined(__arm64__) || defined(__aarch64__) || defined(_M_ARM64)
     // The ARM64 ABI requires the stack pointer to always be 16-byte-aligned at
     // all registers.
     const size_t min_frame = 1;
 #elif defined(__powerpc64__)
     const size_t min_frame = 4;
+#elif defined(__riscv)
+    // RISC-V requires 16-byte alignment
+    const size_t min_frame = 2;
 #endif
     // Zero the caller stack frame. Prevents Valgrind complaining about uninitialized
     // value errors when throwing an uncaught exception.
@@ -290,7 +293,7 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     // Note: r12 is also stored, in the 'caller frame' slot above the return
     // address.
     sp -= 8; // r4-r11.
-#elif defined(__arm64__) || defined(__aarch64__)
+#elif defined(__arm64__) || defined(__aarch64__) || defined(_M_ARM64)
     sp -= 20; // d8-d15 + x19-x30 + x30
 #elif defined(__s390x__)
     sp -= 16; // r6-r13 and f8-f15.
@@ -299,6 +302,12 @@ artificial_stack_t::artificial_stack_t(void (*initial_fun)(void), size_t _stack_
     // registers are saved and restored for powerpc.  There are no failures
     // seen during context switch on ubuntu/RHEL powerpc64le systems.
     sp -= 20; // r14-r31, toc, cr.
+#elif defined(__riscv) && (__riscv_xlen == 64)
+    // RISC-V 64-bit: s0-s11 (12 registers)
+    sp -= 12;
+#elif defined(__riscv) && (__riscv_xlen == 32)
+    // RISC-V 32-bit: s0-s11 (12 registers)
+    sp -= 12;
 #else
 #error "Unsupported architecture."
 #endif
@@ -457,7 +466,7 @@ void context_switch(artificial_stack_context_ref_t *current_context_out, artific
 }
 
 asm(
-#if defined(__i386__) || defined(__x86_64__) || defined(__arm__) || defined(__arm64__) || defined(__aarch64__) || defined (__s390x__) || defined (__powerpc64__)
+#if defined(__i386__) || defined(__x86_64__) || defined(__arm__) || defined(__arm64__) || defined(__aarch64__) || defined(_M_ARM64) || defined (__s390x__) || defined (__powerpc64__)
 // We keep architecture-specific code interleaved in order to enforce commonality.
 #if defined(__x86_64__)
 #if defined(__LP64__) || defined(__LLP64__)
@@ -503,7 +512,7 @@ asm(
     "push {r12}\n"
     "push {r14}\n"
     "push {r4-r11}\n"
-#elif defined(__arm64__) || defined(__aarch64__)
+#elif defined(__arm64__) || defined(__aarch64__) || defined(_M_ARM64)
     // Preserve d8-d15 + x19-x29 and the return address (x30).
     // Note: x30 is stored twice due to alignment requirements
     "sub sp, sp, #0xb0\n"
@@ -569,7 +578,7 @@ asm(
 #elif defined(__arm__)
     /* On ARM, the first argument is in `r0`. `r13` is the stack pointer. */
     "str r13, [r0]\n"
-#elif defined(__arm64__) || defined(__aarch64__)
+#elif defined(__arm64__) || defined(__aarch64__) || defined(_M_ARM64)
     /* On ARM64, the first argument is in `x0`. `sp` is the stack pointer and `x4` is a scratch register. */
     "mov x4, sp\n"
     "str x4, [x0]\n"
@@ -592,7 +601,7 @@ asm(
 #elif defined(__arm__)
     /* On ARM, the second argument is in `r1` */
     "mov r13, r1\n"
-#elif defined(__arm64__) || defined(__aarch64__)
+#elif defined(__arm64__) || defined(__aarch64__) || defined(_M_ARM64)
     /* On ARM64, the second argument is in `x1` */
     "mov sp, x1\n"
 #elif defined(__s390x__)
@@ -618,7 +627,7 @@ asm(
     "pop {r4-r11}\n"
     "pop {r14}\n"
     "pop {r12}\n"
-#elif defined(__arm64__) || defined(__aarch64__)
+#elif defined(__arm64__) || defined(__aarch64__) || defined(_M_ARM64)
     "ldp d8,  d9,  [sp, #0x00]\n"
     "ldp d10, d11, [sp, #0x10]\n"
     "ldp d12, d13, [sp, #0x20]\n"
@@ -679,7 +688,7 @@ asm(
     /* Above, we popped `LR` (`r14`) off the stack, so the bx instruction will
     jump to the correct return address. */
     "bx r14\n"
-#elif defined(__arm64__) || defined(__aarch64__)
+#elif defined(__arm64__) || defined(__aarch64__) || defined(_M_ARM64)
     /* Above, we stored the `x30` the return address in a variable register `x4` so the ret instruction will
     return it to jump. */
     "ret x4\n"

@@ -92,10 +92,23 @@ bool server_config_client_t::set_config(
         return false;
     }
     server_config_business_card_t bcard;
+    bool metadata_found = false;
     directory_view->read_key(*peer, [&](const cluster_directory_metadata_t *md) {
-        guarantee(md != nullptr);
+        // Issue #7158: Replace guarantee with error handling
+        if (md == nullptr) {
+            return;
+        }
+        metadata_found = true;
         bcard = md->server_config_business_card.get();
     });
+    if (!metadata_found) {
+        std::string s = strprintf(
+            "Server `%s` directory metadata became unavailable while trying "
+            "to change the server configuration. The configuration was not changed.",
+            old_server_name.c_str());
+        *error_out = admin_err_t{s, query_state_t::FAILED};
+        return false;
+    }
 
     server_config_version_t version;
     {
@@ -206,11 +219,22 @@ void server_config_client_t::on_directory_change(
         if (!server_id.has_value()) {
             return;
         }
-        for (auto it = all_server_to_peer_map.lower_bound(*server_id); ; ++it) {
-            guarantee(it != all_server_to_peer_map.end());
-            if (it->second == peer_id) {
-                all_server_to_peer_map.erase(it);
-                break;
+        auto it = all_server_to_peer_map.find(*server_id);
+        if (it == all_server_to_peer_map.end()) {
+            // Issue #7158: Server already removed or never added - this can happen
+            // during concurrent server removals or network partitions
+            logWRN("Attempted to remove server %s from all_server_to_peer_map "
+                   "but it was not found. This can happen during concurrent server removals.",
+                   server_id->print().c_str());
+        } else {
+            // Handle the case where there might be multiple entries for the same server
+            // (though normally there shouldn't be)
+            auto range = all_server_to_peer_map.equal_range(*server_id);
+            for (auto range_it = range.first; range_it != range.second; ++range_it) {
+                if (range_it->second == peer_id) {
+                    all_server_to_peer_map.erase(range_it);
+                    break;
+                }
             }
         }
         peer_to_server_map.delete_key(peer_id);
@@ -233,8 +257,20 @@ void server_config_client_t::on_directory_change(
         if (jt != all_server_to_peer_map.end()) {
             directory_view->read_key(jt->second,
                 [&](const cluster_directory_metadata_t *other_metadata) {
-                    guarantee(other_metadata != nullptr);
-                    guarantee(other_metadata->server_id == *server_id);
+                    // Issue #7158: Replace guarantees with error handling
+                    if (other_metadata == nullptr) {
+                        logWRN("Directory metadata for peer of server %s is null "
+                               "during metadata reinstall. Skipping reinstall.",
+                               server_id->print().c_str());
+                        return;
+                    }
+                    if (other_metadata->server_id != *server_id) {
+                        logERR("Server ID mismatch during metadata reinstall: "
+                               "expected %s, got %s. Skipping reinstall.",
+                               server_id->print().c_str(),
+                               other_metadata->server_id.print().c_str());
+                        return;
+                    }
                     install_server_metadata(jt->second, *other_metadata);
                 });
         }

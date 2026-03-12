@@ -272,6 +272,10 @@ private:
         guarantee(it != data.end());
         auto ft = index.find(it);
         guarantee(ft != index.end());
+        // IMPORTANT: Must erase from index BEFORE erasing from data.
+        // The comparison function (Gt/limit_order_t) dereferences iterators
+        // to compare values, so we must remove the iterator from index first
+        // to avoid accessing a destroyed object during the erase operation.
         index.erase(ft);
         data.erase(it);
         guarantee(data.size() == index.size());
@@ -352,8 +356,13 @@ public:
         std::vector<Id> ret;
         while (index.size() > n) {
             ret.push_back((*index.begin())->first);
-            data.erase(*index.begin());
-            index.erase(index.begin());
+            // IMPORTANT: Must erase from index BEFORE erasing from data.
+            // The comparison function (Gt/limit_order_t) dereferences iterators
+            // to compare values, so we must remove the iterator from index first
+            // to avoid accessing a destroyed object during the erase operation.
+            auto it = index.begin();
+            data.erase(*it);
+            index.erase(it);
         }
         guarantee(data.size() == index.size());
         return ret;

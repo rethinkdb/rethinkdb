@@ -102,6 +102,22 @@ watchable_map_var_t<key_t, value_t>::entry_t::entry_t(
 }
 
 template<class key_t, class value_t>
+watchable_map_var_t<key_t, value_t>::entry_t::entry_t(
+        watchable_map_var_t *p, const key_t &key, const value_t &value,
+        update_if_exists_t) :
+    parent(p)
+{
+    rwi_lock_assertion_t::write_acq_t write_acq(&parent->rwi_lock);
+    auto pair = parent->map.insert(std::make_pair(key, value));
+    if (!pair.second) {
+        // Key exists, update it instead of crashing
+        pair.first->second = value;
+    }
+    iterator = pair.first;
+    parent->notify_change(iterator->first, &iterator->second, &write_acq);
+}
+
+template<class key_t, class value_t>
 watchable_map_var_t<key_t, value_t>::entry_t::entry_t(entry_t &&other) :
     parent(other.parent), iterator(other.iterator)
 {

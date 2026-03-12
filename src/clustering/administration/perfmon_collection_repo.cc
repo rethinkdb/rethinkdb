@@ -19,5 +19,7 @@ perfmon_collection_repo_t::collections_t *perfmon_collection_repo_t::get_perfmon
         perfmon_collections.insert(
                 std::make_pair(n_id, make_scoped<collections_t>(parent, n_id)));
     }
-    return perfmon_collections.find(n_id)->second.get();
+    auto it = perfmon_collections.find(n_id);
+    guarantee(it != perfmon_collections.end());
+    return it->second.get();
 }

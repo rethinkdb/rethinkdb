@@ -15,6 +15,7 @@
 #include "containers/shared_buffer.hpp"
 #include "rdb_protocol/datum.hpp"
 #include "rdb_protocol/env.hpp"
+#include "logger.hpp"
 #include "rdb_protocol/error.hpp"
 
 namespace ql {
@@ -807,6 +808,15 @@ datum_t datum_deserialize_from_buf(const shared_buf_ref_t<char> &buf, size_t at_
     // child buf_ref and are done.
     // Otherwise we create a buffer_read_stream_t and deserialize the datum from
     // there.
+    
+    // Validate offset is within bounds before accessing
+    if (at_offset >= buf.get_safety_boundary()) {
+        logERR("datum_deserialize_from_buf: offset %zu exceeds buffer boundary %zu",
+               at_offset, buf.get_safety_boundary());
+        // Return null datum on bounds error instead of crashing
+        return datum_t();
+    }
+    
     buf.guarantee_in_boundary(at_offset);
     buffer_read_stream_t read_stream(buf.get() + at_offset,
                                      buf.get_safety_boundary() - at_offset);
@@ -879,7 +889,41 @@ size_t datum_get_array_size(const shared_buf_ref_t<char> &array) {
     guarantee_deserialization(deserialize_varint_uint64(&sz_read_stream, &num_elements),
                               "datum decode array");
     guarantee(num_elements <= std::numeric_limits<size_t>::max());
-    return static_cast<size_t>(num_elements);
+    
+    // Validate that buffer is large enough for header + offset table
+    // This protects against corrupted data claiming more elements than possible
+    const size_t header_size = static_cast<size_t>(sz_read_stream.tell());
+    const datum_offset_size_t offset_size = get_offset_size_from_inner_size(ser_size);
+    size_t serialized_offset_size;
+    switch (offset_size) {
+    case datum_offset_size_t::U8BIT:
+        serialized_offset_size = 1; break;
+    case datum_offset_size_t::U16BIT:
+        serialized_offset_size = 2; break;
+    case datum_offset_size_t::U32BIT:
+        serialized_offset_size = 4; break;
+    case datum_offset_size_t::U64BIT:
+        serialized_offset_size = 8; break;
+    default:
+        unreachable();
+    }
+    
+    const size_t num_elements_sz = static_cast<size_t>(num_elements);
+    // Calculate minimum size: header + offset table (num_elements-1 entries) + at least 1 data byte
+    const size_t min_data_size = (num_elements_sz > 0) ? 1 : 0;
+    const size_t min_buffer_size = header_size + 
+                                   ((num_elements_sz > 0) ? (num_elements_sz - 1) : 0) * serialized_offset_size +
+                                   min_data_size;
+    
+    if (min_buffer_size > array.get_safety_boundary()) {
+        logERR("Corrupted datum array detected: buffer too small for claimed size. "
+               "Buffer size: %zu, claimed elements: %zu, minimum required: %zu, ser_size: %zu",
+               array.get_safety_boundary(), num_elements_sz, min_buffer_size, ser_size);
+        // Return 0 elements on corruption to prevent crashes
+        return 0;
+    }
+    
+    return num_elements_sz;
 }
 
 /* The format of `array` is:
@@ -916,15 +960,28 @@ size_t datum_get_element_offset(const shared_buf_ref_t<char> &array, size_t inde
     guarantee(index < sz);
 
     rassert(sz > 0);
+    
+    // Validate that offset calculations won't overflow
+    const size_t current_pos = static_cast<size_t>(sz_read_stream.tell());
+    const size_t max_offset = current_pos + sz * serialized_offset_size;
+    
+    if (max_offset > array.get_safety_boundary() || max_offset < current_pos) {
+        logERR("datum_array_element_offset: calculated offset %zu exceeds boundary %zu "
+               "(pos=%zu, num_elements=%zu, offset_size=%zu)",
+               max_offset, array.get_safety_boundary(), current_pos, sz, serialized_offset_size);
+        // Return 0 offset on bounds error instead of crashing  
+        return 0;
+    }
+    
     const size_t data_offset =
-        static_cast<size_t>(sz_read_stream.tell())
+        current_pos
         + (num_elements - 1) * serialized_offset_size;
 
     if (index == 0) {
         return data_offset;
     } else {
         const size_t element_offset_offset =
-            static_cast<size_t>(sz_read_stream.tell())
+            current_pos
             + (index - 1) * serialized_offset_size;
 
         array.guarantee_in_boundary(element_offset_offset);
