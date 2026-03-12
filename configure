@@ -116,10 +116,12 @@ configure_unixlike () {
             default_allocator=$default_allocator_osx
             var PTHREAD_LIBS "" ;
             var RT_LIBS ""
-            # For Apple Silicon (ARM64) Macs, adjust minimum version
-            if [[ "${MACHINE%%-*}" == "arm64" ]] || [[ "${MACHINE%%-*}" == "aarch64" ]]; then
+            # Detect Apple Silicon (ARM64) Macs
+            if [[ "${MACHINE%%-*}" == "arm64" ]] || [[ "${MACHINE%%-*}" == "aarch64" ]] || [[ "$(uname -m)" == "arm64" ]]; then
                 # Apple Silicon requires macOS 11.0+
                 osx_min_version=11.0
+                var TARGET_ARCH "arm64"
+                log "Detected Apple Silicon (ARM64)"
             fi
             ;;
         *linux*)

@@ -28,6 +28,23 @@ jobs:
           command: ./scripts/check_style.sh
           download_artifacts: false
 
+  # Build job for macOS ARM (Apple Silicon)
+  build-macos-arm:
+    runs-on: macos-14  # Apple Silicon runner
+    timeout-minutes: 45
+    needs: preflight
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install dependencies
+        run: |
+          brew install openssl protobuf boost node
+      - name: configure
+        run: ./configure --allow-fetch
+      - name: make
+        run: make -j4
+      - name: unit tests
+        run: ./build/release/rethinkdb-unittest
+
   # Build job runs after the preflight finished successfully. It configures the
   # build system, then builds the DB.
   build:
