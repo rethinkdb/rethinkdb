@@ -1,0 +1,602 @@
+[
+  {
+    "number": 6329,
+    "title": "Security Feature Request: Randomized URL Suffix for Administrative GUI",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6329",
+    "category": "security"
+  },
+  {
+    "number": 6290,
+    "title": "Uncatchable ReqlTimeoutError on wrong database password",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6290",
+    "category": "security"
+  },
+  {
+    "number": 5947,
+    "title": "add authentication to WebUI",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5947",
+    "category": "security"
+  },
+  {
+    "number": 5181,
+    "title": "interface.emegency_repair timing out",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5181",
+    "category": "security"
+  },
+  {
+    "number": 4210,
+    "title": "Enable business logic enforcement with security rules",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4210",
+    "category": "security"
+  },
+  {
+    "number": 3159,
+    "title": "Encryption and authentication for the web UI",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3159",
+    "category": "security"
+  },
+  {
+    "number": 6952,
+    "title": "build fails on AArch64, Fedora 33 ",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6952",
+    "category": "build"
+  },
+  {
+    "number": 6936,
+    "title": "2.4.1 windows build fails",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6936",
+    "category": "build"
+  },
+  {
+    "number": 6932,
+    "title": "Add Mac ARM build",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6932",
+    "category": "build"
+  },
+  {
+    "number": 6873,
+    "title": "ArchLinux - Build issues and fixes",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6873",
+    "category": "build"
+  },
+  {
+    "number": 6867,
+    "title": "Reproducible builds",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6867",
+    "category": "build"
+  },
+  {
+    "number": 6531,
+    "title": "Request Update To Allow Builds With VS2017",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6531",
+    "category": "build"
+  },
+  {
+    "number": 6473,
+    "title": "Cannot build rethinkdb on windows",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6473",
+    "category": "build"
+  },
+  {
+    "number": 6337,
+    "title": "Support building against musl",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6337",
+    "category": "build"
+  },
+  {
+    "number": 6201,
+    "title": "Package build fails on Raspberry Pi",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6201",
+    "category": "build"
+  },
+  {
+    "number": 6001,
+    "title": "rework build system linker dependency system",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6001",
+    "category": "build"
+  },
+  {
+    "number": 5998,
+    "title": "Build recently modified cc files first",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5998",
+    "category": "build"
+  },
+  {
+    "number": 5893,
+    "title": "mysterious connection latency when building deb package of PR #5720",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5893",
+    "category": "build"
+  },
+  {
+    "number": 5620,
+    "title": "decouple the driver building from `./configure`",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5620",
+    "category": "build"
+  },
+  {
+    "number": 5431,
+    "title": "Add back a way to configure custom shard boundaries",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5431",
+    "category": "build"
+  },
+  {
+    "number": 5404,
+    "title": "Data Explorer: add \"Load next batch\" link to top of results",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5404",
+    "category": "build"
+  },
+  {
+    "number": 5392,
+    "title": "Provide statically linked generic Linux binary",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5392",
+    "category": "build"
+  },
+  {
+    "number": 5276,
+    "title": "Bundled ICU in bundled V8 detects the wrong compiler",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5276",
+    "category": "build"
+  },
+  {
+    "number": 5149,
+    "title": "Compare-and-swap (CAS) command as a building block for synchronization primitives",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5149",
+    "category": "build"
+  },
+  {
+    "number": 5122,
+    "title": "Auto configure schemas",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5122",
+    "category": "build"
+  },
+  {
+    "number": 5095,
+    "title": "link error: undefined reference to u_isUWhiteSpace_55.",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5095",
+    "category": "build"
+  },
+  {
+    "number": 5094,
+    "title": "build on netbsd",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5094",
+    "category": "build"
+  },
+  {
+    "number": 5062,
+    "title": "Compile fails with error: unused parameter \u2018filename\u2019 [-Werror=unused-parameter]",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5062",
+    "category": "build"
+  },
+  {
+    "number": 4992,
+    "title": "web UI: indexes still show \"building\" after they are done constructing",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4992",
+    "category": "build"
+  },
+  {
+    "number": 4958,
+    "title": "feature request: make table `reconfigure` more elastic",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4958",
+    "category": "build"
+  },
+  {
+    "number": 4671,
+    "title": "Add '-Wconversion' to compile flags",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4671",
+    "category": "build"
+  },
+  {
+    "number": 4540,
+    "title": "give better error messages for build downloads",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4540",
+    "category": "build"
+  },
+  {
+    "number": 4292,
+    "title": "add Configured/elected primary information in table_status",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4292",
+    "category": "build"
+  },
+  {
+    "number": 4167,
+    "title": "CPU hogs with \"rethinkdb index-rebuild\"",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4167",
+    "category": "build"
+  },
+  {
+    "number": 4165,
+    "title": "Improve detection, selection and use of compiler and platform specific features.",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4165",
+    "category": "build"
+  },
+  {
+    "number": 4160,
+    "title": "Driver method for executing the output of .build()",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4160",
+    "category": "build"
+  },
+  {
+    "number": 4050,
+    "title": "Changelog link in web UI isn't a link",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4050",
+    "category": "build"
+  },
+  {
+    "number": 3742,
+    "title": "The configure script checks for gcc and clang instead of g++ and clang++",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3742",
+    "category": "build"
+  },
+  {
+    "number": 3677,
+    "title": "building os x package: Failed to create OpenGL context for accelerator",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3677",
+    "category": "build"
+  },
+  {
+    "number": 3668,
+    "title": "`static_cluster.rget-huge` failing on buildbot builds",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3668",
+    "category": "build"
+  },
+  {
+    "number": 3644,
+    "title": "Add the ability to link directly to the reconfigure modal for a table",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3644",
+    "category": "build"
+  },
+  {
+    "number": 3547,
+    "title": "Keep point and range changefeeds intact when `table.reconfigure` does not alter their shards",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3547",
+    "category": "build"
+  },
+  {
+    "number": 3499,
+    "title": "Change reconfigure status to use backfill jobs instead of shards available",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3499",
+    "category": "build"
+  },
+  {
+    "number": 3295,
+    "title": "`src/build.mk` doesn't pass CXXFLAGS to CXX when linking.",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3295",
+    "category": "build"
+  },
+  {
+    "number": 3282,
+    "title": "tracking_allocator code doesn't compile",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3282",
+    "category": "build"
+  },
+  {
+    "number": 3165,
+    "title": "Interface for latest tested buildbot artifacts ",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3165",
+    "category": "build"
+  },
+  {
+    "number": 3156,
+    "title": "Some way to configure default timezone before querying",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3156",
+    "category": "build"
+  },
+  {
+    "number": 3028,
+    "title": "Improve table.reconfigure algorithm more",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/3028",
+    "category": "build"
+  },
+  {
+    "number": 2700,
+    "title": "Files in `mk/gen` should instead be placed in the build directory",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2700",
+    "category": "build"
+  },
+  {
+    "number": 2651,
+    "title": "make release/debug build a ./configure option rather than a ENV variable",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/2651",
+    "category": "build"
+  },
+  {
+    "number": 1931,
+    "title": "Compile release binaries with link-time optimizations",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/1931",
+    "category": "build"
+  },
+  {
+    "number": 1923,
+    "title": "Investigate -march=native compiler flag",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/1923",
+    "category": "build"
+  },
+  {
+    "number": 1298,
+    "title": "Data Explorer Query Permalinks",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/1298",
+    "category": "build"
+  },
+  {
+    "number": 1235,
+    "title": "Add README files to `drivers/*/` with build instructions",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/1235",
+    "category": "build"
+  },
+  {
+    "number": 7158,
+    "title": "Failed to remove a node from the cluster",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/7158",
+    "category": "cluster"
+  },
+  {
+    "number": 7131,
+    "title": "cluster connect/reconnect timeout",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/7131",
+    "category": "cluster"
+  },
+  {
+    "number": 7129,
+    "title": "Reasonable to change hard-coded cluster size?",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/7129",
+    "category": "cluster"
+  },
+  {
+    "number": 7002,
+    "title": "Many connections in TIME_WAIT",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/7002",
+    "category": "cluster"
+  },
+  {
+    "number": 6995,
+    "title": "ReqlTimeoutError: Could not connect to [ip], operation timed out.",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6995",
+    "category": "cluster"
+  },
+  {
+    "number": 6961,
+    "title": "Connectivity cluster tag mismatch error",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6961",
+    "category": "cluster"
+  },
+  {
+    "number": 6880,
+    "title": "Connecting a re-provisioned server brings down the entire cluster",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6880",
+    "category": "cluster"
+  },
+  {
+    "number": 6856,
+    "title": "Damaged Rethinkdb Cluster :: Guarantee failed: [token.has()] ",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6856",
+    "category": "cluster"
+  },
+  {
+    "number": 6849,
+    "title": "Proxy loses state from cluster",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6849",
+    "category": "cluster"
+  },
+  {
+    "number": 6656,
+    "title": "Rethinkdb `db.wait()` fails with timeout when tables are all ready",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6656",
+    "category": "cluster"
+  },
+  {
+    "number": 6520,
+    "title": "Multi-node Cluster Issue ",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6520",
+    "category": "cluster"
+  },
+  {
+    "number": 6442,
+    "title": "High idle-load on 4 node cluster",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6442",
+    "category": "cluster"
+  },
+  {
+    "number": 6437,
+    "title": "Investigate possible connection issues in 2.4",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6437",
+    "category": "cluster"
+  },
+  {
+    "number": 6345,
+    "title": "Node crash with \"Guarantee failed: [refcount == 0]\"",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6345",
+    "category": "cluster"
+  },
+  {
+    "number": 6130,
+    "title": "cluster reconnect try time",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6130",
+    "category": "cluster"
+  },
+  {
+    "number": 6071,
+    "title": "Erroneous, frozen backfill, network traffic and 1000x slowdown",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/6071",
+    "category": "cluster"
+  },
+  {
+    "number": 5934,
+    "title": "Node restarts with no error message",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5934",
+    "category": "cluster"
+  },
+  {
+    "number": 5897,
+    "title": "Add features required for smoother clustering in containerized / scheduled environments",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5897",
+    "category": "cluster"
+  },
+  {
+    "number": 5876,
+    "title": "Changefeeds on jobs table cause high network traffic",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5876",
+    "category": "cluster"
+  },
+  {
+    "number": 5852,
+    "title": "Why don't we use sctp for cluster connections?",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5852",
+    "category": "cluster"
+  },
+  {
+    "number": 5748,
+    "title": "Connection lost issue (WebUI) while testing on two different servers.",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5748",
+    "category": "cluster"
+  },
+  {
+    "number": 5625,
+    "title": "Not following semver breaks node.js driver",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5625",
+    "category": "cluster"
+  },
+  {
+    "number": 5616,
+    "title": "raft election timeouts seem too common",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5616",
+    "category": "cluster"
+  },
+  {
+    "number": 5610,
+    "title": "merge `promise.mocha` into `connections.mocha`",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5610",
+    "category": "cluster"
+  },
+  {
+    "number": 5598,
+    "title": "Weird relationship between `db_config_artificial_table_backend_t` and `real_reql_cluster_interface_t`",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5598",
+    "category": "cluster"
+  },
+  {
+    "number": 5587,
+    "title": "Instances in rethinkdb cluster got disconnected without any reason",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5587",
+    "category": "cluster"
+  },
+  {
+    "number": 5584,
+    "title": "Backtrace on unit.ClusteringRaft",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5584",
+    "category": "cluster"
+  },
+  {
+    "number": 5562,
+    "title": "Improve connection behavior when part of the cluster (e.g. proxy) is behind firewall",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5562",
+    "category": "cluster"
+  },
+  {
+    "number": 5504,
+    "title": "On mixed-architecture cluster: Error in replication after node reconnect",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5504",
+    "category": "cluster"
+  },
+  {
+    "number": 5503,
+    "title": "ruby rethink driver does not seem to honour timeout flag",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5503",
+    "category": "cluster"
+  },
+  {
+    "number": 5491,
+    "title": "Reset connection without reconnect",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5491",
+    "category": "cluster"
+  },
+  {
+    "number": 5377,
+    "title": "ClusteringRaft.Fuzzer failures on Windows",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5377",
+    "category": "cluster"
+  },
+  {
+    "number": 5353,
+    "title": "Rethread crash during huge network transfer",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5353",
+    "category": "cluster"
+  },
+  {
+    "number": 5347,
+    "title": "WebUI occasionally losing connection",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5347",
+    "category": "cluster"
+  },
+  {
+    "number": 5279,
+    "title": "Throttling makes cluster unavailable",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5279",
+    "category": "cluster"
+  },
+  {
+    "number": 5257,
+    "title": "Better report raft election timeouts",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5257",
+    "category": "cluster"
+  },
+  {
+    "number": 5255,
+    "title": "r.http does not reuse connections",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5255",
+    "category": "cluster"
+  },
+  {
+    "number": 5218,
+    "title": "Query taking a long time to execute in 32 node cluster",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5218",
+    "category": "cluster"
+  },
+  {
+    "number": 5161,
+    "title": "New exception for connection closed?",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5161",
+    "category": "cluster"
+  },
+  {
+    "number": 5156,
+    "title": "Misleading error when using connection with different module instance",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5156",
+    "category": "cluster"
+  },
+  {
+    "number": 5024,
+    "title": "Change timeout message for changefeeds",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5024",
+    "category": "cluster"
+  },
+  {
+    "number": 5015,
+    "title": "Create connection tests for the java driver",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5015",
+    "category": "cluster"
+  },
+  {
+    "number": 5000,
+    "title": "check cluster for time skew issues",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/5000",
+    "category": "cluster"
+  },
+  {
+    "number": 4961,
+    "title": "Python Driver ReqlDriverError: Connection Closed using Changefeeds",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4961",
+    "category": "cluster"
+  },
+  {
+    "number": 4913,
+    "title": "WebUI 'Servers' page is messed up on reconnection to server",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4913",
+    "category": "cluster"
+  },
+  {
+    "number": 4898,
+    "title": "Proposal: Avoid table/db name conflicts in fully connected clusters",
+    "url": "https://github.com/rethinkdb/rethinkdb/issues/4898",
+    "category": "cluster"
+  }
+]

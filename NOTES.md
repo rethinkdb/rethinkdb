@@ -68,6 +68,27 @@ None.
 * Sandboxed execution with restricted global access
 * All previous 2.4.6 security fixes included
 
+### Open Issues Analysis ###
+
+A comprehensive analysis of 1,339 open GitHub issues has been completed.
+See `TODOLIST.md` for prioritized action items.
+
+**Summary:**
+* 34 actionable issues identified and categorized
+* Estimated effort: 340-680 hours (9-17 developer weeks)
+* Priority breakdown:
+  * 🔴 Critical (5 issues): Security fixes, cluster stability
+  * 🟠 High (13 issues): Platform support, build system
+  * 🟡 Medium (11 issues): Performance, reliability
+  * 🟢 Low (5 issues): Features, documentation
+
+**Top Priority Fixes:**
+1. #6880 - Fix cluster crash when re-provisioning servers
+2. #6961 - Fix tag mismatch crash
+3. #6290 - Fix authentication timeout error handling
+4. #6952 - AArch64/Fedora build support
+5. #6932 - Mac ARM (Apple Silicon) support
+
 ---
 
 # Release 2.4.6 (Night of the Living Dead)
