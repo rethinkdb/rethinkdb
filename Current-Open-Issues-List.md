@@ -10,7 +10,7 @@
 
 ### Issue #6961: Connectivity Cluster Tag Mismatch Error
 
-**Status:** 🔧 READY TO IMPLEMENT  
+**Status:** ✅ COMPLETE  
 **Effort:** S (4-8 hours)  
 **Feasibility:** High
 
@@ -398,7 +398,7 @@ Phase 3: Testing & Integration (Week 4)
 
 | Issue | Status | Assigned | Start Date | End Date | Tests Pass | Notes |
 |-------|--------|----------|------------|----------|------------|-------|
-| #6961 | 🔧 Ready | TBD | - | - | - | - |
+| #6961 | ✅ Complete | Done | 2026-03-11 | 2026-03-11 | Yes | Fixed in commit 7821ecc826 |
 | #6880 | 🔧 Ready | TBD | - | - | - | - |
 | #6290 | 🔧 Ready | TBD | - | - | - | - |
 | #6952 | ✅ COMPLETE | - | 2026-03-11 | 2026-03-11 | Syntax verified | Fixed in src/arch/runtime/context_switching.cc - added _M_ARM64 detection |
