@@ -394,9 +394,10 @@ join_results_t connectivity_cluster_t::run_t::join_blocking(
     }
 
     // Make sure the peer address isn't bogus
-    if (peer.ips().size() == 0) {
-        logWRN("Attempted to join peer with no valid IP addresses. "
-               "This may happen if a server was removed from the cluster.");
+    if (peer.ips().empty()) {
+        logWRN("Peer %s has no IP addresses. Skipping connection attempt. "
+               "This may happen if the server was re-provisioned.",
+               expected_server_id.has_value() ? expected_server_id->to_string().c_str() : "unknown");
         return join_results;
     }
 

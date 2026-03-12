@@ -60,6 +60,13 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
     guarantee(it != addresses.end());
     last_known_address = it->second;
 
+    // Issue #6880: Check if we have any IP addresses for this server
+    if (last_known_address.ips().empty()) {
+        logWRN("Cannot reconnect to server %s: no IP addresses known",
+               server.to_string().c_str());
+        return;
+    }
+
     // Issue #7131: Increased default timeout and made reconnection more resilient
     // The give_up_ms timeout can be 0 or negative to indicate "never give up"
     // This is useful for servers that may be down for extended periods
