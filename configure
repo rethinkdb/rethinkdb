@@ -1385,26 +1385,83 @@ check_vs_bin () {
     local ucname=$(uc $1)
     local exe=${!ucname:-}
     if [[ -z "$exe" ]] || ! lookup "$arg_vars" $ucname exe; then
-        # Search for Visual Studio 2017, 2019, and 2022
-        # Try VS2022 first, then VS2019, then VS2017
-        for vsver in 2022 2019 2017; do
-            for it in /cygdrive/*/Program\ Files*/Microsoft\ Visual\ Studio/$vsver/*/{MSBuild/Current,VC/Auxiliary/Build,Common7/IDE/CommonExtensions/Microsoft/CMake/CMake}{,/Bin}/$1.{exe,bat}; do
-                case "$it" in
-                    *\**) ;;
-                    *) exe=$it; break 2;;
-                esac
-            done
+        # First try vswhere.exe to locate Visual Studio 2017+ installations
+        # vswhere is the official Microsoft tool for locating VS installations
+        local vswhere_path=""
+        for it in /cygdrive/*/Program\ Files\ \(x86\)/Microsoft\ Visual\ Studio/Installer/vswhere.exe \
+                  /cygdrive/*/Program\ Files/Microsoft\ Visual\ Studio/Installer/vswhere.exe; do
+            case "$it" in
+                *\**) ;;
+                *)
+                    if [[ -x "$it" ]]; then
+                        vswhere_path="$it"
+                        break
+                    fi
+                    ;;
+            esac
         done
-        # Also try BuildTools installations
+
+        # If vswhere found, use it to locate the requested tool
+        if [[ -n "$vswhere_path" ]]; then
+            local vs_install_path
+            # Get the installation path of the latest VS version
+            vs_install_path=$("$vswhere_path" -latest -property installationPath 2>/dev/null | tr -d '\r')
+            if [[ -n "$vs_install_path" ]]; then
+                # Convert Windows path to Cygwin path
+                local cyg_vs_path="/cygdrive${vs_install_path//:/}"
+                case "$1" in
+                    msbuild)
+                        for it in "$cyg_vs_path"/MSBuild/Current/Bin/$1.exe \
+                                  "$cyg_vs_path"/MSBuild/15.0/Bin/$1.exe; do
+                            if [[ -x "$it" ]]; then
+                                exe="$it"
+                                break
+                            fi
+                        done
+                        ;;
+                    vcvarsall)
+                        for it in "$cyg_vs_path"/VC/Auxiliary/Build/$1.bat; do
+                            if [[ -f "$it" ]]; then
+                                exe="$it"
+                                break
+                            fi
+                        done
+                        ;;
+                    cmake)
+                        for it in "$cyg_vs_path"/Common7/IDE/CommonExtensions/Microsoft/CMake/CMake/bin/$1.exe; do
+                            if [[ -x "$it" ]]; then
+                                exe="$it"
+                                break
+                            fi
+                        done
+                        ;;
+                esac
+            fi
+        fi
+
+        # Fall back to legacy detection if vswhere not found or tool not found
         if [[ -z "$exe" ]]; then
+            # Search for Visual Studio 2017, 2019, and 2022
+            # Try VS2022 first, then VS2019, then VS2017
             for vsver in 2022 2019 2017; do
-                for it in /cygdrive/*/Program\ Files*/Microsoft\ Visual\ Studio/$vsver/BuildTools/{MSBuild/Current,VC/Auxiliary/Build,Common7/IDE/CommonExtensions/Microsoft/CMake/CMake}{,/Bin}/$1.{exe,bat}; do
+                for it in /cygdrive/*/Program\ Files*/Microsoft\ Visual\ Studio/$vsver/*/{MSBuild/Current,VC/Auxiliary/Build,Common7/IDE/CommonExtensions/Microsoft/CMake/CMake}{,/Bin}/$1.{exe,bat}; do
                     case "$it" in
                         *\**) ;;
                         *) exe=$it; break 2;;
                     esac
                 done
             done
+            # Also try BuildTools installations
+            if [[ -z "$exe" ]]; then
+                for vsver in 2022 2019 2017; do
+                    for it in /cygdrive/*/Program\ Files*/Microsoft\ Visual\ Studio/$vsver/BuildTools/{MSBuild/Current,VC/Auxiliary/Build,Common7/IDE/CommonExtensions/Microsoft/CMake/CMake}{,/Bin}/$1.{exe,bat}; do
+                        case "$it" in
+                            *\**) ;;
+                            *) exe=$it; break 2;;
+                        esac
+                    done
+                done
+            fi
         fi
     fi
 

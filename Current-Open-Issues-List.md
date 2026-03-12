@@ -327,7 +327,7 @@ Add GitHub Actions job:
 
 ### Issue #6531: VS2017 Support
 
-**Status:** 🔧 READY TO IMPLEMENT  
+**Status:** ✅ COMPLETE  
 **Effort:** XS (1-4 hours)  
 **Feasibility:** High
 
@@ -404,7 +404,7 @@ Phase 3: Testing & Integration (Week 4)
 | #6952 | 🔧 Ready | TBD | - | - | - | - |
 | #7156 | ✅ COMPLETE | - | 2026-03-11 | 2026-03-11 | Pending Pi5 test | Fixed in mk/support/pkg/jemalloc.sh |
 | #6932 | 🔧 Ready | TBD | - | - | - | - |
-| #6531 | 🔧 Ready | TBD | - | - | - | - |
+| #6531 | ✅ COMPLETE | - | 2026-03-11 | 2026-03-11 | N/A (Windows test needed) | Fixed in configure - added vswhere.exe detection |
 
 ---
 
