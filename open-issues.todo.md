@@ -159,7 +159,7 @@
 
 - [ ] **#7171** - Windows prebuilt binaries is outdated
   - https://github.com/rethinkdb/rethinkdb/issues/7171
-- [ ] **#7156** - Error <jemalloc>: Unsupported system page size with Raspberry Pi 5 !!!
+- [x] **#7156** - Error <jemalloc>: Unsupported system page size with Raspberry Pi 5 !!! ✅ FIXED
   - https://github.com/rethinkdb/rethinkdb/issues/7156
 - [ ] **#7124** - error: to_string called on an uninitialized ip_address_t, addr_type: 0 compiling rethinkdb on Raspberry
   - https://github.com/rethinkdb/rethinkdb/issues/7124

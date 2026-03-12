@@ -41,7 +41,7 @@
 
 | Issue | Title | Effort | Feasibility | Assigned |
 |-------|-------|--------|-------------|----------|
-| #7156 | jemalloc: Unsupported system page size on Raspberry Pi 5 | S (4-8h) | High | TBD |
+| #7156 | jemalloc: Unsupported system page size on Raspberry Pi 5 | S (4-8h) | High | ✅ COMPLETE |
 | #7124 | to_string on uninitialized ip_address_t on Raspberry | XS (1-4h) | High | TBD |
 | #7171 | Windows prebuilt binaries outdated | M (8-16h) | High | TBD |
 | #6699 | Compiling for aarch64 | S (4-8h) | High | TBD |

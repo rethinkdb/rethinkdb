@@ -1361,6 +1361,7 @@ join_result_t connectivity_cluster_t::run_t::handle(
                                "This may indicate version incompatibility or message "
                                "corruption. Closing connection.", tag);
                         // Close connection gracefully instead of crashing
+                        conn->shutdown_read();
                         break;
                     }
 
