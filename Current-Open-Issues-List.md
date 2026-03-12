@@ -114,7 +114,7 @@ if (server_id_to_ips(server_id).empty()) {
 
 ### Issue #6290: Uncatchable ReqlTimeoutError on Wrong Database Password
 
-**Status:** 🔧 READY TO IMPLEMENT  
+**Status:** ✅ COMPLETE  
 **Effort:** M (8-16 hours)  
 **Feasibility:** High
 
@@ -400,7 +400,7 @@ Phase 3: Testing & Integration (Week 4)
 |-------|--------|----------|------------|----------|------------|-------|
 | #6961 | ✅ Complete | Done | 2026-03-11 | 2026-03-11 | Yes | Fixed in commit 7821ecc826 |
 | #6880 | 🔧 Ready | TBD | - | - | - | - |
-| #6290 | 🔧 Ready | TBD | - | - | - | - |
+| #6290 | ✅ COMPLETE | Done | 2026-03-11 | 2026-03-11 | Yes | Fixed in src/client_protocol/server.cc - auth errors sent immediately
 | #6952 | ✅ COMPLETE | - | 2026-03-11 | 2026-03-11 | Syntax verified | Fixed in src/arch/runtime/context_switching.cc - added _M_ARM64 detection |
 | #7156 | ✅ COMPLETE | - | 2026-03-11 | 2026-03-11 | Pending Pi5 test | Fixed in mk/support/pkg/jemalloc.sh |
 | #6932 | ✅ COMPLETE | - | 2026-03-11 | 2026-03-11 | Syntax verified | Fixed in configure and .github/workflows/build.yml |

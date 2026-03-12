@@ -337,9 +337,17 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
                 authenticator->next_message(
                     std::string(auth_key_buffer.data(), auth_key_size));
             } catch (auth::authentication_error_t const &) {
-                // Note we must not change this message for backwards compatibility
-                throw client_protocol::client_server_error_t(
-                    -1, "Incorrect authorization key.");
+                // Send auth error immediately to avoid timeout (#6290)
+                std::string error = "ERROR: Incorrect authorization key.\n";
+                try {
+                    conn->write(error.c_str(), error.length() + 1, &ct_keepalive);
+                    conn->shutdown_write();
+                } catch (interrupted_exc_t const &) {
+                    // Interrupted while sending error, client will see timeout
+                } catch (const tcp_conn_write_closed_exc_t &) {
+                    // Connection closed, can't send error
+                }
+                return;
             }
 
             int32_t wire_protocol;
@@ -415,10 +423,32 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 
                 ql::datum_object_builder_t datum_object_builder;
                 datum_object_builder.overwrite("success", ql::datum_t::boolean(true));
+                std::string auth_response;
+                try {
+                    auth_response = authenticator->next_message(
+                        authentication.as_str().to_std());
+                } catch (auth::authentication_error_t const &error) {
+                    // Send auth error immediately to avoid timeout (#6290)
+                    ql::datum_object_builder_t error_builder;
+                    error_builder.overwrite("success", ql::datum_t::boolean(false));
+                    error_builder.overwrite("error", ql::datum_t(error.what()));
+                    error_builder.overwrite(
+                        "error_code", ql::datum_t(static_cast<double>(error.get_error_code())));
+                    try {
+                        write_datum(
+                            conn.get(),
+                            std::move(error_builder).to_datum(),
+                            &ct_keepalive);
+                        conn->shutdown_write();
+                    } catch (interrupted_exc_t const &) {
+                        // Interrupted while sending error, client will see timeout
+                    } catch (const tcp_conn_write_closed_exc_t &) {
+                        // Connection closed, can't send error
+                    }
+                    return;
+                }
                 datum_object_builder.overwrite(
-                    "authentication",
-                    ql::datum_t(
-                        authenticator->next_message(authentication.as_str().to_std())));
+                    "authentication", ql::datum_t(auth_response));
 
                 write_datum(
                     conn.get(),
@@ -438,10 +468,32 @@ void query_server_t::handle_conn(const scoped_ptr_t<tcp_conn_descriptor_t> &ncon
 
                 ql::datum_object_builder_t datum_object_builder;
                 datum_object_builder.overwrite("success", ql::datum_t::boolean(true));
+                std::string auth_response;
+                try {
+                    auth_response = authenticator->next_message(
+                        authentication.as_str().to_std());
+                } catch (auth::authentication_error_t const &error) {
+                    // Send auth error immediately to avoid timeout (#6290)
+                    ql::datum_object_builder_t error_builder;
+                    error_builder.overwrite("success", ql::datum_t::boolean(false));
+                    error_builder.overwrite("error", ql::datum_t(error.what()));
+                    error_builder.overwrite(
+                        "error_code", ql::datum_t(static_cast<double>(error.get_error_code())));
+                    try {
+                        write_datum(
+                            conn.get(),
+                            std::move(error_builder).to_datum(),
+                            &ct_keepalive);
+                        conn->shutdown_write();
+                    } catch (interrupted_exc_t const &) {
+                        // Interrupted while sending error, client will see timeout
+                    } catch (const tcp_conn_write_closed_exc_t &) {
+                        // Connection closed, can't send error
+                    }
+                    return;
+                }
                 datum_object_builder.overwrite(
-                    "authentication",
-                    ql::datum_t(
-                        authenticator->next_message(authentication.as_str().to_std())));
+                    "authentication", ql::datum_t(auth_response));
 
                 write_datum(
                     conn.get(),
