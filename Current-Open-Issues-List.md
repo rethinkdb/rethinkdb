@@ -166,7 +166,7 @@ try {
 
 ### Issue #6952: Build Fails on AArch64, Fedora 33
 
-**Status:** 🔧 READY TO IMPLEMENT  
+**Status:** ✅ COMPLETE  
 **Effort:** S (4-8 hours)  
 **Feasibility:** High
 
@@ -401,7 +401,7 @@ Phase 3: Testing & Integration (Week 4)
 | #6961 | 🔧 Ready | TBD | - | - | - | - |
 | #6880 | 🔧 Ready | TBD | - | - | - | - |
 | #6290 | 🔧 Ready | TBD | - | - | - | - |
-| #6952 | 🔧 Ready | TBD | - | - | - | - |
+| #6952 | ✅ COMPLETE | - | 2026-03-11 | 2026-03-11 | Syntax verified | Fixed in src/arch/runtime/context_switching.cc - added _M_ARM64 detection |
 | #7156 | ✅ COMPLETE | - | 2026-03-11 | 2026-03-11 | Pending Pi5 test | Fixed in mk/support/pkg/jemalloc.sh |
 | #6932 | 🔧 Ready | TBD | - | - | - | - |
 | #6531 | ✅ COMPLETE | - | 2026-03-11 | 2026-03-11 | N/A (Windows test needed) | Fixed in configure - added vswhere.exe detection |
