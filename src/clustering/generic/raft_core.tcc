@@ -849,7 +849,7 @@ void raft_member_t<state_t>::check_invariants(
         "candidate_and_leader_coro() should be running unless we're a follower");
     guarantee(mode == mode_t::leader || !readiness_for_change.get(),
         "we shouldn't be accepting changes if we're not leader");
-    guarantee(readiness_for_change.get() || !readiness_for_change.get(),
+    guarantee(readiness_for_change.get() || !readiness_for_config_change.get(),
         "we shouldn't be accepting config changes but not regular changes");
 
     switch (mode) {
