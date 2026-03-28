@@ -2368,7 +2368,8 @@ int main_rethinkdb_porcelain(int argc, char *argv[]) {
         if (is_new_directory) {
             server_name = parse_server_name_option(opts);
         } else {
-            if (static_cast<bool>(get_optional_option(opts, "--server-name"))) {
+            optional<name_string_t> opt_server_name = get_optional_option(opts, "--server-name");
+            if (static_cast<bool>(opt_server_name) && *opt_server_name != server_name) {
                 fprintf(stderr, "WARNING: ignoring --server-name because this server "
                     "already has a name.\n");
             }
