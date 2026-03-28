@@ -1,6 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "clustering/administration/main/serve.hpp"
 
+#include "rethinkdb_version.hpp"
+
 #include <stdio.h>
 #include <unistd.h>
 
@@ -471,7 +473,7 @@ bool do_serve(io_backender_t *io_backender,
                     ? server_config_server->get_config()->get()
                     : server_config_versioned_t(),
                 i_am_a_server
-                    ? make_optional(server_config_server->get_business_card())
+                    ? optional<server_config_business_card_t>(server_config_server->get_business_card())
                     : optional<server_config_business_card_t>(),
                 i_am_a_server ? SERVER_PEER : PROXY_PEER);
 

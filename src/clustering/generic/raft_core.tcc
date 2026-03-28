@@ -920,8 +920,8 @@ void raft_member_t<state_t>::on_connected_members_change(
                 when this coroutine was spawned; we mustn't set
                 `virtual_heartbeat_sender` unless we are actually getting virtual
                 heartbeats. */
-                if (network->get_connected_members()->get_key(member_id)
-                        == make_optional(make_optional(term))) {
+                auto term_opt = network->get_connected_members()->get_key(member_id);
+                if (term_opt.has_value() && term_opt.get().get() == term) {
                     /* Sometimes we are called twice within the same term. */
                     if (member_id != virtual_heartbeat_sender) {
                         guarantee(virtual_heartbeat_sender.is_nil());
@@ -1406,7 +1406,7 @@ void raft_member_t<state_t>::candidate_and_leader_coro(
         repeated AppendEntries RPCs. If the network connection is lost, then the
         `connectivity_cluster_t` will detect it using its own heartbeats and then the
         `raft_network_interface_t` will interrupt the virtual heartbeat stream. */
-        network->send_virtual_heartbeats(make_optional(ps().current_term));
+        network->send_virtual_heartbeats(optional(ps().current_term));
 
         /* Prevent the watchdog timers from being triggered until we are no longer
         leader. */

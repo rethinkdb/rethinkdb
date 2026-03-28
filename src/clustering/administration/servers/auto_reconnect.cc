@@ -108,7 +108,7 @@ void auto_reconnector_t::try_reconnect(const server_id_t &server,
 
                 join_results_t results =
                     connectivity_cluster_run_local->join_blocking(
-                        last_known_address, r_nullopt, make_optional(server),
+                        last_known_address, r_nullopt, optional<server_id_t>(server),
                         join_delay_secs_local,
                         auto_drainer_t::lock_t(&connectivity_cluster_run_local->drainer));
 
