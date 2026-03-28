@@ -342,7 +342,7 @@ std::vector<datum_t> perform_get_intersecting(
             optional<ql::terminal_variant_t>(),
             sindex_rangespec_t(
                 idx_name,
-                make_optional(region_t::universe()),
+                optional(region_t::universe()),
                 ql::datumspec_t(
                     ql::datum_range_t::universe()),
                 require_sindexes_t::NO),

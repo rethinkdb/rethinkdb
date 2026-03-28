@@ -1,13 +1,32 @@
 // Copyright 2010-2013 RethinkDB, all rights reserved.
+
+/**
+ * @file do_on_thread.hpp
+ * @brief Convenient API for executing callables on specific threads.
+ *
+ * Provides a higher-level interface than thread_message_t for executing
+ * function objects on different threads without requiring subclassing.
+ */
+
 #ifndef DO_ON_THREAD_HPP_
 #define DO_ON_THREAD_HPP_
 
 #include "arch/runtime/runtime.hpp"
 #include "utils.hpp"
 
-/* Functions to do something on another core in a way that is more convenient than
-continue_on_thread() is. */
-
+/**
+ * @brief FSM for executing a callable on one thread and returning home.
+ *
+ * Internal state machine that executes a callable on a target thread, then
+ * returns to the home thread to clean up (for libtcmalloc affinity).
+ *
+ * @tparam callable_t Type of the callable object to execute.
+ *
+ * Usage (internal):
+ * @code
+ * // Do not use directly; use do_on_thread() instead
+ * @endcode
+ */
 template <class callable_t>
 struct thread_doer_t : public thread_message_t, public home_thread_mixin_t {
     const callable_t callable;
@@ -64,6 +83,30 @@ struct thread_doer_t : public thread_message_t, public home_thread_mixin_t {
 /* API to allow a nicer way of performing jobs on other cores than subclassing
 from thread_message_t. Call do_on_thread() with an object and a method for that object.
 The method will be called on the other thread. */
+
+/**
+ * @brief Execute a callable on a specific thread.
+ *
+ * Executes the provided callable on the specified thread. If called from the
+ * target thread, executes immediately. Otherwise, creates a thread message
+ * that executes on the target thread and returns to the home thread.
+ *
+ * @tparam callable_t Type of the callable to execute (function, lambda, functor).
+ * @param thread The thread ID on which to execute the callable.
+ * @param callable The callable to execute (moved into the message).
+ *
+ * Example:
+ * @code
+ * threadnum_t target = 2;
+ * do_on_thread(target, [](){ std::cout << "Running on thread 2\n"; });
+ * @endcode
+ *
+ * Example with capturing lambda:
+ * @code
+ * int value = 42;
+ * do_on_thread(target, [value](){ process(value); });
+ * @endcode
+ */
 
 template <class callable_t>
 void do_on_thread(threadnum_t thread, callable_t &&callable) {

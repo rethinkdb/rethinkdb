@@ -48,7 +48,7 @@ struct make_sindex_read_t {
                 ql::batchspec_t::default_for(ql::batch_type_t::NORMAL),
                 std::vector<ql::transform_variant_t>(),
                 optional<ql::terminal_variant_t>(),
-                make_optional(sindex_rangespec_t(id,
+                optional(sindex_rangespec_t(id,
                                                  r_nullopt,
                                                  ql::datumspec_t(rng),
                                                  require_sindexes_t::NO)),

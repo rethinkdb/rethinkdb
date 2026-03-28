@@ -385,10 +385,10 @@ private:
             if (index_str == tbl->get_pkey()) {
                 auto field = index->as_datum();
                 funcs.push_back(new_get_field_func(field, backtrace()));
-                slice = make_counted<table_slice_t>(tbl, make_optional(index_str));
+                slice = make_counted<table_slice_t>(tbl, optional(index_str));
             } else {
                 slice = make_counted<table_slice_t>(
-                    tbl, make_optional(index_str), sorting_t::ASCENDING);
+                    tbl, optional(index_str), sorting_t::ASCENDING);
                 append_index = true;
             }
             r_sanity_check(slice.has());

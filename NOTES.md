@@ -1,3 +1,21 @@
+# Release 2.4.5 (Night of the Living Dead)
+
+Released around November 2025.
+
+Build fix release.  This has no changes compared to v2.4.4, except to
+fix building, and to fix package building, on recent platforms.
+
+### API-breaking changes ###
+
+None.
+
+### Changes ###
+
+* Compilation
+  * Add boost_0-implicit-defs.patch for Boost 1.60.0 dependency (#7181)
+  * Hack to make dpkg 'install' rule depend explicitly on 'build' (#7183)
+  * Change dpkg 'compat' level to 10 (#7184)
+
 # Release 2.4.4 (Night of the Living Dead)
 
 Fixes for Data Explorer autocomplete, compilation fixes, other small
