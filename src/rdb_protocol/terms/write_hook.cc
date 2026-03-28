@@ -33,8 +33,10 @@ public:
     }
 
     virtual scoped_ptr_t<val_t> eval_impl(
-        scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> table = args->arg(env, 0)->as_table();
+        eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        counted_t<table_t> table = v0->as_table();
 
         bool existed = false;
         admin_err_t error;
@@ -54,7 +56,8 @@ public:
         /* Parse the write_hook configuration */
         optional<write_hook_config_t> config;
         datum_string_t message("deleted");
-        scoped_ptr_t<val_t> v = args->arg(env, 1);
+        scoped_ptr_t<val_t> v = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
         // RSI: Old reql versions hanging around, being unused, is pretty bad.
         // RSI: Something about write hooks not being specified vs. being specified as "null" in certain API's was weird.
 
@@ -146,8 +149,10 @@ public:
         return deterministic_t::no();
     }
 
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> table = args->arg(env, 0)->as_table();
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        counted_t<table_t> table = v0->as_table();
 
         datum_t write_hook;
         try {

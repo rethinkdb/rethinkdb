@@ -159,9 +159,14 @@ public:
         : op_term_t(env, term, argspec_t(2, 3), optargspec_t({"multi", "geo"})) { }
 
     virtual scoped_ptr_t<val_t> eval_impl(
-        scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> table = args->arg(env, 0)->as_table();
-        datum_t name_datum = args->arg(env, 1)->as_datum();
+        eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        counted_t<table_t> table = v0->as_table();
+
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        datum_t name_datum = v1->as_datum();
         std::string index_name = name_datum.as_str().to_std();
         rcheck(index_name != table->get_pkey(),
                base_exc_t::LOGIC,
@@ -173,7 +178,8 @@ public:
         config.multi = sindex_multi_bool_t::SINGLE;
         config.geo = sindex_geo_bool_t::REGULAR;
         if (args->num_args() == 3) {
-            scoped_ptr_t<val_t> v = args->arg(env, 2);
+            scoped_ptr_t<val_t> v = args->arg(err_out, env, 2);
+            if (err_out->has()) { return noval(); }
             bool got_func = false;
             if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
                 datum_t d = v->as_datum();
@@ -210,16 +216,24 @@ public:
                 "Index functions must be deterministic.");
 
         /* Check if we're doing a multi index or a normal index. */
-        if (scoped_ptr_t<val_t> multi_val = args->optarg(env, "multi")) {
-            config.multi = multi_val->as_bool()
-                ? sindex_multi_bool_t::MULTI
-                : sindex_multi_bool_t::SINGLE;
+        {
+            scoped_ptr_t<val_t> multi_val = args->optarg(err_out, env, "multi");
+            if (err_out->has()) { return noval(); }
+            if (multi_val) {
+                config.multi = multi_val->as_bool()
+                    ? sindex_multi_bool_t::MULTI
+                    : sindex_multi_bool_t::SINGLE;
+            }
         }
         /* Do we want to create a geo index? */
-        if (scoped_ptr_t<val_t> geo_val = args->optarg(env, "geo")) {
-            config.geo = geo_val->as_bool()
-                ? sindex_geo_bool_t::GEO
-                : sindex_geo_bool_t::REGULAR;
+        {
+            scoped_ptr_t<val_t> geo_val = args->optarg(err_out, env, "geo");
+            if (err_out->has()) { return noval(); }
+            if (geo_val) {
+                config.geo = geo_val->as_bool()
+                    ? sindex_geo_bool_t::GEO
+                    : sindex_geo_bool_t::REGULAR;
+            }
         }
 
         try {
@@ -251,9 +265,14 @@ public:
     sindex_drop_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2)) { }
 
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> table = args->arg(env, 0)->as_table();
-        std::string index_name = args->arg(env, 1)->as_datum().as_str().to_std();
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        counted_t<table_t> table = v0->as_table();
+
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        std::string index_name = v1->as_datum().as_str().to_std();
 
         try {
             admin_err_t error;
@@ -283,8 +302,10 @@ public:
     sindex_list_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> table = args->arg(env, 0)->as_table();
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        counted_t<table_t> table = v0->as_table();
 
         /* Fetch a list of all sindexes and their configs and statuses */
         std::map<std::string, std::pair<sindex_config_t, sindex_status_t> >
@@ -312,12 +333,16 @@ public:
     sindex_status_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
         /* Parse the arguments */
-        counted_t<table_t> table = args->arg(env, 0)->as_table();
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        counted_t<table_t> table = v0->as_table();
         std::set<std::string> sindexes;
         for (size_t i = 1; i < args->num_args(); ++i) {
-            sindexes.insert(args->arg(env, i)->as_str().to_std());
+            auto v_i = args->arg(err_out, env, i);
+            if (err_out->has()) { return noval(); }
+            sindexes.insert(v_i->as_str().to_std());
         }
 
         /* Fetch a list of all sindexes and their configs and statuses */
@@ -366,11 +391,15 @@ public:
     sindex_wait_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> table = args->arg(env, 0)->as_table();
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        counted_t<table_t> table = v0->as_table();
         std::set<std::string> sindexes;
         for (size_t i = 1; i < args->num_args(); ++i) {
-            sindexes.insert(args->arg(env, i)->as_str().to_std());
+            auto v_i = args->arg(err_out, env, i);
+            if (err_out->has()) { return noval(); }
+            sindexes.insert(v_i->as_str().to_std());
         }
         // Start with initial_poll_ms, then double the waiting period after each
         // attempt up to a maximum of max_poll_ms.
@@ -424,10 +453,14 @@ public:
         : op_term_t(env, term, argspec_t(3, 3), optargspec_t({"overwrite"})) { }
 
     virtual scoped_ptr_t<val_t> eval_impl(
-        scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> table = args->arg(env, 0)->as_table();
-        scoped_ptr_t<val_t> old_name_val = args->arg(env, 1);
-        scoped_ptr_t<val_t> new_name_val = args->arg(env, 2);
+        eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        counted_t<table_t> table = v0->as_table();
+        scoped_ptr_t<val_t> old_name_val = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        scoped_ptr_t<val_t> new_name_val = args->arg(err_out, env, 2);
+        if (err_out->has()) { return noval(); }
         std::string old_name = old_name_val->as_str().to_std();
         std::string new_name = new_name_val->as_str().to_std();
         rcheck(old_name != table->get_pkey(),
@@ -439,7 +472,8 @@ public:
                strprintf("Index name conflict: `%s` is the name of the primary key.",
                          new_name.c_str()));
 
-        scoped_ptr_t<val_t> overwrite_val = args->optarg(env, "overwrite");
+        scoped_ptr_t<val_t> overwrite_val = args->optarg(err_out, env, "overwrite");
+        if (err_out->has()) { return noval(); }
         bool overwrite = overwrite_val ? overwrite_val->as_bool() : false;
 
         try {

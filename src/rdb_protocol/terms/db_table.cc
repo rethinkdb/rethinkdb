@@ -117,8 +117,10 @@ public:
     db_term_t(compile_env_t *env, const raw_term_t &term)
         : meta_op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        name_string_t db_name = get_name(args->arg(env, 0), "Database");
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        name_string_t db_name = get_name(v0, "Database");
         counted_t<const db_t> db;
         admin_err_t error;
         if (!env->env->reql_cluster_interface()->db_find(
@@ -136,8 +138,10 @@ public:
         : meta_op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-            scope_env_t *env, args_t *args, eval_flags_t) const {
-        name_string_t db_name = get_name(args->arg(env, 0), "Database");
+            eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        name_string_t db_name = get_name(v0, "Database");
 
         ql::datum_t result;
         try {
@@ -168,13 +172,15 @@ public:
                           "durability"})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-            scope_env_t *env, args_t *args, eval_flags_t) const {
+            eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
         /* Parse arguments */
         table_generate_config_params_t config_params =
             table_generate_config_params_t::make_default();
 
         // Parse the 'shards' optarg
-        if (scoped_ptr_t<val_t> shards_optarg = args->optarg(env, "shards")) {
+        scoped_ptr_t<val_t> shards_optarg = args->optarg(err_out, env, "shards");
+        if (err_out->has()) { return noval(); }
+        if (shards_optarg) {
             rcheck_target(shards_optarg, shards_optarg->as_int() > 0, base_exc_t::LOGIC,
                           "Every table must have at least one shard.");
             config_params.num_shards = shards_optarg->as_int();
@@ -182,31 +188,48 @@ private:
 
         // Parse the 'replicas', 'nonvoting_replica_tags', and
         // 'primary_replica_tag' optargs
-        get_replicas_and_primary(args->optarg(env, "replicas"),
-                                 args->optarg(env, "nonvoting_replica_tags"),
-                                 args->optarg(env, "primary_replica_tag"),
+        auto replicas_optarg = args->optarg(err_out, env, "replicas");
+        if (err_out->has()) { return noval(); }
+        auto nonvoting_replica_tags_optarg = args->optarg(err_out, env, "nonvoting_replica_tags");
+        if (err_out->has()) { return noval(); }
+        auto primary_replica_tag_optarg = args->optarg(err_out, env, "primary_replica_tag");
+        if (err_out->has()) { return noval(); }
+        get_replicas_and_primary(replicas_optarg,
+                                 nonvoting_replica_tags_optarg,
+                                 primary_replica_tag_optarg,
                                  &config_params);
 
         std::string primary_key = "id";
-        if (scoped_ptr_t<val_t> v = args->optarg(env, "primary_key")) {
-            primary_key = v->as_str().to_std();
+        auto primary_key_optarg = args->optarg(err_out, env, "primary_key");
+        if (err_out->has()) { return noval(); }
+        if (primary_key_optarg) {
+            primary_key = primary_key_optarg->as_str().to_std();
         }
 
+        auto durability_optarg = args->optarg(err_out, env, "durability");
+        if (err_out->has()) { return noval(); }
         write_durability_t durability =
-            parse_durability_optarg(args->optarg(env, "durability")) ==
+            parse_durability_optarg(durability_optarg) ==
                 DURABILITY_REQUIREMENT_SOFT ?
                     write_durability_t::SOFT : write_durability_t::HARD;
 
         counted_t<const db_t> db;
         name_string_t tbl_name;
         if (args->num_args() == 1) {
-            scoped_ptr_t<val_t> dbv = args->optarg(env, "db");
+            scoped_ptr_t<val_t> dbv = args->optarg(err_out, env, "db");
+            if (err_out->has()) { return noval(); }
             r_sanity_check(dbv);
             db = dbv->as_db();
-            tbl_name = get_name(args->arg(env, 0), "Table");
+            auto v0 = args->arg(err_out, env, 0);
+            if (err_out->has()) { return noval(); }
+            tbl_name = get_name(v0, "Table");
         } else {
-            db = args->arg(env, 0)->as_db();
-            tbl_name = get_name(args->arg(env, 1), "Table");
+            auto v0 = args->arg(err_out, env, 0);
+            if (err_out->has()) { return noval(); }
+            db = v0->as_db();
+            auto v1 = args->arg(err_out, env, 1);
+            if (err_out->has()) { return noval(); }
+            tbl_name = get_name(v1, "Table");
         }
 
         /* Create the table */
@@ -240,8 +263,10 @@ public:
         : meta_op_term_t(env, term, argspec_t(1)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-            scope_env_t *env, args_t *args, eval_flags_t) const {
-        name_string_t db_name = get_name(args->arg(env, 0), "Database");
+            eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        name_string_t db_name = get_name(v0, "Database");
 
         ql::datum_t result;
         try {
@@ -269,17 +294,24 @@ public:
         : meta_op_term_t(env, term, argspec_t(1, 2)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-            scope_env_t *env, args_t *args, eval_flags_t) const {
+            eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<const db_t> db;
         name_string_t tbl_name;
         if (args->num_args() == 1) {
-            scoped_ptr_t<val_t> dbv = args->optarg(env, "db");
+            scoped_ptr_t<val_t> dbv = args->optarg(err_out, env, "db");
+            if (err_out->has()) { return noval(); }
             r_sanity_check(dbv);
             db = dbv->as_db();
-            tbl_name = get_name(args->arg(env, 0), "Table");
+            auto v0 = args->arg(err_out, env, 0);
+            if (err_out->has()) { return noval(); }
+            tbl_name = get_name(v0, "Table");
         } else {
-            db = args->arg(env, 0)->as_db();
-            tbl_name = get_name(args->arg(env, 1), "Table");
+            auto v0 = args->arg(err_out, env, 0);
+            if (err_out->has()) { return noval(); }
+            db = v0->as_db();
+            auto v1 = args->arg(err_out, env, 1);
+            if (err_out->has()) { return noval(); }
+            tbl_name = get_name(v1, "Table");
         }
 
         ql::datum_t result;
@@ -308,7 +340,7 @@ public:
     db_list_term_t(compile_env_t *env, const raw_term_t &term)
         : meta_op_term_t(env, term, argspec_t(0)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *, scope_env_t *env, args_t *, eval_flags_t) const {
         std::set<name_string_t> dbs;
         admin_err_t error;
         if (!env->env->reql_cluster_interface()->db_list(
@@ -332,14 +364,17 @@ public:
     table_list_term_t(compile_env_t *env, const raw_term_t &term)
         : meta_op_term_t(env, term, argspec_t(0, 1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
         counted_t<const ql::db_t> db;
         if (args->num_args() == 0) {
-            scoped_ptr_t<val_t> dbv = args->optarg(env, "db");
+            scoped_ptr_t<val_t> dbv = args->optarg(err_out, env, "db");
+            if (err_out->has()) { return noval(); }
             r_sanity_check(dbv);
             db = dbv->as_db();
         } else {
-            db = args->arg(env, 0)->as_db();
+            auto v0 = args->arg(err_out, env, 0);
+            if (err_out->has()) { return noval(); }
+            db = v0->as_db();
         }
 
         std::set<name_string_t> tables;
@@ -364,8 +399,9 @@ public:
     config_term_t(compile_env_t *env, const raw_term_t &term)
         : meta_op_term_t(env, term, argspec_t(1, 1), optargspec_t({})) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        scoped_ptr_t<val_t> target = args->arg(env, 0);
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> target = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
         scoped_ptr_t<val_t> selection;
         bool success;
         admin_err_t error;
@@ -410,8 +446,10 @@ public:
     status_term_t(compile_env_t *env, const raw_term_t &term)
         : meta_op_term_t(env, term, argspec_t(1, 1), optargspec_t({})) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> table = args->arg(env, 0)->as_table();
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        counted_t<table_t> table = v0->as_table();
         name_string_t table_name = name_string_t::guarantee_valid(table->name.c_str());
 
         scoped_ptr_t<val_t> selection;
@@ -443,26 +481,28 @@ protected:
     table's database and name. If the term is called on a database, then `db `indicates
     the database and `name_if_table` will be empty. */
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
-            scope_env_t *env, args_t *args, eval_flags_t flags,
+            eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t flags,
             const counted_t<const ql::db_t> &db,
             const optional<name_string_t> &name_if_table) const = 0;
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-            scope_env_t *env, args_t *args, eval_flags_t flags) const {
+            eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t flags) const {
         scoped_ptr_t<val_t> target;
         if (args->num_args() == 0) {
-            target = args->optarg(env, "db");
+            target = args->optarg(err_out, env, "db");
+            if (err_out->has()) { return noval(); }
             r_sanity_check(target.has());
         } else {
-            target = args->arg(env, 0);
+            target = args->arg(err_out, env, 0);
+            if (err_out->has()) { return noval(); }
         }
         if (target->get_type().is_convertible(val_t::type_t::DB)) {
-            return eval_impl_on_table_or_db(env, args, flags, target->as_db(),
+            return eval_impl_on_table_or_db(err_out, env, args, flags, target->as_db(),
                 r_nullopt);
         } else {
             counted_t<table_t> table = target->as_table();
             name_string_t table_name = name_string_t::guarantee_valid(table->name.c_str());
-            return eval_impl_on_table_or_db(env, args, flags, table->db,
+            return eval_impl_on_table_or_db(err_out, env, args, flags, table->db,
                                             make_optional(table_name));
         }
     }
@@ -480,7 +520,7 @@ private:
     static char const * const wait_all_str;
 
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
-            scope_env_t *env, args_t *args, eval_flags_t,
+            eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t,
 	    const counted_t<const ql::db_t> &db,
             const optional<name_string_t> &name_if_table) const {
       // Don't allow a wait call without explicit database
@@ -490,7 +530,9 @@ private:
 
       // Handle 'wait_for' optarg
         table_readiness_t readiness = table_readiness_t::finished;
-        if (scoped_ptr_t<val_t> wait_for = args->optarg(env, "wait_for")) {
+        auto wait_for = args->optarg(err_out, env, "wait_for");
+        if (err_out->has()) { return noval(); }
+        if (wait_for) {
             if (wait_for->as_str() == wait_outdated_str) {
                 readiness = table_readiness_t::outdated_reads;
             } else if (wait_for->as_str() == wait_reads_str) {
@@ -512,7 +554,9 @@ private:
         // Handle 'timeout' optarg
         signal_timer_t timeout_timer;
         wait_any_t combined_interruptor(env->env->interruptor);
-        if (scoped_ptr_t<val_t> timeout = args->optarg(env, "timeout")) {
+        auto timeout = args->optarg(err_out, env, "timeout");
+        if (err_out->has()) { return noval(); }
+        if (timeout) {
             timeout_timer.start(timeout->as_int<uint64_t>() * 1000);
             combined_interruptor.add(&timeout_timer);
         }
@@ -556,17 +600,19 @@ public:
             optargspec_t({"dry_run", "emergency_repair", "nonvoting_replica_tags",
                 "primary_replica_tag", "replicas", "shards"})) { }
 private:
-    scoped_ptr_t<val_t> required_optarg(scope_env_t *env,
+    scoped_ptr_t<val_t> required_optarg(eval_error *err_out,
+                                        scope_env_t *env,
                                         args_t *args,
                                         const char *_name) const {
-        scoped_ptr_t<val_t> result = args->optarg(env, _name);
+        scoped_ptr_t<val_t> result = args->optarg(err_out, env, _name);
+        if (err_out->has()) { return noval(); }
         rcheck(result.has(), base_exc_t::LOGIC,
                strprintf("Missing required argument `%s`.", _name));
         return result;
     }
 
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
-            scope_env_t *env, args_t *args, eval_flags_t,
+            eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t,
             const counted_t<const ql::db_t> &db,
             const optional<name_string_t> &name_if_table) const {
         // Don't allow a reconfigure call without explicit database
@@ -576,13 +622,16 @@ private:
 
         // Parse the 'dry_run' optarg
         bool dry_run = false;
-        if (scoped_ptr_t<val_t> v = args->optarg(env, "dry_run")) {
-            dry_run = v->as_bool();
+        auto dry_run_optarg = args->optarg(err_out, env, "dry_run");
+        if (err_out->has()) { return noval(); }
+        if (dry_run_optarg) {
+            dry_run = dry_run_optarg->as_bool();
         }
 
         /* Figure out whether we're doing a regular reconfiguration or an emergency
         repair. */
-        scoped_ptr_t<val_t> emergency_repair = args->optarg(env, "emergency_repair");
+        scoped_ptr_t<val_t> emergency_repair = args->optarg(err_out, env, "emergency_repair");
+        if (err_out->has()) { return noval(); }
         if (!emergency_repair.has() ||
                 emergency_repair->as_datum() == ql::datum_t::null()) {
             /* We're doing a regular reconfiguration. */
@@ -592,17 +641,24 @@ private:
                 table_generate_config_params_t::make_default();
 
             // Parse the 'shards' optarg
-            scoped_ptr_t<val_t> shards_optarg = required_optarg(env, args, "shards");
+            scoped_ptr_t<val_t> shards_optarg = required_optarg(err_out, env, args, "shards");
+            if (err_out->has()) { return noval(); }
             rcheck_target(shards_optarg, shards_optarg->as_int() > 0,
                           base_exc_t::LOGIC,
                           "Every table must have at least one shard.");
             config_params.num_shards = shards_optarg->as_int();
 
+            auto replicas_optarg = required_optarg(err_out, env, args, "replicas");
+            if (err_out->has()) { return noval(); }
+            auto nonvoting_replica_tags_optarg = args->optarg(err_out, env, "nonvoting_replica_tags");
+            if (err_out->has()) { return noval(); }
+            auto primary_replica_tag_optarg = args->optarg(err_out, env, "primary_replica_tag");
+            if (err_out->has()) { return noval(); }
             // Parse the 'replicas', 'nonvoting_replica_tags', and
             // 'primary_replica_tag' optargs
-            get_replicas_and_primary(required_optarg(env, args, "replicas"),
-                                     args->optarg(env, "nonvoting_replica_tags"),
-                                     args->optarg(env, "primary_replica_tag"),
+            get_replicas_and_primary(replicas_optarg,
+                                     nonvoting_replica_tags_optarg,
+                                     primary_replica_tag_optarg,
                                      &config_params);
 
             bool success;
@@ -658,10 +714,18 @@ private:
 
             /* Make sure none of the optargs that are used with regular reconfigurations
             are present, to avoid user confusion. */
-            if (args->optarg(env, "nonvoting_replica_tags").has() ||
-                    args->optarg(env, "primary_replica_tag").has() ||
-                    args->optarg(env, "replicas").has() ||
-                    args->optarg(env, "shards").has()) {
+            auto nonvoting_replica_tags_optarg = args->optarg(err_out, env, "nonvoting_replica_tags");
+            if (err_out->has()) { return noval(); }
+            auto primary_replica_tag_optarg = args->optarg(err_out, env, "primary_replica_tag");
+            if (err_out->has()) { return noval(); }
+            auto replicas_optarg = args->optarg(err_out, env, "replicas");
+            if (err_out->has()) { return noval(); }
+            auto shards_optarg = args->optarg(err_out, env, "shards");
+            if (err_out->has()) { return noval(); }
+            if (nonvoting_replica_tags_optarg.has() ||
+                    primary_replica_tag_optarg.has() ||
+                    replicas_optarg.has() ||
+                    shards_optarg.has()) {
                 rfail(base_exc_t::LOGIC, "In emergency repair mode, you can't "
                     "specify shards, replicas, etc.");
             }
@@ -703,7 +767,7 @@ public:
         : table_or_db_meta_term_t(env, term, optargspec_t({})) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl_on_table_or_db(
-            scope_env_t *env, args_t *args, eval_flags_t,
+            eval_error *, scope_env_t *env, args_t *args, eval_flags_t,
             const counted_t<const ql::db_t> &db,
             const optional<name_string_t> &name_if_table) const {
         // Don't allow a rebalance call without explicit database
@@ -749,8 +813,10 @@ public:
 
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-            scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> t = args->arg(env, 0)->as_table();
+            eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        counted_t<table_t> t = v0->as_table();
         bool success = t->sync(env->env);
         r_sanity_check(success);
         ql::datum_object_builder_t result;
@@ -767,10 +833,14 @@ public:
 
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-            scope_env_t *env, args_t *args, eval_flags_t) const {
+            eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v_username = args->arg(err_out, env, args->num_args() - 2);
+        if (err_out->has()) { return noval(); }
         auth::username_t username(
-            args->arg(env, args->num_args() - 2)->as_str().to_std());
-        ql::datum_t permissions = args->arg(env, args->num_args() - 1)->as_datum();
+            v_username->as_str().to_std());
+        auto v_permissions = args->arg(err_out, env, args->num_args() - 1);
+        if (err_out->has()) { return noval(); }
+        ql::datum_t permissions = v_permissions->as_datum();
 
         bool success = false;
         ql::datum_t result;
@@ -785,7 +855,8 @@ private:
                     &result,
                     &error);
             } else {
-                scoped_ptr_t<val_t> scope = args->arg(env, 0);
+                scoped_ptr_t<val_t> scope = args->arg(err_out, env, 0);
+                if (err_out->has()) { return noval(); }
                 if (scope->get_type().is_convertible(val_t::type_t::DB)) {
                     success = env->env->reql_cluster_interface()->grant_database(
                         env->env->get_user_context(),
@@ -830,15 +901,19 @@ public:
         : op_term_t(env, term, argspec_t(1, 2),
                     optargspec_t({"read_mode", "use_outdated", "identifier_format"})) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
         read_mode_t read_mode = read_mode_t::SINGLE;
-        if (scoped_ptr_t<val_t> v = args->optarg(env, "use_outdated")) {
+        auto use_outdated_optarg = args->optarg(err_out, env, "use_outdated");
+        if (err_out->has()) { return noval(); }
+        if (use_outdated_optarg) {
             rfail(base_exc_t::LOGIC, "%s",
                   "The `use_outdated` optarg is no longer supported.  "
                   "Use the `read_mode` optarg instead.");
         }
-        if (scoped_ptr_t<val_t> v = args->optarg(env, "read_mode")) {
-            const datum_string_t &str = v->as_str();
+        auto read_mode_optarg = args->optarg(err_out, env, "read_mode");
+        if (err_out->has()) { return noval(); }
+        if (read_mode_optarg) {
+            const datum_string_t &str = read_mode_optarg->as_str();
             if (str == "majority") {
                 read_mode = read_mode_t::MAJORITY;
             } else if (str == "single") {
@@ -855,8 +930,11 @@ private:
         }
 
         optional<admin_identifier_format_t> identifier_format;
-        if (scoped_ptr_t<val_t> v = args->optarg(env, "identifier_format")) {
-            const datum_string_t &str = v->as_str();
+        auto identifier_format_optarg = args->optarg(err_out, env, "identifier_format");
+        if (err_out->has()) { return noval(); }
+
+        if (identifier_format_optarg) {
+            const datum_string_t &str = identifier_format_optarg->as_str();
             if (str == "name") {
                 identifier_format.set(admin_identifier_format_t::name);
             } else if (str == "uuid") {
@@ -870,14 +948,24 @@ private:
         counted_t<const db_t> db;
         name_string_t table_name;
         if (args->num_args() == 1) {
-            scoped_ptr_t<val_t> dbv = args->optarg(env, "db");
+            scoped_ptr_t<val_t> dbv = args->optarg(err_out, env, "db");
+            if (err_out->has()) { return noval(); }
+
             r_sanity_check(dbv.has());
             db = dbv->as_db();
-            table_name = get_name(args->arg(env, 0), "Table");
+
+            auto v0 = args->arg(err_out, env, 0);
+            if (err_out->has()) { return noval(); }
+            table_name = get_name(v0, "Table");
         } else {
             r_sanity_check(args->num_args() == 2);
-            db = args->arg(env, 0)->as_db();
-            table_name = get_name(args->arg(env, 1), "Table");
+            auto v0 = args->arg(err_out, env, 0);
+            if (err_out->has()) { return noval(); }
+            db = v0->as_db();
+
+            auto v1 = args->arg(err_out, env, 1);
+            if (err_out->has()) { return noval(); }
+            table_name = get_name(v1, "Table");
         }
 
         admin_err_t error;
@@ -899,12 +987,18 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual scoped_ptr_t<val_t>
-    eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+
         return new_val(single_selection_t::from_key(
                            env->env,
                            backtrace(),
-                           args->arg(env, 0)->as_table(),
-                           args->arg(env, 1)->as_datum()));
+                           v0->as_table(),
+                           v1->as_datum()));
     }
     virtual const char *name() const { return "get"; }
 };
@@ -914,7 +1008,7 @@ public:
     get_all_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1, -1), optargspec_t({ "index" })) { }
 private:
-    datum_t get_key_arg(const scoped_ptr_t<val_t> &arg) const {
+    datum_t get_key_arg(eval_error *err_out, const scoped_ptr_t<val_t> &arg) const {
         datum_t datum_arg = arg->as_datum();
 
         rcheck_target(arg,
@@ -922,21 +1016,33 @@ private:
                       base_exc_t::LOGIC,
                       "Cannot use a geospatial index with `get_all`. "
                       "Use `get_intersecting` instead.");
-        rcheck_target(arg, datum_arg.get_type() != datum_t::R_NULL,
-                      base_exc_t::NON_EXISTENCE,
-                      "Keys cannot be NULL.");
+        if (datum_arg.get_type() != datum_t::R_NULL) {
+            err_out->exc = make_scoped<exc_t>(base_exc_t::NON_EXISTENCE,
+                                              "Keys cannot be NULL.",
+                                              arg->backtrace());
+            return datum_t();
+        }
         return datum_arg;
     }
 
     virtual scoped_ptr_t<val_t> eval_impl(
-        scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<table_t> table = args->arg(env, 0)->as_table();
-        scoped_ptr_t<val_t> index = args->optarg(env, "index");
+        eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+
+        counted_t<table_t> table = v0->as_table();
+        scoped_ptr_t<val_t> index = args->optarg(err_out, env, "index");
+        if (err_out->has()) { return noval(); }
+
         std::string index_str = index ? index->as_str().to_std() : table->get_pkey();
 
         std::map<datum_t, uint64_t> keys;
         for (size_t i = 1; i < args->num_args(); ++i) {
-            auto key = get_key_arg(args->arg(env, i));
+            auto v_i = args->arg(err_out, env, i);
+            if (err_out->has()) { return noval(); }
+
+            auto key = get_key_arg(err_out, v_i);
+            if (err_out->has()) { return noval(); }
             keys.insert(std::make_pair(std::move(key), 0)).first->second += 1;
         }
 

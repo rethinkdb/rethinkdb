@@ -40,7 +40,7 @@ private:
     }
 
     sym_t varname;
-    virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, eval_flags_t) const {
+    scoped_ptr_t<val_t> term_eval(eval_error *, scope_env_t *env, eval_flags_t) const override {
         return new_val(env->scope.lookup_var(varname));
     }
     virtual const char *name() const { return "var"; }
@@ -72,7 +72,7 @@ private:
         return deterministic_t::always();
     }
 
-    virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, UNUSED eval_flags_t flags) const {
+    scoped_ptr_t<val_t> term_eval(eval_error *, scope_env_t *env, UNUSED eval_flags_t flags) const override {
         return new_val(env->scope.lookup_implicit());
     }
     virtual const char *name() const { return "implicit_var"; }

@@ -245,7 +245,7 @@ base_exc_t::type_t exc_type(const scoped_ptr_t<val_t> &v);
 #endif // NDEBUG
 
 // A RQL exception.
-class exc_t : public base_exc_t {
+class exc_t final : public base_exc_t {
 public:
     // We have a default constructor because these are serialized.
     exc_t() : base_exc_t(base_exc_t::LOGIC), message("UNINITIALIZED") { }
@@ -276,7 +276,7 @@ private:
 // correspond to part of the source tree.  It's usually thrown from inside
 // datum.{hpp,cc} and must be caught by the enclosing term/stream/whatever and
 // turned into a normal `exc_t`.
-class datum_exc_t : public base_exc_t {
+class datum_exc_t final : public base_exc_t {
 public:
     datum_exc_t() : base_exc_t(base_exc_t::LOGIC), message("UNINITIALIZED") { }
     explicit datum_exc_t(base_exc_t::type_t _type, std::string &&_message)
@@ -290,6 +290,21 @@ public:
     RDB_DECLARE_ME_SERIALIZABLE(datum_exc_t);
 private:
     std::string message;
+};
+
+struct eval_error {
+    bool has() const { return exc.has() || datum_exc.has(); }
+    bool throw_exc() const {
+        if (exc.has()) {
+            throw *exc;
+        } else {
+            rassert(datum_exc.has());
+            throw *datum_exc;
+        }
+    }
+
+    scoped_ptr_t<exc_t> exc;
+    scoped_ptr_t<datum_exc_t> datum_exc;
 };
 
 } // namespace ql

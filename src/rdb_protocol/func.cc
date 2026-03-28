@@ -82,7 +82,12 @@ scoped_ptr_t<val_t> reql_func_t::call(env_t *env,
             : captured_scope.with_func_arg_list(arg_names, args);
 
         scope_env_t scope_env(env, std::move(new_scope));
-        return body->eval(&scope_env, eval_flags);
+        eval_error err;
+        scoped_ptr_t<val_t> ret = body->eval(&err, &scope_env, eval_flags);
+        if (err.has()) {
+            err.throw_exc();
+        }
+        return ret;
     } catch (const datum_exc_t &e) {
         rfail(e.get_type(), "%s", e.what());
         unreachable();
@@ -223,7 +228,8 @@ void func_term_t::accumulate_captures(var_captures_t *captures) const {
     captures->implicit_is_captured |= external_captures.implicit_is_captured;
 }
 
-scoped_ptr_t<val_t> func_term_t::term_eval(scope_env_t *env,
+scoped_ptr_t<val_t> func_term_t::term_eval(UNUSED eval_error *err_out,
+                                           scope_env_t *env,
                                            UNUSED eval_flags_t flags) const {
     return new_val(eval_to_func(env->scope));
 }

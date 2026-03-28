@@ -20,9 +20,13 @@ public:
 protected:
     enum which_pend_t { PRE, AP };
 
-    scoped_ptr_t<val_t> pend(scope_env_t *env, args_t *args, which_pend_t which_pend) const {
-        datum_t arr = args->arg(env, 0)->as_datum();
-        datum_t new_el = args->arg(env, 1)->as_datum();
+    scoped_ptr_t<val_t> pend(eval_error *err_out, scope_env_t *env, args_t *args, which_pend_t which_pend) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        datum_t arr = v0->as_datum();
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        datum_t new_el = v1->as_datum();
         datum_array_builder_t out(env->env->limits());
         out.reserve(arr.arr_size() + 1);
         if (which_pend == PRE) {
@@ -47,10 +51,10 @@ public:
     append_term_t(compile_env_t *env, const raw_term_t &term)
         : pend_term_t(env, term) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env,
                                        args_t *args,
                                        UNUSED eval_flags_t flags) const {
-        return pend(env, args, AP);
+        return pend(err_out, env, args, AP);
     }
     virtual const char *name() const { return "append"; }
 };
@@ -60,8 +64,8 @@ public:
     prepend_term_t(compile_env_t *env, const raw_term_t &term)
         : pend_term_t(env, term) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        return pend(env, args, PRE);
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        return pend(err_out, env, args, PRE);
     }
     virtual const char *name() const { return "prepend"; }
 };
@@ -174,8 +178,12 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     friend class bracket_t;
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        return nth_term_impl(this, env, args->arg(env, 0), args->arg(env, 1));
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        return nth_term_impl(this, env, std::move(v0), std::move(v1));
     }
     virtual const char *name() const { return "nth"; }
     virtual bool is_grouped_seq_op() const { return true; }
@@ -186,10 +194,12 @@ public:
     is_empty_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
         batchspec_t batchspec =
             batchspec_t::user(batch_type_t::NORMAL, env->env).with_at_most(1);
-        bool is_empty = !args->arg(env, 0)->as_seq(env->env)->next(env->env, batchspec).has();
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        bool is_empty = !v0->as_seq(env->env)->next(env->env, batchspec).has();
         return new_val(datum_t::boolean(is_empty));
     }
     virtual const char *name() const { return "is_empty"; }
@@ -272,12 +282,31 @@ private:
         return new_val(datum_t(std::move(subdata)));
     }
 
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        scoped_ptr_t<val_t> v = args->arg(env, 0);
-        bool left_open = is_left_open(env, args);
-        int64_t fake_l = args->arg(env, 1)->as_int<int64_t>();
-        bool right_open = args->num_args() == 3 ? is_right_open(env, args) : false;
-        int64_t fake_r = args->num_args() == 3 ? args->arg(env, 2)->as_int<int64_t>() : -1;
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        bool left_open = is_left_open(err_out, env, args);
+        if (err_out->has()) { return noval(); }
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        int64_t fake_l = v1->as_int<int64_t>();
+
+        bool right_open;
+        if (args->num_args() == 3) {
+            right_open = is_right_open(err_out, env, args);
+            if (err_out->has()) { return noval(); }
+        } else {
+            right_open = false;
+        }
+
+        int64_t fake_r;
+        if (args->num_args() == 3) {
+            auto v2 = args->arg(err_out, env, 2);
+            if (err_out->has()) { return noval(); }
+            fake_r = v2->as_int<int64_t>();
+        } else {
+            fake_r = -1;
+        }
 
         if (v->get_type().is_convertible(val_t::type_t::DATUM)) {
             datum_t d = v->as_datum();
@@ -339,8 +368,8 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-        scope_env_t *env, args_t *args, eval_flags_t) const {
-        scoped_ptr_t<val_t> v = args->arg(env, 0);
+        eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v = args->arg(err_out, env, 0);
         counted_t<table_t> t;
         counted_t<datum_stream_t> ds;
         if (v->get_type().is_convertible(val_t::type_t::SELECTION)) {
@@ -350,7 +379,9 @@ private:
         } else {
             ds = v->as_seq(env->env);
         }
-        int32_t r = args->arg(env, 1)->as_int<int32_t>();
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        int32_t r = v1->as_int<int32_t>();
         rcheck(r >= 0, base_exc_t::LOGIC,
                strprintf("LIMIT takes a non-negative argument (got %d)", r));
         counted_t<datum_stream_t> new_ds = ds->slice(0, r);
@@ -367,9 +398,13 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-        scope_env_t *env, args_t *args, eval_flags_t) const {
-        datum_t arr = args->arg(env, 0)->as_datum();
-        datum_t new_el = args->arg(env, 1)->as_datum();
+        eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        datum_t arr = v0->as_datum();
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        datum_t new_el = v1->as_datum();
         // We only use el_set for equality purposes, so the reql_version doesn't
         // really matter (with respect to datum ordering behavior).  But we play it
         // safe.
@@ -396,9 +431,15 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-        scope_env_t *env, args_t *args, eval_flags_t) const {
-        datum_t arr1 = args->arg(env, 0)->as_datum();
-        datum_t arr2 = args->arg(env, 1)->as_datum();
+        eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        datum_t arr1 = v0->as_datum();
+
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        datum_t arr2 = v1->as_datum();
+
         // The reql_version doesn't actually matter here -- we only use the datum
         // comparisons for equality purposes.
         std::set<datum_t, optional_datum_less_t> el_set;
@@ -426,9 +467,15 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-        scope_env_t *env, args_t *args, eval_flags_t) const {
-        datum_t arr1 = args->arg(env, 0)->as_datum();
-        datum_t arr2 = args->arg(env, 1)->as_datum();
+        eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        datum_t arr1 = v0->as_datum();
+
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        datum_t arr2 = v1->as_datum();
+
         // The reql_version here doesn't really matter.  We only use el_set
         // comparison for equality purposes.
         std::set<datum_t, optional_datum_less_t> el_set;
@@ -455,9 +502,14 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-        scope_env_t *env, args_t *args, eval_flags_t) const {
-        datum_t arr1 = args->arg(env, 0)->as_datum();
-        datum_t arr2 = args->arg(env, 1)->as_datum();
+        eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        datum_t arr1 = v0->as_datum();
+
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        datum_t arr2 = v1->as_datum();
         // The reql_version here doesn't really matter.  We only use el_set
         // comparison for equality purposes.
         std::set<datum_t, optional_datum_less_t> el_set;
@@ -491,21 +543,28 @@ public:
               argspec_t argspec, index_method_t index_method)
         : op_term_t(env, term, argspec), index_method_(index_method) { }
 
-    virtual void modify(scope_env_t *env, args_t *args, size_t index,
+    virtual void modify(eval_error *err_out, scope_env_t *env, args_t *args, size_t index,
                         datum_array_builder_t *array) const = 0;
 
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        datum_array_builder_t arr(args->arg(env, 0)->as_datum(), env->env->limits());
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        datum_array_builder_t arr(v0->as_datum(), env->env->limits());
         size_t index;
         if (index_method_ == ELEMENTS) {
-            index = canonicalize(this, args->arg(env, 1)->as_datum().as_int(), arr.size());
+            auto v1 = args->arg(err_out, env, 1);
+            if (err_out->has()) { return noval(); }
+            index = canonicalize(this, v1->as_datum().as_int(), arr.size());
         } else if (index_method_ == SPACES) {
-            index = canonicalize(this, args->arg(env, 1)->as_datum().as_int(), arr.size() + 1);
+            auto v1 = args->arg(err_out, env, 1);
+            if (err_out->has()) { return noval(); }
+            index = canonicalize(this, v1->as_datum().as_int(), arr.size() + 1);
         } else {
             unreachable();
         }
 
-        modify(env, args, index, &arr);
+        modify(err_out, env, args, index, &arr);
+        if (err_out->has()) { return noval(); }
         return new_val(std::move(arr).to_datum());
     }
 private:
@@ -517,9 +576,11 @@ public:
     insert_at_term_t(compile_env_t *env, const raw_term_t &term)
         : at_term_t(env, term, argspec_t(3), SPACES) { }
 private:
-    void modify(scope_env_t *env, args_t *args, size_t index,
+    void modify(eval_error *err_out, scope_env_t *env, args_t *args, size_t index,
                 datum_array_builder_t *array) const {
-        datum_t new_el = args->arg(env, 2)->as_datum();
+        auto v2 = args->arg(err_out, env, 2);
+        if (err_out->has()) { return; }
+        datum_t new_el = v2->as_datum();
         array->insert(index, new_el);
     }
     const char *name() const { return "insert_at"; }
@@ -531,9 +592,11 @@ public:
     splice_at_term_t(compile_env_t *env, const raw_term_t &term)
         : at_term_t(env, term, argspec_t(3), SPACES) { }
 private:
-    void modify(scope_env_t *env, args_t *args, size_t index,
+    void modify(eval_error *err_out, scope_env_t *env, args_t *args, size_t index,
                 datum_array_builder_t *array) const {
-        datum_t new_els = args->arg(env, 2)->as_datum();
+        auto v2 = args->arg(err_out, env, 2);
+        if (err_out->has()) { return; }
+        datum_t new_els = v2->as_datum();
         array->splice(index, new_els);
     }
     const char *name() const { return "splice_at"; }
@@ -544,13 +607,15 @@ public:
     delete_at_term_t(compile_env_t *env, const raw_term_t &term)
         : at_term_t(env, term, argspec_t(2, 3), ELEMENTS) { }
 private:
-    void modify(scope_env_t *env, args_t *args, size_t index,
+    void modify(eval_error *err_out, scope_env_t *env, args_t *args, size_t index,
                 datum_array_builder_t *array) const {
         if (args->num_args() == 2) {
             array->erase(index);
         } else {
+            auto v2 = args->arg(err_out, env, 2);
+            if (err_out->has()) { return; }
             int end_index = canonicalize(
-                this, args->arg(env, 2)->as_datum().as_int(), array->size());
+                this, v2->as_datum().as_int(), array->size());
             array->erase_range(index, end_index);
         }
     }
@@ -562,9 +627,11 @@ public:
     change_at_term_t(compile_env_t *env, const raw_term_t &term)
         : at_term_t(env, term, argspec_t(3), ELEMENTS) { }
 private:
-    void modify(scope_env_t *env, args_t *args, size_t index,
+    void modify(eval_error *err_out, scope_env_t *env, args_t *args, size_t index,
                 datum_array_builder_t *array) const {
-        datum_t new_el = args->arg(env, 2)->as_datum();
+        auto v2 = args->arg(err_out, env, 2);
+        if (err_out->has()) { return; }
+        datum_t new_el = v2->as_datum();
         array->change(index, new_el);
     }
     const char *name() const { return "change_at"; }
@@ -575,15 +642,18 @@ public:
     offsets_of_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        scoped_ptr_t<val_t> v = args->arg(env, 1);
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
         counted_t<const func_t> fun;
         if (v->get_type().is_convertible(val_t::type_t::FUNC)) {
             fun = v->as_func();
         } else {
             fun = new_eq_comparison_func(v->as_datum(), backtrace());
         }
-        return new_val(env->env, args->arg(env, 0)->as_seq(env->env)->offsets_of(fun));
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        return new_val(env->env, v0->as_seq(env->env)->offsets_of(fun));
     }
     virtual const char *name() const { return "offsets_of"; }
 };
@@ -593,12 +663,15 @@ public:
     contains_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1, -1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        counted_t<datum_stream_t> seq = args->arg(env, 0)->as_seq(env->env);
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        counted_t<datum_stream_t> seq = v0->as_seq(env->env);
         std::vector<datum_t> required_els;
         std::vector<counted_t<const func_t> > required_funcs;
         for (size_t i = 1; i < args->num_args(); ++i) {
-            scoped_ptr_t<val_t> v = args->arg(env, i);
+            scoped_ptr_t<val_t> v = args->arg(err_out, env, i);
+            if (err_out->has()) { return noval(); }
             if (v->get_type().is_convertible(val_t::type_t::FUNC)) {
                 required_funcs.push_back(v->as_func());
             } else {
@@ -646,10 +719,11 @@ public:
         : op_term_t(env, term, argspec_t(1)) { }
     // This just evaluates its argument and returns it as an array.  The actual
     // logic to make `args` splice arguments is in op.cc.
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env,
                                           args_t *args,
                                           eval_flags_t eval_flags) const {
-        scoped_ptr_t<val_t> v0 = args->arg(env, 0, eval_flags);
+        scoped_ptr_t<val_t> v0 = args->arg(err_out, env, 0, eval_flags);
+        if (err_out->has()) { return noval(); }
         // If v0 is not an array, force a type error.
         v0->as_datum().check_type(datum_t::R_ARRAY);
         return v0;

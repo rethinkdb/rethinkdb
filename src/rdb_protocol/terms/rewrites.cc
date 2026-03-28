@@ -39,8 +39,8 @@ private:
         return real->is_deterministic();
     }
 
-    virtual scoped_ptr_t<val_t> term_eval(scope_env_t *env, eval_flags_t) const {
-        return real->eval(env);
+    scoped_ptr_t<val_t> term_eval(eval_error *err_out, scope_env_t *env, eval_flags_t) const override {
+        return real->eval(err_out, env);
     }
 
     raw_term_t rewrite_src;

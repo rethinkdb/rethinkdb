@@ -29,8 +29,8 @@ public:
     asc_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        return args->arg(env, 0);
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        return args->arg(err_out, env, 0);
     }
     virtual const char *name() const { return "asc"; }
 };
@@ -40,8 +40,8 @@ public:
     desc_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        return args->arg(env, 0);
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        return args->arg(err_out, env, 0);
     }
     virtual const char *name() const { return "desc"; }
 };
@@ -53,15 +53,17 @@ public:
           optargspec_t({"index"})) { }
 private:
     virtual scoped_ptr_t<val_t>
-    eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
         std::vector<std::pair<order_direction_t, counted_t<const func_t> > > comparisons
-            = build_comparisons_from_raw_term(this, env, args, get_src());
+            = build_comparisons_from_raw_term(err_out, this, env, args, get_src());
+        if (err_out->has()) { return noval(); }
         raw_term_t raw_term = get_src();
         lt_cmp_t lt_cmp(comparisons);
 
         counted_t<table_slice_t> tbl_slice;
         counted_t<datum_stream_t> seq;
-        scoped_ptr_t<val_t> v0 = args->arg(env, 0);
+        scoped_ptr_t<val_t> v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
         if (v0->get_type().is_convertible(val_t::type_t::TABLE_SLICE)) {
             tbl_slice = v0->as_table_slice();
         } else if (v0->get_type().is_convertible(val_t::type_t::SELECTION)) {
@@ -72,7 +74,8 @@ private:
             seq = v0->as_seq(env->env);
         }
 
-        scoped_ptr_t<val_t> index = args->optarg(env, "index");
+        scoped_ptr_t<val_t> index = args->optarg(err_out, env, "index");
+        if (err_out->has()) { return noval(); }
         if (seq.has() && seq->is_exhausted()){
             /* Do nothing for empty sequence */
             if (!index.has()) {
@@ -136,11 +139,14 @@ public:
     distinct_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1), optargspec_t({"index"})) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env,
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out,
+                                          scope_env_t *env,
                                           args_t *args,
                                           eval_flags_t) const {
-        scoped_ptr_t<val_t> v = args->arg(env, 0);
-        scoped_ptr_t<val_t> idx = args->optarg(env, "index");
+        scoped_ptr_t<val_t> v = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        scoped_ptr_t<val_t> idx = args->optarg(err_out, env, "index");
+        if (err_out->has()) { return noval(); }
         if (v->get_type().is_convertible(val_t::type_t::TABLE_SLICE)) {
             counted_t<table_slice_t> tbl_slice = v->as_table_slice();
             std::string tbl_pkey = tbl_slice->get_tbl()->get_pkey();

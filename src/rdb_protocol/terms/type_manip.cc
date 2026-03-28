@@ -161,8 +161,9 @@ public:
         : op_term_t(env, term, argspec_t(2)) { }
 private:
     virtual scoped_ptr_t<val_t> eval_impl(
-        scope_env_t *env, args_t *args, eval_flags_t) const {
-        scoped_ptr_t<val_t> val = args->arg(env, 0);
+        eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> val = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
         val_t::type_t opaque_start_type = val->get_type();
         int start_supertype = opaque_start_type.raw_type;
         int start_subtype = 0;
@@ -172,7 +173,9 @@ private:
         }
         int start_type = merge_types(start_supertype, start_subtype);
 
-        std::string end_type_name = args->arg(env, 1)->as_str().to_std();
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        std::string end_type_name = v1->as_str().to_std();
         int end_type = get_type(end_type_name, this);
 
         // Identity
@@ -304,10 +307,12 @@ public:
     ungroup_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(
-        scope_env_t *env, args_t *args, eval_flags_t) const {
+    scoped_ptr_t<val_t> eval_impl(
+        eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const override {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
         counted_t<grouped_data_t> groups
-            = args->arg(env, 0)->as_promiscuous_grouped_data(env->env);
+            = v0->as_promiscuous_grouped_data(env->env);
         std::vector<datum_t> v;
         v.reserve(groups->size());
 
@@ -353,8 +358,10 @@ public:
     typeof_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        return new_val(typename_of(args->arg(env, 0), env));
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const override {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        return new_val(typename_of(v0, env));
     }
     virtual const char *name() const { return "typeof"; }
     virtual bool can_be_grouped() const { return false; }
@@ -365,9 +372,11 @@ public:
     info_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    virtual scoped_ptr_t<val_t> eval_impl(
-        scope_env_t *env, args_t *args, eval_flags_t) const {
-        return new_val(val_info(env, args->arg(env, 0)));
+    scoped_ptr_t<val_t> eval_impl(
+        eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const override {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        return new_val(val_info(env, std::move(v0)));
     }
 
     datum_t val_info(scope_env_t *env, scoped_ptr_t<val_t> v) const {
