@@ -86,6 +86,11 @@ public:
     alive or dead.  */
     std::set<raft_member_id_t> get_all_member_ids();
 
+    /* Copies the member's persisted Raft state. The member must be `dead`, so nothing
+    else is updating that state. */
+    raft_persistent_state_t<dummy_raft_state_t> copy_persistent_state(
+        const raft_member_id_t &member_id) const;
+
     /* `run_on_member()` calls the given function for the `dummy_raft_member_t *` with
     the given ID. If the member is currently dead, it calls the function with a NULL
     pointer. */

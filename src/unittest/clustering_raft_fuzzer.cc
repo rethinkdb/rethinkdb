@@ -31,6 +31,103 @@ void print_config(RAFT_DEBUG_VAR const raft_complex_config_t &config) {
     }
 }
 
+void add_voting_members(const raft_complex_config_t &config,
+                        std::set<raft_member_id_t> *voters) {
+    voters->insert(config.config.voting_members.begin(),
+                   config.config.voting_members.end());
+
+    if (config.is_joint_consensus()) {
+        voters->insert(config.new_config->voting_members.begin(),
+                       config.new_config->voting_members.end());
+    }
+}
+
+/* Configuration at `index`, replaying config entries after the snapshot. `index` must
+be present in the log (or be the snapshot's last included index). */
+raft_complex_config_t config_at_index(
+        const raft_persistent_state_t<dummy_raft_state_t> &state,
+        raft_log_index_t index) {
+    guarantee(index >= state.log.prev_index);
+    guarantee(index <= state.log.get_latest_index());
+
+    raft_complex_config_t config = state.snapshot_config;
+    for (raft_log_index_t i = state.log.prev_index + 1; i <= index; ++i) {
+        const raft_log_entry_t<dummy_raft_state_t> &entry = state.log.get_entry_ref(i);
+        if (entry.type == raft_log_entry_type_t::config) {
+            config = entry.config.get();
+        }
+    }
+
+    return config;
+}
+
+/* `active_config` can miss a change that was still in flight when the fuzzer timer
+fired, because `run_on_member` swallows `interrupted_exc_t`. Freeze every member, then
+revive voters from the highest persisted commit index plus any later uncommitted config
+entries. Leaving everyone else dead stops removed members from starting elections, and
+recreating the survivors clears the in-memory election backoff. */
+void revive_voters_from_log(dummy_raft_cluster_t *cluster) {
+    std::set<raft_member_id_t> all_members = cluster->get_all_member_ids();
+    for (auto const &id : all_members) {
+        cluster->set_live(id, dummy_raft_cluster_t::live_t::dead);
+    }
+
+    std::vector<raft_persistent_state_t<dummy_raft_state_t> > states;
+    raft_log_index_t max_commit_index = 0;
+    for (auto const &id : all_members) {
+        states.push_back(cluster->copy_persistent_state(id));
+        if (states.back().commit_index > max_commit_index) {
+            max_commit_index = states.back().commit_index;
+        }
+    }
+
+    std::set<raft_member_id_t> voters;
+    bool found_committed_config = false;
+    raft_complex_config_t committed_config;
+
+    for (auto const &state : states) {
+        guarantee(state.commit_index >= state.log.prev_index);
+        guarantee(state.log.get_latest_index() >= state.commit_index);
+
+        if (state.commit_index == max_commit_index) {
+            raft_complex_config_t config = config_at_index(state, max_commit_index);
+
+            if (!found_committed_config) {
+                committed_config = config;
+                found_committed_config = true;
+            } else {
+                guarantee(committed_config == config);
+            }
+        }
+
+        if (state.log.get_latest_index() <= max_commit_index) {
+            continue;
+        }
+
+        for (raft_log_index_t i = max_commit_index + 1; i <= state.log.get_latest_index(); ++i) {
+            const raft_log_entry_t<dummy_raft_state_t> &entry = state.log.get_entry_ref(i);
+            if (entry.type == raft_log_entry_type_t::config) {
+                add_voting_members(entry.config.get(), &voters);
+            }
+        }
+    }
+
+    guarantee(found_committed_config);
+    add_voting_members(committed_config, &voters);
+    guarantee(!voters.empty());
+
+    RAFT_DEBUG("reviving %zu voters from persisted log (commit index %" PRIu64 ")\n",
+               voters.size(), max_commit_index);
+
+    print_config(committed_config);
+
+    for (auto const &id : voters) {
+        guarantee(all_members.count(id) == 1);
+        RAFT_DEBUG("reviving member %s\n", show_member_id(id).c_str());
+        cluster->set_live(id, dummy_raft_cluster_t::live_t::alive);
+    }
+}
+
 class raft_fuzzer_t {
 public:
     explicit raft_fuzzer_t(size_t initial_member_count) :
@@ -66,55 +163,39 @@ public:
         print_config(active_config);
         cluster.print_state();
 
-        // Put the cluster in a good state and check that writes work
-        std::set<raft_member_id_t> possible_quorum_members = active_config.config.voting_members;
-        if (active_config.is_joint_consensus()) {
-            possible_quorum_members.insert(active_config.new_config->voting_members.begin(),
-                                           active_config.new_config->voting_members.end());
-        }
-
-        std::set<raft_member_id_t> non_alive_voting_members;
-        std::set<raft_member_id_t> alive_voting_members;
-        for (auto const &id : possible_quorum_members) {
-            if (cluster.get_live(id) == dummy_raft_cluster_t::live_t::alive) {
-                alive_voting_members.insert(id);
-            } else {
-                non_alive_voting_members.insert(id);
-            }
-        }
-
-        while (!active_config.is_quorum(alive_voting_members)) {
-            guarantee(!non_alive_voting_members.empty());
-            RAFT_DEBUG("reviving member for quorum %s\n", show_member_id(*non_alive_voting_members.begin()).c_str());
-            cluster.set_live(*non_alive_voting_members.begin(), dummy_raft_cluster_t::live_t::alive);
-            alive_voting_members.insert(*non_alive_voting_members.begin());
-            non_alive_voting_members.erase(non_alive_voting_members.begin());
-        }
-
+        // `active_config` is only the fuzzer's in-run tracker. Choose voters from the
+        // persisted log so an interrupted config change cannot leave the real quorum dead.
+        revive_voters_from_log(&cluster);
         cluster.print_state();
-
-        /* Give the cluster some time to stabilize */
-        RAFT_DEBUG("waiting for cluster to stabilize\n");
-        nap(5000);
 
         RAFT_DEBUG("running final test writes\n");
         do_writes_raft(&cluster, 100, 60000);
 
+        if (::testing::Test::HasFailure()) {
+            return;
+        }
+
         RAFT_DEBUG("running final test config change\n");
-        signal_timer_t final_interruptor;
-        final_interruptor.start(30000); // Allow up to 30 seconds to finish the final verification
-        raft_member_id_t leader = cluster.find_leader(&final_interruptor);
-        raft_config_t final_config;
-        final_config.voting_members.insert(leader);
+        try {
+            signal_timer_t final_interruptor;
+            final_interruptor.start(30000); // Allow up to 30 seconds to finish the final verification
+            raft_member_id_t leader = cluster.find_leader(&final_interruptor);
+            raft_config_t final_config;
+            final_config.voting_members.insert(leader);
 
-        cluster.run_on_member(leader, [&](dummy_raft_member_t *m, signal_t *) {
-                m->get_readiness_for_config_change()->run_until_satisfied([&](bool v) {
-                    return v;
-                }, &final_interruptor);
-            });
+            cluster.run_on_member(leader, [&](dummy_raft_member_t *m, signal_t *) {
+                    m->get_readiness_for_config_change()->run_until_satisfied([&](bool v) {
+                        return v;
+                    }, &final_interruptor);
+                });
 
-        bool res = cluster.try_config_change(leader, final_config, &final_interruptor);
-        guarantee(res);
+            bool res = cluster.try_config_change(leader, final_config, &final_interruptor);
+            if (!res) {
+                ADD_FAILURE() << "final config change was not committed";
+            }
+        } catch (const interrupted_exc_t &) {
+            ADD_FAILURE() << "final raft fuzzer verification timed out";
+        }
     }
 
 private:
