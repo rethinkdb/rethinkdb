@@ -252,6 +252,13 @@ std::set<raft_member_id_t> dummy_raft_cluster_t::get_all_member_ids() {
     return member_ids;
 }
 
+raft_persistent_state_t<dummy_raft_state_t> dummy_raft_cluster_t::copy_persistent_state(
+        const raft_member_id_t &member_id) const {
+    member_info_t *info = members.at(member_id).get();
+    guarantee(info->live == live_t::dead);
+    return info->stored_state;
+}
+
 /* `run_on_member()` calls the given function for the `dummy_raft_member_t *` with
 the given ID. If the member is currently dead, it calls the function with a NULL
 pointer. */
