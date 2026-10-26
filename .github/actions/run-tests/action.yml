@@ -1,0 +1,38 @@
+name: Run tests
+description: >-
+  Run a test command and upload its output directory. Does not create the
+  output directory first: test/run treats an existing -o directory as an error.
+
+inputs:
+  command:
+    description: Shell command to run. TEST_OUTPUT_DIR is set for the command.
+    required: true
+  test_output_dir:
+    description: Directory the command should use for logs.
+    required: false
+    default: /tmp/test-results
+  artifact_suffix:
+    description: Optional suffix appended to the uploaded log artifact name.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Run test command
+      shell: bash
+      env:
+        TEST_COMMAND: ${{ inputs.command }}
+        TEST_OUTPUT_DIR: ${{ inputs.test_output_dir }}
+      run: |
+        set -euo pipefail
+        bash -euo pipefail -c "$TEST_COMMAND"
+
+    - name: Upload test logs
+      if: always()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: ${{ inputs.artifact_suffix == '' && format('test-logs-{0}', github.job) || format('test-logs-{0}-{1}', github.job, inputs.artifact_suffix) }}
+        path: ${{ inputs.test_output_dir }}
+        retention-days: 14
+        if-no-files-found: ignore

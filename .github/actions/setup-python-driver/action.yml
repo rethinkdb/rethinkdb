@@ -1,0 +1,72 @@
+name: Setup Python driver
+description: >-
+  Shallow-fetch the pinned rethinkdb-python commit and install it with Poetry
+  into the Python environment from actions/setup-python. Exports PYTHON_DRIVER
+  for later steps. Requires actions/setup-python earlier in the job.
+
+inputs:
+  commit:
+    description: rethinkdb-python commit to install.
+    required: false
+    # Baseline after the driver was extracted. Advance it only when the new
+    # failures are fixed; do not set to the driver's default branch.
+    default: d3d36d9d08abf3cc3fa91f70f3332e43bdcab766
+  dest:
+    description: Directory to clone the driver into.
+    required: false
+    default: /tmp/python-driver
+  poetry_version:
+    description: Exact Poetry 2.x release to install.
+    required: false
+    default: "2.5.1"
+
+runs:
+  using: composite
+  steps:
+    - name: Restore Poetry download cache
+      id: poetry-cache
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ~/.cache/pip
+          ~/.cache/pypoetry
+        key: poetry-ubuntu-24.04-${{ inputs.commit }}-${{ inputs.poetry_version }}
+
+    - name: Install Python driver
+      shell: bash
+      env:
+        DEBIAN_FRONTEND: noninteractive
+        DRIVER_COMMIT: ${{ inputs.commit }}
+        DRIVER_DEST: ${{ inputs.dest }}
+        POETRY_VERSION: ${{ inputs.poetry_version }}
+      run: |
+        set -euo pipefail
+        sudo apt-get update -o Acquire::Retries=5
+        sudo apt-get install -y --no-install-recommends rsync
+        rm -rf "$DRIVER_DEST"
+        mkdir -p "$DRIVER_DEST"
+        git init -b ci "$DRIVER_DEST"
+        git -C "$DRIVER_DEST" remote add origin https://github.com/rethinkdb/rethinkdb-python.git
+        git -C "$DRIVER_DEST" fetch --depth 1 origin "$DRIVER_COMMIT"
+        git -C "$DRIVER_DEST" checkout --detach FETCH_HEAD
+        python -m pip install --disable-pip-version-check "poetry==${POETRY_VERSION}"
+        (
+          cd "$DRIVER_DEST"
+          poetry config virtualenvs.create false
+          poetry install -E all
+        )
+        driver_path="${DRIVER_DEST}/rethinkdb"
+        if [[ ! -d "$driver_path" ]]; then
+          printf 'Python driver package not found at %s\n' "$driver_path" >&2
+          exit 1
+        fi
+        echo "PYTHON_DRIVER=${driver_path}" >> "$GITHUB_ENV"
+
+    - name: Save Poetry download cache
+      if: ${{ steps.poetry-cache.outputs.cache-hit != 'true' && success() }}
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          ~/.cache/pip
+          ~/.cache/pypoetry
+        key: ${{ steps.poetry-cache.outputs.cache-primary-key }}

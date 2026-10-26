@@ -1,0 +1,28 @@
+name: CI
+
+# Pull requests run style, build, unit, integration, and polyglot smoke tests.
+# Pushes to main and v2.4.x also run long tests. Manual dispatch runs the fast
+# suite only. The weekly full run lives in nightly.yml.
+
+on:
+  push:
+    branches:
+      - main
+      - v2.4.x
+  pull_request: {}
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  suite:
+    name: Test suite
+    uses: ./.github/workflows/test-suite.yml
+    with:
+      run_long_tests: ${{ github.event_name == 'push' }}

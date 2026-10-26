@@ -1,0 +1,24 @@
+name: Nightly
+
+# Full suite, including long tests. This does not also run on push: a push to
+# main or v2.4.x is already covered by ci.yml, so the server is built once.
+
+on:
+  schedule:
+    - cron: "0 8 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  suite:
+    name: Test suite
+    uses: ./.github/workflows/test-suite.yml
+    with:
+      run_long_tests: true

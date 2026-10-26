@@ -1,0 +1,139 @@
+name: Build RethinkDB
+description: >-
+  Configure and build a debug server, cache fetched support libraries and
+  ccache, and upload the runtime files tests need. Requires the build apt
+  profile earlier in the job. Stays on the caller's runner image so the
+  uploaded binaries match the test machines.
+
+inputs:
+  configure_args:
+    description: Arguments passed to ./configure.
+    required: false
+    default: --fetch boost --fetch gtest --fetch re2 --fetch jemalloc --fetch quickjs
+
+runs:
+  using: composite
+  steps:
+    - name: Restore support-library cache
+      id: support-cache
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          external/.cache
+          build/external
+        key: support-ubuntu-24.04-${{ hashFiles('mk/support/**', 'configure') }}
+
+    - name: Restore ccache
+      id: ccache
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/ccache
+        key: ccache-ubuntu-24.04-${{ github.sha }}
+        restore-keys: |
+          ccache-ubuntu-24.04-
+
+    - name: Enable ccache
+      shell: bash
+      run: |
+        set -euo pipefail
+        mkdir -p "${HOME}/.cache/ccache"
+        {
+          echo "CCACHE_DIR=${HOME}/.cache/ccache"
+          echo "CCACHE_MAXSIZE=2G"
+          echo "CC=ccache gcc"
+          echo "CXX=ccache g++"
+        } >> "$GITHUB_ENV"
+
+    - name: Configure
+      shell: bash
+      env:
+        CONFIGURE_ARGS: ${{ inputs.configure_args }}
+      run: |
+        set -euo pipefail
+        # CONFIGURE_ARGS is split on purpose; it is a fixed flag list from this action.
+        # shellcheck disable=SC2086
+        ./configure $CONFIGURE_ARGS
+
+    - name: Build support libraries
+      id: support
+      shell: bash
+      run: |
+        set -euo pipefail
+        make support -j"$(nproc)"
+
+    - name: Save support-library cache
+      if: ${{ steps.support-cache.outputs.cache-hit != 'true' && steps.support.outcome == 'success' }}
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: |
+          external/.cache
+          build/external
+        key: ${{ steps.support-cache.outputs.cache-primary-key }}
+
+    - name: Build debug binaries
+      id: compile
+      shell: bash
+      run: |
+        set -euo pipefail
+        make DEBUG=1 -j"$(nproc)"
+
+    - name: Save ccache
+      if: ${{ !cancelled() && steps.ccache.outputs.cache-hit != 'true' && (steps.compile.outcome == 'success' || steps.compile.outcome == 'failure') }}
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ~/.cache/ccache
+        key: ${{ steps.ccache.outputs.cache-primary-key }}
+
+    - name: Stage runtime files
+      shell: bash
+      run: |
+        set -euo pipefail
+        stage="${GITHUB_WORKSPACE}/ci-artifact"
+        libdir="${stage}/build/debug/lib"
+        lib_list="$(mktemp)"
+        trap 'rm -f "$lib_list"' EXIT
+        rm -rf "$stage"
+        mkdir -p "$libdir"
+        cp -a build/debug/rethinkdb build/debug/rethinkdb-unittest "${stage}/build/debug/"
+        if [[ -f build/debug/rethinkdb-gdb.py ]]; then
+          cp -a build/debug/rethinkdb-gdb.py "${stage}/build/debug/"
+        fi
+        ldd build/debug/rethinkdb build/debug/rethinkdb-unittest | awk '/=>/ { print $1, $3 }' | sort -u > "$lib_list"
+        while read -r soname target; do
+          case "$target" in
+            "")
+              continue
+              ;;
+            not)
+              printf 'ldd could not resolve %s\n' "$soname" >&2
+              exit 1
+              ;;
+            /lib/*|/usr/lib/*|/lib64/*|/usr/lib64/*)
+              continue
+              ;;
+          esac
+          if [[ ! -f "$target" ]]; then
+            printf 'Missing non-system library %s (%s)\n' "$soname" "$target" >&2
+            exit 1
+          fi
+          cp -L "$target" "${libdir}/${soname}"
+        done < "$lib_list"
+        rm -f "$lib_list"
+
+    - name: Upload build artifact
+      if: success()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: rethinkdb-build
+        path: ci-artifact/build
+        retention-days: 5
+        if-no-files-found: error
+
+    - name: Upload support logs
+      if: failure()
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: build-support-logs
+        path: build/external/*.log
+        retention-days: 14
+        if-no-files-found: ignore
