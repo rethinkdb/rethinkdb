@@ -1,0 +1,306 @@
+name: Test suite
+
+# Keep every job on ubuntu-24.04. ubuntu-latest is Ubuntu 26.04, and
+# ruby/setup-ruby has no prebuilt Ruby 2.7.8 for that image. The polyglot tag
+# stays rb2.7. The debug binary is also linked against this image's libprotobuf,
+# libcurl, and ncurses, so the build cannot move ahead of the Ruby job.
+#
+# Scripts run on Python 3.12. The Python driver pin lives in
+# .github/actions/setup-python-driver and is independent of that interpreter.
+#
+# Callers:
+#   ci.yml      pull requests run the fast suite; pushes to main and v2.4.x
+#               also run long tests
+#   nightly.yml weekly schedule and manual dispatch run the fast suite and
+#               long tests
+#
+# Branch protection should require the CI result check. Long tests are skipped
+# on pull requests, and that skipped job does not fail the result check.
+
+on:
+  workflow_call:
+    inputs:
+      run_long_tests:
+        description: Run the long-running test suite in addition to the fast suite.
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+  actions: write
+
+env:
+  TZ: UTC
+
+jobs:
+  preflight:
+    name: Preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        id: python
+        if: steps.checkout.outcome == 'success'
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Check C++ style
+        if: steps.python.outcome == 'success'
+        uses: ./.github/actions/run-tests
+        with:
+          artifact_suffix: cpplint
+          command: |
+            mkdir -p "$TEST_OUTPUT_DIR"
+            ./scripts/check_style.sh | tee "$TEST_OUTPUT_DIR/cpplint.log"
+
+  build:
+    name: Build
+    needs: preflight
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install build packages
+        uses: ./.github/actions/setup-apt
+        with:
+          profile: build
+
+      - name: Build debug server
+        uses: ./.github/actions/build
+
+  unit-tests:
+    name: Unit tests
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install runtime libraries
+        uses: ./.github/actions/setup-apt
+        with:
+          profile: runtime
+
+      - name: Restore build
+        uses: ./.github/actions/restore-build
+
+      - name: Run unit tests
+        uses: ./.github/actions/run-tests
+        with:
+          command: |
+            test/run --verbose --jobs "$(nproc)" -o "$TEST_OUTPUT_DIR" -H unit
+
+  integration-tests:
+    name: Integration tests
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install runtime libraries
+        uses: ./.github/actions/setup-apt
+        with:
+          profile: runtime
+
+      - name: Restore build
+        uses: ./.github/actions/restore-build
+
+      - name: Install Python driver
+        uses: ./.github/actions/setup-python-driver
+
+      - name: Run integration tests
+        uses: ./.github/actions/run-tests
+        with:
+          command: |
+            test/run --timeout 300 --jobs "$(nproc)" -o "$TEST_OUTPUT_DIR" -H all '!unit' '!cpplint' '!long' '!disabled'
+
+  polyglot:
+    name: Polyglot tests
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: python
+            interpreter: py3.12
+
+          # Interpreter tags select which driver tests run. Node stays 16.14
+          # and Ruby stays 2.7.8 until those tags move.
+          # JavaScript is pinned to the post-extraction baseline. Advance it
+          # only after the new failures are fixed.
+          - name: javascript
+            interpreter: js16.14
+            node_version: "16.14"
+            repo: https://github.com/rethinkdb/rethinkdb-javascript.git
+            commit: 9e3aa0a229d2f5759a5215844317dae4e7d58d10
+            dist: /tmp/driver/dist
+            install: npm install && npm run build
+            driver_env: JAVASCRIPT_DRIVER
+
+          - name: ruby
+            interpreter: rb2.7
+            ruby_version: "2.7.8"
+            repo: https://github.com/rethinkdb/rethinkdb-ruby.git
+            commit: e5b14cc26a9263a60ad88fb4443d4699b7eb6182
+            dist: /tmp/driver/lib
+            install: bundle update --bundler && bundle install && rake build
+            driver_env: RUBY_DRIVER
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Setup Node
+        if: matrix.name == 'javascript'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ matrix.node_version }}
+          package-manager-cache: false
+
+      - name: Setup Ruby
+        if: matrix.name == 'ruby'
+        uses: ruby/setup-ruby@7f797815d8adceb1c412e7abefdd1ab4abc47a5f # v1.335.0
+        with:
+          ruby-version: ${{ matrix.ruby_version }}
+
+      - name: Install runtime libraries
+        uses: ./.github/actions/setup-apt
+        with:
+          profile: runtime
+
+      - name: Restore build
+        uses: ./.github/actions/restore-build
+
+      - name: Install Python driver
+        uses: ./.github/actions/setup-python-driver
+
+      - name: Install external driver
+        if: matrix.name != 'python'
+        uses: ./.github/actions/setup-external-driver
+        with:
+          repo_url: ${{ matrix.repo }}
+          commit: ${{ matrix.commit }}
+          install_command: ${{ matrix.install }}
+
+      - name: Export driver location
+        if: matrix.name != 'python'
+        shell: bash
+        env:
+          DRIVER_ENV_NAME: ${{ matrix.driver_env }}
+          DRIVER_DIST_DIR: ${{ matrix.dist }}
+        run: |
+          set -euo pipefail
+          case "$DRIVER_ENV_NAME" in
+            JAVASCRIPT_DRIVER|RUBY_DRIVER) ;;
+            *)
+              printf 'Unexpected driver environment name: %s\n' "$DRIVER_ENV_NAME" >&2
+              exit 1
+              ;;
+          esac
+          printf '%s=%s\n' "$DRIVER_ENV_NAME" "$DRIVER_DIST_DIR" >> "$GITHUB_ENV"
+
+      - name: Run polyglot tests
+        uses: ./.github/actions/run-tests
+        with:
+          artifact_suffix: ${{ matrix.name }}
+          command: |
+            test/rql_test/test-runner --jobs "$(nproc)" --interpreter "${{ matrix.interpreter }}" -o "$TEST_OUTPUT_DIR" polyglot '!disabled'
+
+  long-tests:
+    name: Long tests
+    needs: build
+    if: inputs.run_long_tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - name: Install runtime libraries
+        uses: ./.github/actions/setup-apt
+        with:
+          profile: runtime
+
+      - name: Restore build
+        uses: ./.github/actions/restore-build
+
+      - name: Install Python driver
+        uses: ./.github/actions/setup-python-driver
+
+      - name: Run long tests
+        uses: ./.github/actions/run-tests
+        with:
+          command: |
+            test/run --timeout 900 --jobs "$(nproc)" -o "$TEST_OUTPUT_DIR" -H long '!disabled'
+
+  result:
+    name: CI result
+    needs:
+      - preflight
+      - build
+      - unit-tests
+      - integration-tests
+      - polyglot
+      - long-tests
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check job results
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          NEEDS_JSON: ${{ toJSON(needs) }}
+        with:
+          script: |
+            const needs = JSON.parse(process.env.NEEDS_JSON);
+            const allowed = new Set(["success", "skipped"]);
+            const lines = Object.entries(needs).map(([name, job]) => `${name}: ${job.result}`);
+            core.info(lines.join("\n"));
+            const bad = Object.entries(needs).filter(([, job]) => !allowed.has(job.result));
+            if (bad.length > 0) {
+              core.setFailed(bad.map(([name, job]) => `${name}: ${job.result}`).join("\n"));
+            }

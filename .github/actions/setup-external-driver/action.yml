@@ -1,0 +1,47 @@
+name: Setup external driver
+description: >-
+  Shallow-fetch a non-Python driver at a pinned commit and run its install
+  command. The install command is passed through the environment, not
+  interpolated into the shell script.
+
+inputs:
+  repo_url:
+    description: Git URL of the driver repository.
+    required: true
+  commit:
+    description: Commit to check out.
+    required: true
+  dest:
+    description: Directory to clone the driver into.
+    required: false
+    default: /tmp/driver
+  install_command:
+    description: Shell command that builds or installs the driver. Run from the clone.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Install external driver
+      shell: bash
+      env:
+        DRIVER_REPO_URL: ${{ inputs.repo_url }}
+        DRIVER_COMMIT: ${{ inputs.commit }}
+        DRIVER_DEST: ${{ inputs.dest }}
+        INSTALL_COMMAND: ${{ inputs.install_command }}
+      run: |
+        set -euo pipefail
+        if [[ -z "$DRIVER_REPO_URL" || -z "$DRIVER_COMMIT" || -z "$INSTALL_COMMAND" ]]; then
+          printf 'repo_url, commit, and install_command are required\n' >&2
+          exit 1
+        fi
+        rm -rf "$DRIVER_DEST"
+        mkdir -p "$DRIVER_DEST"
+        git init -b ci "$DRIVER_DEST"
+        git -C "$DRIVER_DEST" remote add origin "$DRIVER_REPO_URL"
+        git -C "$DRIVER_DEST" fetch --depth 1 origin "$DRIVER_COMMIT"
+        git -C "$DRIVER_DEST" checkout --detach FETCH_HEAD
+        (
+          cd "$DRIVER_DEST"
+          bash -euo pipefail -c "$INSTALL_COMMAND"
+        )

@@ -1,0 +1,37 @@
+name: Restore RethinkDB build
+description: >-
+  Download the rethinkdb-build artifact and place debug binaries at
+  build/debug, which is where the test runner looks. Zip upload clears the
+  executable bit, so the binaries are marked executable again here.
+
+runs:
+  using: composite
+  steps:
+    - name: Download build artifact
+      uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+      with:
+        name: rethinkdb-build
+        path: build
+
+    - name: Prepare debug binaries
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [[ ! -f build/debug/rethinkdb && -f build/build/debug/rethinkdb ]]; then
+          mv build/build/debug build/debug-from-artifact
+          rm -rf build/build
+          mv build/debug-from-artifact build/debug
+        fi
+        if [[ ! -f build/debug/rethinkdb || ! -f build/debug/rethinkdb-unittest ]]; then
+          printf 'Build artifact is missing build/debug/rethinkdb or rethinkdb-unittest.\n' >&2
+          find build -maxdepth 3 -type f -print >&2 || true
+          exit 1
+        fi
+        chmod a+x build/debug/rethinkdb build/debug/rethinkdb-unittest
+        if [[ -d build/debug/lib && -n "$(find build/debug/lib -mindepth 1 -print -quit)" ]]; then
+          if [[ -n "${LD_LIBRARY_PATH:-}" ]]; then
+            echo "LD_LIBRARY_PATH=${GITHUB_WORKSPACE}/build/debug/lib:${LD_LIBRARY_PATH}" >> "$GITHUB_ENV"
+          else
+            echo "LD_LIBRARY_PATH=${GITHUB_WORKSPACE}/build/debug/lib" >> "$GITHUB_ENV"
+          fi
+        fi
