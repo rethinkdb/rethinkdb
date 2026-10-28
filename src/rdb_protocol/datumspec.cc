@@ -1,3 +1,4 @@
+#include "containers/optional.hpp"
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "rdb_protocol/datumspec.hpp"
 
@@ -191,7 +192,7 @@ optional<std::map<store_key_t, uint64_t> > datumspec_t::primary_key_map() const 
             for (const auto &pair : m) {
                 ret[store_key_t(pair.first.print_primary())] = pair.second;
             }
-            return make_optional(ret);
+            return optional(ret);
         });
 }
 

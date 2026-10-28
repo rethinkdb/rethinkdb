@@ -215,14 +215,23 @@ public:
             server_name_map_t raft_state;
         };
 
-        change_t() { }
-        template<class T> change_t(T &&t) : v(std::move(t)) { }
+        change_t() = default;
+        
+        change_t(const set_table_config_t &t) : v(t) { }
+        change_t(const new_contracts_t &t) : v(t) { }
+        change_t(const new_member_ids_t &t) : v(t) { }
+        change_t(const new_server_names_t &t) : v(t) { }
+        
+        change_t(set_table_config_t &&t) : v(std::move(t)) { }
+        change_t(new_contracts_t &&t) : v(std::move(t)) { }
+        change_t(new_member_ids_t &&t) : v(std::move(t)) { }
+        change_t(new_server_names_t &&t) : v(std::move(t)) { }
 
         boost::variant<
             set_table_config_t,
             new_contracts_t,
             new_member_ids_t,
-            new_server_names_t> v;
+            new_server_names_t> v = set_table_config_t();
     };
 
     table_raft_state_t()

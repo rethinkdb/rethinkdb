@@ -1,6 +1,8 @@
 // Copyright 2010-2016 RethinkDB, all rights reserved.
 #include "clustering/administration/main/command_line.hpp"
 
+#include "rethinkdb_version.hpp"
+
 #include <errno.h>
 #include <inttypes.h>
 #include <signal.h>
@@ -167,7 +169,7 @@ optional<std::string> get_optional_option(const std::map<std::string, options::v
 
     if (it->second.values.size() == 1) {
         *source_out = it->second.source;
-        return make_optional(it->second.values[0]);
+        return optional<std::string>(it->second.values[0]);
     }
 
     throw std::logic_error("Option '%s' appears multiple times (when it should only appear once.)");
@@ -570,7 +572,7 @@ optional<optional<uint64_t> > parse_total_cache_size_option(
                 optional<uint64_t>(res));
         }
     } else {
-        return make_optional(optional<uint64_t>());
+        return optional<optional<uint64_t>>(optional<uint64_t>());
     }
 }
 

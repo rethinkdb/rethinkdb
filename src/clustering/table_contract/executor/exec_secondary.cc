@@ -101,7 +101,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             {
                 table_query_bcard_t tq_bcard;
                 tq_bcard.region = region;
-                tq_bcard.direct = make_optional(direct_query_server.get_bcard());
+                tq_bcard.direct = optional(direct_query_server.get_bcard());
                 directory_entry.create(
                     context->local_table_query_bcards, generate_uuid(), tq_bcard);
             }
@@ -204,7 +204,7 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
             {
                 table_query_bcard_t tq_bcard;
                 tq_bcard.region = region;
-                tq_bcard.direct = make_optional(direct_query_server.get_bcard());
+                tq_bcard.direct = optional(direct_query_server.get_bcard());
                 directory_entry.create(
                     context->local_table_query_bcards, generate_uuid(), tq_bcard);
             }
@@ -221,6 +221,6 @@ void secondary_execution_t::run(auto_drainer_t::lock_t keepalive) {
 void secondary_execution_t::send_ack(const contract_ack_t &ca) {
     assert_thread();
     params->send_ack(contract_id, ca);
-    last_ack = make_optional(ca);
+    last_ack = optional(ca);
 }
 

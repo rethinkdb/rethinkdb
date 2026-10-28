@@ -139,7 +139,7 @@ bool convert_connected_server_id_to_datum(
         server_config_client->get_server_config_map()->read_key(server_id,
             [&](const server_config_versioned_t *config) {
                 if (config != nullptr) {
-                    name = make_optional(config->config.name);
+                    name = optional<name_string_t>(config->config.name);
                 }
             });
         if (!static_cast<bool>(name)) {

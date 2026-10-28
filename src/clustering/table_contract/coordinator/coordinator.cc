@@ -51,7 +51,7 @@ optional<raft_log_index_t> contract_coordinator_t::change_config(
             is_noop = (change.new_config == state->state.config);
         });
         if (is_noop) {
-            return make_optional(log_index);
+            return optional(log_index);
         }
         change_token = raft->propose_change(
             &change_lock, table_raft_state_t::change_t(change));
@@ -66,7 +66,7 @@ optional<raft_log_index_t> contract_coordinator_t::change_config(
     if (!change_token->wait()) {
         return r_nullopt;
     }
-    return make_optional(log_index);
+    return optional(log_index);
 }
 
 bool contract_coordinator_t::check_all_replicas_ready(signal_t *interruptor) {
@@ -239,7 +239,7 @@ void contract_coordinator_t::pump_configs(signal_t *interruptor) {
                         new_config != sc->config.config) ||
                     (sc->config.is_joint_consensus() &&
                         new_config != *sc->config.new_config)) {
-                config_change = make_optional(new_config);
+                config_change = optional(new_config);
             }
         });
 

@@ -43,9 +43,9 @@ multi_client_client_t<request_type>::extract_registrar_business_card(
         const optional<optional<mc_business_card_t> > &bcard) {
     if (bcard) {
         if (bcard.get()) {
-            return make_optional(make_optional(bcard.get().get().registrar));
+            return optional<optional<registrar_business_card_t<client_business_card_t>>>(optional<registrar_business_card_t<client_business_card_t>>(bcard.get().get().registrar));
         } else {
-            return make_optional(optional<registrar_business_card_t<client_business_card_t> >());
+            return optional<optional<registrar_business_card_t<client_business_card_t>>>(optional<registrar_business_card_t<client_business_card_t> >());
         }
     }
     return r_nullopt;
