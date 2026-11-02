@@ -585,14 +585,14 @@ void multi_table_manager_t::do_sync(
                     auto it = st->state.member_ids.find(other_server_id);
                     if (it != st->state.member_ids.end()) {
                         action_status = action_status_t::ACTIVE;
-                        raft_member_id = make_optional(it->second);
-                        initial_raft_state = make_optional(
+                        raft_member_id = optional(it->second);
+                        initial_raft_state = optional(
                             table.active->get_raft()->get_state_for_init(
                                 raft_change_lock));
                     } else {
                         action_status = action_status_t::INACTIVE;
                         basic_config =
-                            make_optional(st->state.config.config.basic);
+                            optional(st->state.config.config.basic);
                     }
                 });
         }

@@ -1,0 +1,46 @@
+# RethinkDB MCP Server Configuration
+# ====================================
+# Copy this file and adjust for your deployment.
+# CLI flags override any value set here.
+
+# ---------------------------------------------------------------------------
+# [mcp] — Model Context Protocol server settings
+# ---------------------------------------------------------------------------
+[mcp]
+
+# enabled = true starts the MCP server; false disables it entirely.
+enabled = true
+
+# transport selects the wire protocol.
+#   "stdio"  — reads from stdin / writes to stdout (Claude Desktop default)
+#   "http"   — listens on `address` below (multi-client HTTP+SSE)
+transport = "stdio"
+
+# address is only used when transport = "http".
+address = "127.0.0.1:8081"
+
+# timeout is the deadline for each individual tool call.
+# Streaming subscriptions are not subject to this timeout.
+timeout = "30s"
+
+# ---------------------------------------------------------------------------
+# [rethinkdb] — database connection settings
+# ---------------------------------------------------------------------------
+[rethinkdb]
+
+# host and port of the RethinkDB node to connect to.
+host = "127.0.0.1"
+port = 28015
+
+# username and password are the default RethinkDB credentials.
+# MCP clients may supply per-session credentials via the _auth field in
+# the initialize request; those take precedence.
+username = "admin"
+password = ""
+
+# tls = true enables TLS for the driver connection.
+tls = false
+
+# max_connections is the size of the connection pool when transport = "http".
+# For stdio (single session) this is effectively 1.
+max_connections = 10

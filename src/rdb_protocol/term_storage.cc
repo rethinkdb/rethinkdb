@@ -409,7 +409,7 @@ rapidjson::Value convert_datum(const Datum &src,
         return rapidjson::Value(src.r_num());
     case Datum::R_STR:
         guarantee(src.has_r_str());
-        return rapidjson::Value(src.r_str(), *allocator);
+        return rapidjson::Value(src.r_str().c_str(), src.r_str().length(), *allocator);
     case Datum::R_ARRAY: {
         rapidjson::Value dest(rapidjson::kArrayType);
         for (int i = 0; i < src.r_array_size(); ++i) {
@@ -427,7 +427,7 @@ rapidjson::Value convert_datum(const Datum &src,
                     const Datum_AssocPair &item = src.r_object(i);
                     guarantee(item.has_key());
                     guarantee(item.has_val());
-                    dest.AddMember(rapidjson::Value(item.key(), *allocator),
+                    dest.AddMember(rapidjson::Value(item.key().c_str(), item.key().length(), *allocator),
                                    convert_datum(item.val(), allocator), *allocator);
                 }, MIN_TERM_TREE_STACK_SPACE);
         }
@@ -454,7 +454,7 @@ rapidjson::Value convert_optargs(const Term &src,
         const Term_AssocPair &optarg = src.optargs(i);
         guarantee(optarg.has_key());
         guarantee(optarg.has_val());
-        dest.AddMember(rapidjson::Value(optarg.key(), *allocator),
+        dest.AddMember(rapidjson::Value(optarg.key().c_str(), optarg.key().length(), *allocator),
                        convert_term_tree(optarg.val(), allocator), *allocator);
     }
     return dest;

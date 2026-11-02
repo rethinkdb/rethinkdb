@@ -43,7 +43,7 @@ permissions_t::permissions_t(ql::datum_t const &datum, bool global)
       m_config(tribool::Indeterminate),
       m_connect(
         global
-            ? make_optional(tribool::Indeterminate)
+            ? optional<tribool>(tribool::Indeterminate)
             : r_nullopt) {
     merge(datum);
 }
@@ -186,7 +186,7 @@ permissions_t::to_tuple() const {
         static_cast<int8_t>(m_write),
         static_cast<int8_t>(m_config),
         m_connect.has_value()
-            ? make_optional(static_cast<int8_t>(m_connect.get()))
+            ? optional<int8_t>(static_cast<int8_t>(m_connect.get()))
             : r_nullopt);
 }
 

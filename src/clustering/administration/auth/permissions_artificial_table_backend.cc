@@ -185,7 +185,7 @@ bool permissions_artificial_table_backend_t::read_row(
         case 3:
             table_to_datum(
                 username,
-                make_optional(database_id),
+                optional<database_id_t>(database_id),
                 table_id,
                 user->second.get_ref()->get_table_permissions(table_id),
                 cluster_metadata,
@@ -330,7 +330,7 @@ bool permissions_artificial_table_backend_t::write_row(
 
                             optional<table_basic_config_t> table_basic_config =
                                 m_name_resolver.table_id_to_basic_config(
-                                    table_id_primary, make_optional(database_id_primary));
+                                    table_id_primary, optional<database_id_t>(database_id_primary));
                             if (!static_cast<bool>(table_basic_config) ||
                                     table_basic_config->name != table_name) {
                                 *error_out = admin_err_t{

@@ -40,7 +40,7 @@ bool grant(
     if (!rdb_context->cluster_interface->table_find(
             name_string_t::guarantee_valid("permissions"),
             db,
-            make_optional(admin_identifier_format_t::uuid),
+            optional<admin_identifier_format_t>(admin_identifier_format_t::uuid),
             interruptor,
             &table,
             error_out)) {

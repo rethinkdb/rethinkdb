@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <limits>
 #include <cmath>
+#include <random>
 
 #include "math.hpp"
 #include "rdb_protocol/datum_stream/array.hpp"
@@ -65,7 +66,7 @@ public:
             }
         }
 
-        std::random_shuffle(result.begin(), result.end());
+        std::shuffle(result.begin(), result.end(), std::mt19937(std::random_device()()));
 
         counted_t<datum_stream_t> new_ds(
             new array_datum_stream_t(datum_t(std::move(result), env->env->limits()),
