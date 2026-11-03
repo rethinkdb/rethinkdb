@@ -44,7 +44,7 @@ OS_RELEASE="${os_release}" \
     "${source_dir}/scripts/gen-changelog.sh" > "${pkg_dir}/debian/changelog"
 printf '%s\n' "${deb_version}" > "${pkg_dir}/debian/rethinkdb.version"
 
-build_depends="curl, m4, debhelper, fakeroot, libncurses-dev, libcurl4-openssl-dev, g++, python3, python-is-python3, libssl-dev, cmake"
+build_depends="m4, debhelper, fakeroot, libncurses-dev, libcurl4-openssl-dev, g++, python3, python-is-python3, libssl-dev, cmake"
 if [[ "${BUILD_PORTABLE:-0}" != 1 ]]; then
     build_depends+=", protobuf-compiler, libprotobuf-dev"
 fi
