@@ -58,9 +58,15 @@ m4 \
 rm -f "${pkg_dir}/debian/control.in"
 
 if [[ "${mode}" == binary ]]; then
+    jobs=$(sh "${source_dir}/cmake/parallel-jobs.sh")
+    if [[ ! "${jobs}" =~ ^[1-9][0-9]*$ ]]; then
+        printf 'parallel-jobs.sh returned %s\n' "${jobs}" >&2
+        exit 1
+    fi
+    printf 'Using %s compile jobs\n' "${jobs}"
     (
         cd "${pkg_dir}"
-        dpkg-buildpackage --jobs=auto -rfakeroot "${sign_args[@]}"
+        dpkg-buildpackage --jobs="${jobs}" -rfakeroot "${sign_args[@]}"
     )
 else
     (

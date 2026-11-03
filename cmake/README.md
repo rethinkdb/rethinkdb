@@ -65,7 +65,9 @@ Feature switches, all default `OFF`: `RETHINKDB_NO_EPOLL`,
   fetch options must have been enabled at configure time. `RETHINKDB_BUILD_PORTABLE`
   also copies the Protobuf tree.
 - `cmake --build build/debug --target build-deb-src` and `build-deb` wrap
-  `debuild` / `dpkg-buildpackage`.
+  `debuild` / `dpkg-buildpackage`. The binary package builds the server only
+  (`BUILD_TESTING=OFF`). Compile jobs come from `cmake/parallel-jobs.sh`, which
+  caps `dpkg-buildpackage --jobs=auto` to what fits in RAM.
 - `cmake --build build/release --target build-osx` builds the disk image on macOS.
 - `cpack` in the build directory builds a binary TGZ, and DEB/RPM or DragNDrop
   when that generator applies.
