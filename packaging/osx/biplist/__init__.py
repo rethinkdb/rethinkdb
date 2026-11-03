@@ -108,6 +108,10 @@ class Uid(object):
 class Data(bytes):
     """Wrapper around bytes to distinguish Data values."""
 
+# plistlib.Data was removed. Current plistlib represents data as bytes.
+_LEGACY_PLIST_DATA = getattr(plistlib, 'Data', None)
+_BINARY_DATA_TYPES = (bytes, _LEGACY_PLIST_DATA) if _LEGACY_PLIST_DATA else (bytes,)
+
 class InvalidPlistException(Exception):
     """Raised when the plist is incorrectly formatted."""
 
@@ -151,7 +155,7 @@ def wrapDataObject(o, for_binary=False):
         v = sys.version_info
         if not (v[0] >= 3 and v[1] >= 4):
             o = plistlib.Data(o)
-    elif isinstance(o, (bytes, plistlib.Data)) and for_binary:
+    elif isinstance(o, _BINARY_DATA_TYPES) and for_binary:
         if hasattr(o, 'data'):
             o = Data(o.data)
     elif isinstance(o, tuple):
