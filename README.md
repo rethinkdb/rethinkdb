@@ -66,8 +66,7 @@ Building
 
 First install some dependencies.  For example, on Ubuntu or Debian:
 
-    sudo apt-get install build-essential protobuf-compiler \
-        # python \  # for older distros
+    sudo apt-get install build-essential cmake protobuf-compiler \
         python3 python-is-python3 \
         libprotobuf-dev libcurl4-openssl-dev \
         libncurses5-dev libjemalloc-dev wget m4 g++ libssl-dev
@@ -78,24 +77,31 @@ Generally, you will need
 * Protocol Buffers
 * jemalloc
 * Ncurses
-* Python 2 or Python 3
+* Python 3
 * libcurl
 * libcrypto (OpenSSL)
 * libssl-dev
 
 Then, to build:
 
-    ./configure --allow-fetch
-    # or run ./configure --allow-fetch CXX=clang++
+    cmake --preset debug -DRETHINKDB_FETCH_BOOST=ON \
+        -DRETHINKDB_FETCH_RE2=ON \
+        -DRETHINKDB_FETCH_QUICKJS=ON \
+        -DRETHINKDB_FETCH_GTEST=ON
 
-    make -j4
-    # or run make -j4 DEBUG=1
+    cmake --build --preset debug --parallel 4
 
-    sudo make install
-    # or run ./build/debug_clang/rethinkdb
+    cmake --preset release
+    cmake --build --preset release --parallel 4
 
-See WINDOWS.md and mk/README.md for build instructions for Windows and
-FreeBSD.
+    sudo cmake --install build/release
+    # or run ./build/debug/rethinkdb
+
+On Linux the debug preset should also pass `-DRETHINKDB_FETCH_JEMALLOC=ON`.
+OpenSSL, zlib, curl, and Protobuf come from the system unless you set
+`RETHINKDB_FETCH_<NAME>=ON`. The server is C++17 (`CMAKE_CXX_EXTENSIONS` is
+`OFF`). See WINDOWS.md and mk/README.md for Windows, FreeBSD, and the full
+option list.
 
 Need help?
 ----------
