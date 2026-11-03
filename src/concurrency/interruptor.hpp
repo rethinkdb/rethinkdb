@@ -11,7 +11,7 @@ class signal_t;
 `utils.hpp` because I can't think where else to put it */
 class interrupted_exc_t : public std::exception {
 public:
-    const char *what() const throw () {
+    const char *what() const noexcept {
         return "interrupted";
     }
 };

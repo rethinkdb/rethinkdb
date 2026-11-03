@@ -48,11 +48,11 @@ public:
         : message("UNINITIALIZED"), query_state(query_state_t::FAILED) { }
     cannot_perform_query_exc_t(const std::string &s, query_state_t _query_state)
         : message(s), query_state(_query_state) { }
-    ~cannot_perform_query_exc_t() throw () { }
-    const char *what() const throw () {
+    ~cannot_perform_query_exc_t() noexcept { }
+    const char *what() const noexcept {
         return message.c_str();
     }
-    query_state_t get_query_state() const throw () { return query_state; }
+    query_state_t get_query_state() const noexcept { return query_state; }
 private:
     RDB_DECLARE_ME_SERIALIZABLE(cannot_perform_query_exc_t);
     std::string message;

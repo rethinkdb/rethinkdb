@@ -212,7 +212,7 @@ void minidir_write_manager_t<reader_id_t, key_t, value_t>::on_reader_change(
 
         /* Send initial values to the new reader */
         values->read_all([&](const key_t &key, const value_t *value) {
-            this->spawn_update(link_data, key, make_optional(*value));
+            this->spawn_update(link_data, key, ::make_optional(*value));
         });
     } else {
         /* Remove the entry in the link map. Unfortunately, we don't know which peer it's
@@ -244,7 +244,7 @@ void minidir_write_manager_t<reader_id_t, key_t, value_t>::spawn_update(
     coro_t::spawn_sometime([this, keepalive /* important to capture */, bcard, link_id,
             write_token, key, value] {
         send(mailbox_manager, bcard.update_mailbox,
-             {mailbox_manager->get_me(), link_id, write_token, false, make_optional(key), value});
+             {mailbox_manager->get_me(), link_id, write_token, false, ::make_optional(key), value});
     });
 }
 
