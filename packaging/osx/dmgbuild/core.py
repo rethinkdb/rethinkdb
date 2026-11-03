@@ -2,7 +2,7 @@
 
 
 import os
-import pkg_resources
+from importlib.resources import files as resource_files
 import re
 import shutil
 import stat
@@ -132,18 +132,18 @@ def build_dmg(filename, volume_name, settings_file=None, defines={}, lookForHiDP
     bounds = settings['window_rect']
     
     bwsp = {
-        b'ShowStatusBar': settings['show_status_bar'],
-        b'WindowBounds': b'{{%s, %s}, {%s, %s}}' % (bounds[0][0],
-                                                    bounds[0][1],
-                                                    bounds[1][0],
-                                                    bounds[1][1]),
-        b'ContainerShowSidebar': False,
-        b'PreviewPaneVisibility': False,
-        b'SidebarWidth': settings['sidebar_width'],
-        b'ShowTabView': settings['show_tab_view'],
-        b'ShowToolbar': settings['show_toolbar'],
-        b'ShowPathbar': settings['show_pathbar'],
-        b'ShowSidebar': settings['show_sidebar']
+        'ShowStatusBar': settings['show_status_bar'],
+        'WindowBounds': '{{%s, %s}, {%s, %s}}' % (bounds[0][0],
+                                                  bounds[0][1],
+                                                  bounds[1][0],
+                                                  bounds[1][1]),
+        'ContainerShowSidebar': False,
+        'PreviewPaneVisibility': False,
+        'SidebarWidth': settings['sidebar_width'],
+        'ShowTabView': settings['show_tab_view'],
+        'ShowToolbar': settings['show_toolbar'],
+        'ShowPathbar': settings['show_pathbar'],
+        'ShowSidebar': settings['show_sidebar']
         }
 
     arrange_options = {
@@ -158,22 +158,22 @@ def build_dmg(filename, volume_name, settings_file=None, defines={}, lookForHiDP
         }
 
     icvp = {
-        b'viewOptionsVersion': 1,
-        b'backgroundType': 0,
-        b'backgroundColorRed': 1.0,
-        b'backgroundColorGreen': 1.0,
-        b'backgroundColorBlue': 1.0,
-        b'gridOffsetX': float(settings['grid_offset'][0]),
-        b'gridOffsetY': float(settings['grid_offset'][1]),
-        b'gridSpacing': float(settings['grid_spacing']),
-        b'arrangeBy': str(arrange_options.get(settings['arrange_by'], 'none')),
-        b'showIconPreview': settings['show_icon_preview'] == True,
-        b'showItemInfo': settings['show_item_info'] == True,
-        b'labelOnBottom': settings['label_pos'] == 'bottom',
-        b'textSize': float(settings['text_size']),
-        b'iconSize': float(settings['icon_size']),
-        b'scrollPositionX': float(settings['scroll_position'][0]),
-        b'scrollPositionY': float(settings['scroll_position'][1])
+        'viewOptionsVersion': 1,
+        'backgroundType': 0,
+        'backgroundColorRed': 1.0,
+        'backgroundColorGreen': 1.0,
+        'backgroundColorBlue': 1.0,
+        'gridOffsetX': float(settings['grid_offset'][0]),
+        'gridOffsetY': float(settings['grid_offset'][1]),
+        'gridSpacing': float(settings['grid_spacing']),
+        'arrangeBy': str(arrange_options.get(settings['arrange_by'], 'none')),
+        'showIconPreview': settings['show_icon_preview'] == True,
+        'showItemInfo': settings['show_item_info'] == True,
+        'labelOnBottom': settings['label_pos'] == 'bottom',
+        'textSize': float(settings['text_size']),
+        'iconSize': float(settings['icon_size']),
+        'scrollPositionX': float(settings['scroll_position'][0]),
+        'scrollPositionY': float(settings['scroll_position'][1])
         }
 
     background = settings['background']
@@ -218,15 +218,15 @@ def build_dmg(filename, volume_name, settings_file=None, defines={}, lookForHiDP
         }
         
     lsvp = {
-        b'viewOptionsVersion': 1,
-        b'sortColumn': columns.get(settings['list_sort_by'], 'name'),
-        b'textSize': float(settings['list_text_size']),
-        b'iconSize': float(settings['list_icon_size']),
-        b'showIconPreview': settings['show_icon_preview'],
-        b'scrollPositionX': settings['list_scroll_position'][0],
-        b'scrollPositionY': settings['list_scroll_position'][1],
-        b'useRelativeDates': settings['list_use_relative_dates'],
-        b'calculateAllSizes': settings['list_calculate_all_sizes'],
+        'viewOptionsVersion': 1,
+        'sortColumn': columns.get(settings['list_sort_by'], 'name'),
+        'textSize': float(settings['list_text_size']),
+        'iconSize': float(settings['list_icon_size']),
+        'showIconPreview': settings['show_icon_preview'],
+        'scrollPositionX': settings['list_scroll_position'][0],
+        'scrollPositionY': settings['list_scroll_position'][1],
+        'useRelativeDates': settings['list_use_relative_dates'],
+        'calculateAllSizes': settings['list_calculate_all_sizes'],
         }
 
     lsvp['columns'] = {}
@@ -266,13 +266,13 @@ def build_dmg(filename, volume_name, settings_file=None, defines={}, lookForHiDP
     
     default_view = settings['default_view']
     views = {
-        'icon-view': b'icnv',
-        'column-view': b'clmv',
-        'list-view': b'Nlsv',
-        'coverflow': b'Flwv'
+        'icon-view': 'icnv',
+        'column-view': 'clmv',
+        'list-view': 'Nlsv',
+        'coverflow': 'Flwv'
         }
 
-    icvl = (b'type', views.get(default_view, 'icnv'))
+    icvl = ('type', views.get(default_view, 'icnv'))
 
     include_icon_view_settings = default_view == 'icon-view' \
         or settings['include_icon_view_settings'] not in \
@@ -330,12 +330,11 @@ def build_dmg(filename, volume_name, settings_file=None, defines={}, lookForHiDP
         if not isinstance(background, str):
             pass
         elif background == 'builtin-arrow':
-            tiffdata = pkg_resources.resource_string(
-                'dmgbuild', 
-                'resources/builtin-arrow.tiff')
+            tiffdata = resource_files(__package__).joinpath(
+                'resources', 'builtin-arrow.tiff').read_bytes()
             path_in_image = os.path.join(mount_point, '.background.tiff')
-            
-            with open(path_in_image, 'w') as f:
+
+            with open(path_in_image, 'wb') as f:
                 f.write(tiffdata)
 
             alias = Alias.for_file(path_in_image)
@@ -362,7 +361,7 @@ def build_dmg(filename, volume_name, settings_file=None, defines={}, lookForHiDP
                     imageDirectory = '.'
                 for candidateName in os.listdir(imageDirectory):
                     hasScale = re.match(
-                        '^(?P<name>.+)@(?P<scale>\d+)x(?P<extension>\.\w+)$',
+                        r'^(?P<name>.+)@(?P<scale>\d+)x(?P<extension>\.\w+)$',
                         candidateName)
                     if hasScale and name == hasScale.group('name') and \
                         extension == hasScale.group('extension'):
