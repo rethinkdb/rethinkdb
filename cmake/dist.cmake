@@ -1,6 +1,12 @@
 # Copyright 2026 RethinkDB, all rights reserved.
 #
 # Build a distribution package for the server.
+#
+# This file runs under `cmake -P`, which does not inherit policies from
+# CMakeLists.txt. Without this, CMP0057 stays unset and `if(IN_LIST)` is a
+# syntax error.
+
+cmake_minimum_required(VERSION 3.24)
 
 if(NOT SOURCE_DIR OR NOT BINARY_DIR OR NOT RETHINKDB_VERSION OR NOT PROTO_CC OR NOT PROTO_H)
     message(FATAL_ERROR "dist.cmake is missing a required -D argument")
@@ -57,9 +63,10 @@ if(BUILD_PORTABLE)
 endif()
 foreach(name IN LISTS required)
     if(NOT name IN_LIST copied)
+        string(TOUPPER "${name}" name_upper)
         message(FATAL_ERROR
             "Source package is missing fetched ${name}. "
-            "Reconfigure with -DRETHINKDB_FETCH_${name}=ON and build the dist target again.")
+            "Reconfigure with -DRETHINKDB_FETCH_${name_upper}=ON and build the dist target again.")
     endif()
 endforeach()
 
