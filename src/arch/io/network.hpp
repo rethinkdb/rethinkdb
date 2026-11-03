@@ -63,11 +63,11 @@ public:
             error(en),
             info("Could not make connection: " + errno_string(error)) { }
 
-        const char *what() const throw () {
+        const char *what() const noexcept {
             return info.c_str();
         }
 
-        ~connect_failed_exc_t() throw () { }
+        ~connect_failed_exc_t() noexcept { }
 
         const int error;
         const std::string info;

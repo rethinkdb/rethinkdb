@@ -15,7 +15,7 @@
 class uuid_u;
 
 struct fake_archive_exc_t {
-    const char *what() const throw() {
+    const char *what() const noexcept {
         return "Writing to a tcp stream failed.";
     }
 };
@@ -59,8 +59,8 @@ const char *archive_result_as_str(archive_result_t archive_result);
 class archive_exc_t : public std::exception {
 public:
     explicit archive_exc_t(std::string _s) : s(std::move(_s)) { }
-    ~archive_exc_t() throw () { }
-    const char *what() const throw() {
+    ~archive_exc_t() noexcept { }
+    const char *what() const noexcept {
         return s.c_str();
     }
 private:

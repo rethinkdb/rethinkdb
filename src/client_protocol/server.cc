@@ -11,8 +11,6 @@
 
 #include <time.h> // NOLINT(build/include_order)
 
-#include <google/protobuf/stubs/common.h> // NOLINT(build/include_order)
-
 #include <array> // NOLINT(build/include_order)
 #include <random> // NOLINT(build/include_order)
 #include <set> // NOLINT(build/include_order)
