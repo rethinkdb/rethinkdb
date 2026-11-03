@@ -7,6 +7,12 @@ PVERSION?=$(shell cat debian/rethinkdb.version)
 DEBUG?=0
 BUILD_PORTABLE?=0
 BUILD_DIR:=$(CURDIR)/build/debian
+# --jobs=auto follows the CPU count. These translation units are built -O3 -g
+# and a single cc1plus can use about 1.5 GiB, so the job count follows RAM.
+JOBS:=$(shell sh $(CURDIR)/cmake/parallel-jobs.sh)
+ifeq ($(strip $(JOBS)),)
+$(error cmake/parallel-jobs.sh did not print a job count)
+endif
 
 ifeq ($(DEBUG),0)
 CMAKE_BUILD_TYPE:=Release
@@ -24,8 +30,12 @@ CMAKE_FLAGS+=-DRETHINKDB_SYMBOLS=ON
 CMAKE_FLAGS+=-DRETHINKDB_FETCH_BOOST=ON
 CMAKE_FLAGS+=-DRETHINKDB_FETCH_RE2=ON
 CMAKE_FLAGS+=-DRETHINKDB_FETCH_QUICKJS=ON
-CMAKE_FLAGS+=-DRETHINKDB_FETCH_GTEST=ON
 CMAKE_FLAGS+=-DRETHINKDB_FETCH_JEMALLOC=ON
+# The binary package does not install unit tests. Building them compiles the
+# tests and links a second binary larger than the server.
+CMAKE_FLAGS+=-DBUILD_TESTING=OFF
+# GNU ld otherwise keeps the whole -g symbol table resident.
+CMAKE_FLAGS+=-DCMAKE_EXE_LINKER_FLAGS=-Wl,--no-keep-memory
 ifeq ($(BUILD_PORTABLE),1)
 CMAKE_FLAGS+=-DRETHINKDB_BUILD_PORTABLE=ON
 CMAKE_FLAGS+=-DRETHINKDB_FETCH_PROTOBUF=ON
@@ -41,8 +51,9 @@ install: build
 	DESTDIR=$(CURDIR)/debian/$(package) cmake --install $(BUILD_DIR)
 
 build:
+	echo "Compile jobs: $(JOBS)"
 	cmake -S . -B $(BUILD_DIR) $(CMAKE_FLAGS)
-	cmake --build $(BUILD_DIR) --parallel
+	env MAKEFLAGS= MFLAGS= cmake --build $(BUILD_DIR) --parallel $(JOBS)
 	touch build
 
 binary-indep: install
