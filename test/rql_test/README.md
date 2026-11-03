@@ -40,10 +40,10 @@ Examples:
 
 ### Dependencies
 
-Before all the tests will work, you must `./configure` and build RethinkDB, install node.js, as well as install the node.js mocha test framework.
+Before all the tests will work, you must configure and build RethinkDB with CMake, install node.js, as well as install the node.js mocha test framework.
 
 ```
-make -C ../..
+cmake --build ../.. --parallel
 sudo npm install -g mocha
 ```
 

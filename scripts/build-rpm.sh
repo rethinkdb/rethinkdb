@@ -25,9 +25,25 @@ getent passwd rethinkdb >/dev/null || \
     --comment "RethinkDB Daemon" rethinkdb
 EOF
 
-    test -n "${NOCONFIGURE:-}" || ./configure --fetch jemalloc --fetch boost --fetch re2 --fetch quickjs --fetch protobuf --prefix=/usr --sysconfdir=/etc --localstatedir=/var
+    if [[ -z "${NOCONFIGURE:-}" ]]; then
+        cmake -S . -B build/release \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=/usr \
+            -DCMAKE_INSTALL_SYSCONFDIR=/etc \
+            -DRETHINKDB_LOCALSTATEDIR=/var \
+            -DRETHINKDB_FETCH_JEMALLOC=ON \
+            -DRETHINKDB_FETCH_BOOST=ON \
+            -DRETHINKDB_FETCH_RE2=ON \
+            -DRETHINKDB_FETCH_QUICKJS=ON \
+            -DRETHINKDB_FETCH_PROTOBUF=ON \
+            -DRETHINKDB_BUILD_PORTABLE=ON \
+            -DRETHINKDB_ALLOW_WARNINGS=ON \
+            -DRETHINKDB_SPLIT_SYMBOLS=ON \
+            -DRETHINKDB_ALLOCATOR=jemalloc
+    fi
 
-    `make command-line` install DESTDIR=$RPM_ROOT BUILD_PORTABLE=1 ALLOW_WARNINGS=1 SPLIT_SYMBOLS=1
+    cmake --build build/release --parallel
+    DESTDIR="$RPM_ROOT" cmake --install build/release
 
     ... () { command="$command $(for x in "$@"; do printf "%q " "$x"; done)"; }
 

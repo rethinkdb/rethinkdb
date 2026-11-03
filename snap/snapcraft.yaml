@@ -14,24 +14,31 @@ confinement: strict
 
 apps:
   rethinkdb:
-    command: usr/local/bin/rethinkdb
+    command: usr/bin/rethinkdb
     plugs: [home, network, network-bind]
 
 parts:
   rethinkdb:
     source: .
-    plugin: autotools
+    plugin: cmake
     build-packages:
       - build-essential
+      - cmake
       - protobuf-compiler
       - python3
       - python-is-python3
       - libprotobuf-dev
       - libcurl4-openssl-dev
       - libssl-dev
-      - libncurses5-dev
-      - libjemalloc-dev
+      - libncurses-dev
       - wget
       - m4
       - g++
-    configflags: ['--allow-fetch']
+    cmake-parameters:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DCMAKE_INSTALL_PREFIX=/usr
+      - -DRETHINKDB_FETCH_BOOST=ON
+      - -DRETHINKDB_FETCH_RE2=ON
+      - -DRETHINKDB_FETCH_QUICKJS=ON
+      - -DRETHINKDB_FETCH_JEMALLOC=ON
+      - -DBUILD_TESTING=OFF

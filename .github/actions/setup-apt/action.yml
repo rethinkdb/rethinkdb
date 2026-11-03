@@ -24,6 +24,7 @@ runs:
             packages=(
               build-essential
               g++
+              cmake
               m4
               pkg-config
               git

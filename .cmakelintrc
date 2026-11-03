@@ -1,0 +1,9 @@
+# cmakelint's defaults are 2-space indent and 80 columns.
+spaces=4
+linelength=132
+quiet
+
+# FetchContent_Declare, ExternalProject_Add, and the other module commands are
+# mixed case in upstream CMake. cmakelint treats every Name( as a command, so
+# readability/wonkycase flags those calls.
+filter=-readability/wonkycase
