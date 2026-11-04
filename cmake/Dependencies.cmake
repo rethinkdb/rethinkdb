@@ -147,22 +147,10 @@ else()
     message(STATUS "Using the system allocator")
 endif()
 
-find_library(RETHINKDB_TERMCAP_LIBRARY NAMES termcap tinfo ncurses ncursesw)
-add_library(RethinkDB_termcap INTERFACE)
-add_library(RethinkDB::termcap ALIAS RethinkDB_termcap)
-if(RETHINKDB_TERMCAP_LIBRARY)
-    target_link_libraries(RethinkDB_termcap INTERFACE "${RETHINKDB_TERMCAP_LIBRARY}")
-    target_compile_definitions(RethinkDB_termcap INTERFACE HAS_TERMCAP)
-    message(STATUS "Using termcap ${RETHINKDB_TERMCAP_LIBRARY}")
-else()
-    message(STATUS "termcap/ncurses was not found; the server will link without it")
-endif()
-
 function(rethinkdb_link_runtime target)
     target_link_libraries("${target}" PRIVATE
         RethinkDB::boost
         RethinkDB::re2
-        RethinkDB::termcap
         RethinkDB::quickjs
         RethinkDB::curl
         RethinkDB::ssl

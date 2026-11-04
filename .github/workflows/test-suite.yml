@@ -2,8 +2,8 @@ name: Test suite
 
 # Keep every job on ubuntu-24.04. ubuntu-latest is Ubuntu 26.04, and
 # ruby/setup-ruby has no prebuilt Ruby 2.7.8 for that image. The polyglot tag
-# stays rb2.7. The debug binary is also linked against this image's libprotobuf,
-# libcurl, and ncurses, so the build cannot move ahead of the Ruby job.
+# stays rb2.7. The debug binary is also linked against this image's libprotobuf
+# and libcurl, so the build cannot move ahead of the Ruby job.
 #
 # Scripts run on Python 3.12. The Python driver pin lives in
 # .github/actions/setup-python-driver and is independent of that interpreter.

@@ -92,25 +92,89 @@ install(DIRECTORY "${CMAKE_BINARY_DIR}/empty-install/"
 string(REPLACE "-" "+" RETHINKDB_DEBIAN_VERSION "${RETHINKDB_VERSION}")
 string(REPLACE "-" "_" RETHINKDB_RPM_VERSION "${RETHINKDB_VERSION}")
 
+execute_process(
+    COMMAND "${CMAKE_SOURCE_DIR}/scripts/gen-version.sh" -r
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    OUTPUT_VARIABLE RETHINKDB_PACKAGE_RELEASE
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+    ERROR_QUIET
+    RESULT_VARIABLE _rethinkdb_release_result
+)
+string(STRIP "${RETHINKDB_PACKAGE_RELEASE}" RETHINKDB_PACKAGE_RELEASE)
+if(NOT _rethinkdb_release_result EQUAL 0
+        OR NOT RETHINKDB_PACKAGE_RELEASE MATCHES "^[1-9][0-9]*$")
+    set(RETHINKDB_PACKAGE_RELEASE "1")
+endif()
+
+set(_rethinkdb_debug_packages FALSE)
+if(RETHINKDB_SYMBOLS
+        AND NOT RETHINKDB_SPLIT_SYMBOLS
+        AND NOT RETHINKDB_STRIP_ON_INSTALL)
+    set(_rethinkdb_debug_packages TRUE)
+endif()
+
 set(CPACK_PACKAGE_NAME "rethinkdb")
 set(CPACK_PACKAGE_VENDOR "RethinkDB")
+set(CPACK_PACKAGE_CONTACT "RethinkDB <packaging@rethinkdb.com>")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "The open-source database for the realtime web")
-set(CPACK_PACKAGE_VERSION "${RETHINKDB_RPM_VERSION}")
-set(CPACK_PACKAGE_CONTACT "packaging@rethinkdb.com")
+set(CPACK_PACKAGE_DESCRIPTION_FILE "${CMAKE_SOURCE_DIR}/packaging/description.txt")
+set(CPACK_PACKAGE_VERSION "${RETHINKDB_VERSION}")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/packaging/assets/docs/LICENSE")
+set(CPACK_SET_DESTDIR ON)
+# State directories are absolute, so the packages are not relocatable.
+set(CPACK_PACKAGE_RELOCATABLE OFF)
+set(CPACK_RPM_PACKAGE_RELOCATABLE OFF)
+set(CPACK_GENERATOR "TGZ")
+set(CPACK_OUTPUT_FILE_PREFIX "${CMAKE_BINARY_DIR}/packages/tgz")
+
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "${CPACK_PACKAGE_CONTACT}")
 set(CPACK_DEBIAN_PACKAGE_SECTION "database")
+set(CPACK_DEBIAN_PACKAGE_PRIORITY "optional")
+set(CPACK_DEBIAN_PACKAGE_HOMEPAGE "https://www.rethinkdb.com/")
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
 set(CPACK_DEBIAN_PACKAGE_VERSION "${RETHINKDB_DEBIAN_VERSION}")
+set(CPACK_DEBIAN_PACKAGE_PREDEPENDS "adduser (>= 3.40), procps (>= 3.2)")
+set(CPACK_DEBIAN_PACKAGE_BREAKS "rethinkdb (<< ${RETHINKDB_DEBIAN_VERSION})")
+set(CPACK_DEBIAN_PACKAGE_CONFLICTS "rethinkdb (<< ${RETHINKDB_DEBIAN_VERSION})")
+set(CPACK_DEBIAN_PACKAGE_PROVIDES "rethinkdb")
+set(CPACK_DEBIAN_PACKAGE_CONTROL_EXTRA
+    "${CMAKE_SOURCE_DIR}/packaging/debian/preinst"
+    "${CMAKE_SOURCE_DIR}/packaging/debian/postinst"
+    "${CMAKE_SOURCE_DIR}/packaging/debian/prerm"
+    "${CMAKE_SOURCE_DIR}/packaging/debian/postrm"
+)
+if(_rethinkdb_debug_packages)
+    set(CPACK_DEBIAN_DEBUGINFO_PACKAGE ON)
+endif()
+
 set(CPACK_RPM_PACKAGE_LICENSE "ASL 2.0")
 set(CPACK_RPM_PACKAGE_GROUP "Database")
 set(CPACK_RPM_PACKAGE_URL "https://www.rethinkdb.com/")
-set(CPACK_GENERATOR "TGZ")
-if(APPLE)
-    list(APPEND CPACK_GENERATOR "DragNDrop")
+set(CPACK_RPM_PACKAGE_VERSION "${RETHINKDB_RPM_VERSION}")
+set(CPACK_RPM_PACKAGE_RELEASE "${RETHINKDB_PACKAGE_RELEASE}")
+set(CPACK_RPM_PACKAGE_AUTOREQ ON)
+set(CPACK_RPM_PACKAGE_AUTOPROV ON)
+set(CPACK_RPM_PRE_INSTALL_SCRIPT_FILE
+    "${CMAKE_SOURCE_DIR}/packaging/rpm/preinstall.sh")
+if(_rethinkdb_debug_packages)
+    set(CPACK_RPM_DEBUGINFO_PACKAGE ON)
+    # debugedit rewrites the build path in place, so <prefix>/src_0 must be
+    # no longer than the source and build directories. Equal length is valid.
+    set(_rethinkdb_rpm_debug_prefix
+        "/usr/src/debug/${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-${CMAKE_SYSTEM_NAME}")
+    string(LENGTH "${CMAKE_SOURCE_DIR}" _rethinkdb_src_len)
+    string(LENGTH "${CMAKE_BINARY_DIR}" _rethinkdb_bin_len)
+    set(_rethinkdb_shortest "${_rethinkdb_src_len}")
+    if(_rethinkdb_bin_len LESS _rethinkdb_shortest)
+        set(_rethinkdb_shortest "${_rethinkdb_bin_len}")
+    endif()
+    string(LENGTH "${_rethinkdb_rpm_debug_prefix}/src_0" _rethinkdb_debug_len)
+    if(_rethinkdb_shortest LESS _rethinkdb_debug_len)
+        set(_rethinkdb_rpm_debug_prefix "/usr")
+    endif()
+    set(CPACK_RPM_BUILD_SOURCE_DIRS_PREFIX "${_rethinkdb_rpm_debug_prefix}")
 endif()
-if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    list(APPEND CPACK_GENERATOR "DEB" "RPM")
-endif()
+
 include(CPack)
 
 add_custom_target(dist
@@ -128,34 +192,55 @@ add_custom_target(dist
     COMMENT "Building the source tarball"
 )
 
-add_custom_target(build-deb-src
-    COMMAND "${CMAKE_COMMAND}" -E env
-        "RETHINKDB_VERSION=${RETHINKDB_VERSION}"
-        "SOURCE_DIR=${CMAKE_SOURCE_DIR}"
-        "BINARY_DIR=${CMAKE_BINARY_DIR}"
-        "MODE=src"
-        bash "${CMAKE_SOURCE_DIR}/cmake/package-deb.sh"
-    DEPENDS dist
-    VERBATIM
-)
-add_custom_target(build-deb
-    COMMAND "${CMAKE_COMMAND}" -E env
-        "RETHINKDB_VERSION=${RETHINKDB_VERSION}"
-        "SOURCE_DIR=${CMAKE_SOURCE_DIR}"
-        "BINARY_DIR=${CMAKE_BINARY_DIR}"
-        "MODE=binary"
-        bash "${CMAKE_SOURCE_DIR}/cmake/package-deb.sh"
-    DEPENDS dist
-    VERBATIM
-)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_custom_target(package-deb
+        COMMAND "${CMAKE_COMMAND}" -E env
+            "MODE=binary"
+            "SOURCE_DIR=${CMAKE_SOURCE_DIR}"
+            "BINARY_DIR=${CMAKE_BINARY_DIR}"
+            "CONFIG=$<CONFIG>"
+            "CPACK=${CMAKE_CPACK_COMMAND}"
+            bash "${CMAKE_SOURCE_DIR}/cmake/package-deb.sh"
+        DEPENDS rethinkdb rethinkdb_man
+        VERBATIM
+        COMMENT "Packaging the DEB from the existing build"
+    )
+    add_custom_target(package-rpm
+        COMMAND "${CMAKE_COMMAND}" -E env
+            "SOURCE_DIR=${CMAKE_SOURCE_DIR}"
+            "BINARY_DIR=${CMAKE_BINARY_DIR}"
+            "CONFIG=$<CONFIG>"
+            "CPACK=${CMAKE_CPACK_COMMAND}"
+            bash "${CMAKE_SOURCE_DIR}/cmake/package-rpm.sh"
+        DEPENDS rethinkdb rethinkdb_man
+        VERBATIM
+        COMMENT "Packaging the RPM from the existing build"
+    )
+    add_custom_target(package-deb-src
+        COMMAND "${CMAKE_COMMAND}" -E env
+            "MODE=src"
+            "RETHINKDB_VERSION=${RETHINKDB_VERSION}"
+            "SOURCE_DIR=${CMAKE_SOURCE_DIR}"
+            "BINARY_DIR=${CMAKE_BINARY_DIR}"
+            "BUILD_PORTABLE=$<IF:$<BOOL:${RETHINKDB_BUILD_PORTABLE}>,1,0>"
+            bash "${CMAKE_SOURCE_DIR}/cmake/package-deb.sh"
+        DEPENDS dist
+        VERBATIM
+        COMMENT "Packaging the Debian source package"
+    )
+endif()
 
 if(APPLE)
-    add_custom_target(build-osx
-        COMMAND bash "${CMAKE_SOURCE_DIR}/cmake/package-osx.sh"
+    add_custom_target(package-osx
+        COMMAND "${CMAKE_COMMAND}" -E env
+            "CMAKE=${CMAKE_COMMAND}"
+            bash "${CMAKE_SOURCE_DIR}/cmake/package-osx.sh"
             "${CMAKE_BINARY_DIR}"
             "${CMAKE_INSTALL_PREFIX}"
             "${CMAKE_INSTALL_BINDIR}"
-        DEPENDS rethinkdb
+            "$<CONFIG>"
+        DEPENDS rethinkdb rethinkdb_man
         VERBATIM
+        COMMENT "Packaging the macOS disk image from the existing build"
     )
 endif()
