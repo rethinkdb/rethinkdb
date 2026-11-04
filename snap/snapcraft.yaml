@@ -30,7 +30,6 @@ parts:
       - libprotobuf-dev
       - libcurl4-openssl-dev
       - libssl-dev
-      - libncurses-dev
       - wget
       - m4
       - g++

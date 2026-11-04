@@ -193,7 +193,8 @@ function(rethinkdb_apply_link_options target)
     endif()
 
     if(RETHINKDB_SYMBOLS AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        target_link_options("${target}" PRIVATE "-rdynamic")
+        # --build-id lets the DEB and RPM package targets split debuginfo.
+        target_link_options("${target}" PRIVATE "-rdynamic" "-Wl,--build-id=sha1")
     endif()
 
     if(RETHINKDB_COVERAGE)

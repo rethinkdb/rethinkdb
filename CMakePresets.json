@@ -20,6 +20,63 @@
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
         "FETCHCONTENT_BASE_DIR": "${sourceDir}/.cache/fetchcontent"
       }
+    },
+    {
+      "name": "package-linux",
+      "displayName": "Linux package",
+      "binaryDir": "${sourceDir}/build/package-linux",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_INSTALL_PREFIX": "/usr",
+        "CMAKE_INSTALL_SYSCONFDIR": "/etc",
+        "RETHINKDB_LOCALSTATEDIR": "/var",
+        "FETCHCONTENT_BASE_DIR": "${sourceDir}/.cache/fetchcontent",
+        "BUILD_TESTING": "OFF",
+        "RETHINKDB_FETCH_GTEST": "OFF",
+        "RETHINKDB_ALLOW_WARNINGS": "ON",
+        "RETHINKDB_SYMBOLS": "ON",
+        "RETHINKDB_SPLIT_SYMBOLS": "OFF",
+        "RETHINKDB_STRIP_ON_INSTALL": "OFF",
+        "RETHINKDB_BUILD_PORTABLE": "ON",
+        "RETHINKDB_ALLOCATOR": "jemalloc",
+        "RETHINKDB_FETCH_BOOST": "ON",
+        "RETHINKDB_FETCH_RE2": "ON",
+        "RETHINKDB_FETCH_QUICKJS": "ON",
+        "RETHINKDB_FETCH_JEMALLOC": "ON",
+        "RETHINKDB_FETCH_PROTOBUF": "ON"
+      }
+    },
+    {
+      "name": "package-osx",
+      "displayName": "macOS package",
+      "binaryDir": "${sourceDir}/build/package-osx",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_INSTALL_PREFIX": "/usr/local",
+        "FETCHCONTENT_BASE_DIR": "${sourceDir}/.cache/fetchcontent",
+        "BUILD_TESTING": "OFF",
+        "RETHINKDB_FETCH_GTEST": "OFF",
+        "RETHINKDB_ALLOW_WARNINGS": "ON",
+        "RETHINKDB_SYMBOLS": "ON",
+        "RETHINKDB_SPLIT_SYMBOLS": "OFF",
+        "RETHINKDB_STRIP_ON_INSTALL": "OFF",
+        "RETHINKDB_FETCH_BOOST": "ON",
+        "RETHINKDB_FETCH_RE2": "ON",
+        "RETHINKDB_FETCH_QUICKJS": "ON",
+        "RETHINKDB_FETCH_PROTOBUF": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -30,6 +87,46 @@
     {
       "name": "release",
       "configurePreset": "release"
+    },
+    {
+      "name": "package-deb",
+      "configurePreset": "package-linux",
+      "targets": ["package-deb"],
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "package-rpm",
+      "configurePreset": "package-linux",
+      "targets": ["package-rpm"],
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "package-deb-src",
+      "configurePreset": "package-linux",
+      "targets": ["package-deb-src"],
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "package-osx",
+      "configurePreset": "package-osx",
+      "targets": ["package-osx"],
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      }
     }
   ]
 }
