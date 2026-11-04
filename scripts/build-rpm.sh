@@ -9,8 +9,16 @@
 set -eu
 
 main () {
-    MAKEFLAGS=${MAKEFLAGS:- -j 8}
-    export MAKEFLAGS
+    # Release compiles of Protobuf and the server use several GiB per cc1plus.
+    # An uncapped --parallel, or the old default of -j 8, is OOM-killed on
+    # smaller Rocky/RHEL machines. ExternalProject gmake reads MAKEFLAGS.
+    jobs=$(sh cmake/parallel-jobs.sh)
+    if [[ ! "${jobs}" =~ ^[1-9][0-9]*$ ]]; then
+        printf 'parallel-jobs.sh returned %s\n' "${jobs}" >&2
+        exit 1
+    fi
+    printf 'Using %s compile jobs\n' "${jobs}"
+    export MAKEFLAGS="-j${jobs}"
     ARCH=`gcc -dumpmachine | cut -f 1 -d -`
     RPM_ROOT=build/packages/rpm
     VERSION=`./scripts/gen-version.sh | sed -e s/-/_/g`
@@ -42,7 +50,7 @@ EOF
             -DRETHINKDB_ALLOCATOR=jemalloc
     fi
 
-    cmake --build build/release --parallel
+    cmake --build build/release --parallel "${jobs}"
     DESTDIR="$RPM_ROOT" cmake --install build/release
 
     ... () { command="$command $(for x in "$@"; do printf "%q " "$x"; done)"; }

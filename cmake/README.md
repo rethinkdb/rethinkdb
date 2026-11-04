@@ -68,6 +68,9 @@ Feature switches, all default `OFF`: `RETHINKDB_NO_EPOLL`,
   `debuild` / `dpkg-buildpackage`. The binary package builds the server only
   (`BUILD_TESTING=OFF`). Compile jobs come from `cmake/parallel-jobs.sh`, which
   caps `dpkg-buildpackage --jobs=auto` to what fits in RAM.
+- `scripts/build-rpm.sh` builds the release server and an RPM with `fpm`. It
+  uses the same job cap. `cmake --build --parallel` with no count uses one job
+  per CPU and the kernel OOM-kills `cc1plus` while compiling fetched Protobuf.
 - `cmake --build build/release --target build-osx` builds the disk image on macOS.
 - `cpack` in the build directory builds a binary TGZ, and DEB/RPM or DragNDrop
   when that generator applies.
