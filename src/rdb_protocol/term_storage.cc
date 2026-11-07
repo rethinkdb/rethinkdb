@@ -548,7 +548,13 @@ MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_3>(
 }
 
 template <>
-MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_4_is_latest>(
+MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_4>(
+        read_stream_t *s, scoped_ptr_t<term_storage_t> *term_storage_out) {
+    return deserialize_term_tree<cluster_version_t::v2_2>(s, term_storage_out);
+}
+
+template <>
+MUST_USE archive_result_t deserialize_term_tree<cluster_version_t::v2_5_is_latest>(
         read_stream_t *s, scoped_ptr_t<term_storage_t> *term_storage_out) {
     return deserialize_term_tree<cluster_version_t::v2_2>(s, term_storage_out);
 }
