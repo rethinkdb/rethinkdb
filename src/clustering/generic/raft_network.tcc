@@ -47,8 +47,22 @@ bool raft_networked_member_t<state_t>::send_rpc(
             *reply_out = reply;
             got_reply.pulse();
         });
+
+    /* Abort if the peer leaves our directory or is replaced with a different mailbox. */
+    cond_t peer_gone;
+    typename watchable_map_t<raft_member_id_t, raft_business_card_t<state_t> >::key_subs_t
+        peer_subs(
+            peers,
+            dest,
+            [&](const raft_business_card_t<state_t> *value) {
+                if (value == nullptr || !(value->rpc == bcard->rpc)) {
+                    peer_gone.pulse_if_not_already_pulsed();
+                }
+            },
+            initial_call_t::NO);
+
     send(mailbox_manager, bcard->rpc, request, reply_mailbox.get_address());
-    wait_any_t waiter(&watcher, &got_reply);
+    wait_any_t waiter(&watcher, &got_reply, &peer_gone);
     wait_interruptible(&waiter, interruptor);
     return got_reply.is_pulsed();
 }

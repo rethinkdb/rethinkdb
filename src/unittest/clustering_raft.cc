@@ -6,6 +6,7 @@
 #include "clustering/generic/raft_core.tcc"
 #include "clustering/generic/raft_network.hpp"
 #include "clustering/generic/raft_network.tcc"
+#include "concurrency/wait_any.hpp"
 #include "unittest/clustering_utils.hpp"
 #include "unittest/clustering_utils_raft.hpp"
 #include "unittest/dummy_metadata_controller.hpp"
@@ -142,6 +143,160 @@ TPTEST(ClusteringRaft, Regression4234) {
 
     do_writes_raft(&cluster, 10, 60000);
     traffic_generator.check_changes_present();
+}
+
+class raft_network_test_access_t {
+public:
+    static bool send_rpc(
+            raft_networked_member_t<dummy_raft_state_t> *member,
+            const raft_member_id_t &dest,
+            const raft_rpc_request_t<dummy_raft_state_t> &request,
+            signal_t *interruptor,
+            raft_rpc_reply_t *reply_out) {
+        return member->send_rpc(dest, request, interruptor, reply_out);
+    }
+};
+
+/* `in_memory_raft_storage_t` applies writes immediately, without the random delays of
+`dummy_raft_cluster_t`'s storage. */
+class in_memory_raft_storage_t :
+    public raft_storage_interface_t<dummy_raft_state_t> {
+public:
+    explicit in_memory_raft_storage_t(
+            const raft_persistent_state_t<dummy_raft_state_t> &initial_state) :
+        state(initial_state) { }
+
+    const raft_persistent_state_t<dummy_raft_state_t> *get() {
+        return &state;
+    }
+
+    void write_current_term_and_voted_for(
+            raft_term_t current_term,
+            raft_member_id_t voted_for) {
+        state.current_term = current_term;
+        state.voted_for = voted_for;
+    }
+
+    void write_commit_index(raft_log_index_t commit_index) {
+        state.commit_index = commit_index;
+    }
+
+    void write_log_replace_tail(
+            const raft_log_t<dummy_raft_state_t> &log,
+            raft_log_index_t first_replaced) {
+        guarantee(first_replaced > state.log.prev_index);
+        guarantee(first_replaced <= state.log.get_latest_index() + 1);
+        if (first_replaced != state.log.get_latest_index() + 1) {
+            state.log.delete_entries_from(first_replaced);
+        }
+        for (raft_log_index_t i = first_replaced; i <= log.get_latest_index(); ++i) {
+            state.log.append(log.get_entry_ref(i));
+        }
+    }
+
+    void write_log_append_one(const raft_log_entry_t<dummy_raft_state_t> &entry) {
+        state.log.append(entry);
+    }
+
+    void write_snapshot(
+            const dummy_raft_state_t &snapshot_state,
+            const raft_complex_config_t &snapshot_config,
+            bool clear_log,
+            raft_log_index_t log_prev_index,
+            raft_term_t log_prev_term,
+            raft_log_index_t commit_index) {
+        state.snapshot_state = snapshot_state;
+        state.snapshot_config = snapshot_config;
+        if (clear_log) {
+            state.log.entries.clear();
+            state.log.prev_index = log_prev_index;
+            state.log.prev_term = log_prev_term;
+        } else {
+            state.log.delete_entries_to(log_prev_index, log_prev_term);
+        }
+        state.commit_index = commit_index;
+    }
+
+private:
+    raft_persistent_state_t<dummy_raft_state_t> state;
+
+    DISABLE_COPYING(in_memory_raft_storage_t);
+};
+
+/* An in-flight RPC must fail when the destination's directory entry is replaced with a
+different mailbox address, even though the key and the transport connection remain. */
+TPTEST(ClusteringRaft, RpcAbortsOnMailboxReplacement) {
+    typedef raft_business_card_t<dummy_raft_state_t> bcard_t;
+
+    connectivity_cluster_t connectivity_cluster;
+    mailbox_manager_t mailbox_manager(&connectivity_cluster, 'M');
+    test_cluster_run_t connectivity_cluster_run(&connectivity_cluster);
+
+    raft_member_id_t sender_id(generate_uuid());
+    raft_member_id_t dest_id(generate_uuid());
+
+    /* `dest_id` isn't in the sender's config, so the sender's own Raft logic never sends
+    it any RPCs. */
+    raft_config_t config;
+    config.voting_members.insert(sender_id);
+    in_memory_raft_storage_t storage(
+        raft_persistent_state_t<dummy_raft_state_t>::make_initial(
+            dummy_raft_state_t(), config));
+    watchable_map_var_t<raft_member_id_t, bcard_t> directory;
+
+    cond_t rpc_received;
+    bcard_t::rpc_mailbox_t unresponsive_mailbox(&mailbox_manager,
+        [&](signal_t *,
+                const raft_rpc_request_t<dummy_raft_state_t> &,
+                const mailbox_addr_t<raft_rpc_reply_t> &) {
+            rpc_received.pulse_if_not_already_pulsed();
+        });
+    bcard_t::rpc_mailbox_t replacement_mailbox(&mailbox_manager,
+        [](signal_t *,
+                const raft_rpc_request_t<dummy_raft_state_t> &,
+                const mailbox_addr_t<raft_rpc_reply_t> &) { });
+    directory.set_key(dest_id,
+        bcard_t { unresponsive_mailbox.get_address(), optional<raft_term_t>() });
+
+    raft_networked_member_t<dummy_raft_state_t> sender(
+        sender_id, &mailbox_manager, &directory, &storage, "",
+        raft_start_election_immediately_t::NO);
+
+    signal_timer_t timeout;
+    timeout.start(10000);
+    bool rpc_result = false;
+    bool rpc_interrupted = false;
+    cond_t rpc_done;
+    coro_t::spawn_sometime([&]() {
+        raft_rpc_request_t<dummy_raft_state_t> request;
+        raft_rpc_reply_t reply;
+        try {
+            rpc_result = raft_network_test_access_t::send_rpc(
+                &sender, dest_id, request, &timeout, &reply);
+        } catch (const interrupted_exc_t &) {
+            rpc_interrupted = true;
+        }
+        rpc_done.pulse();
+    });
+
+    {
+        wait_any_t received_or_done(&rpc_received, &rpc_done);
+        received_or_done.wait_lazily_unordered();
+    }
+    EXPECT_TRUE(rpc_received.is_pulsed());
+    EXPECT_FALSE(rpc_done.is_pulsed());
+
+    EXPECT_TRUE(unresponsive_mailbox.get_address().get_peer() ==
+        replacement_mailbox.get_address().get_peer());
+    directory.set_key(dest_id,
+        bcard_t { replacement_mailbox.get_address(), optional<raft_term_t>() });
+
+    /* The coroutine refers to locals of this function, so it must finish before any
+    early return. `timeout` guarantees that it does. */
+    rpc_done.wait_lazily_unordered();
+    EXPECT_FALSE(rpc_interrupted);
+    EXPECT_FALSE(rpc_result);
+    EXPECT_TRUE(directory.get_key(dest_id).has_value());
 }
 
 }   /* namespace unittest */
