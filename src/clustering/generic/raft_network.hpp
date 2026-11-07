@@ -10,6 +10,10 @@
 The core logic for the Raft protocol is in `raft_core.hpp`, not here. This just adds a
 networking layer over `raft_core.hpp`. */
 
+namespace unittest {
+class raft_network_test_access_t;
+}
+
 template<class state_t>
 class raft_business_card_t {
 public:
@@ -44,6 +48,8 @@ public:
     }
 
 private:
+    friend class unittest::raft_network_test_access_t;
+
     /* The `send_rpc()`, `send_virtual_heartbeats()`, and `get_connected_members()`
     methods implement the `raft_network_interface_t` interface. */
     bool send_rpc(
