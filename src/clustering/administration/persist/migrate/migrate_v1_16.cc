@@ -313,6 +313,7 @@ void migrate_table(const server_id_t &this_server_id,
             metadata_v1_16::write_ack_config_t::mode_t::single ?
                 ::write_ack_config_t::SINGLE : ::write_ack_config_t::MAJORITY;
     config.config.durability = old_config.config.durability;
+    config.config.user_data = default_user_data();
     config.shard_scheme.split_points = old_config.shard_scheme.split_points;
 
     // Scan the servers in the old shard config - need to remove deleted and nil servers
@@ -570,7 +571,8 @@ void migrate_cluster_metadata_to_v2_1(io_backender_t *io_backender,
                       case cluster_version_t::v2_1:
                       case cluster_version_t::v2_2:
                       case cluster_version_t::v2_3:
-                      case cluster_version_t::v2_4_is_latest:
+                      case cluster_version_t::v2_4:
+                      case cluster_version_t::v2_5_is_latest:
                       default:
                         unreachable();
                       }
@@ -590,7 +592,8 @@ void migrate_cluster_metadata_to_v2_1(io_backender_t *io_backender,
                       case cluster_version_t::v2_1:
                       case cluster_version_t::v2_2:
                       case cluster_version_t::v2_3:
-                      case cluster_version_t::v2_4_is_latest:
+                      case cluster_version_t::v2_4:
+                      case cluster_version_t::v2_5_is_latest:
                       default:
                         unreachable();
                       }
@@ -665,7 +668,8 @@ void migrate_auth_metadata_to_v2_1(io_backender_t *io_backender,
                       case cluster_version_t::v2_1:
                       case cluster_version_t::v2_2:
                       case cluster_version_t::v2_3:
-                      case cluster_version_t::v2_4_is_latest:
+                      case cluster_version_t::v2_4:
+                      case cluster_version_t::v2_5_is_latest:
                       default:
                           unreachable();
                       }
@@ -686,7 +690,8 @@ void migrate_auth_metadata_to_v2_1(io_backender_t *io_backender,
                       case cluster_version_t::v2_1:
                       case cluster_version_t::v2_2:
                       case cluster_version_t::v2_3:
-                      case cluster_version_t::v2_4_is_latest:
+                      case cluster_version_t::v2_4:
+                      case cluster_version_t::v2_5_is_latest:
                       default:
                           unreachable();
                       }
