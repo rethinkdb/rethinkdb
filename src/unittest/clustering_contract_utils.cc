@@ -109,7 +109,7 @@ cpu_contracts_t quick_contract_hand_over(
     for (size_t i = 0; i < CPU_SHARDING_FACTOR; ++i) {
         res.contracts[i].replicas = res.contracts[i].voters = voters;
         res.contracts[i].primary.set(contract_t::primary_t {
-                primary, make_optional(hand_over) } );
+                primary, optional(hand_over) } );
     }
     return res;
 }
@@ -137,7 +137,7 @@ cpu_contracts_t quick_contract_temp_voters_hand_over(
         res.contracts[i].replicas.insert(temp_voters.begin(), temp_voters.end());
         res.contracts[i].temp_voters.set(temp_voters);
         res.contracts[i].primary.set(contract_t::primary_t {
-                primary, make_optional(hand_over) } );
+                primary, optional(hand_over) } );
     }
     return res;
 }

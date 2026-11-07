@@ -1,6 +1,8 @@
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "utils.hpp"
 
+#include "rethinkdb_version.hpp"
+
 #include <ctype.h>
 #include <errno.h>
 #include <limits.h>
