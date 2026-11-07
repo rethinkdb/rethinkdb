@@ -153,7 +153,7 @@ table_slice_t::with_sorting(std::string _idx, sorting_t _sorting) {
     rcheck(idx_legal, base_exc_t::LOGIC,
            strprintf("Cannot order by index `%s` after calling BETWEEN on index `%s`.",
                      _idx.c_str(), (*idx).c_str()));
-    return make_counted<table_slice_t>(tbl, make_optional(std::move(_idx)), _sorting, bounds);
+    return make_counted<table_slice_t>(tbl, optional(std::move(_idx)), _sorting, bounds);
 }
 
 counted_t<table_slice_t>
@@ -166,7 +166,7 @@ table_slice_t::with_bounds(std::string _idx, datum_range_t _bounds) {
            strprintf("Cannot call BETWEEN on index `%s` after ordering on index `%s`.",
                      _idx.c_str(), (*idx).c_str()));
     return make_counted<table_slice_t>(
-        tbl, make_optional(std::move(_idx)), sorting, std::move(_bounds));
+        tbl, optional(std::move(_idx)), sorting, std::move(_bounds));
 }
 
 ql::changefeed::keyspec_t::range_t table_slice_t::get_range_spec() {

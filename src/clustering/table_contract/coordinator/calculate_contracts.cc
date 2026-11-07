@@ -64,7 +64,7 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
         /* Fragment over branches and then over versions within each branch. */
         return ack.version->map_multi(region,
         [&](const region_t &ack_version_reg, const version_t &vers) {
-            base_frag.version = make_optional(vers);
+            base_frag.version = optional(vers);
             return current_branches.map_multi(ack_version_reg,
             [&](const region_t &branch_reg, const branch_id_t &branch) {
                 region_map_t<version_t> points_on_canonical_branch;
@@ -88,7 +88,7 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
                 return points_on_canonical_branch.map(branch_reg,
                 [&](const version_t &common_vers) {
                     base_frag.common_ancestor =
-                        make_optional(common_vers.timestamp);
+                        optional(common_vers.timestamp);
                     return base_frag;
                 });
             });
@@ -96,7 +96,7 @@ region_map_t<contract_ack_frag_t> break_ack_into_fragments(
     } else {
         return ack.version->map(region,
         [&](const version_t &vers) {
-            base_frag.version = make_optional(vers);
+            base_frag.version = optional(vers);
             return base_frag;
         });
     }
@@ -470,7 +470,7 @@ contract_t calculate_contract(
             we kill the primary, `config.primary_replica` will be a valid candidate. */
 
             if (old_c.primary->hand_over !=
-                    make_optional(config.primary_replica)) {
+                    optional(config.primary_replica)) {
                 /* We haven't started the hand-over yet, or we're in the middle of a
                 hand-over to a different primary. */
                 if (acks.count(config.primary_replica) == 1 &&
@@ -669,7 +669,7 @@ void calculate_all_contracts(
                             old_state,
                             ignore_missing_branches,
                             add_branches_out);
-                        registered_new_branch = make_optional(to_register);
+                        registered_new_branch = optional(to_register);
                     }
                 }
 
