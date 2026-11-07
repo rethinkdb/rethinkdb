@@ -1,7 +1,13 @@
 # -*- coding: utf-8 -*-
 
 
-from Quartz import *
+try:
+    from Quartz import *
+except ImportError as exc:
+    raise ImportError(
+        'macOS disk image icons need PyObjC. '
+        'Install it with: python3 -m pip install pyobjc-framework-Quartz'
+    ) from exc
 import math
 
 _REMOVABLE_DISK_PATH = '/System/Library/Extensions/IOStorageFamily.kext/Contents/Resources/Removable.icns'

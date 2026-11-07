@@ -1,0 +1,20 @@
+diff -ruN a/CMakeLists.txt b/CMakeLists.txt
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -2,9 +2,14 @@
+ # to 3.26.
+ cmake_minimum_required(VERSION 3.16...3.26)
+ 
+-# Revert to old behavior for MSVC debug symbols.
++# CMP0141 NEW keeps MSVC debug-info flags out of CMAKE_<LANG>_FLAGS_<CONFIG>.
++# ProgramDatabase preserves the /Zi behavior the OLD policy used to inject.
+ if(POLICY CMP0141)
+-  cmake_policy(SET CMP0141 OLD)
++  cmake_policy(SET CMP0141 NEW)
++  if(NOT CMAKE_MSVC_DEBUG_INFORMATION_FORMAT)
++    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT
++        "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
++  endif()
+ endif()
+ 
+ if(protobuf_VERBOSE)

@@ -30,6 +30,20 @@ ALIAS_EJECTABLE_DISK = 5
 
 ALIAS_NO_CNID = 0xffffffff
 
+def _alias_cnid(value):
+    """Alias records store catalog node IDs in 32 bits.
+
+    APFS file IDs can be wider than that. Keep the low 32 bits, which is
+    what Finder still records in an alias.
+    """
+    return int(value) & 0xffffffff
+
+def _carbon_text(value):
+    """Decode a Carbon path component and restore colon separators."""
+    if isinstance(value, bytes):
+        value = value.decode('utf-8')
+    return value.replace('/', ':')
+
 class AppleShareInfo (object):
     def __init__(self, zone=None, server=None, user=None):
         #: The AppleShare zone
@@ -243,10 +257,10 @@ class Alias (object):
         alias = Alias()
         alias.appinfo = appinfo
             
-        alias.volume = VolumeInfo (volname.replace('/',':'),
+        alias.volume = VolumeInfo (_carbon_text(volname),
                                    voldate, fstype, disktype,
                                    volattrs, volfsid)
-        alias.target = TargetInfo (kind, filename.replace('/',':'),
+        alias.target = TargetInfo (kind, _carbon_text(filename),
                                    folder_cnid, cnid,
                                    crdate, creator_code, type_code)
         alias.target.levels_from = levels_from
@@ -261,7 +275,7 @@ class Alias (object):
                 b.read(1)
 
             if tag == TAG_CARBON_FOLDER_NAME:
-                alias.target.folder_name = value.replace('/',':')
+                alias.target.folder_name = _carbon_text(value)
             elif tag == TAG_CNID_PATH:
                 alias.target.cnid_path = struct.unpack(b'>%uI' % (length // 4),
                                                            value)
@@ -329,6 +343,8 @@ class Alias (object):
         # Find the filesystem
         st = osx.statfs(path)
         vol_path = st.f_mntonname
+        if isinstance(vol_path, bytes):
+            vol_path = vol_path.split(b'\0', 1)[0].decode('utf-8')
         
         # Grab its attributes
         attrs = [osx.ATTR_CMN_CRTIME,
@@ -415,8 +431,9 @@ class Alias (object):
 
         carbon_volname = self.volume.name.replace(':','/').encode('utf-8')
         carbon_filename = self.target.filename.replace(':','/').encode('utf-8')
-        voldate = (self.volume.creation_date - mac_epoch).total_seconds()
-        crdate = (self.target.creation_date - mac_epoch).total_seconds()
+        # Alias records store dates as unsigned 32-bit seconds since 1904.
+        voldate = int((self.volume.creation_date - mac_epoch).total_seconds())
+        crdate = int((self.target.creation_date - mac_epoch).total_seconds())
 
         # NOTE: crdate should be in local time, but that's system dependent
         #       (so doing so is ridiculous, and nothing could rely on it).
@@ -425,9 +442,9 @@ class Alias (object):
                             carbon_volname, voldate,
                             self.volume.fs_type,
                             self.volume.disk_type,
-                            self.target.folder_cnid,
+                            _alias_cnid(self.target.folder_cnid),
                             carbon_filename,
-                            self.target.cnid,
+                            _alias_cnid(self.target.cnid),
                             crdate,
                             self.target.creator_code,
                             self.target.type_code,
@@ -454,8 +471,8 @@ class Alias (object):
                 8, int(crdate * 65536)))
 
         if self.target.cnid_path:
-            cnid_path = struct.pack(b'>%uI' % len(self.target.cnid_path),
-                                    *self.target.cnid_path)
+            cnids = [_alias_cnid(cnid) for cnid in self.target.cnid_path]
+            cnid_path = struct.pack(b'>%uI' % len(cnids), *cnids)
             b.write(struct.pack(b'>hh', TAG_CNID_PATH,
                                  len(cnid_path)))
             b.write(cnid_path)

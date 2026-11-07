@@ -27,8 +27,8 @@ public:
                              name.c_str(), port, MAX_PORT, port_offset);
         }
     }
-    ~invalid_port_exc_t() throw () { }
-    const char *what() const throw () {
+    ~invalid_port_exc_t() noexcept { }
+    const char *what() const noexcept {
         return info.c_str();
     }
 private:

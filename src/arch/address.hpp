@@ -31,8 +31,8 @@ class printf_buffer_t;
 class host_lookup_exc_t : public std::exception {
 public:
     host_lookup_exc_t(const std::string &_host, int _res, int _errno_res);
-    ~host_lookup_exc_t() throw () { }
-    const char *what() const throw () {
+    ~host_lookup_exc_t() noexcept { }
+    const char *what() const noexcept {
         return error_string.c_str();
     }
     const std::string host;
@@ -45,8 +45,8 @@ class invalid_address_exc_t : public std::exception {
 public:
     explicit invalid_address_exc_t(const std::string &_info) :
         info(_info) { }
-    ~invalid_address_exc_t() throw () { }
-    const char *what() const throw () {
+    ~invalid_address_exc_t() noexcept { }
+    const char *what() const noexcept {
         return info.c_str();
     }
     const std::string info;

@@ -446,8 +446,8 @@ std::string time_to_iso8601(reql_version_t reql_version, datum_t d) {
     try {
         time_t t = time_to_boost(reql_version, d);
         int year = t.date().year();
-        // Boost also accepts year 10000.  I don't think any real users will hit
-        // that edge case, but better safe than sorry.
+        // Boost's gregorian range is 1400..9999, so this rejects a year only if a
+        // later Boost allows one outside the ISO 8601 range [0, 9999].
         rcheck_datum(year >= 0 && year <= 9999, base_exc_t::LOGIC,
                      strprintf("Year `%d` out of valid ISO 8601 range [0, 9999].",
                                year));
