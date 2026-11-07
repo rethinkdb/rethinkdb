@@ -14,11 +14,16 @@ public:
     iso8601_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1), optargspec_t({"default_timezone"})) { }
 private:
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        scoped_ptr_t<val_t> v = args->arg(env, 0);
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
         std::string tz = "";
-        if (scoped_ptr_t<val_t> vtz = args->optarg(env, "default_timezone")) {
-            tz = vtz->as_str().to_std();
+        {
+            scoped_ptr_t<val_t> vtz = args->optarg(err_out, env, "default_timezone");
+            if (err_out->has()) { return noval(); }
+            if (vtz) {
+                tz = vtz->as_str().to_std();
+            }
         }
         return new_val(pseudo::iso8601_to_time(
             env->env->reql_version(), v->as_str().to_std(), tz, v.get()));
@@ -31,12 +36,14 @@ public:
     to_iso8601_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
         return new_val(
             datum_t(datum_string_t(
                 pseudo::time_to_iso8601(
                     env->env->reql_version(),
-                    args->arg(env, 0)->as_ptype(pseudo::time_string)))));
+                    v0->as_ptype(pseudo::time_string)))));
     }
     virtual const char *name() const { return "to_iso8601"; }
 };
@@ -46,8 +53,9 @@ public:
     epoch_time_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        scoped_ptr_t<val_t> v = args->arg(env, 0);
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        scoped_ptr_t<val_t> v = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
         return new_val(pseudo::make_time(v->as_num(), "+00:00"));
     }
     virtual const char *name() const { return "epoch_time"; }
@@ -58,10 +66,12 @@ public:
     to_epoch_time_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
         return new_val(
             datum_t(
-                pseudo::time_to_epoch_time(args->arg(env, 0)->as_ptype(pseudo::time_string))));
+                pseudo::time_to_epoch_time(v0->as_ptype(pseudo::time_string))));
     }
     virtual const char *name() const { return "to_epoch_time"; }
 };
@@ -71,7 +81,7 @@ public:
     now_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(0)) { }
 private:
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *, eval_flags_t) const {
+    scoped_ptr_t<val_t> eval_impl(eval_error *, scope_env_t *env, args_t *, eval_flags_t) const {
         // Return the deterministic time from the env
         r_sanity_check(env->env->get_deterministic_time().has());
         return new_val(env->env->get_deterministic_time());
@@ -85,9 +95,15 @@ public:
     in_timezone_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(2)) { }
 private:
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        return new_val(pseudo::time_in_tz(args->arg(env, 0)->as_ptype(pseudo::time_string),
-                                          args->arg(env, 1)->as_datum()));
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+
+        return new_val(pseudo::time_in_tz(v0->as_ptype(pseudo::time_string),
+                                          v1->as_datum()));
     }
     virtual const char *name() const { return "in_timezone"; }
 };
@@ -97,14 +113,47 @@ public:
     during_term_t(compile_env_t *env, const raw_term_t &term)
         : bounded_op_term_t(env, term, argspec_t(3)) { }
 private:
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        datum_t t = args->arg(env, 0)->as_ptype(pseudo::time_string);
-        datum_t lb = args->arg(env, 1)->as_ptype(pseudo::time_string);
-        datum_t rb = args->arg(env, 2)->as_ptype(pseudo::time_string);
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        datum_t t = v0->as_ptype(pseudo::time_string);
+
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        datum_t lb = v1->as_ptype(pseudo::time_string);
+
+        auto v2 = args->arg(err_out, env, 2);
+        if (err_out->has()) { return noval(); }
+        datum_t rb = v2->as_ptype(pseudo::time_string);
         int lcmp = pseudo::time_cmp(lb, t);
         int rcmp = pseudo::time_cmp(t, rb);
-        return new_val_bool(!(lcmp > 0 || (lcmp == 0 && is_left_open(env, args))
-                              || rcmp > 0 || (rcmp == 0 && is_right_open(env, args))));
+        bool negret = false;
+        if (lcmp > 0) {
+            negret = true;
+        } else {
+            if (lcmp == 0) {
+                bool left_open = is_left_open(err_out, env, args);
+                if (err_out->has()) { return noval(); }
+                if (left_open) {
+                    negret = true;
+                    goto done;
+                }
+            }
+
+            if (rcmp > 0) {
+                negret = true;
+            } else {
+                if (rcmp == 0) {
+                    bool right_open = is_right_open(err_out, env, args);
+                    if (err_out->has()) { return noval(); }
+                    negret = right_open;
+                } else {
+                    negret = false;
+                }
+            }
+        }
+    done:
+        return new_val_bool(!negret);
     }
     virtual const char *name() const { return "during"; }
 };
@@ -114,10 +163,13 @@ public:
     date_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+
         return new_val(pseudo::time_date(
             env->env->reql_version(),
-            args->arg(env, 0)->as_ptype(pseudo::time_string), this));
+            v0->as_ptype(pseudo::time_string), this));
     }
     virtual const char *name() const { return "date"; }
 };
@@ -127,10 +179,13 @@ public:
     time_of_day_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+
         return new_val(pseudo::time_of_day(
             env->env->reql_version(),
-            args->arg(env, 0)->as_ptype(pseudo::time_string)));
+            v0->as_ptype(pseudo::time_string)));
     }
     virtual const char *name() const { return "time_of_day"; }
 };
@@ -140,8 +195,11 @@ public:
     timezone_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(1)) { }
 private:
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
-        return new_val(pseudo::time_tz(args->arg(env, 0)->as_ptype(pseudo::time_string)));
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+
+        return new_val(pseudo::time_tz(v0->as_ptype(pseudo::time_string)));
     }
     virtual const char *name() const { return "timezone"; }
 };
@@ -152,10 +210,13 @@ public:
                    pseudo::time_component_t _component)
         : op_term_t(env, term, argspec_t(1)), component(_component) { }
 private:
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+
         double d = pseudo::time_portion(
             env->env->reql_version(),
-            args->arg(env, 0)->as_ptype(pseudo::time_string),
+            v0->as_ptype(pseudo::time_string),
             component);
         return new_val(datum_t(d));
     }
@@ -180,24 +241,45 @@ public:
     time_term_t(compile_env_t *env, const raw_term_t &term)
         : op_term_t(env, term, argspec_t(4, 7)) { }
 private:
-    scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const {
+    scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const {
         rcheck(args->num_args() == 4 || args->num_args() == 7, base_exc_t::LOGIC,
                strprintf("Got %zu arguments to TIME (expected 4 or 7).",
                          args->num_args()));
-        int year = args->arg(env, 0)->as_int<int>();
-        int month = args->arg(env, 1)->as_int<int>();
-        int day = args->arg(env, 2)->as_int<int>();
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        int year = v0->as_int<int>();
+
+        auto v1 = args->arg(err_out, env, 1);
+        if (err_out->has()) { return noval(); }
+        int month = v1->as_int<int>();
+
+        auto v2 = args->arg(err_out, env, 2);
+        if (err_out->has()) { return noval(); }
+        int day = v2->as_int<int>();
         int hours = 0;
         int minutes = 0;
         double seconds = 0;
         std::string tz;
         if (args->num_args() == 4) {
-            tz = parse_tz(args->arg(env, 3));
+            auto v3 = args->arg(err_out, env, 3);
+            if (err_out->has()) { return noval(); }
+            tz = parse_tz(std::move(v3));
         } else if (args->num_args() == 7) {
-            hours = args->arg(env, 3)->as_int<int>();
-            minutes = args->arg(env, 4)->as_int<int>();
-            seconds = args->arg(env, 5)->as_num();
-            tz = parse_tz(args->arg(env, 6));
+            auto v3 = args->arg(err_out, env, 3);
+            if (err_out->has()) { return noval(); }
+            hours = v3->as_int<int>();
+
+            auto v4 = args->arg(err_out, env, 4);
+            if (err_out->has()) { return noval(); }
+            minutes = v4->as_int<int>();
+
+            auto v5 = args->arg(err_out, env, 5);
+            if (err_out->has()) { return noval(); }
+            seconds = v5->as_num();
+
+            auto v6 = args->arg(err_out, env, 6);
+            if (err_out->has()) { return noval(); }
+            tz = parse_tz(std::move(v6));
         } else {
             r_sanity_check(false);
         }

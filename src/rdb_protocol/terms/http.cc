@@ -41,56 +41,56 @@ private:
         return deterministic_t::no();
     }
 
-    virtual scoped_ptr_t<val_t> eval_impl(scope_env_t *env, args_t *args, eval_flags_t) const;
+    virtual scoped_ptr_t<val_t> eval_impl(eval_error *err_out, scope_env_t *env, args_t *args, eval_flags_t) const;
 
     // Functions to get optargs into the http_opts_t
-    void get_optargs(scope_env_t *env, args_t *args, http_opts_t *opts_out) const;
+    void get_optargs(eval_error *err_out, scope_env_t *env, args_t *args, http_opts_t *opts_out) const;
 
-    static void get_bool_optarg(const std::string &optarg_name,
+    static void get_bool_optarg(eval_error *err_out, const std::string &optarg_name,
                                 scope_env_t *env,
                                 args_t *args,
                                 bool *bool_out);
 
-    static void get_redirects(scope_env_t *env,
+    static void get_redirects(eval_error *err_out, scope_env_t *env,
                               args_t *args,
                               uint32_t *redirects_out);
 
-    static void get_attempts(scope_env_t *env,
+    static void get_attempts(eval_error *err_out, scope_env_t *env,
                              args_t *args,
                              uint64_t *attempts_out);
 
-    static void get_result_format(scope_env_t *env,
+    static void get_result_format(eval_error *err_out, scope_env_t *env,
                                   args_t *args,
                                   http_result_format_t *result_format_out);
 
-    static void get_params(scope_env_t *env,
+    static void get_params(eval_error *err_out, scope_env_t *env,
                            args_t *args,
                            datum_t *params_out);
 
-    void get_data(scope_env_t *env,
+    void get_data(eval_error *err_out, scope_env_t *env,
                   args_t *args,
                   std::string *data_out,
                   std::map<std::string, std::string> *form_data_out,
                   std::vector<std::string> *header_out,
                   http_method_t method) const;
 
-    static void get_timeout_ms(scope_env_t *env,
+    static void get_timeout_ms(eval_error *err_out, scope_env_t *env,
                                args_t *args,
                                uint64_t *timeout_ms_out);
 
-    static void get_header(scope_env_t *env,
+    static void get_header(eval_error *err_out, scope_env_t *env,
                            args_t *args,
                            std::vector<std::string> *header_out);
 
-    static void get_method(scope_env_t *env,
+    static void get_method(eval_error *err_out, scope_env_t *env,
                            args_t *args,
                            http_method_t *method_out);
 
-    static void get_auth(scope_env_t *env,
+    static void get_auth(eval_error *err_out, scope_env_t *env,
                          args_t *args,
                          http_opts_t::http_auth_t *auth_out);
 
-    static void get_page_and_limit(scope_env_t *env,
+    static void get_page_and_limit(eval_error *err_out, scope_env_t *env,
                                    args_t *args,
                                    counted_t<const func_t> *depaginate_fn_out,
                                    int64_t *depaginate_limit_out);
@@ -223,7 +223,7 @@ void dispatch_http(env_t *env,
     check_error_result(*res_out, opts, parent);
 }
 
-scoped_ptr_t<val_t> http_term_t::eval_impl(scope_env_t *env, args_t *args,
+scoped_ptr_t<val_t> http_term_t::eval_impl(eval_error *err_out, scope_env_t *env, args_t *args,
                                            eval_flags_t) const {
     try {
         env->env->get_user_context().require_connect_permission(env->env->get_rdb_ctx());
@@ -234,13 +234,19 @@ scoped_ptr_t<val_t> http_term_t::eval_impl(scope_env_t *env, args_t *args,
     http_opts_t opts;
     opts.limits = env->env->limits();
     opts.version = env->env->reql_version();
-    opts.url.assign(args->arg(env, 0)->as_str().to_std());
+    {
+        auto v0 = args->arg(err_out, env, 0);
+        if (err_out->has()) { return noval(); }
+        opts.url.assign(v0->as_str().to_std());
+    }
     opts.proxy.assign(env->env->get_reql_http_proxy());
-    get_optargs(env, args, &opts);
+    get_optargs(err_out, env, args, &opts);
+    if (err_out->has()) { return noval(); }
 
     counted_t<const func_t> depaginate_fn;
     int64_t depaginate_limit(0);
-    get_page_and_limit(env, args, &depaginate_fn, &depaginate_limit);
+    get_page_and_limit(err_out, env, args, &depaginate_fn, &depaginate_limit);
+    if (err_out->has()) { return noval(); }
 
     // If we're depaginating, return a stream that will be evaluated automatically
     if (depaginate_fn.has()) {
@@ -408,12 +414,14 @@ bool http_datum_stream_t::handle_depage_result(datum_t depage) {
 // Parameter 2: last URL parameters used
 // Parameter 3: last headers received
 // Parameter 4: last data received
-void http_term_t::get_page_and_limit(scope_env_t *env,
+void http_term_t::get_page_and_limit(eval_error *err_out, scope_env_t *env,
                                      args_t *args,
                                      counted_t<const func_t> *depaginate_fn_out,
                                      int64_t *depaginate_limit_out) {
-    scoped_ptr_t<val_t> page = args->optarg(env, "page");
-    scoped_ptr_t<val_t> page_limit = args->optarg(env, "page_limit");
+    scoped_ptr_t<val_t> page = args->optarg(err_out, env, "page");
+    if (err_out->has()) { return; }
+    scoped_ptr_t<val_t> page_limit = args->optarg(err_out, env, "page_limit");
+    if (err_out->has()) { return; }
 
     if (!page.has()) {
         return;
@@ -432,32 +440,43 @@ void http_term_t::get_page_and_limit(scope_env_t *env,
     }
 }
 
-void http_term_t::get_optargs(scope_env_t *env,
+void http_term_t::get_optargs(eval_error *err_out, scope_env_t *env,
                               args_t *args,
                               http_opts_t *opts_out) const {
-    get_auth(env, args, &opts_out->auth);
-    get_method(env, args, &opts_out->method);
+    get_auth(err_out, env, args, &opts_out->auth);
+    if (err_out->has()) { return; }
+    get_method(err_out, env, args, &opts_out->method);
+    if (err_out->has()) { return; }
 
     // get_data must be called before get_header, as it may set the Content-Type header
     // in some cases, and the user should be able to override that behavior
-    get_data(env, args, &opts_out->data, &opts_out->form_data,
+    get_data(err_out, env, args, &opts_out->data, &opts_out->form_data,
              &opts_out->header, opts_out->method);
+    if (err_out->has()) { return; }
 
-    get_result_format(env, args, &opts_out->result_format);
-    get_params(env, args, &opts_out->url_params);
-    get_header(env, args, &opts_out->header);
-    get_timeout_ms(env, args, &opts_out->timeout_ms);
-    get_attempts(env, args, &opts_out->attempts);
-    get_redirects(env, args, &opts_out->max_redirects);
-    get_bool_optarg("verify", env, args, &opts_out->verify);
+    get_result_format(err_out, env, args, &opts_out->result_format);
+    if (err_out->has()) { return; }
+    get_params(err_out, env, args, &opts_out->url_params);
+    if (err_out->has()) { return; }
+    get_header(err_out, env, args, &opts_out->header);
+    if (err_out->has()) { return; }
+    get_timeout_ms(err_out, env, args, &opts_out->timeout_ms);
+    if (err_out->has()) { return; }
+    get_attempts(err_out, env, args, &opts_out->attempts);
+    if (err_out->has()) { return; }
+    get_redirects(err_out, env, args, &opts_out->max_redirects);
+    if (err_out->has()) { return; }
+    get_bool_optarg(err_out, "verify", env, args, &opts_out->verify);
+    if (err_out->has()) { return; }
 }
 
 // The `timeout` optarg specifies the number of seconds to wait before erroring
 // out of the HTTP request.  This must be a NUMBER, but may be fractional.
-void http_term_t::get_timeout_ms(scope_env_t *env,
+void http_term_t::get_timeout_ms(eval_error *err_out, scope_env_t *env,
                                  args_t *args,
                                  uint64_t *timeout_ms_out) {
-    scoped_ptr_t<val_t> timeout = args->optarg(env, "timeout");
+    scoped_ptr_t<val_t> timeout = args->optarg(err_out, env, "timeout");
+    if (err_out->has()) { return; }
     if (timeout.has()) {
         double tmp = timeout->as_num();
         tmp *= 1000;
@@ -488,10 +507,11 @@ void http_term_t::verify_header_string(const std::string &str,
 // As an ARRAY, each item must be a STRING, and each item will result
 //  in exactly one header line, being copied directly over
 // Header lines are not allowed to contain newlines.
-void http_term_t::get_header(scope_env_t *env,
+void http_term_t::get_header(eval_error *err_out, scope_env_t *env,
                              args_t *args,
                              std::vector<std::string> *header_out) {
-    scoped_ptr_t<val_t> header = args->optarg(env, "header");
+    scoped_ptr_t<val_t> header = args->optarg(err_out, env, "header");
+    if (err_out->has()) { return; }
     if (header.has()) {
         datum_t datum_header = header->as_datum();
         if (datum_header.get_type() == datum_t::R_OBJECT) {
@@ -531,10 +551,11 @@ void http_term_t::get_header(scope_env_t *env,
 
 // The `method` optarg must be a STRING, and specify one of the following
 // supported HTTP request methods: GET, HEAD, POST, PUT, PATCH, or DELETE.
-void http_term_t::get_method(scope_env_t *env,
+void http_term_t::get_method(eval_error *err_out, scope_env_t *env,
                              args_t *args,
                              http_method_t *method_out) {
-    scoped_ptr_t<val_t> method = args->optarg(env, "method");
+    scoped_ptr_t<val_t> method = args->optarg(err_out, env, "method");
+    if (err_out->has()) { return; }
     if (method.has()) {
         std::string method_str = method->as_str().to_std();
         if (method_str == "GET") {
@@ -577,10 +598,11 @@ std::string http_term_t::get_auth_item(const datum_t &datum,
 //      defaults to 'basic'
 //  user - STRING, the user_context to use
 //  pass - STRING, the password to use
-void http_term_t::get_auth(scope_env_t *env,
+void http_term_t::get_auth(eval_error *err_out, scope_env_t *env,
                            args_t *args,
                            http_opts_t::http_auth_t *auth_out) {
-    scoped_ptr_t<val_t> auth = args->optarg(env, "auth");
+    scoped_ptr_t<val_t> auth = args->optarg(err_out, env, "auth");
+    if (err_out->has()) { return; }
     if (auth.has()) {
         datum_t datum_auth = auth->as_datum();
         if (datum_auth.get_type() != datum_t::R_OBJECT) {
@@ -650,13 +672,15 @@ std::string http_term_t::print_http_param(const datum_t &datum,
 //   converted into a string of form-encoded key-value pairs of the format
 //   "key=val&key=val" in the request body.
 void http_term_t::get_data(
+        eval_error *err_out,
         scope_env_t *env,
         args_t *args,
         std::string *data_out,
         std::map<std::string, std::string> *form_data_out,
         std::vector<std::string> *header_out,
         http_method_t method) const {
-    scoped_ptr_t<val_t> data = args->optarg(env, "data");
+    scoped_ptr_t<val_t> data = args->optarg(err_out, env, "data");
+    if (err_out->has()) { return; }
     if (data.has()) {
         datum_t datum_data = data->as_datum();
         if (method == http_method_t::PUT ||
@@ -702,10 +726,11 @@ void http_term_t::get_data(
 // format "?key=val&key=val". The optarg must be an OBJECT with NUMBER, STRING, or
 // NULL values. A NULL value will result in "key=" with no value.
 // Values are sanitized here, but converted in the extproc.
-void http_term_t::get_params(scope_env_t *env,
+void http_term_t::get_params(eval_error *err_out, scope_env_t *env,
                              args_t *args,
                              datum_t *params_out) {
-    scoped_ptr_t<val_t> params = args->optarg(env, "params");
+    scoped_ptr_t<val_t> params = args->optarg(err_out, env, "params");
+    if (err_out->has()) { return; }
     if (params.has()) {
         *params_out = params->as_datum();
         check_url_params(*params_out, params.get());
@@ -721,10 +746,11 @@ void http_term_t::get_params(scope_env_t *env,
 //  text - The result should be returned as a literal string
 //  auto - The result will be parsed as JSON if the Content-Type is application/json,
 //         or a string otherwise.
-void http_term_t::get_result_format(scope_env_t *env,
+void http_term_t::get_result_format(eval_error *err_out, scope_env_t *env,
                                     args_t *args,
                                     http_result_format_t *result_format_out) {
-    scoped_ptr_t<val_t> result_format = args->optarg(env, "result_format");
+    scoped_ptr_t<val_t> result_format = args->optarg(err_out, env, "result_format");
+    if (err_out->has()) { return; }
     if (result_format.has()) {
         std::string result_format_str = result_format->as_str().to_std();
         if (result_format_str == "auto") {
@@ -749,10 +775,11 @@ void http_term_t::get_result_format(scope_env_t *env,
 // The `attempts` optarg specifies the maximum number of times to attempt the
 // request.  Reattempts will only be made when an HTTP error is returned that
 // could feasibly be temporary.  This must be specified as an INTEGER >= 0.
-void http_term_t::get_attempts(scope_env_t *env,
+void http_term_t::get_attempts(eval_error *err_out, scope_env_t *env,
                                args_t *args,
                                uint64_t *attempts_out) {
-    scoped_ptr_t<val_t> attempts = args->optarg(env, "attempts");
+    scoped_ptr_t<val_t> attempts = args->optarg(err_out, env, "attempts");
+    if (err_out->has()) { return; }
     if (attempts.has()) {
         *attempts_out = attempts->as_int<uint64_t>();
     }
@@ -760,10 +787,11 @@ void http_term_t::get_attempts(scope_env_t *env,
 
 // The `redirects` optarg specifies the maximum number of redirects to follow before
 // erroring the query.  This must be passed as an INTEGER between 0 and 2^32 - 1.
-void http_term_t::get_redirects(scope_env_t *env,
+void http_term_t::get_redirects(eval_error *err_out, scope_env_t *env,
                                 args_t *args,
                                 uint32_t *redirects_out) {
-    scoped_ptr_t<val_t> redirects = args->optarg(env, "redirects");
+    scoped_ptr_t<val_t> redirects = args->optarg(err_out, env, "redirects");
+    if (err_out->has()) { return; }
     if (redirects.has()) {
         *redirects_out = redirects->as_int<uint32_t>();
     }
@@ -771,11 +799,12 @@ void http_term_t::get_redirects(scope_env_t *env,
 
 // This is a generic function for parsing out a boolean optarg yet still providing a
 // helpful message.  At the moment, it is only used for `page` and `verify`.
-void http_term_t::get_bool_optarg(const std::string &optarg_name,
+void http_term_t::get_bool_optarg(eval_error *err_out, const std::string &optarg_name,
                                   scope_env_t *env,
                                   args_t *args,
                                   bool *bool_out) {
-    scoped_ptr_t<val_t> option = args->optarg(env, optarg_name);
+    scoped_ptr_t<val_t> option = args->optarg(err_out, env, optarg_name);
+    if (err_out->has()) { return; }
     if (option.has()) {
         *bool_out = option->as_bool();
     }
