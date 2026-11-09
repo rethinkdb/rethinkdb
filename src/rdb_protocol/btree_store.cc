@@ -649,7 +649,7 @@ optional<uuid_u> store_t::add_sindex_internal(
         sindex.needs_post_construction_range = key_range_t::universe();
 
         ::set_secondary_index(sindex_block, name, sindex);
-        return ::make_optional(sindex.id);
+        return make_optional(sindex.id);
     }
 }
 

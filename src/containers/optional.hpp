@@ -2,6 +2,7 @@
 #define CONTAINERS_OPTIONAL_HPP_
 
 #include <type_traits>
+#include <utility>
 
 #include "errors.hpp"
 #include "containers/printf_buffer.hpp"
@@ -164,10 +165,21 @@ private:
     union { T value_; };
 };
 
-template <class T>
-optional<typename std::decay<T>::type> make_optional(T &&x) {
-    return optional<typename std::decay<T>::type>(std::forward<T>(x));
-}
+namespace optional_impl {
+
+struct make_optional_fn {
+    template <class T>
+    optional<typename std::decay<T>::type> operator()(T &&value) const {
+        return optional<typename std::decay<T>::type>(std::forward<T>(value));
+    }
+};
+
+}  // namespace optional_impl
+
+// A function object, not a function template, so ordinary lookup suppresses
+// argument-dependent lookup. std::make_optional is otherwise a candidate when
+// an argument type lives in namespace std (libc++ <string> includes <optional>).
+inline constexpr optional_impl::make_optional_fn make_optional{};
 
 template <class T>
 void debug_print(printf_buffer_t *buf, const optional<T> &x) {

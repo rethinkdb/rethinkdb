@@ -167,7 +167,7 @@ optional<std::string> get_optional_option(const std::map<std::string, options::v
 
     if (it->second.values.size() == 1) {
         *source_out = it->second.source;
-        return ::make_optional(it->second.values[0]);
+        return make_optional(it->second.values[0]);
     }
 
     throw std::logic_error("Option '%s' appears multiple times (when it should only appear once.)");
@@ -570,7 +570,7 @@ optional<optional<uint64_t> > parse_total_cache_size_option(
                 optional<uint64_t>(res));
         }
     } else {
-        return ::make_optional(optional<uint64_t>());
+        return make_optional(optional<uint64_t>());
     }
 }
 

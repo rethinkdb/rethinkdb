@@ -43,7 +43,7 @@ Examples:
 Before all the tests will work, you must configure and build RethinkDB with CMake, install node.js, as well as install the node.js mocha test framework.
 
 ```
-cmake --build ../.. --parallel
+cmake --build ../.. --parallel "$(sh ../../cmake/parallel-jobs.sh)"
 sudo npm install -g mocha
 ```
 

@@ -69,10 +69,10 @@ macOS, Debian, Ubuntu, RHEL, CentOS, Rocky, Alma, FreeBSD, and Windows, plus
 every option, target, and package, are in
 [cmake/README.md](cmake/README.md).
 
-From a Git checkout:
+From a Git checkout. `--parallel` with no number starts one compiler per logical CPU.
 
     cmake --preset debug
-    cmake --build --preset debug --parallel
+    cmake --build --preset debug --parallel 4
 
     ./build/debug/rethinkdb --version
 
@@ -82,7 +82,7 @@ you set `RETHINKDB_FETCH_<NAME>=ON`. A release build uses the `release`
 preset:
 
     cmake --preset release
-    cmake --build --preset release --parallel
+    cmake --build --preset release --parallel 4
 
     sudo cmake --install build/release
 
