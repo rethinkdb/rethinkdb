@@ -34,18 +34,22 @@ four options default to `ON`.
 
 Fetched archives are stored in `.cache/fetchcontent`. The first configure needs
 network access when an archive is not already there. A release compile of
-fetched Protobuf can use several GiB for one compiler process. On Linux, cap
-the job count:
+fetched Protobuf can use several GiB for one compiler process. Cap the job
+count on Linux, macOS, and FreeBSD:
 
 ```bash
 jobs=$(sh cmake/parallel-jobs.sh)
 cmake --build --preset release --parallel "${jobs}"
 ```
 
-`cmake/parallel-jobs.sh` reads available memory and prints a job count. It also
-accepts `RETHINKDB_NPROC`, `RETHINKDB_MEM_AVAILABLE_KB`, and
+`cmake/parallel-jobs.sh` reads available memory and prints a job count. On
+Linux it reads `MemAvailable`. On macOS it sums free, inactive, and speculative
+pages from `vm_stat`. On FreeBSD it sums free, inactive, and cache pages. It
+also accepts `RETHINKDB_NPROC`, `RETHINKDB_MEM_AVAILABLE_KB`, and
 `DEB_BUILD_OPTIONS=parallel=N`. `parallel=N` is a ceiling. It does not raise
-the count above what fits in RAM.
+the count above what fits in RAM. `--parallel` with no number starts one
+compile per logical CPU. The helper is a POSIX shell script, so a Windows
+build passes an explicit `--parallel` count instead.
 
 ## Build on macOS
 
@@ -68,7 +72,7 @@ The minimum deployment target is macOS 12.0. Configure raises an older
 
    ```bash
    cmake --preset debug
-   cmake --build --preset debug --parallel
+   cmake --build --preset debug --parallel "$(sh cmake/parallel-jobs.sh)"
    ```
 
 3. Run the server and the unit tests.
@@ -79,8 +83,13 @@ The minimum deployment target is macOS 12.0. Configure raises an older
    ctest --test-dir build/debug --output-on-failure
    ```
 
-4. For a release build, repeat the configure and build with the `release`
-   preset. The binary is `build/release/rethinkdb`.
+4. For a release build, configure and build with the `release` preset. The
+   binary is `build/release/rethinkdb`.
+
+   ```bash
+   cmake --preset release
+   cmake --build --preset release --parallel "$(sh cmake/parallel-jobs.sh)"
+   ```
 
 The allocator on macOS is the system allocator.
 
@@ -104,7 +113,7 @@ The allocator on macOS is the system allocator.
 
    ```bash
    cmake --preset debug
-   cmake --build --preset debug --parallel
+   cmake --build --preset debug --parallel "$(sh cmake/parallel-jobs.sh)"
    ./build/debug/rethinkdb --version
    ./build/debug/rethinkdb-unittest
    ```
@@ -154,7 +163,7 @@ The `cmake` package must be version 3.24 or newer. Check with
 
    ```bash
    cmake --preset debug
-   cmake --build --preset debug --parallel
+   cmake --build --preset debug --parallel "$(sh cmake/parallel-jobs.sh)"
    ./build/debug/rethinkdb --version
 
    cmake --preset release
@@ -190,11 +199,15 @@ allocator.
 
    ```bat
    cmake -S . -B build -G "Visual Studio 17 2022" -T v141 -A x64
-   cmake --build build --config Release --parallel
+   cmake --build build --config Release --parallel 4
    ```
 
-   The explicit fetch options are not required. Windows defaults already select
-   the pinned dependencies.
+   `--parallel` needs an explicit count. With no number, CMake starts one
+   compile per logical CPU, and one compiler process can use a few GiB.
+   `cmake/parallel-jobs.sh` is a POSIX shell script, so it is not the Windows
+   command. Replace `4` with a count that leaves a few GiB free. The explicit
+   fetch options are not required. Windows defaults already select the pinned
+   dependencies.
 
 6. Run the executable.
 
@@ -219,7 +232,7 @@ compiler you intend to use:
 
 ```bash
 cmake -S . -B build/debug -DCMAKE_BUILD_TYPE=Debug
-cmake --build build/debug --parallel
+cmake --build build/debug --parallel "$(sh cmake/parallel-jobs.sh)"
 ./build/debug/rethinkdb --version
 ```
 
@@ -368,7 +381,7 @@ RE2, QuickJS, and Protobuf, and installs the executable under `/usr/local`.
 
 ```bash
 cmake --preset package-osx
-cmake --build --preset package-osx --parallel
+cmake --build --preset package-osx --parallel "$(sh cmake/parallel-jobs.sh)"
 ```
 
 The image is `build/package-osx/packages/osx/rethinkdb.dmg`. Before the image
