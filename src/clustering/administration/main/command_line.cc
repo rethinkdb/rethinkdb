@@ -646,8 +646,8 @@ host_and_port_t parse_host_and_port(const std::string &source, const std::string
 class address_lookup_exc_t : public std::exception {
 public:
     explicit address_lookup_exc_t(const std::string& data) : info(data) { }
-    ~address_lookup_exc_t() throw () { }
-    const char *what() const throw () { return info.c_str(); }
+    ~address_lookup_exc_t() noexcept { }
+    const char *what() const noexcept { return info.c_str(); }
 private:
     std::string info;
 };

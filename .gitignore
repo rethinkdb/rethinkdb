@@ -14,6 +14,10 @@ last_tested_versions
 /config.mk
 /mk/gen/*
 /build
+/.cache/
+/CMakeUserPresets.json
+/CMakeCache.txt
+/CMakeFiles/
 
 /packaging/ami/build-ami-files/static-web
 

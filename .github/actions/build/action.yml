@@ -6,10 +6,10 @@ description: >-
   uploaded binaries match the test machines.
 
 inputs:
-  configure_args:
-    description: Arguments passed to ./configure.
+  cmake_args:
+    description: Extra arguments appended to the debug preset configure line.
     required: false
-    default: --fetch boost --fetch gtest --fetch re2 --fetch jemalloc --fetch quickjs
+    default: ""
 
 runs:
   using: composite
@@ -18,10 +18,8 @@ runs:
       id: support-cache
       uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
-        path: |
-          external/.cache
-          build/external
-        key: support-ubuntu-24.04-${{ hashFiles('mk/support/**', 'configure') }}
+        path: .cache/fetchcontent
+        key: fetchcontent-ubuntu-24.04-${{ hashFiles('CMakeLists.txt', 'CMakePresets.json', 'cmake/**') }}
 
     - name: Restore ccache
       id: ccache
@@ -40,42 +38,36 @@ runs:
         {
           echo "CCACHE_DIR=${HOME}/.cache/ccache"
           echo "CCACHE_MAXSIZE=2G"
-          echo "CC=ccache gcc"
-          echo "CXX=ccache g++"
+          echo "CMAKE_C_COMPILER_LAUNCHER=ccache"
+          echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache"
         } >> "$GITHUB_ENV"
 
-    - name: Configure
-      shell: bash
-      env:
-        CONFIGURE_ARGS: ${{ inputs.configure_args }}
-      run: |
-        set -euo pipefail
-        # CONFIGURE_ARGS is split on purpose; it is a fixed flag list from this action.
-        # shellcheck disable=SC2086
-        ./configure $CONFIGURE_ARGS
-
-    - name: Build support libraries
-      id: support
-      shell: bash
-      run: |
-        set -euo pipefail
-        make support -j"$(nproc)"
-
-    - name: Save support-library cache
-      if: ${{ steps.support-cache.outputs.cache-hit != 'true' && steps.support.outcome == 'success' }}
-      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-      with:
-        path: |
-          external/.cache
-          build/external
-        key: ${{ steps.support-cache.outputs.cache-primary-key }}
-
-    - name: Build debug binaries
+    - name: Configure and build
       id: compile
       shell: bash
+      env:
+        CMAKE_ARGS: ${{ inputs.cmake_args }}
       run: |
         set -euo pipefail
-        make DEBUG=1 -j"$(nproc)"
+        # CMAKE_ARGS is split on purpose; it is a fixed flag list from this action.
+        # shellcheck disable=SC2086
+        cmake --preset debug \
+          -DRETHINKDB_FETCH_BOOST=ON \
+          -DRETHINKDB_FETCH_GTEST=ON \
+          -DRETHINKDB_FETCH_RE2=ON \
+          -DRETHINKDB_FETCH_JEMALLOC=ON \
+          -DRETHINKDB_FETCH_QUICKJS=ON \
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+          $CMAKE_ARGS
+        cmake --build --preset debug --parallel "$(nproc)"
+
+    - name: Save fetchcontent cache
+      if: ${{ steps.support-cache.outputs.cache-hit != 'true' && steps.compile.outcome == 'success' }}
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: .cache/fetchcontent
+        key: ${{ steps.support-cache.outputs.cache-primary-key }}
 
     - name: Save ccache
       if: ${{ !cancelled() && steps.ccache.outputs.cache-hit != 'true' && (steps.compile.outcome == 'success' || steps.compile.outcome == 'failure') }}
@@ -134,6 +126,6 @@ runs:
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       with:
         name: build-support-logs
-        path: build/external/*.log
+        path: build/debug/external/logs/**/*.log
         retention-days: 14
         if-no-files-found: ignore

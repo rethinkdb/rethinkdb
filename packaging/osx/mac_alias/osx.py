@@ -421,11 +421,22 @@ _fgetattrlist = libc.fgetattrlist
 _fgetattrlist.argtypes = [c_int, POINTER(attrlist), c_void_p, c_ulong, c_ulong]
 _fgetattrlist.restype = c_int
 
-_statfs = libc['statfs$INODE64']
+def _libc_symbol(*names):
+    """Load a libc symbol, trying older inode64 aliases when needed."""
+    for name in names:
+        try:
+            return libc[name]
+        except AttributeError:
+            continue
+    raise AttributeError('libc is missing symbols: %s' % ', '.join(names))
+
+# Current macOS exports statfs directly. Older releases only exposed the
+# 64-bit-inode variant under the $INODE64 suffix.
+_statfs = _libc_symbol('statfs$INODE64', 'statfs')
 _statfs.argtypes = [c_char_p, POINTER(struct_statfs)]
 _statfs.restype = c_int
 
-_fstatfs = libc['fstatfs$INODE64']
+_fstatfs = _libc_symbol('fstatfs$INODE64', 'fstatfs')
 _fstatfs.argtypes = [c_int, POINTER(struct_statfs)]
 _fstatfs.restype = c_int
 
@@ -433,11 +444,18 @@ def _datetime_from_timespec(ts):
     td = datetime.timedelta(seconds=ts.tv_sec + 1.0e-9 * ts.tv_nsec)
     return unix_epoch + td
 
-def _decode_utf8_nul(sz):
-    nul = sz.find('\0')
+def _decode_utf8_nul(data):
+    if isinstance(data, str):
+        data = data.encode('utf-8')
+    nul = data.find(b'\0')
     if nul > -1:
-        sz = sz[:nul]
-    return sz.decode('utf-8')
+        data = data[:nul]
+    return data.decode('utf-8')
+
+def _path_arg(path):
+    if isinstance(path, str):
+        return path.encode('utf-8')
+    return path
 
 def _decode_attrlist_result(buf, attrs, options):
     result = []
@@ -770,7 +788,7 @@ def getattrlist(path, attrs, options):
     bufsize = _attrbuf_size(attrs)
     buf = create_string_buffer(bufsize)
 
-    ret = _getattrlist(path, byref(alist), buf, bufsize,
+    ret = _getattrlist(_path_arg(path), byref(alist), buf, bufsize,
                        options | FSOPT_REPORT_FULLSIZE)
 
     if ret < 0:
@@ -806,7 +824,7 @@ def fgetattrlist(fd, attrs, options):
 
 def statfs(path):
     result = struct_statfs()
-    ret = _statfs(path, byref(result))
+    ret = _statfs(_path_arg(path), byref(result))
     if ret < 0:
         err = _get_errno()
         raise OSError(err, os.strerror(err), path)
