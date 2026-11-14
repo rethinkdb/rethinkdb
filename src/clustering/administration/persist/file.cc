@@ -14,6 +14,7 @@
 #include "clustering/administration/persist/migrate/migrate_v1_16.hpp"
 #include "clustering/administration/persist/migrate/migrate_v2_1.hpp"
 #include "clustering/administration/persist/migrate/migrate_v2_3.hpp"
+#include "clustering/administration/persist/migrate/migrate_v2_4.hpp"
 #include "clustering/administration/persist/migrate/rewrite.hpp"
 #include "config/args.hpp"
 #include "logger.hpp"
@@ -350,7 +351,8 @@ metadata_file_t::metadata_file_t(
                 buf_parent_t(&write_txn.txn), sb_copy.get(), &write_txn,
                 &non_interruptor);
 
-            // The metadata is now serialized using the latest serialization version
+            // The metadata is now serialized using the latest serialization version.
+            // See the comment "On metadata_version:" below.
             metadata_version = cluster_version_t::LATEST_DISK;
         }
         // fallthrough
@@ -366,7 +368,8 @@ metadata_file_t::metadata_file_t(
             migrate_metadata_v2_1_to_v2_3(
                 metadata_version, &write_txn, &non_interruptor);
 
-            // The metadata is now serialized using the latest serialization version
+            // The metadata is now serialized using the latest serialization version.
+            // See the comment "On metadata_version:" below.
             metadata_version = cluster_version_t::LATEST_DISK;
         }
         // fallthrough
@@ -381,15 +384,56 @@ metadata_file_t::metadata_file_t(
             migrate_metadata_v2_3_to_v2_4(
                 metadata_version, &write_txn, &non_interruptor);
 
-            // The metadata is now serialized using the latest serialization version
+            // The metadata is now serialized using the latest serialization version.
+            // See the comment "On metadata_version:" below.
             metadata_version = cluster_version_t::LATEST_DISK;
-        } // fallthrough intentional
+        }
+        // fallthrough
         case cluster_version_t::v2_4: {
-        } // fallthrough intentional
+            if (sb_lock.has()) {
+                update_metadata_superblock_version(sb_data);
+                sb_write.reset();
+                sb_lock.reset();
+            }
+
+            logNTC("Migrating cluster metadata to v2.5");
+            migrate_metadata_v2_4_to_v2_5(
+                metadata_version, &write_txn, &non_interruptor);
+
+            // The metadata is now serialized using the latest serialization version.
+            // See the comment "On metadata_version:" below.
+            metadata_version = cluster_version_t::LATEST_DISK;
+        }
+        // fallthrough
         case cluster_version_t::v2_5_is_latest_disk:
             break;  // up-to-date, do nothing
         default: unreachable();
         }
+
+        /* "On metadata_version:" This behavior of updating this local variable
+           `metadata_version` to `cluster_version_t::LATEST_DISK`, as we fall through the
+           switch cases, probably looks fishy to you.  That's because, in general, it is.
+           Its correctness only holds up as long as each metadata migration step
+           re-serializes a superset of all the data read by the metadata migration steps
+           that follow it.
+
+           Each switch case proclaims "The metadata is now serialized using the latest
+           serialization version." -- that means, ALL the metadata is now serialized using
+           the latest serialization version.  That means, for example, if we don't change
+           the structure of this function, that every case preceding
+           `cluster_version_t::v2_8` (which doesn't exist yet) must reserialize all data
+           that changes in a v2.8->v3.0 migration.
+
+           Therefore, to convince yourself that this code works correctly, you need to
+           look inside the `migrate_metadata_X_to_Y` functions and see what they update.
+
+           In the future, this could mean that past metadata migrations need to get
+           changed to re-serialize additional data, or that this function could get
+           changed to juggle multiple metadata serialization versions and avoid holding
+           the invariant, "[all] the metadata is now serialized using the latest
+           serialization version," in intermediate migration steps.  (But this invariant
+           must still be held at the end, when we commit the `write_txn`.)
+         */
     }
     write_txn.commit();
 }
