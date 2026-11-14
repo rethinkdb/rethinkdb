@@ -24,7 +24,7 @@ void migrate_metadata_v2_4_to_v2_5(metadata_file_t::write_txn_t *txn,
 
 
 
-// This will migrate all metadata from v2_3 to v2_4
+// This will migrate all metadata from v2_4 to v2_5
 void migrate_metadata_v2_4_to_v2_5(cluster_version_t serialization_version,
                                    metadata_file_t::write_txn_t *txn,
                                    signal_t *interruptor) {
