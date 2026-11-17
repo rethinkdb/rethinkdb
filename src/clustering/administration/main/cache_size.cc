@@ -164,14 +164,22 @@ bool parse_meminfo_file(const std::string &contents, uint64_t *mem_avail_out) {
 #else
     uint64_t memfree = 0;
     uint64_t cached = 0;
+    uint64_t buffers = 0;
+    uint64_t memavailable = 0;
 
     bool seen_memfree = false;
     bool seen_cached = false;
+    bool seen_buffers = false;
+    bool seen_memavailable = false;
 
     size_t offset = 0;
     std::string name;
     uint64_t value;
     std::string unit;
+    /* Scan the whole file instead of bailing out early once the fields we
+    care about have been seen: which fields exist (and where) depends on the
+    kernel version, and a "MemAvailable" line can come after the free/cached
+    entries. */
     while (parse_meminfo_line(contents, &offset, &name, &value, &unit)) {
         if (name == "MemFree") {
             if (seen_memfree) {
@@ -191,15 +199,40 @@ bool parse_meminfo_file(const std::string &contents, uint64_t *mem_avail_out) {
             }
             seen_cached = true;
             cached = value * KILOBYTE;
-        }
-
-        if (seen_memfree && seen_cached) {
-            break;
+        } else if (name == "Buffers") {
+            if (seen_buffers) {
+                return false;
+            }
+            if (unit != "kB") {
+                return false;
+            }
+            seen_buffers = true;
+            buffers = value * KILOBYTE;
+        } else if (name == "MemAvailable") {
+            if (seen_memavailable) {
+                return false;
+            }
+            if (unit != "kB") {
+                return false;
+            }
+            seen_memavailable = true;
+            memavailable = value * KILOBYTE;
         }
     }
 
-    if (seen_memfree && seen_cached) {
-        *mem_avail_out = memfree + cached;
+    if (seen_memavailable) {
+        /* "MemAvailable" (reported by Linux 3.14 and newer) is the kernel's
+        own estimate of how much memory can be handed out to applications
+        before swapping, and it already accounts for the reclaimable part of
+        the page cache and buffers. Use it as-is instead of adding the other
+        fields to it. */
+        *mem_avail_out = memavailable;
+        return true;
+    } else if (seen_memfree && seen_cached && seen_buffers) {
+        /* Older kernels don't report "MemAvailable", so fall back to the
+        classic heuristic of adding the free memory to the buffer cache and
+        the (mostly reclaimable) page cache. */
+        *mem_avail_out = memfree + cached + buffers;
         return true;
     } else {
         return false;
