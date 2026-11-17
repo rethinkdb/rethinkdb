@@ -184,8 +184,21 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
 #endif
 
     std::set<ip_address_t> filtered_ips;
-    // Remove any addresses that don't fit the filter
+    // Remove any addresses that aren't valid IPv4/IPv6 addresses, plus the
+    // ones that don't fit the filter
     for (auto const &ip : all_ips) {
+        if (!ip.is_valid()) {
+            /* Normally this can't happen: `get_local_ips()` only ever inserts
+            addresses that come from the `ip_address_t` `sockaddr` constructor,
+            which accepts nothing but IPv4 and IPv6 addresses. We
+            defensively drop invalid entries here anyway, so that callers
+            never get an address that they would crash on when converting it
+            to a string. (See GitHub issue #7124.) */
+            logWRN("get_local_ips() got an entry with an invalid address "
+                   "family (%d); ignoring it.",
+                   ip.get_address_family());
+            continue;
+        }
         if (filter_type == local_ip_filter_t::ALL ||
             filter.find(ip) != filter.end() ||
             (filter_type == local_ip_filter_t::MATCH_FILTER_OR_LOOPBACK &&
@@ -195,6 +208,16 @@ std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
     }
 
     return filtered_ips;
+}
+
+std::set<ip_address_t> filter_valid_addresses(const std::set<ip_address_t> &ips) {
+    std::set<ip_address_t> valid_ips;
+    for (auto const &ip : ips) {
+        if (ip.is_valid()) {
+            valid_ips.insert(ip);
+        }
+    }
+    return valid_ips;
 }
 
 addr_type_t sanitize_address_family(int address_family) {

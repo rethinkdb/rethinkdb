@@ -79,6 +79,14 @@ public:
     std::string to_string() const;
     bool is_loopback() const;
     bool is_any() const;
+    /* Returns true if this object holds a valid IPv4 or IPv6 address. It
+    returns false for default-constructed objects, which only have their
+    address family set to `RDB_UNSPEC_ADDR` (they exist so that
+    deserialization code can fill them in later). Several methods, most
+    notably `to_string()`, crash or throw when they are called on an invalid
+    address, so callers should check `is_valid()` first when an address may
+    not have been initialized. */
+    bool is_valid() const { return is_ipv4() || is_ipv6(); }
 
     int get_address_family() const;
     bool is_ipv4() const { return addr_type == RDB_IPV4_ADDR; }
@@ -111,6 +119,12 @@ enum class local_ip_filter_t {
 
 std::set<ip_address_t> get_local_ips(const std::set<ip_address_t> &filter,
                                      local_ip_filter_t filter_type);
+
+/* Returns a copy of `ips` that only contains the entries for which
+`ip_address_t::is_valid()` is true, i.e. the valid IPv4 and IPv6 addresses.
+Use this to sanitize sets of addresses that may contain default-constructed
+(invalid) entries before printing or otherwise converting them. */
+std::set<ip_address_t> filter_valid_addresses(const std::set<ip_address_t> &ips);
 
 class port_t {
 public:
