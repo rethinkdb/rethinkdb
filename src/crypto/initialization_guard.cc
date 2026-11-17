@@ -26,7 +26,9 @@ initialization_guard_t::initialization_guard_t() {
     OPENSSL_init_ssl(0, nullptr);
     OPENSSL_init_crypto(0, nullptr);
 
-    // Make OpenSSL thread-safe by registering the required callbacks
+    // OpenSSL 1.1 and later initialize their own locks. The callback API below
+    // was removed in that release.
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
     CRYPTO_THREADID_set_callback([](CRYPTO_THREADID *thread_out) {
         CRYPTO_THREADID_set_numeric(thread_out, get_thread_id().threadnum);
     });
@@ -47,6 +49,7 @@ initialization_guard_t::initialization_guard_t() {
                 openssl_locks[n].unlock();
             }
         });
+#endif
 }
 
 initialization_guard_t::~initialization_guard_t() {

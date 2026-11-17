@@ -10,7 +10,7 @@ tcp_socket_exc_t::tcp_socket_exc_t(int errsv, int port) {
 }
 
 
-address_in_use_exc_t::address_in_use_exc_t(const char* hostname, int port) throw () {
+address_in_use_exc_t::address_in_use_exc_t(const char* hostname, int port) noexcept {
     if (port == 0) {
         info = strprintf("Could not establish sockets on all selected local addresses using the same port");
     } else {

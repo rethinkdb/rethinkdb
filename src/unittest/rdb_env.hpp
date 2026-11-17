@@ -110,8 +110,8 @@ class invalid_name_exc_t : public std::exception {
 public:
     explicit invalid_name_exc_t(const std::string& name) :
         error_string(strprintf("invalid name string: %s", name.c_str())) { }
-    ~invalid_name_exc_t() throw () { }
-    const char *what() const throw () {
+    ~invalid_name_exc_t() noexcept { }
+    const char *what() const noexcept {
         return error_string.c_str();
     }
 private:

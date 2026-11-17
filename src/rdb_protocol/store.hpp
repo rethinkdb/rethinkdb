@@ -46,8 +46,8 @@ public:
     explicit sindex_not_ready_exc_t(std::string sindex_name,
                                     const secondary_index_t &sindex,
                                     const std::string &table_name);
-    const char* what() const throw();
-    ~sindex_not_ready_exc_t() throw();
+    const char* what() const noexcept;
+    ~sindex_not_ready_exc_t() noexcept;
 protected:
     std::string info;
 };

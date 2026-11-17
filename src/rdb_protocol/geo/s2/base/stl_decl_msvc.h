@@ -72,18 +72,21 @@ struct identity {
   inline const T& operator()(const T& t) const { return t; }
 };
 
-// Copied from STLport
+// Copied from STLport. std::unary_function was removed in C++17.
 template <class _Pair>
-struct select1st : public std::unary_function<_Pair, typename _Pair::first_type> {
-  const typename _Pair::first_type& operator()(const _Pair& __x) const {
+struct select1st {
+  typedef _Pair argument_type;
+  typedef typename _Pair::first_type result_type;
+  const result_type& operator()(const _Pair& __x) const {
     return __x.first;
   }
 };
 
 template <class _Pair>
-struct select2nd : public std::unary_function<_Pair, typename _Pair::second_type>
-{
-  const typename _Pair::second_type& operator()(const _Pair& __x) const {
+struct select2nd {
+  typedef _Pair argument_type;
+  typedef typename _Pair::second_type result_type;
+  const result_type& operator()(const _Pair& __x) const {
     return __x.second;
   }
 };

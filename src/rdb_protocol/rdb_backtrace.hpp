@@ -26,9 +26,9 @@ public:
           error_type(_error_type),
           message(_message),
           bt_datum(_bt_datum) { }
-    virtual ~bt_exc_t() throw () { }
+    virtual ~bt_exc_t() noexcept { }
 
-    const char *what() const throw () { return message.c_str(); }
+    const char *what() const noexcept { return message.c_str(); }
 
     const Response::ResponseType response_type;
     const Response::ErrorType error_type;

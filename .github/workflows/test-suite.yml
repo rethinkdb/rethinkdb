@@ -2,8 +2,8 @@ name: Test suite
 
 # Keep every job on ubuntu-24.04. ubuntu-latest is Ubuntu 26.04, and
 # ruby/setup-ruby has no prebuilt Ruby 2.7.8 for that image. The polyglot tag
-# stays rb2.7. The debug binary is also linked against this image's libprotobuf,
-# libcurl, and ncurses, so the build cannot move ahead of the Ruby job.
+# stays rb2.7. The debug binary is also linked against this image's libprotobuf
+# and libcurl, so the build cannot move ahead of the Ruby job.
 #
 # Scripts run on Python 3.12. The Python driver pin lives in
 # .github/actions/setup-python-driver and is independent of that interpreter.
@@ -16,6 +16,8 @@ name: Test suite
 #
 # Branch protection should require the CI result check. Long tests are skipped
 # on pull requests, and that skipped job does not fail the result check.
+#
+# Preflight runs cpplint and cmakelint. The build job waits for that job.
 
 on:
   workflow_call:
@@ -52,6 +54,14 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install cmakelint
+        id: cmakelint
+        if: steps.python.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check "cmakelint==1.4.3"
+
       - name: Check C++ style
         if: steps.python.outcome == 'success'
         uses: ./.github/actions/run-tests
@@ -60,6 +70,15 @@ jobs:
           command: |
             mkdir -p "$TEST_OUTPUT_DIR"
             ./scripts/check_style.sh | tee "$TEST_OUTPUT_DIR/cpplint.log"
+
+      - name: Check CMake style
+        if: steps.python.outcome == 'success' && steps.cmakelint.outcome == 'success'
+        uses: ./.github/actions/run-tests
+        with:
+          artifact_suffix: cmakelint
+          command: |
+            mkdir -p "$TEST_OUTPUT_DIR"
+            ./scripts/check_cmake.sh 2>&1 | tee "$TEST_OUTPUT_DIR/cmakelint.log"
 
   build:
     name: Build

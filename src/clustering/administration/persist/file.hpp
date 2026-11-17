@@ -18,7 +18,7 @@ class serializer_filepath_t;
 
 class file_in_use_exc_t : public std::exception {
 public:
-    const char *what() const throw () {
+    const char *what() const noexcept {
         return "metadata file is being used by another rethinkdb process";
     }
 };

@@ -65,7 +65,22 @@ public:
             }
         }
 
-        std::random_shuffle(result.begin(), result.end());
+        // std::random_shuffle was removed in C++17. Keep using randint() so
+        // sample() stays on the process RNG. The shuffle algorithm itself
+        // differs from the old libstdc++ implementation; sample is already
+        // non-deterministic.
+        struct randint_engine_t {
+            using result_type = unsigned int;
+
+            static constexpr result_type min() noexcept { return 0; }
+
+            static constexpr result_type max() noexcept { return 0x7ffffffeU; }
+
+            result_type operator()() {
+                return static_cast<result_type>(randint(static_cast<int>(max()) + 1));
+            }
+        };
+        std::shuffle(result.begin(), result.end(), randint_engine_t{});
 
         counted_t<datum_stream_t> new_ds(
             new array_datum_stream_t(datum_t(std::move(result), env->env->limits()),

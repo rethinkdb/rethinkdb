@@ -64,38 +64,30 @@ ReQL? Check out [our RethinkDB docs](https://rethinkdb.com/docs/) and
 Building
 --------
 
-First install some dependencies.  For example, on Ubuntu or Debian:
+The server builds with CMake 3.24 or newer as ISO C++17. Package lists for
+macOS, Debian, Ubuntu, RHEL, CentOS, Rocky, Alma, FreeBSD, and Windows, plus
+every option, target, and package, are in
+[cmake/README.md](cmake/README.md).
 
-    sudo apt-get install build-essential protobuf-compiler \
-        # python \  # for older distros
-        python3 python-is-python3 \
-        libprotobuf-dev libcurl4-openssl-dev \
-        libncurses5-dev libjemalloc-dev wget m4 g++ libssl-dev
+From a Git checkout. `--parallel` with no number starts one compiler per logical CPU.
 
-Generally, you will need
+    cmake --preset debug
+    cmake --build --preset debug --parallel 4
 
-* GCC or Clang
-* Protocol Buffers
-* jemalloc
-* Ncurses
-* Python 2 or Python 3
-* libcurl
-* libcrypto (OpenSSL)
-* libssl-dev
+    ./build/debug/rethinkdb --version
 
-Then, to build:
+Boost, RE2, QuickJS, and Google Test are fetched. On Linux, jemalloc is
+fetched too. OpenSSL, zlib, curl, and Protobuf come from the system unless
+you set `RETHINKDB_FETCH_<NAME>=ON`. A release build uses the `release`
+preset:
 
-    ./configure --allow-fetch
-    # or run ./configure --allow-fetch CXX=clang++
+    cmake --preset release
+    cmake --build --preset release --parallel 4
 
-    make -j4
-    # or run make -j4 DEBUG=1
+    sudo cmake --install build/release
 
-    sudo make install
-    # or run ./build/debug_clang/rethinkdb
-
-See WINDOWS.md and mk/README.md for build instructions for Windows and
-FreeBSD.
+Windows uses the Visual Studio generator. Follow
+[Build on Windows](cmake/README.md#build-on-windows).
 
 Need help?
 ----------

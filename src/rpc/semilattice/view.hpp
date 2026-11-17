@@ -11,7 +11,7 @@
 
 class sync_failed_exc_t : public std::exception {
 public:
-    const char *what() const throw () {
+    const char *what() const noexcept {
         return "Could not sync with other node, because the connection was "
             "lost before the sync was over.";
     }

@@ -15,7 +15,7 @@
 succeeds, it returns the result as a `std::string`. If it fails, it throws
 `demangle_failed_exc_t`. */
 struct demangle_failed_exc_t : public std::exception {
-    const char *what() const throw () {
+    const char *what() const noexcept {
         return "Could not demangle C++ name.";
     }
 };

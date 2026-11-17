@@ -50,8 +50,8 @@ public:
         info = strprintf("The directory '%s' does not exist, run 'rethinkdb create -d \"%s\"' and try again.",
                          path.path().c_str(), path.path().c_str());
     }
-    ~directory_missing_exc_t() throw () { }
-    const char *what() const throw () {
+    ~directory_missing_exc_t() noexcept { }
+    const char *what() const noexcept {
         return info.c_str();
     }
 private:
@@ -64,8 +64,8 @@ public:
         info = strprintf("Could not create directory '%s': %s",
                          path.path().c_str(), errno_string(err).c_str());
     }
-    ~directory_create_failed_exc_t() throw () { }
-    const char *what() const throw () {
+    ~directory_create_failed_exc_t() noexcept { }
+    const char *what() const noexcept {
         return info.c_str();
     }
 private:
@@ -78,8 +78,8 @@ public:
         info = strprintf("Could not open directory '%s': %s",
                          path.path().c_str(), errno_string(err).c_str());
     }
-    ~directory_open_failed_exc_t() throw () { }
-    const char *what() const throw () {
+    ~directory_open_failed_exc_t() noexcept { }
+    const char *what() const noexcept {
         return info.c_str();
     }
 private:
@@ -92,8 +92,8 @@ public:
         info = strprintf("Directory '%s' is already in use, perhaps another instance of rethinkdb is using it.",
                          path.path().c_str());
     }
-    ~directory_locked_exc_t() throw () { }
-    const char *what() const throw () {
+    ~directory_locked_exc_t() noexcept { }
+    const char *what() const noexcept {
         return info.c_str();
     }
 private:

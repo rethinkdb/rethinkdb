@@ -2,7 +2,7 @@ name: Setup apt packages
 description: >-
   Install the Ubuntu 24.04 build or runtime packages shared by the RethinkDB
   workflows. Build and test jobs must use the same runner image so the server
-  links the distro libprotobuf, libcurl, ncurses, and OpenSSL.
+  links the distro libprotobuf, libcurl, and OpenSSL.
 
 inputs:
   profile:
@@ -24,6 +24,7 @@ runs:
             packages=(
               build-essential
               g++
+              cmake
               m4
               pkg-config
               git
@@ -31,7 +32,6 @@ runs:
               protobuf-compiler
               libprotobuf-dev
               libcurl4-openssl-dev
-              libncurses-dev
               libssl-dev
               ccache
             )
@@ -40,7 +40,6 @@ runs:
             packages=(
               libprotobuf-dev
               libcurl4-openssl-dev
-              libncurses-dev
               libssl-dev
             )
             ;;

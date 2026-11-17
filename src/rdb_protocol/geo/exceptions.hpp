@@ -10,8 +10,8 @@
 class geo_exception_t : public std::exception {
 public:
     explicit geo_exception_t(std::string msg) : msg_(msg) { }
-    virtual ~geo_exception_t() throw() { }
-    const char *what() const throw() {
+    virtual ~geo_exception_t() noexcept { }
+    const char *what() const noexcept {
         return msg_.c_str();
     }
 private:

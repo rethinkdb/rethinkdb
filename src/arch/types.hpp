@@ -21,13 +21,13 @@ struct iovec;
 // The linux_tcp_listener_t constructor can throw this exception
 class address_in_use_exc_t : public std::exception {
 public:
-    address_in_use_exc_t(const char* hostname, int port) throw ();
-    explicit address_in_use_exc_t(const std::string &msg) throw ()
+    address_in_use_exc_t(const char* hostname, int port) noexcept;
+    explicit address_in_use_exc_t(const std::string &msg) noexcept
         : info(msg) { }
 
-    ~address_in_use_exc_t() throw () { }
+    ~address_in_use_exc_t() noexcept { }
 
-    const char *what() const throw () {
+    const char *what() const noexcept {
         return info.c_str();
     }
 
@@ -39,9 +39,9 @@ class tcp_socket_exc_t : public std::exception {
 public:
     explicit tcp_socket_exc_t(int err, int port);
 
-    ~tcp_socket_exc_t() throw () { }
+    ~tcp_socket_exc_t() noexcept { }
 
-    const char *what() const throw () {
+    const char *what() const noexcept {
         return info.c_str();
     }
 
@@ -50,13 +50,13 @@ private:
 };
 
 class tcp_conn_read_closed_exc_t : public std::exception {
-    const char *what() const throw () {
+    const char *what() const noexcept {
         return "Network connection read end closed";
     }
 };
 
 struct tcp_conn_write_closed_exc_t : public std::exception {
-    const char *what() const throw () {
+    const char *what() const noexcept {
         return "Network connection write end closed";
     }
 };

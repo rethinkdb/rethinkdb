@@ -56,8 +56,8 @@ class curl_exc_t : public std::exception {
 public:
     explicit curl_exc_t(std::string err_msg) :
         error_string(std::move(err_msg)) { }
-    ~curl_exc_t() throw () { }
-    const char *what() const throw () {
+    ~curl_exc_t() noexcept { }
+    const char *what() const noexcept {
         return error_string.c_str();
     }
     const std::string error_string;

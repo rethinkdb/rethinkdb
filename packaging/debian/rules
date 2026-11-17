@@ -1,27 +1,59 @@
 #!/usr/bin/make -f
-# Copyright 2013 hello-debhelper project (used according to license) with modifications by RethinkDB
+# Debian binary package. The source package is produced by the CMake
+# package-deb-src target, which copies this rules file into the dist tree.
 
-package?=$(shell cat debian/control | grep '^Source:' | awk '{ printf "%s" , $$2 }')
-
+package?=$(shell awk '/^Source:/ { print $$2 }' debian/control)
 PVERSION?=$(shell cat debian/rethinkdb.version)
-
 DEBUG?=0
+BUILD_PORTABLE?=0
+BUILD_DIR:=$(CURDIR)/build/debian
+# --jobs=auto follows the CPU count. These translation units are built -O3 -g
+# and a single cc1plus can use about 1.5 GiB, so the job count follows RAM.
+JOBS:=$(shell sh $(CURDIR)/cmake/parallel-jobs.sh)
+ifeq ($(strip $(JOBS)),)
+$(error cmake/parallel-jobs.sh did not print a job count)
+endif
+
+ifeq ($(DEBUG),0)
+CMAKE_BUILD_TYPE:=Release
+else
+CMAKE_BUILD_TYPE:=Debug
+endif
+
+CMAKE_FLAGS:=-DCMAKE_BUILD_TYPE=$(CMAKE_BUILD_TYPE)
+CMAKE_FLAGS+=-DCMAKE_INSTALL_PREFIX=/usr
+CMAKE_FLAGS+=-DCMAKE_INSTALL_SYSCONFDIR=/etc
+CMAKE_FLAGS+=-DRETHINKDB_LOCALSTATEDIR=/var
+CMAKE_FLAGS+=-DRETHINKDB_VERSION=$(PVERSION)
+CMAKE_FLAGS+=-DRETHINKDB_ALLOW_WARNINGS=ON
+CMAKE_FLAGS+=-DRETHINKDB_SYMBOLS=ON
+CMAKE_FLAGS+=-DRETHINKDB_FETCH_BOOST=ON
+CMAKE_FLAGS+=-DRETHINKDB_FETCH_RE2=ON
+CMAKE_FLAGS+=-DRETHINKDB_FETCH_QUICKJS=ON
+CMAKE_FLAGS+=-DRETHINKDB_FETCH_JEMALLOC=ON
+# The binary package does not install unit tests. Building them compiles the
+# tests and links a second binary larger than the server.
+CMAKE_FLAGS+=-DBUILD_TESTING=OFF
+# GNU ld otherwise keeps the whole -g symbol table resident.
+CMAKE_FLAGS+=-DCMAKE_EXE_LINKER_FLAGS=-Wl,--no-keep-memory
+ifeq ($(BUILD_PORTABLE),1)
+CMAKE_FLAGS+=-DRETHINKDB_BUILD_PORTABLE=ON
+CMAKE_FLAGS+=-DRETHINKDB_FETCH_PROTOBUF=ON
+endif
 
 clean:
 	dh_clean
-	if [ -e build ] ; then rm -rf build ; fi ;
+	rm -rf $(BUILD_DIR)
 
-# This has "build" as an explicit dependency because starting on
-# Ubuntu 24.10 or 25.04, for some reason, dpkg-buildpackage is not
-# invoking the "build" step.
 install: build
 	dh_clean
 	dh_installdirs
-	$(MAKE) DEBUG=$(DEBUG) DESTDIR=$(CURDIR)/debian/$(package) PVERSION=$(PVERSION) STRIP_ON_INSTALL=0 install
+	DESTDIR=$(CURDIR)/debian/$(package) cmake --install $(BUILD_DIR)
 
 build:
-	./configure
-	$(MAKE) DEBUG=$(DEBUG) PVERSION=$(PVERSION) VERBOSE=1 SYMBOLS=1
+	echo "Compile jobs: $(JOBS)"
+	cmake -S . -B $(BUILD_DIR) $(CMAKE_FLAGS)
+	env MAKEFLAGS= MFLAGS= cmake --build $(BUILD_DIR) --parallel $(JOBS)
 	touch build
 
 binary-indep: install
@@ -41,4 +73,3 @@ binary-arch: install
 binary: binary-indep binary-arch
 
 .PHONY: binary binary-arch binary-indep clean install build
-

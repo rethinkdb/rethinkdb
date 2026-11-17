@@ -45,7 +45,7 @@ public:
         PERMISSION_ERROR // An error related to the user permissions.
     };
     explicit base_exc_t(type_t _type) : type(_type) { }
-    virtual ~base_exc_t() throw () { }
+    virtual ~base_exc_t() noexcept { }
     type_t get_type() const { return type; }
     virtual void rethrow_with_type(type_t type) const = 0;
     Response::ErrorType get_error_type() const {
@@ -255,9 +255,9 @@ public:
     exc_t(const base_exc_t &e, backtrace_id_t _bt, size_t _dummy_frames = 0)
         : base_exc_t(e.get_type()), message(e.what()),
           bt(_bt), dummy_frames_(_dummy_frames) { }
-    virtual ~exc_t() throw () { }
+    virtual ~exc_t() noexcept { }
 
-    const char *what() const throw () { return message.c_str(); }
+    const char *what() const noexcept { return message.c_str(); }
     void rethrow_with_type(base_exc_t::type_t _type) const final {
         throw exc_t(_type, std::string(message), bt, dummy_frames_);
     }
@@ -281,9 +281,9 @@ public:
     datum_exc_t() : base_exc_t(base_exc_t::LOGIC), message("UNINITIALIZED") { }
     explicit datum_exc_t(base_exc_t::type_t _type, std::string &&_message)
         : base_exc_t(_type), message(std::move(_message)) { }
-    virtual ~datum_exc_t() throw () { }
+    virtual ~datum_exc_t() noexcept { }
 
-    const char *what() const throw () { return message.c_str(); }
+    const char *what() const noexcept { return message.c_str(); }
     void rethrow_with_type(base_exc_t::type_t _type) const final {
         throw datum_exc_t(_type, std::string(message));
     }

@@ -71,11 +71,11 @@ sindex_not_ready_exc_t::sindex_not_ready_exc_t(
     }
 }
 
-const char* sindex_not_ready_exc_t::what() const throw() {
+const char* sindex_not_ready_exc_t::what() const noexcept {
     return info.c_str();
 }
 
-sindex_not_ready_exc_t::~sindex_not_ready_exc_t() throw() { }
+sindex_not_ready_exc_t::~sindex_not_ready_exc_t() noexcept { }
 
 store_t::store_t(const region_t &_region,
                  serializer_t *serializer,

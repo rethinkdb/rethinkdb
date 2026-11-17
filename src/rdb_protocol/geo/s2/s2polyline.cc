@@ -460,6 +460,15 @@ struct SearchState {
   inline SearchState(int i_val, int j_val, bool i_in_progress_val)
       : i(i_val), j(j_val), i_in_progress(i_in_progress_val) {}
 
+  // libc++ compares set keys with operator< . The order matches std::less below.
+  friend bool operator<(SearchState const& lhs, SearchState const& rhs) {
+    if (lhs.i < rhs.i) return true;
+    if (lhs.i > rhs.i) return false;
+    if (lhs.j < rhs.j) return true;
+    if (lhs.j > rhs.j) return false;
+    return !lhs.i_in_progress && rhs.i_in_progress;
+  }
+
   int i;
   int j;
   bool i_in_progress;
