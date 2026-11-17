@@ -34,6 +34,7 @@
 #include "containers/lifetime.hpp"
 #include "containers/optional.hpp"
 #include "extproc/extproc_pool.hpp"
+#include "logger.hpp"
 #include "rdb_protocol/query_server.hpp"
 #include "rpc/connectivity/cluster.hpp"
 #include "rpc/directory/map_read_manager.hpp"
@@ -67,6 +68,22 @@ std::string service_address_ports_t::get_addresses_string(
     if (is_bind_all(actual_addresses)) {
         actual_addresses = get_local_ips(std::set<ip_address_t>(),
                                          local_ip_filter_t::ALL);
+    }
+
+    /* `ip_address_t::to_string()` crashes when it is called on an address
+    that isn't a valid IPv4 or IPv6 address, e.g. one that was
+    default-constructed as a placeholder for deserialization, or one whose
+    contents got corrupted (this has been observed in the wild on some
+    ARM-based systems; see GitHub issue #7124). A garbled address list is not
+    worth crashing the whole server for at startup time, so drop the invalid
+    addresses here and warn about them instead. */
+    const size_t num_addresses = actual_addresses.size();
+    actual_addresses = filter_valid_addresses(actual_addresses);
+    if (actual_addresses.size() != num_addresses) {
+        logWRN("Skipped %zu network address(es) with an invalid address "
+               "family when listing the listening addresses; the printed "
+               "list may be incomplete.",
+               num_addresses - actual_addresses.size());
     }
 
     for (std::set<ip_address_t>::const_iterator i = actual_addresses.begin(); i != actual_addresses.end(); ++i) {
