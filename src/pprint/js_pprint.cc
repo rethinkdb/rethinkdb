@@ -240,7 +240,7 @@ private:
             stack->push_back(lparen);
             *last_is_dot = false;
             *last_should_r_wrap = false;
-            return make_optional(var.arg(0));
+            return optional(var.arg(0));
         }
         case Term::FUNCALL: {
             r_sanity_check(var.num_args() == 2);
@@ -254,7 +254,7 @@ private:
             stack->push_back(dot_linebreak);
             *last_is_dot = true;
             *last_should_r_wrap = true;
-            return make_optional(var.arg(1));
+            return optional(var.arg(1));
         }
         case Term::DATUM:
             in_r_expr = true;
@@ -306,7 +306,7 @@ private:
                 stack->push_back(dot_linebreak);
                 *last_is_dot = true;
                 *last_should_r_wrap = should_use_rdot(var);
-                return make_optional(var.arg(0));
+                return optional(var.arg(0));
             default:
                 std::vector<counted_t<const document_t> > args;
                 for (size_t i = var.num_args() - 1; i > 0; --i) {
@@ -322,7 +322,7 @@ private:
                 stack->push_back(dot_linebreak);
                 *last_is_dot = true;
                 *last_should_r_wrap = should_use_rdot(var);
-                return make_optional(var.arg(0));
+                return optional(var.arg(0));
             }
         }
     }

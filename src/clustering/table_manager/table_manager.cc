@@ -180,7 +180,7 @@ table_manager_t::leader_t::leader_t(table_manager_t *_parent) :
         leader_bcard.uuid = generate_uuid();
         leader_bcard.set_config_mailbox = set_config_mailbox.get_address();
         leader_bcard.contract_ack_minidir_bcard = contract_ack_read_manager.get_bcard();
-        bcard->leader = make_optional(leader_bcard);
+        bcard->leader = optional(leader_bcard);
         return true;
     });
 }
@@ -210,7 +210,7 @@ void table_manager_t::leader_t::on_set_config(
         timestamp.epoch = parent->epoch;
         timestamp.log_index = *result;
         send(parent->mailbox_manager, reply_addr,
-            make_optional(timestamp), true);
+            optional(timestamp), true);
     } else {
         /* If `is_change_successful` is false the change was considered a no-op and the
         returned log_index is that of the last change, which we safely ignore. */

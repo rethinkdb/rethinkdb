@@ -109,7 +109,7 @@ void table_meta_client_t::get_config(
     request.want_config = true;
     std::set<namespace_id_t> failures;
     get_status(
-        make_optional(table_id),
+        optional(table_id),
         request,
         server_selector_t::BEST_SERVER_ONLY,
         &interruptor,
@@ -177,7 +177,7 @@ void table_meta_client_t::get_sindex_status(
     request.want_sindexes = true;
     std::set<namespace_id_t> failures;
     get_status(
-        make_optional(table_id),
+        optional(table_id),
         request,
         server_selector_t::EVERY_SERVER,
         &interruptor,
@@ -218,7 +218,7 @@ void table_meta_client_t::get_shard_status(
     request.all_replicas_ready_mode = all_replicas_ready_mode;
     std::set<namespace_id_t> failures;
     get_status(
-        make_optional(table_id),
+        optional(table_id),
         request,
         /* If we only care about `all_replicas_ready`, there's no need to contact any
         server other than the primary */
@@ -252,7 +252,7 @@ void table_meta_client_t::get_raft_leader(
       [&](const std::pair<peer_id_t, namespace_id_t> &key,
           const table_manager_bcard_t *bcard) {
           if (key.second == table_id && static_cast<bool>(bcard->leader)) {
-            *raft_leader_out = make_optional(bcard->server_id);
+            *raft_leader_out = optional(bcard->server_id);
           }
       });
 }
@@ -275,7 +275,7 @@ void table_meta_client_t::get_debug_status(
     request.all_replicas_ready_mode = all_replicas_ready_mode;
     std::set<namespace_id_t> failures;
     get_status(
-        make_optional(table_id),
+        optional(table_id),
         request,
         server_selector_t::EVERY_SERVER,
         &interruptor,
@@ -483,7 +483,7 @@ void table_meta_client_t::emergency_repair(
     request.want_raft_state = true;
     std::set<namespace_id_t> failures;
     get_status(
-        make_optional(table_id),
+        optional(table_id),
         request,
         server_selector_t::BEST_SERVER_ONLY,
         &interruptor,

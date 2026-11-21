@@ -90,7 +90,7 @@ scoped_ptr_t<val_t> reql_func_t::call(env_t *env,
 }
 
 optional<size_t> reql_func_t::arity() const {
-    return make_optional(arg_names.size());
+    return optional(arg_names.size());
 }
 
 deterministic_t reql_func_t::is_deterministic() const {

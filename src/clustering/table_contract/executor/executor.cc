@@ -95,7 +95,7 @@ private:
     void enable_gc(const branch_id_t &new_enable_gc_branch) {
         parent->assert_thread();
         guarantee(!static_cast<bool>(enable_gc_branch));
-        enable_gc_branch = make_optional(new_enable_gc_branch);
+        enable_gc_branch = optional(new_enable_gc_branch);
         parent->gc_branch_history_pumper.notify();
     }
 

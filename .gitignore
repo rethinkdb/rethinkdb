@@ -40,3 +40,5 @@ last_tested_versions
 *.iml
 /.vscode
 /.vs
+
+doxygen/

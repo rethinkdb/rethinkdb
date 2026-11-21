@@ -99,7 +99,7 @@ bool users_artificial_table_backend_t::write_row(
                     inner_user->get().merge(*new_value_inout);
                 });
             } else {
-                auth_metadata.m_users[username].set(make_optional(user_t(*new_value_inout)));
+                auth_metadata.m_users[username].set(optional<auth::user_t>(user_t(*new_value_inout)));
             }
             m_auth_semilattice_view->join(auth_metadata);
         } catch(admin_op_exc_t const &admin_op_exc) {

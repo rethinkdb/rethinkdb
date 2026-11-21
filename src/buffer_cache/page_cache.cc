@@ -1326,16 +1326,16 @@ void page_cache_t::do_flush_changes(page_cache_t *page_cache,
             if (it->is_deleted) {
                 write_ops.push_back(index_write_op_t(
                     it->block_id,
-                    make_optional(counted_t<standard_block_token_t>()),
-                    make_optional(repli_timestamp_t::invalid)));
+                    optional<counted_t<standard_block_token_t>>(counted_t<standard_block_token_t>()),
+                    optional<repli_timestamp_t>(repli_timestamp_t::invalid)));
             } else if (it->block_token.has()) {
                 write_ops.push_back(index_write_op_t(it->block_id,
-                                                     make_optional(it->block_token),
-                                                     make_optional(it->tstamp)));
+                                                     optional<counted_t<standard_block_token_t>>(it->block_token),
+                                                     optional<repli_timestamp_t>(it->tstamp)));
             } else {
                 write_ops.push_back(index_write_op_t(it->block_id,
                                                      r_nullopt,
-                                                     make_optional(it->tstamp)));
+                                                     optional<repli_timestamp_t>(it->tstamp)));
             }
         }
 

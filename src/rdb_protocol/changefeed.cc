@@ -1,3 +1,4 @@
+#include "containers/optional.hpp"
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/changefeed.hpp"
 
@@ -303,7 +304,7 @@ optional<datum_t> apply_ops(
         // TODO: when we support `.concatmap.changes` this will need to change.
         guarantee(vec->size() <= 1);
         if (vec->size() == 1) {
-            return make_optional((*vec)[0]);
+            return optional((*vec)[0]);
         } else {
             return r_nullopt;
         }
@@ -571,7 +572,7 @@ optional<uint64_t> server_t::get_stamp(
     if (it == clients.end()) {
         return r_nullopt;
     } else {
-        return make_optional(it->second.stamp);
+        return optional(it->second.stamp);
     }
 }
 
@@ -2084,7 +2085,7 @@ public:
                resp->stamp,
                store_key_t(pkey.print_primary()),
                r_nullopt,
-               make_optional(indexed_datum_t(resp->initial_val, r_nullopt))
+               optional(indexed_datum_t(resp->initial_val, r_nullopt))
                DEBUG_ONLY(, r_nullopt)));
         if (start_stamp > stamp) {
             stamp = start_stamp;
@@ -2135,7 +2136,7 @@ public:
             std::make_pair(nil_uuid(), 0),
             store_key_t(pkey.print_primary()),
             r_nullopt,
-            make_optional(indexed_datum_t(initial, r_nullopt))
+            optional(indexed_datum_t(initial, r_nullopt))
             DEBUG_ONLY(, r_nullopt)));
         started = true;
 
@@ -2247,7 +2248,7 @@ public:
         return changefeed::apply_ops(val, ops, env.get(), datum_t());
     }
     optional<datum_t> maybe_apply_ops(datum_t val) {
-        return has_ops() ? apply_ops(std::move(val)) : make_optional(std::move(val));
+        return has_ops() ? apply_ops(std::move(val)) : optional(std::move(val));
     }
 
     bool update_stamp(const uuid_u &uuid, uint64_t new_stamp) final {
@@ -2625,7 +2626,7 @@ public:
              ft != active_data.end();
              ++ft, ++i) {
             if (*ft == it) {
-                return make_optional(active_data.size() - (i + 1));
+                return optional(active_data.size() - (i + 1));
             }
         }
         return r_nullopt;
@@ -2884,7 +2885,7 @@ public:
                     for (const auto &idx : old_it->second) {
                         for (size_t i = 0; i < sub->copies(idx.first); ++i) {
                             old_idxs.push_back(
-                                indexed_datum_t(old_val, make_optional(idx.second)));
+                                indexed_datum_t(old_val, optional(idx.second)));
                         }
                     }
                 }
@@ -2893,15 +2894,15 @@ public:
                     for (const auto &idx : new_it->second) {
                         for (size_t i = 0; i < sub->copies(idx.first); ++i) {
                             new_idxs.push_back(
-                                indexed_datum_t(new_val, make_optional(idx.second)));
+                                indexed_datum_t(new_val, optional(idx.second)));
                         }
                     }
                 }
                 while (old_idxs.size() > 0 && new_idxs.size() > 0) {
                     if (!trivial) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                    make_optional(std::move(old_idxs.back())),
-                                    make_optional(std::move(new_idxs.back())));
+                                    optional(std::move(old_idxs.back())),
+                                    optional(std::move(new_idxs.back())));
                     }
                     old_idxs.pop_back();
                     new_idxs.pop_back();
@@ -2910,7 +2911,7 @@ public:
                     guarantee(new_idxs.size() == 0);
                     if (old_val != null) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                    make_optional(std::move(old_idxs.back())),
+                                    optional(std::move(old_idxs.back())),
                                     r_nullopt);
                     }
                     old_idxs.pop_back();
@@ -2920,7 +2921,7 @@ public:
                     if (new_val != null) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
                                     r_nullopt,
-                                    make_optional(std::move(new_idxs.back())));
+                                    optional(std::move(new_idxs.back())));
                     }
                     new_idxs.pop_back();
                 }
@@ -2928,8 +2929,8 @@ public:
                 if (!trivial) {
                     for (size_t i = 0; i < sub->copies(change.pkey); ++i) {
                         sub->add_el(server_uuid, stamp, change.pkey, sindex,
-                                    make_optional(indexed_datum_t(old_val, r_nullopt)),
-                                    make_optional(indexed_datum_t(new_val, r_nullopt)));
+                                    optional(indexed_datum_t(old_val, r_nullopt)),
+                                    optional(indexed_datum_t(new_val, r_nullopt)));
                     }
                 }
             }

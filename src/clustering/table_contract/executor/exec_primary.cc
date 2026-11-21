@@ -90,7 +90,7 @@ void primary_execution_t::update_contract_or_raft_state(
         bool branch_matches = true;
         raft_state.current_branches.visit(region,
         [&](const region_t &, const branch_id_t &b) {
-            if (make_optional(b) != our_branch_id) {
+            if (optional(b) != our_branch_id) {
                 branch_matches = false;
             }
         });
@@ -183,13 +183,13 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
         table_query_bcard_t tq_bcard_direct;
         tq_bcard_direct.region = region;
         tq_bcard_direct.primary = r_nullopt;
-        tq_bcard_direct.direct = make_optional(direct_query_server.get_bcard());
+        tq_bcard_direct.direct = optional<direct_query_bcard_t>(direct_query_server.get_bcard());
         watchable_map_var_t<uuid_u, table_query_bcard_t>::entry_t directory_entry_direct(
             context->local_table_query_bcards, generate_uuid(), tq_bcard_direct);
 
         /* Send a request for the coordinator to register our branch */
         {
-            our_branch_id = make_optional(primary_dispatcher.get_branch_id());
+            our_branch_id = optional<branch_id_t>(primary_dispatcher.get_branch_id());
             contract_ack_t ack(contract_ack_t::state_t::primary_need_branch);
             ack.branch.set(*our_branch_id);
             context->branch_history_manager->export_branch_history(
@@ -278,7 +278,7 @@ void primary_execution_t::run(auto_drainer_t::lock_t keepalive) {
         table_query_bcard_t tq_bcard_primary;
         tq_bcard_primary.region = region;
         tq_bcard_primary.primary =
-            make_optional(primary_query_server.get_bcard());
+            optional<primary_query_bcard_t>(primary_query_server.get_bcard());
         tq_bcard_primary.direct = r_nullopt;
         watchable_map_var_t<uuid_u, table_query_bcard_t>::entry_t
             directory_entry_primary(

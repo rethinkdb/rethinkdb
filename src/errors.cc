@@ -1,6 +1,8 @@
 // Copyright 2010-2012 RethinkDB, all rights reserved.
 #include "errors.hpp"
 
+#include "rethinkdb_version.hpp"
+
 #ifndef _MSC_VER
 #include <cxxabi.h>
 #endif

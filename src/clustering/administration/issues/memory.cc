@@ -78,7 +78,7 @@ void memory_issue_tracker_t::report_success() {
 
 void memory_issue_tracker_t::report_error(const std::string &message) {
     assert_thread();
-    error_message = make_optional(message);
+    error_message = optional<std::string>(message);
 }
 
 void memory_issue_tracker_t::combine(

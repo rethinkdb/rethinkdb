@@ -1,3 +1,4 @@
+#include "containers/optional.hpp"
 // Copyright 2010-2015 RethinkDB, all rights reserved.
 #include "rdb_protocol/datum_stream.hpp"
 
@@ -207,7 +208,7 @@ optional<std::map<region_t, store_key_t> > active_ranges_to_hints(
         }
     }
     r_sanity_check(hints.size() > 0);
-    return make_optional(std::move(hints));
+    return optional(std::move(hints));
 }
 
 enum class is_secondary_t { NO, YES };
@@ -342,9 +343,9 @@ public:
     optional<rget_item_t> pop() {
         r_sanity_check(!finished);
         if (cached_index < cached->cache.size()) {
-            return make_optional(std::move(cached->cache[cached_index++]));
+            return optional(std::move(cached->cache[cached_index++]));
         } else if (fresh != nullptr && fresh_index < fresh->stream.size()) {
-            return make_optional(std::move(fresh->stream[fresh_index++]));
+            return optional(std::move(fresh->stream[fresh_index++]));
         } else {
             return r_nullopt;
         }
@@ -389,7 +390,7 @@ raw_stream_t rget_response_reader_t::unshard(
         readgen->restrict_active_ranges(sorting, &*active_ranges);
         reql_version.set(res.reql_version);
     } else {
-        r_sanity_check(make_optional(res.reql_version) == reql_version);
+        r_sanity_check(optional(res.reql_version) == reql_version);
     }
 
     raw_stream_t ret;
@@ -564,7 +565,7 @@ optional<active_state_t> rget_response_reader_t::get_active_state() {
                 std::make_pair(last_read_range, stamp_it->second.stamp)));
         }
     }
-    return make_optional(active_state_t{
+    return optional(active_state_t{
         std::move(shard_last_read_stamps),
         reql_version,
         DEBUG_ONLY(readgen->sindex_name())});
@@ -1191,7 +1192,7 @@ rget_read_t sindex_readgen_t::next_read_impl(
         batchspec,
         std::move(transforms),
         optional<terminal_variant_t>(),
-        make_optional(sindex_rangespec_t(sindex,
+        optional(sindex_rangespec_t(sindex,
                                          std::move(region),
                                          std::move(ds),
                                          require_sindex_val)),
@@ -1203,7 +1204,7 @@ key_range_t sindex_readgen_t::original_keyrange(reql_version_t rv) const {
 }
 
 optional<std::string> sindex_readgen_t::sindex_name() const {
-    return make_optional(sindex);
+    return optional(sindex);
 }
 
 changefeed::keyspec_t::range_t sindex_readgen_t::get_range_spec(
@@ -1301,7 +1302,7 @@ intersecting_geo_read_t intersecting_readgen_t::next_read_impl(
         optional<terminal_variant_t>(),
         sindex_rangespec_t(
             sindex,
-            make_optional(std::move(region)),
+            optional(std::move(region)),
             datumspec_t(datum_range_t::universe())),
         query_geometry);
 }
@@ -1320,7 +1321,7 @@ key_range_t intersecting_readgen_t::original_keyrange(reql_version_t rv) const {
 }
 
 optional<std::string> intersecting_readgen_t::sindex_name() const {
-    return make_optional(sindex);
+    return optional(sindex);
 }
 
 changefeed::keyspec_t::range_t intersecting_readgen_t::get_range_spec(
@@ -1330,7 +1331,7 @@ changefeed::keyspec_t::range_t intersecting_readgen_t::get_range_spec(
         sindex_name(),
         sorting_t::UNORDERED,
         datumspec_t(datum_range_t::universe()),
-        make_optional(query_geometry)};
+        optional(query_geometry)};
 }
 
 bool datum_stream_t::add_stamp(changefeed_stamp_t) {

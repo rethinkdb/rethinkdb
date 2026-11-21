@@ -69,7 +69,7 @@ public:
             auth::username_t("admin"),
             versioned_t<optional<auth::user_t>>::make_with_manual_timestamp(
                 version_ts,
-                make_optional(auth::user_t(std::move(pw)))));
+                optional<auth::user_t>(auth::user_t(std::move(pw)))));
     }
 
     std::map<auth::username_t, versioned_t<optional<auth::user_t>>> m_users;
